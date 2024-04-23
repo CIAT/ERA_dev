@@ -65,14 +65,27 @@ if(length(s3fs::s3_dir_ls(era_s3))==0){
 
 # Upload era master files to s3
 folder<-"data"
-s3_bucket<-"s3://era/data"
+s3_bucket<-"s3://digital-atlas/era/data"
 
-files<-list.files(folder,full.names = T)
-files<-grep("parquet$",files,value = T)
-s3_file_names<-gsub("_sum","",basename(files))
+files<-list.files(folder,full.names = T,recursive=T)
+files <- files[!file.info(files)$isdir]
+files<-grep("csv$|RData$|zip$|xlsx$",files,value=T)
 
 upload_files_to_s3(files = files,
-                   s3_file_names = s3_file_names,
+                   selected_bucket=s3_bucket,
+                   max_attempts = 3,
+                   overwrite=T,
+                   mode="public-read")
+
+# Upload 2023 extraction files to s3
+folder<-"data_entry/data_entry_2023"
+s3_bucket<-"s3://digital-atlas/era/data_entry/data_entry_2023"
+
+files<-list.files(folder,full.names = T,recursive=T)
+files <- files[!file.info(files)$isdir]
+files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
+
+upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,
