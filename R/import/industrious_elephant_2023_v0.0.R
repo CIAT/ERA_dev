@@ -228,7 +228,7 @@ Pub.Out<-rbindlist(pblapply(1:length(Pub.Out),FUN=function(i){
 Zero.Cols<-c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4")
 Pub.Out<-Pub.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
 
-# Pub.Out: Validation: Duplicate or mismatched B.Codes ####
+# Pub.Out: Validation: Duplicate or mismatched B.Codes
 Pub.Out<-merge(Pub.Out,excel_files[,list(filename,era_code2)],all.x=T)
 Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2]
 
@@ -236,24 +236,57 @@ Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2]
 (errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)][order(B.Code)])
 error_file<-file.path(error_dir,"pub_code_errors.csv")
 if(nrow(errors)>1){
-  fwrite(errors,file.path(error_dir,"pub_code_errors.csv"))
+  errors[,issue_addressed:=F][,addressed_by_whom:=""]
+  fwrite(errors,error_file)
 }else{
   unlink(error_file)
 }
 
-
 # Reset B.Codes to filename
 Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue"):=NULL]
 
-
 # 3.2) Site.Out #####
-Site.Out<-lapply(XL,"[[",2)
+Site.Out<-lapply(XL,"[[","Site.Out")
+site_names<-colnames(Site.Out[[1]])
+
+# Check that column names match between sheets
+errors<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
+  dt<-Site.Out[[i]]
+  if(!all(colnames(dt) == site_names)){
+   data.table(B.Code=Pub.Out$B.Code[i],filename=names(XL)[i])
+  }
+  }))
+
+error_file<-file.path(error_dir,"site_structure_errors.csv")
+if(nrow(errors)>1){
+  errors[,issue:="Problem with structure of Soil.Out tab, does not match other excels"][,issue_addressed:=F][,addressed_by_whom:=""]
+  fwrite(errors,error_file)
+}else{
+  unlink(error_file)
+}
+
+# Read in data excluding files
 Site.Out<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
-  SS<-Site.Out[[i]]
-  SS<-SS[-1,]
-  SS$B.Code<-Pub.Out$B.Code[i]
-  SS
+  dt<-Site.Out[[i]]
+  
+  if(!all(colnames(dt) == site_names)){
+  dt$B.Code<-Pub.Out$B.Code[i]
+  dt$filename<-names(XL)[i]
+  cols_to_remove <- grep("^\\.\\.\\.", names(dt), value = TRUE)
+  dt[, (cols_to_remove) := NULL]
+  dt
+  }else{
+    NULL
+  }
 }))
+
+
+
+
+colnames(Site.Out[[1]])
+colnames(Site.Out[[21]])
+names(XL)[1]
+names(XL)[21]
 
 # Remove any parenthesis in names
 Site.Out[,Site.ID:=gsub("[(]","",Site.ID)][,Site.ID:=gsub("[)]","",Site.ID)]
