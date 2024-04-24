@@ -2,7 +2,7 @@
 
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
-pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds)
+pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply)
 
 
 # 0.1) Create functions ####
@@ -21,10 +21,11 @@ replace_zero_with_NA<-function(data){
 }
 
 # 0.2) Set directories and parallel cores ####
+project<-"industrious_elephant_2023"
 
 workers<-parallel::detectCores()-2
 
-data_dir<-paste0(era_dir,"/data_entry/industrious_elephant_2023")
+data_dir<-paste0(era_dir,"/data_entry/",project)
 data_dirs<-list.dirs(data_dir,full.names = T)
 data_dirs<-data_dirs[grep("QCed|Extracted",data_dirs)]
 data_dirs<-data_dirs[!grepl("rejected|Rejected|Duplicate|Mistake|Adriana|Accident",data_dirs)]
@@ -34,11 +35,15 @@ if(!dir.exists(extracted_dir)){
   dir.create(extracted_dir)
 }
 
+error_dir<-paste0(project_dir,"/data/data_entry/",project,"/data_issues")
+if(!dir.exists(error_dir)){
+  dir.create(error_dir,recursive=T)
+}
+
 # 1) Download data ####
 # Excel data entry
 
 # 2) Load data ####
-
 # 2.1) Load era vocab #####
 vocab_file<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
 
@@ -94,11 +99,64 @@ excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
 excel_files[N>1][order(era_code)]
 
 excel_files<-excel_files[!N>1][,N:=NULL]
+excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
 
 
 # 2.4) Read in data from excel files #####
 
-# Temporary code to explore which excels have issues ####
+
+# If files have already been imported and converted to list form should the important process be run again?
+overwrite<-F
+
+# Set up parallel back-end
+if (.Platform$OS.type == "windows") {
+  plan(multisession, workers = workers)
+} else {
+  plan(multicore, workers = workers)
+}
+
+# Run future apply loop to read in data from each excel file in parallel
+XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
+  File <- excel_files$filename[i]
+  era_code <- excel_files$era_code2[i]
+  save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+  
+  if (overwrite == TRUE || !file.exists(save_name)) {
+    X <- tryCatch({
+      lapply(SheetNames, FUN=function(SName){
+        cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName)
+        flush.console()
+        data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
+      })
+    }, error=function(e){
+      cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+      return(NULL)  # Return NULL if there was an error
+    })
+    
+    if (!is.null(X)) {
+      names(X) <- SheetNames
+      save(X, file=save_name)
+    }
+  } else {
+    miceadds::load.Rdata(filename=save_name, objname="X")
+  }
+  
+  X
+})
+
+# Reset plan to default setting
+future::plan(sequential)
+
+# Add names
+names(XL)<-excel_files$filename
+
+# Filter out any missing data
+XL <- Filter(Negate(is.null), XL)
+
+
+rm(Files,SheetNames,XL.M,Master)
+
+# Temporary code to explore which excels have junk data issues ####
 
 # Junk data in Residue composition data
 if(F){
@@ -156,93 +214,39 @@ if(F){
   
 }
 
-# If files have already been imported and converted to list form should the important process be run again?
-overwrite<-T
+# 3) Process imported data ####
+# 3.1) Publication (Pub.Out) #####
+Pub.Out<-lapply(XL,"[[","Pub.Out")
 
-# Set up parallel back-end
-if (.Platform$OS.type == "windows") {
-  plan(multisession, workers = workers)
-} else {
-  plan(multicore, workers = workers)
-}
-
-# Run future apply loop to read in data from each excel file in parallel
-XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
-  File <- excel_files$filename[i]
-  era_code <- gsub(".xlsm", "", excel_files$era_code[i])
-  save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
-  
-  if (overwrite == TRUE || !file.exists(save_name)) {
-    X <- tryCatch({
-      lapply(SheetNames, FUN=function(SName){
-        cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName)
-        flush.console()
-        Y <- data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
-        
-        if (!sum(colnames(Y) %in% XL.M[[SName]]) > 1) {
-          print("")
-          print("Colnames Error")
-          print("")
-          Y
-        } else {
-          Y
-        }
-      })
-    }, error=function(e){
-      cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
-      return(NULL)  # Return NULL if there was an error
-    })
-    
-    if (!is.null(X)) {
-      names(X) <- SheetNames
-      save(X, file=save_name)
-    }
-  } else {
-    miceadds::load.Rdata(filename=save_name, objname="X")
-  }
-  
+Pub.Out<-rbindlist(pblapply(1:length(Pub.Out),FUN=function(i){
+  X<-Pub.Out[[i]]
+  X$filename<-names(XL)[i]
   X
-})
-
-
-# Rest plan to default setting
-future::plan(sequential)
-
-names(XL)<-FNames
-
-rm(Files,SheetNames,XL.M,Rot1,Master)
-# <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #### 
-# ***PREPARE DATA*** ----
-# <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #### 
-# ***Publication (Pub.Out) =====
-Pub.Out<-rbindlist(lapply(XL,"[[",1))
+}))
 
 # Replace zeros with NAs
 Zero.Cols<-c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4")
 Pub.Out<-Pub.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
 
-# Pub.Out: Validation: Duplicate B.Codes ####
-Dups<-names(table(Pub.Out[,B.Code]))[table(Pub.Out[,B.Code])>1]
-FNames<-gsub(".xlsm","",FNames)
-if(length(Dups)>0){
-  N<-which(Pub.Out[,B.Code] %in% Dups)
-  Duplicate.B.Codes<-FNames[N]
-  View(Duplicate.B.Codes)
-  rm(N,Duplicate.B.Codes)
-}
-rm(Dups)
+# Pub.Out: Validation: Duplicate or mismatched B.Codes ####
+Pub.Out<-merge(Pub.Out,excel_files[,list(filename,era_code2)],all.x=T)
+Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2]
 
-# Validation needed - B.Code does not match excel name
-N<-unlist(lapply(1:nrow(Pub.Out),FUN=function(i){
-  grepl(Pub.Out[i,B.Code], FNames[i])
-}))
-
-if(sum(!N)>0){
-  View(data.table(Pub.Tab=Pub.Out[!N,B.Code],Excel.Name=FNames[!N]))
+# Save any errors
+(errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)][order(B.Code)])
+error_file<-file.path(error_dir,"pub_code_errors.csv")
+if(nrow(errors)>1){
+  fwrite(errors,file.path(error_dir,"pub_code_errors.csv"))
+}else{
+  unlink(error_file)
 }
 
 
-# ***Site (Site.Out) =====
+# Reset B.Codes to filename
+Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue"):=NULL]
+
+
+# 3.2) Site.Out #####
 Site.Out<-lapply(XL,"[[",2)
 Site.Out<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
   SS<-Site.Out[[i]]

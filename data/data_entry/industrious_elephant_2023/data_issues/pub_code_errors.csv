@@ -1,0 +1,60 @@
+B.Code,era_code2,filename,N,code_issue
+0,CJ0150.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Charity/Extracted/V2.0.24 - CJ0150.2.xlsm,4,TRUE
+0,DM0025,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Diana/QCed/V2.0.24 - DM0025.xlsm,4,TRUE
+0,SA0056,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/QCed/V2.0.24 - SA0056.xlsm,4,TRUE
+0,SP0068,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Sebastian/Extracted/V2.0.24 - SP0068.xlsm,4,TRUE
+AC0047,AC0047.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Alvaro/QCed/V2.0.18 - AC0047.1.xlsm,2,TRUE
+AC0047,AC0047.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Alvaro/QCed/V2.0.18 - AC0047.2.xlsm,2,TRUE
+AC0132,AC0132,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Alvaro/Extracted/V2.0.21 - AC0132.xlsm,2,FALSE
+AC0132,AC0134,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Alvaro/Extracted/V2.0.21 - AC0134.xlsm,2,TRUE
+CJ-0001,CJ0001,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Charity/Extracted/V2.0.13 - CJ0001.xlsm,1,TRUE
+CJ004,CJ0004,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Charity/QCed/V2.0.8 - CJ0004.xlsm,1,TRUE
+CJO171,CJ0171,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Charity/Extracted/V2.0.23 - CJ0171.xlsm,1,TRUE
+DM0007,DM0006,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Diana/Extracted/V2.0.10 - DM0006.xlsm,1,TRUE
+HK0157,HK0157,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/Extracted/V2.0.24 - HK0157.xlsm,2,FALSE
+HK0157,LM0321,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/Extracted/V2.0.24 - LM0321.xlsm,2,TRUE
+HK0241,NN0241,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - NN0241.xlsm,1,TRUE
+HK0306.2,HK0306.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - HK0306.1.xlsm,2,TRUE
+HK0306.2,HK0306.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - HK0306.2.xlsm,2,FALSE
+JO001,JO0001,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/Extracted/V2.0.23 - JO0001.xlsm,1,TRUE
+JO002,JO0002,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/Extracted/V2.0.8 - JO0002.xlsm,1,TRUE
+JO0026,JO0026,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/QCed/V2.0.18 - JO0026.xlsm,2,FALSE
+JO0026,JO0030,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/QCed/V2.0.18 - JO0030.xlsm,2,TRUE
+JO003,JO0003,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/QCed/V2.0.7 - JO0003.xlsm,1,TRUE
+JO0043,JO0043,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/QCed/V2.0.20 - JO0043.xlsm,2,FALSE
+JO0043,JO0044,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/QCed/V2.0.20 - JO0044.xlsm,2,TRUE
+JOO064,JO0064,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/QCed/V2.0.21 - JO0064.xlsm,1,TRUE
+JS0041 ,JS0041,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - JS0041.xlsm,1,TRUE
+JS0102,JS0102,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - JS0102.xlsm,2,FALSE
+JS0102,JS0104,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - JS0104.xlsm,2,TRUE
+JS0218.1,JS0218.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - JS0218.1.xlsm,2,FALSE
+JS0218.1,JS0218.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - JS0218.2.xlsm,2,TRUE
+JS0355 ,JS0040.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - JS0040.2.xlsm,1,TRUE
+LM0075.1 ,LM0075.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - LM0075.1.xlsm,1,TRUE
+LM0119,LM0119,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - LM0119.xlsm,2,FALSE
+LM0119,NN0168,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - NN0168.xlsm,2,TRUE
+LM0213,LM0213,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - LM0213.xlsm,3,FALSE
+LM0213,LM0276,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - LM0276.xlsm,3,TRUE
+LM0213,LM0279,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - LM0279.xlsm,3,TRUE
+NM0037,NM0044,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/Extracted/V2.0.21 - NM0044.xlsm,3,TRUE
+NM0037,NM0022,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/QCed/V2.0.21 - NM0022.xlsm,3,TRUE
+NM0037,NM0037,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/QCed/V2.0.21 - NM0037.xlsm,3,FALSE
+NM004,NM0004,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/QCed/V2.0.7 - NM0004.xlsm,1,TRUE
+NM0121,NM0121.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/Extracted/V2.0.24 - NM0121.1.xlsm,2,TRUE
+NM0121,NM0121.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/Extracted/V2.0.24 - NM0121.2.xlsm,2,TRUE
+NN0041 ,NN0041,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - NN0041.xlsm,1,TRUE
+NN0067,NN0070.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/Extracted/V2.0.24 - NN0070.1.xlsm,2,TRUE
+NN0067,NN0067,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/QCed/V2.0.24 - NN0067.xlsm,2,FALSE
+NN0090 ,NN0090,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - NN0090.xlsm,1,TRUE
+NN0159.2,NN0159.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - NN0159.2.xlsm,2,FALSE
+NN0159.2,NN0159.3,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - NN0159.3.xlsm,2,TRUE
+NN0164 ,NN0164,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/Extracted/V2.0.24 - NN0164.xlsm,1,TRUE
+NN0514.1,NN0514.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/QCed/V2.0.24 - NN0514.1.xlsm,2,FALSE
+NN0514.1,NN0514.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nictor/QCed/V2.0.24 - NN0514.2.xlsm,2,TRUE
+SA0054,SA0054.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/Extracted/V2.0.24 - SA0054.1.xlsm,3,TRUE
+SA0054,SA0054.2,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/Extracted/V2.0.24 - SA0054.2.xlsm,3,TRUE
+SA0054,SA0054,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/Extracted/V2.0.24 - SA0054.xlsm,3,FALSE
+SA0059.1,SA0059.1,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/QCed/V2.0.24 - SA0059.1.xlsm,2,FALSE
+SA0059.1,SA0059.3,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Nelson/QCed/V2.0.24 - SA0059.3.xlsm,2,TRUE
+SAOOO7,SA0007,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Jabesh/Extracted/V2.0.24 - SA0007.xlsm,1,TRUE
+SP006,SP0006,/home/jovyan/common_data/era/data_entry/industrious_elephant_2023/Sebastian/QCed/V2.0.10 - SP0006.xlsm,1,TRUE
