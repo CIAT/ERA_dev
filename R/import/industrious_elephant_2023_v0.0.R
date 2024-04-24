@@ -2,7 +2,7 @@
 
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
-pacman::p_load(data.table, readxl, future, future.apply,parallel)
+pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds)
 
 
 # 0.1) Create functions ####
@@ -28,6 +28,11 @@ data_dir<-paste0(era_dir,"/data_entry/industrious_elephant_2023")
 data_dirs<-list.dirs(data_dir,full.names = T)
 data_dirs<-data_dirs[grep("QCed|Extracted",data_dirs)]
 data_dirs<-data_dirs[!grepl("rejected|Rejected|Duplicate|Mistake|Adriana|Accident",data_dirs)]
+
+extracted_dir<-paste0(data_dir,"/extracted")
+if(!dir.exists(extracted_dir)){
+  dir.create(extracted_dir)
+}
 
 # 1) Download data ####
 # Excel data entry
@@ -151,8 +156,10 @@ if(F){
   
 }
 
-# Set up parallel back-end
+# If files have already been imported and converted to list form should the important process be run again?
+overwrite<-T
 
+# Set up parallel back-end
 if (.Platform$OS.type == "windows") {
   plan(multisession, workers = workers)
 } else {
@@ -160,30 +167,43 @@ if (.Platform$OS.type == "windows") {
 }
 
 # Run future apply loop to read in data from each excel file in parallel
-XL<-future.apply::future_lapply(1:nrow(excel_files),FUN=function(i){
+XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
+  File <- excel_files$filename[i]
+  era_code <- gsub(".xlsm", "", excel_files$era_code[i])
+  save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
   
-  #XL<-lapply(1:length(Files),FUN=function(i){
-  File<-excel_files$filename[i]
-  X<-lapply(SheetNames,FUN=function(SName){
-    cat('\r                                                                                                                                          ')
-    cat('\r',"Importing File ",i,"/",nrow(excel_files)," - ",excel_files$era_code[i]," | Sheet = ",SName)
-    flush.console()
-    Y<-data.table(suppressMessages(suppressWarnings(readxl::read_excel(File,sheet = SName,trim_ws = F))))
+  if (overwrite == TRUE || !file.exists(save_name)) {
+    X <- tryCatch({
+      lapply(SheetNames, FUN=function(SName){
+        cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName)
+        flush.console()
+        Y <- data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
+        
+        if (!sum(colnames(Y) %in% XL.M[[SName]]) > 1) {
+          print("")
+          print("Colnames Error")
+          print("")
+          Y
+        } else {
+          Y
+        }
+      })
+    }, error=function(e){
+      cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+      return(NULL)  # Return NULL if there was an error
+    })
     
-    if(!sum(colnames(Y) %in% XL.M[[SName]])>1){
-      print("")
-      print("Colnames Error")
-      print("")
-      
-      Y
-    }else{
-      Y
+    if (!is.null(X)) {
+      names(X) <- SheetNames
+      save(X, file=save_name)
     }
-  })
+  } else {
+    miceadds::load.Rdata(filename=save_name, objname="X")
+  }
   
-  names(X)<-SheetNames
   X
 })
+
 
 # Rest plan to default setting
 future::plan(sequential)
