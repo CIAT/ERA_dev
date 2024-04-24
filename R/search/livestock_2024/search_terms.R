@@ -220,7 +220,7 @@ searchs<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
               l1234=paste0(unlist(terms[c(1,3:5)]),collapse=" AND "),
               l123=paste0(unlist(terms[c(1,3:4)]),collapse=" AND "),
               lex_12345=paste0(unlist(terms[c(2,3:6)]),collapse=" AND "),
-              lex_1234=paste0(unlist(terms[c(2,3:6)]),collapse=" AND "),
-              lex_123=paste0(unlist(terms[c(2,3:6)]),collapse=" AND "))
+              lex_1234=paste0(unlist(terms[c(2,3:5)]),collapse=" AND "),
+              lex_123=paste0(unlist(terms[c(2,3:4)]),collapse=" AND "))
 
 
