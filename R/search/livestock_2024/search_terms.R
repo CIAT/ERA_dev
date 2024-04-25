@@ -1,5 +1,5 @@
+# First run R/0_set_env.R
 # ERA livestock update search terms
-
 # 0) Set up workspace ####
 # 0.1) Load packages #####
 if (!require("pacman")) {
@@ -248,12 +248,15 @@ run_searches<-1:2
 
 for(i in run_searches){
   
-  # Your search query
-  base_search_query <-searches[[i]]
-  
-  save_file<-file.path(search_data_dir,paste0("openalex_",gsub("l","",names(searches)[i]),".csv"))
+  search_code<-gsub("l","",names(searches)[i])
+
+  save_file<-file.path(search_data_dir,paste0("openalex_",search_code,".csv"))
   
   if(!file.exists(save_file)){
+    cat(save_file)
+    
+  base_search_query <-searches[[i]]
+  
   # URL-encode the query
   encoded_query <- URLencode(base_search_query)
   
