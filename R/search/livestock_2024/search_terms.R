@@ -216,11 +216,65 @@ terms<-list(l1=outcome_boolean,
             l5=experiment_boolean)
 
 # Create searches
-searchs<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
+searches<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
               l1234=paste0(unlist(terms[c(1,3:5)]),collapse=" AND "),
               l123=paste0(unlist(terms[c(1,3:4)]),collapse=" AND "),
               lex_12345=paste0(unlist(terms[c(2,3:6)]),collapse=" AND "),
               lex_1234=paste0(unlist(terms[c(2,3:5)]),collapse=" AND "),
               lex_123=paste0(unlist(terms[c(2,3:4)]),collapse=" AND "))
 
+# OpenAlex ####
+# Install and load the required package
+if (!require("httr")) install.packages("httr")
+library(httr)
+require(openalexR)
+
+
+# Your search query
+base_search_query <-searches$l12345
+
+# URL-encode the query
+encoded_query <- URLencode(base_search_query)
+
+# OpenAlex API endpoint for works
+api_endpoint <- paste0("https://api.openalex.org/works?search=", encoded_query)
+
+
+# Filters
+# https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
+# https://docs.openalex.org/api-entities/works/filter-works
+
+# Filter title and abstract
+api_endpoint <- paste0("https://api.openalex.org/works?filter=title_and_abstract.search:", encoded_query)
+
+# How many hits do we have?
+oa_request(
+  query_url=api_endpoint,
+  count_only=T
+)
+
+hits<-oa_request(
+  query_url=api_endpoint
+)
+
+hits_tab<-oa2df(hits,entity = "works")
+
+colnames(hits_tab)
+
+# Topic search
+# https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/search-entities
+api_endpoint <- paste0("https://api.openalex.org/works?search=",encoded_query)
+
+oa_request(
+  query_url=api_endpoint,
+  count_only=T
+        )
+
+# Figure out:
+# 1: how to add date ranges
+# 2: how to add types
+# 3: how to include keywords in filter search
+# 4: topic search returns too many hits - investigate if exact matching is happening
+
+# Look at the help for ?oa_request to see how we might convert the boolean search string into the oa filter (e.g Example 3)
 
