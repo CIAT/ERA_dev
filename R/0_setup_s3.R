@@ -90,3 +90,22 @@ upload_files_to_s3(files = files,
                    max_attempts = 3,
                    overwrite=T,
                    mode="public-read")
+
+# Upload livestock 2024 search to s3
+folder<-"search_history/livestock_2024"
+s3_bucket<-"s3://digital-atlas/era/data_entry/data_entry_2023"
+
+files<-list.files(folder,full.names = T,recursive=T)
+files<-files[!grepl("zip$",files)]
+
+# Specify the output zip file path
+output_zip_file <- file.path(folder,paste0(basename(folder),".zip"))
+
+# Create the zip archive
+zip(zipfile = output_zip_file, files = files)
+
+upload_files_to_s3(files = output_zip_file,
+                   selected_bucket=s3_bucket,
+                   max_attempts = 3,
+                   overwrite=T,
+                   mode="public-read")

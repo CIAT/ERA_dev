@@ -1,4 +1,5 @@
-# Load packages ####
+# First run R/0_set_env.R
+# 0) Load packages ####
 if(!require(ERAg)){
   devtools::install_github("EiA2030/ERAg")
   require(ERAg)
@@ -15,14 +16,37 @@ if (!require("pacman")) {
 }
 
 # Use p_load to install if not present and load the packages
-p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix)
+p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix,s3fs,data.table)
+
+
+# 1) Set-up workspace ####
+# 1.1) Set directories #####
+search_data_dir<-paste0(era_dir,"/data_entry/data_entry_2024/search_history/livestock_2024")
+if(!dir.exists(search_data_dir)){
+  dir.create(search_data_dir,recursive = T)
+}
+
+# 2) Download era data from s3 ####
+update<-F
+s3_file<-"https://digital-atlas.s3.amazonaws.com/era/search_history/livestock_2024/livestock_2024.zip"
+local_file<-file.path(search_data_dir,basename(s3_file))
+if(length(list.files(search_data_dir))<1|update==T){
+  options(timeout = 300) 
+  download.file(s3_file, destfile = local_file)
+  unzip(local_file, exdir = search_data_dir,overwrite=T,junkpaths=T)
+  unlink(local_file)
+}
+
+# Use get_object or save_object to download a file
+url <- "s3://digital-atlas/era/data_entry/data_entry_2023/your_file.txt"
+obj <- get_object(url, check_region = FALSE, key = "", secret = "", session_token = "", use_https = TRUE)
+
 
 # Initial searches ####
-search_history<-fread("search_history/search_history.csv")
+search_history<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_history.csv"))
 
 # Load titles that should be included
-search_manual<-fread("search_history/search_manual.csv")
-
+search_manual<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_manual.csv"))
 
 search_files<-list.files("search_history/searches",full.names = T)
 

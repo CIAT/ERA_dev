@@ -1,6 +1,17 @@
 # ERA livestock update search terms
 
-# Create functions ####
+# 0) Set up workspace ####
+# 0.1) Load packages #####
+if (!require("pacman")) {
+  install.packages("pacman")
+  require(pacman)
+}
+
+# Use p_load to install if not present and load the packages
+p_load(openalexR, data.table)
+
+
+# 0.2) Create functions #####
 add_quotes<-function(vector){
   sapply(vector, function(term) {
     if (lengths(strsplit(term, "\\s+")) > 1) {
@@ -10,7 +21,15 @@ add_quotes<-function(vector){
     }
   })
 }
-# Create terms ####
+
+# 0.3) Set directories ######
+search_data_dir<-paste0(era_dir,"/data_entry/data_entry_2024/search_history/livestock_2024")
+if(!dir.exists(search_data_dir)){
+  dir.create(search_data_dir,recursive = T)
+}
+
+
+# 1) Create terms ####
 outcome_terms <- c("animal performance", 
                    "ADG",
                    "average daily gain", 
@@ -188,7 +207,7 @@ experiment_terms <- c(
   "observational study"
 )
 
-# Convert to boolean ####
+# 1.1) Convert to boolean ####
 
 outcome_terms2 <-add_quotes(outcome_terms)
 outcome_boolean<-paste0("(",paste0(outcome_terms2,collapse = " OR "),")")
@@ -223,43 +242,48 @@ searches<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
               lex_1234=paste0(unlist(terms[c(2,3:5)]),collapse=" AND "),
               lex_123=paste0(unlist(terms[c(2,3:4)]),collapse=" AND "))
 
-# OpenAlex ####
-# Install and load the required package
-if (!require("httr")) install.packages("httr")
-library(httr)
-require(openalexR)
+# 2) OpenAlex ####
 
+run_searches<-1:2
 
-# Your search query
-base_search_query <-searches$l12345
+for(i in run_searches){
+  
+  # Your search query
+  base_search_query <-searches[[i]]
+  
+  save_file<-file.path(search_data_dir,paste0("openalex_",gsub("l","",names(searches)[i]),".csv"))
+  
+  if(!file.exists(save_file)){
+  # URL-encode the query
+  encoded_query <- URLencode(base_search_query)
+  
+  # OpenAlex API endpoint for works
+  api_endpoint <- paste0("https://api.openalex.org/works?search=", encoded_query)
+  
+  # Filters
+  # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
+  # https://docs.openalex.org/api-entities/works/filter-works
+  
+  # Filter title and abstract
+  api_endpoint <- paste0("https://api.openalex.org/works?filter=title_and_abstract.search:", encoded_query)
+  
+  # How many hits do we have?
+  oa_request(
+    query_url=api_endpoint,
+    count_only=T
+  )
+  
+  hits<-oa_request(
+    query_url=api_endpoint
+  )
+  
+  hits_tab<-data.table(oa2df(hits,entity = "works"))
+  
+  fwrite(hits_tab,file=save_file)
+  
+  }
 
-# URL-encode the query
-encoded_query <- URLencode(base_search_query)
-
-# OpenAlex API endpoint for works
-api_endpoint <- paste0("https://api.openalex.org/works?search=", encoded_query)
-
-
-# Filters
-# https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
-# https://docs.openalex.org/api-entities/works/filter-works
-
-# Filter title and abstract
-api_endpoint <- paste0("https://api.openalex.org/works?filter=title_and_abstract.search:", encoded_query)
-
-# How many hits do we have?
-oa_request(
-  query_url=api_endpoint,
-  count_only=T
-)
-
-hits<-oa_request(
-  query_url=api_endpoint
-)
-
-hits_tab<-oa2df(hits,entity = "works")
-
-colnames(hits_tab)
+}
 
 # Topic search
 # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/search-entities
