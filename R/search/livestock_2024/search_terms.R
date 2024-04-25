@@ -271,16 +271,33 @@ for(i in run_searches){
   api_endpoint <- paste0("https://api.openalex.org/works?filter=title_and_abstract.search:", encoded_query)
   
   # How many hits do we have?
-  oa_request(
+  print(oa_request(
     query_url=api_endpoint,
     count_only=T
-  )
+  ))
   
   hits<-oa_request(
     query_url=api_endpoint
   )
   
   hits_tab<-data.table(oa2df(hits,entity = "works"))
+  hits_tab<-hits_tab[,list(id,display_name,author,ab,doi,url,relevance_score,is_oa,language,type)]
+  
+  hits_tab<-hits_tab[type %in% c("article","report")]
+
+  # Convert author to non-list form
+  hits_tab[,authors:=unlist(lapply(1:nrow(hits_tab),FUN=function(i){
+    authors<-hits_tab[i,author][[1]]
+    if(length(authors)>1){
+    paste0(authors[,"au_display_name"],collapse=";")
+    }else{
+      NA
+    }
+    
+  }))][,author:=NULL]
+  
+  
+  colnames(hits_tab)
   
   fwrite(hits_tab,file=save_file)
   
