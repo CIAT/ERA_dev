@@ -244,7 +244,7 @@ searches<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
 
 # 2) OpenAlex ####
 
-run_searches<-1:2
+run_searches<-4:5
 
 for(i in run_searches){
   
@@ -253,10 +253,10 @@ for(i in run_searches){
   save_file<-file.path(search_data_dir,paste0("openalex_",search_code,".csv"))
   
   if(!file.exists(save_file)){
-    cat(save_file)
+    cat(save_file,"\n")
     
   base_search_query <-searches[[i]]
-  
+
   # URL-encode the query
   encoded_query <- URLencode(base_search_query)
   
@@ -271,10 +271,7 @@ for(i in run_searches){
   api_endpoint <- paste0("https://api.openalex.org/works?filter=title_and_abstract.search:", encoded_query)
   
   # How many hits do we have?
-  print(oa_request(
-    query_url=api_endpoint,
-    count_only=T
-  ))
+  cat("search =", search_code,"| search hits =",oa_request(query_url=api_endpoint,count_only=T)$count,"\n")
   
   hits<-oa_request(
     query_url=api_endpoint
