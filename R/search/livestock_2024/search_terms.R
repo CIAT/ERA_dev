@@ -1,4 +1,3 @@
-# First run R/0_set_env.R
 # ERA livestock update search terms
 # 0) Set up workspace ####
 # 0.1) Load packages #####
@@ -9,7 +8,6 @@ if (!require("pacman")) {
 
 # Use p_load to install if not present and load the packages
 p_load(openalexR, data.table)
-
 
 # 0.2) Create functions #####
 add_quotes<-function(vector){
