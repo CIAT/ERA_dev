@@ -7,7 +7,12 @@ if (!require("pacman")) {
 }
 
 # Use p_load to install if not present and load the packages
-p_load(openalexR, data.table)
+p_load(data.table)
+
+if(!require(openalexR)){
+  devtools::install_github("https://github.com/ropensci/openalexR")
+  library(openalexR)
+}
 
 # 0.2) Create functions #####
 add_quotes<-function(vector){
