@@ -63,9 +63,9 @@ if(length(s3fs::s3_dir_ls(era_s3))==0){
 }
 
 
-# Upload era master files to s3
+# Upload era master files to s3 ####
 folder<-"data"
-s3_bucket<-"s3://digital-atlas/era/data"
+s3_bucket<-paste0(era_s3,"/",folder)
 
 files<-list.files(folder,full.names = T,recursive=T)
 files <- files[!file.info(files)$isdir]
@@ -77,9 +77,9 @@ upload_files_to_s3(files = files,
                    overwrite=T,
                    mode="public-read")
 
-# Upload 2023 extraction files to s3
+# Upload 2023 extraction files to s3 ####
 folder<-"data_entry/data_entry_2023"
-s3_bucket<-"s3://digital-atlas/era/data_entry/data_entry_2023"
+s3_bucket<-paste0(era_s3,"/",folder)
 
 files<-list.files(folder,full.names = T,recursive=T)
 files <- files[!file.info(files)$isdir]
@@ -91,20 +91,15 @@ upload_files_to_s3(files = files,
                    overwrite=T,
                    mode="public-read")
 
-# Upload livestock 2024 search to s3
-folder<-"search_history/livestock_2024"
-s3_bucket<-"s3://digital-atlas/era/data_entry/data_entry_2023"
+# Upload livestock 2024 search to s3 ####
+folder<-"data_entry/data_entry_2024/search_history/livestock_2024"
+s3_bucket<-paste0(era_s3,"/",folder)
+
 
 files<-list.files(folder,full.names = T,recursive=T)
 files<-files[!grepl("zip$",files)]
 
-# Specify the output zip file path
-output_zip_file <- file.path(folder,paste0(basename(folder),".zip"))
-
-# Create the zip archive
-zip(zipfile = output_zip_file, files = files)
-
-upload_files_to_s3(files = output_zip_file,
+upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,
