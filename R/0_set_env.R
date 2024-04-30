@@ -1,5 +1,8 @@
 project_dir<-getwd()
 
+# Set era s3 dir
+era_s3<-"s3://digital-atlas/era"
+
 # CGlabs server
 era_dir<-"/home/jovyan/common_data/era"
 setwd(era_dir)

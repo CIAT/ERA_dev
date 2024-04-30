@@ -1,4 +1,12 @@
-require(s3fs)
+# Load packages
+if (!require("pacman")) {
+  install.packages("pacman")
+  require(pacman)
+}
+
+# Use p_load to install if not present and load the packages
+p_load(s3fs,zip)
+
 
 # Create function to upload files S3 bucket ####
 upload_files_to_s3 <- function(files,s3_file_names=NULL, folder=NULL, selected_bucket, new_only=F, max_attempts = 3, overwrite=F,mode="private") {
@@ -99,8 +107,16 @@ s3_bucket<-paste0(era_s3,"/",folder)
 files<-list.files(folder,full.names = T,recursive=T)
 files<-files[!grepl("zip$",files)]
 
+# Specify the output zip file path
+output_zip_file <- file.path(folder,paste0(basename(folder),".zip"))
+
+# Create the zip archive
+zip::zipr(zipfile = output_zip_file, files = files)
+
+files<-c(output_zip_file,files)
+
 upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
-                   overwrite=T,
+                   overwrite=F,
                    mode="public-read")
