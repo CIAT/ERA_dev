@@ -16,7 +16,7 @@ if (!require("pacman")) {
 }
 
 # Use p_load to install if not present and load the packages
-p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix,s3fs,data.table)
+p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix,data.table,openalexR,pbapply)
 
 
 # 1) Set-up workspace ####
@@ -28,7 +28,10 @@ if(!dir.exists(search_data_dir)){
 
 # 2) Download era data from s3 ####
 update<-F
-s3_file<-"https://digital-atlas.s3.amazonaws.com/era/search_history/livestock_2024/livestock_2024.zip"
+
+s3_file<-"https://digital-atlas.s3.amazonaws.com/era/data_entry/data_entry_2024/search_history/livestock_2024/livestock_2024.zip"
+
+
 local_file<-file.path(search_data_dir,basename(s3_file))
 if(length(list.files(search_data_dir))<1|update==T){
   options(timeout = 300) 
@@ -37,47 +40,84 @@ if(length(list.files(search_data_dir))<1|update==T){
   unlink(local_file)
 }
 
-# Use get_object or save_object to download a file
-url <- "s3://digital-atlas/era/data_entry/data_entry_2023/your_file.txt"
-obj <- get_object(url, check_region = FALSE, key = "", secret = "", session_token = "", use_https = TRUE)
-
-
 # Initial searches ####
 search_history<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_history.csv"))
 
 # Load titles that should be included
 search_manual<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_manual.csv"))
+search_manual<-search_manual[,year:=as.numeric(year)][year>=2018]
 
-search_files<-list.files("search_history/searches",full.names = T)
+# Check which dois are 
+oa_dois<-data.table(oa_fetch(
+  entity = "works",
+  doi = search_manual[!is.na(doi),unique(gsub("https://doi.org/|http://dx.doi.org/","",doi))],
+  verbose = TRUE
+))[,indexed_oa:="yes"]
 
-search_files_wos<-grep("xls$",search_files,value = T)
-search_files_scopus<-grep("csv$",search_files,value = T)
+oa_dois[,year:=format(as.Date(publication_date),"%Y")]
 
-wos_searches<-rbindlist(lapply(1:length(search_files_wos),FUN=function(i){
+search_manual<-merge(search_manual,oa_dois[,list(doi,indexed_oa)],all.x=T)
+search_manual[is.na(indexed_oa),indexed_oa:="no"]
+
+search_manual[,list(total_dois=sum(!is.na(doi)),
+                                   wos=sum(indexed_wos=="yes"),
+                                   wos_unique=sum(indexed_wos=="yes" & indexed_scopus=="no" & indexed_oa=="no"),
+                                   scopus=sum(indexed_scopus=="yes"),
+                                   scopus_unique=sum(indexed_wos=="no" & indexed_scopus=="yes" & indexed_oa=="no"),
+                                   openalex=sum(indexed_oa=="yes"),
+                                   openalex_unique=sum(indexed_wos=="no" & indexed_scopus=="no" & indexed_oa=="yes"),
+                                   any=sum(indexed_wos=="yes"|indexed_scopus=="yes"|indexed_oa=="yes"),
+                                   scopus_openalex=sum(indexed_scopus=="yes"|indexed_oa=="yes"))]
+
+
+# Load search results ####
+search_files<-list.files(search_data_dir,full.names = T)
+
+# wos #####
+search_files_wos<-grep("wos_",search_files,value = T)
+
+wos_searches<-rbindlist(pblapply(1:length(search_files_wos),FUN=function(i){
   file<-search_files_wos[i]
   data<-data.table(readxl::read_xls(file))
   data[,search:=basename(file)]
   data
 }))[,citation_db:="wos"
-][,search:=gsub("_a.xls|_b.xls|_c.xls|_d.xls|_e.xls|_f.xls","",search)
-][,search:=gsub(".xls","",search)]
+    ][,search:=gsub("_a.xls|_b.xls|_c.xls|_d.xls|_e.xls|_f.xls|_g.xls|_h.xls|_i.xls","",search)
+      ][,search:=gsub(".xls","",search)
+        ][grepl("Article",`Document Type`)# Keep only articles
+          ][,relevance_score:=NA] 
 
-scopus_searches<-rbindlist(lapply(1:length(search_files_scopus),FUN=function(i){
+# scopus #####
+search_files_scopus<-grep("scopus_",search_files,value = T)
+
+scopus_searches<-rbindlist(pblapply(1:length(search_files_scopus),FUN=function(i){
   file<-search_files_scopus[i]
   data<-fread(file)
   data[,search:=basename(file)]
   data
-}))[,citation_db:="scopus"][,search:=gsub(".csv","",search)]
+  }))[,citation_db:="scopus"
+      ][,search:=gsub(".csv","",search)
+        ][grepl("Article",`Document Type`)
+          ][,relevance_score:=NA]
 
-# Keep only articles, no reviews or books
-wos_searches<-wos_searches[grepl("Article",`Document Type`)]
-scopus_searches<-scopus_searches[grepl("Article",`Document Type`)]
+# openalex #####
+search_files_oa<-grep("openalex_",search_files,value = T)
 
+oa_searches<-rbindlist(pblapply(1:length(search_files_oa),FUN=function(i){
+  file<-search_files_oa[i]
+  data<-fread(file)
+  data[,search:=basename(file)]
+  data
+}))[,citation_db:="openalex"
+    ][,search:=gsub(".csv","",search)
+      ][,year:=as.numeric(format(as.Date(oa_searches$publication_date,format="%Y-%m-%d"),"%Y"))
+        ][,keywords:=NA]
 
 # Harmonization fields between scopus and wos
-terms<-c("authors","title","year","doi","abstract","keywords","search","citation_db","citation_db_id")
-wos<-c("Authors","Article Title","Publication Year","DOI","Abstract","Author Keywords","search","citation_db","UT (Unique WOS ID)")
-scopus<-c("Authors","Title","Year","DOI","Abstract","Author Keywords","search","citation_db","EID")
+terms<-c("authors","title","year","doi","abstract","keywords","search","citation_db","citation_db_id","relevance_score")
+wos<-c("Authors","Article Title","Publication Year","DOI","Abstract","Author Keywords","search","citation_db","UT (Unique WOS ID)","relevance_score")
+scopus<-c("Authors","Title","Year","DOI","Abstract","Author Keywords","search","citation_db","EID","relevance_score")
+oa<-c("authors","display_name","year","doi","ab","keywords","search","citation_db","id","relevance_score")
 
 # Merge data
 wos_searches<-wos_searches[,..wos]
@@ -86,20 +126,31 @@ setnames(wos_searches,wos,terms)
 scopus_searches<-scopus_searches[,..scopus]
 setnames(scopus_searches,scopus,terms)
 
-searches<-rbind(wos_searches,scopus_searches)
-searches[,search:=gsub("wos_","",search)][,search:=gsub("scopus_","",search)]
+oa_searches<-oa_searches[,..oa]
+setnames(oa_searches,oa,terms)
+
+searches<-rbind(wos_searches,scopus_searches,oa_searches)
+searches[,search:=gsub("wos_|scopus_|openalex_","",search)]
 
 searches[,list(doi_n=length(unique(doi[!is.na(doi)])),doi_na=sum(is.na(doi))),by=search]
 
-# Cross reference manual searchs
-doi<-gsub("https://doi.org/","",search_manual[,tolower(doi)])
-doi<-doi[!is.na(doi)]
-doi[doi %in% tolower(searches$doi)]
-doi[!doi %in% tolower(searches$doi)]
+# Cross reference manual search
+doi_targets<-search_manual[!is.na(doi),gsub("https://doi.org/|http://dx.doi.org/","",doi)]
 
-titles<-search_manual[,trimws(tolower(title))]
-titles[titles %in% trimws(tolower(searches$title))]
-titles[!titles %in% trimws(tolower(searches$title))]
+searches[,target_doi:=F][grep(paste0(tolower(doi_targets),collapse="|"),tolower(doi)),target_doi:=T]
+
+searches[,list(targets_found=round(sum(target_doi)/length(doi_targets),2)),by=list(search,citation_db)]
+
+title_targets<-search_manual[,trimws(tolower(title))]
+
+searches[,target_title:=F][grep(paste0(title_targets,collapse="|"),trimws(tolower(title))),target_title:=T]
+
+searches[,list(targets_found=round(sum(target_title)/length(title_targets),2)),by=list(search,citation_db)]
+
+searches[,target_any:=F][target_title|target_doi,target_any:=T]
+
+searches[,list(hits=.N,targets_found=round(sum(target_any)/length(title_targets),2)),by=list(search,citation_db)]
+
 
 # Explore ERA data for keywords to include ####
 # Simple ####

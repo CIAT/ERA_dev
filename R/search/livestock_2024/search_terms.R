@@ -247,7 +247,8 @@ searches<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
 
 # 2) OpenAlex ####
 
-run_searches<-4:5
+run_searches<-c(1:2,4:5)
+overwrite<-T
 
 for(i in run_searches){
   
@@ -255,16 +256,13 @@ for(i in run_searches){
 
   save_file<-file.path(search_data_dir,paste0("openalex_",search_code,".csv"))
   
-  if(!file.exists(save_file)){
+  if(!file.exists(save_file)|overwrite==T){
     cat(save_file,"\n")
     
   base_search_query <-searches[[i]]
 
   # URL-encode the query
   encoded_query <- URLencode(base_search_query)
-  
-  # OpenAlex API endpoint for works
-  api_endpoint <- paste0("https://api.openalex.org/works?search=", encoded_query)
   
   # Filters
   # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
@@ -281,10 +279,8 @@ for(i in run_searches){
   )
   
   hits_tab<-data.table(oa2df(hits,entity = "works"))
-  hits_tab<-hits_tab[,list(id,display_name,author,ab,doi,url,relevance_score,is_oa,language,type)]
+  hits_tab<-hits_tab[,list(id,display_name,author,ab,doi,url,relevance_score,is_oa,language,type,publication_date)]
   
-  hits_tab<-hits_tab[type %in% c("article","report")]
-
   # Convert author to non-list form
   hits_tab[,authors:=unlist(lapply(1:nrow(hits_tab),FUN=function(i){
     authors<-hits_tab[i,author][[1]]
