@@ -103,6 +103,9 @@ animal_terms <- c("goat*",
                   "ruminant*", 
                   "calves")
 
+
+animal_terms_update<-c("ram","rams")
+
 region_terms <- c(
   "Africa",
   "Algeria",
@@ -221,6 +224,9 @@ outcome_ex_boolean<-paste0("(",paste0(outcome_terms_ex2,collapse = " OR "),")")
 animal_terms2 <-add_quotes(animal_terms)
 animal_boolean<-paste0("(",paste0(animal_terms2,collapse = " OR "),")")
 
+animal_terms3 <-add_quotes(c(animal_terms,animal_terms_update))
+animal_2_boolean<-paste0("(",paste0(animal_terms3,collapse = " OR "),")")
+
 region_terms2 <-add_quotes(region_terms)
 region_boolean<-paste0("(",paste0(region_terms2,collapse = " OR "),")")
 
@@ -235,7 +241,8 @@ terms<-list(l1=outcome_boolean,
             l2=animal_boolean,
             l3=region_boolean,
             l4=feed_boolean,
-            l5=experiment_boolean)
+            l5=experiment_boolean,
+            l2.2=animal_2_boolean)
 
 # Create searches
 searches<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
@@ -243,21 +250,30 @@ searches<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
               l123=paste0(unlist(terms[c(1,3:4)]),collapse=" AND "),
               lex_12345=paste0(unlist(terms[c(2,3:6)]),collapse=" AND "),
               lex_1234=paste0(unlist(terms[c(2,3:5)]),collapse=" AND "),
-              lex_123=paste0(unlist(terms[c(2,3:4)]),collapse=" AND "))
+             # lex_123=paste0(unlist(terms[c(2,3:4)]),collapse=" AND "),  # Removed as results are too large
+              l12.2345=paste0(unlist(terms[c(1,4:7)]),collapse=" AND "),
+              l12.234=paste0(unlist(terms[c(1,4:5,7)]),collapse=" AND "),
+              l12.23=paste0(unlist(terms[c(1,4,7)]),collapse=" AND "),
+              lex_12.2345=paste0(unlist(terms[c(2,4:7)]),collapse=" AND "),
+              lex_12.234=paste0(unlist(terms[c(2,4:5,7)]),collapse=" AND ")
+             # lex_12.23=paste0(unlist(terms[c(2,4,7)]),collapse=" AND ")
+             )
 
 # 2) OpenAlex ####
 
-run_searches<-c(1:2,4:5)
-overwrite<-T
+run_searches<-c(1:length(searches))
+overwrite<-F
 
 for(i in run_searches){
   
   search_code<-gsub("l","",names(searches)[i])
 
   save_file<-file.path(search_data_dir,paste0("openalex_",search_code,".csv"))
+  cat(save_file,"\n")
+  
   
   if(!file.exists(save_file)|overwrite==T){
-    cat(save_file,"\n")
+
     
   base_search_query <-searches[[i]]
 

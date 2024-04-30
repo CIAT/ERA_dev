@@ -135,22 +135,46 @@ searches[,search:=gsub("wos_|scopus_|openalex_","",search)]
 searches[,list(doi_n=length(unique(doi[!is.na(doi)])),doi_na=sum(is.na(doi))),by=search]
 
 # Cross reference manual search
-doi_targets<-search_manual[!is.na(doi),gsub("https://doi.org/|http://dx.doi.org/","",doi)]
 
-searches[,target_doi:=F][grep(paste0(tolower(doi_targets),collapse="|"),tolower(doi)),target_doi:=T]
+# remove manual targets that did not appear to be in citation dbs?
+rm_no_citation_db<-F
+search_manual[,doi:=tolower(trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi)))]
+if(rm_no_citation_db){
+  no_citation_db<-search_manual[indexed_wos=="no" & indexed_scopus=="no" & indexed_oa=="no" & !is.na(doi),doi]
+  doi_targets<-search_manual[!is.na(doi) | !doi %in% no_citation_db,doi]
+}else{
+  doi_targets<-search_manual[!is.na(doi),doi]
+}
 
+# Match dois
+searches[,doi:=tolower(trimws(doi))][,title:=trimws(tolower(title))]
+searches[,target_doi:=F][grep(paste0(doi_targets,collapse="|"),doi),target_doi:=T]
 searches[,list(targets_found=round(sum(target_doi)/length(doi_targets),2)),by=list(search,citation_db)]
 
+# Match titles
 title_targets<-search_manual[,trimws(tolower(title))]
-
-searches[,target_title:=F][grep(paste0(title_targets,collapse="|"),trimws(tolower(title))),target_title:=T]
-
+searches[,target_title:=F][grep(paste0(title_targets,collapse="|"),title),target_title:=T]
 searches[,list(targets_found=round(sum(target_title)/length(title_targets),2)),by=list(search,citation_db)]
 
+# Combine doi and title matches
 searches[,target_any:=F][target_title|target_doi,target_any:=T]
-
 searches[,list(hits=.N,targets_found=round(sum(target_any)/length(title_targets),2)),by=list(search,citation_db)]
 
+# Different approach to matching that gives different results, this will need investigation
+search_perf<-rbindlist(pblapply(1:length(doi_targets),FUN=function(i){
+  X<-doi_targets[i]
+  Y<-title_targets[i]
+  searches[grepl(X,doi)|grepl(Y,title),list(doi,search,citation_db)][,target:=X]
+  }))
+
+search_perf[,list(performance=round(length(unique(target))/length(doi_targets),2)),by=list(search,citation_db)]
+search_perf[,list(performance=round(length(unique(target))/length(doi_targets),2)),by=list(search)]
+
+# Missing papers from search
+missing<-doi_targets[!doi_targets %in% search_perf[,unique(target)]]
+(missing<-search_manual[tolower(trimws(doi)) %in% missing,list(title,abstract,keywords,indexed_oa)])
+
+write.table(missing,"clipboard-256000",row.names = F,sep="\t")
 
 # Explore ERA data for keywords to include ####
 # Simple ####
