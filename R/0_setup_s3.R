@@ -86,14 +86,27 @@ upload_files_to_s3(files = files,
                    mode="public-read")
 
 # Upload 2023 extraction files to s3 ####
-folder<-"data_entry/data_entry_2023"
+# where is the working folder for the ERA data extractions (internal team directory)
+folder_local<-"G:/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
+
+# this is the target folder on the S3 bucket and generalized structured file system
+folder<-"data_entry/industrious_elephant_2023"
 s3_bucket<-paste0(era_s3,"/",folder)
 
-files<-list.files(folder,full.names = T,recursive=T)
+# 
+files<-list.files(folder_local,full.names = T,recursive=T)
 files <- files[!file.info(files)$isdir]
 files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
 
-upload_files_to_s3(files = files,
+# zip all the excels and upload to the s3
+output_zip_file <- file.path(folder,paste0(basename(folder),".zip"))
+files2<- grep("xlsm$",files,value=T)
+files2<- grep("/QCed/|/Extracted/",files2,value=T)
+
+zip::zipr(zipfile = output_zip_file, files =files)
+
+
+upload_files_to_s3(files = output_zip_file,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,
@@ -115,8 +128,10 @@ zip::zipr(zipfile = output_zip_file, files = files)
 
 files<-c(output_zip_file,files)
 
+files<-grep("zip$|openalex",files,value=T)
+
 upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
-                   overwrite=F,
+                   overwrite=T,
                    mode="public-read")
