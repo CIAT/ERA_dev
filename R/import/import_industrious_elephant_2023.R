@@ -21,27 +21,44 @@ replace_zero_with_NA<-function(data){
 }
 
 # 0.2) Set directories and parallel cores ####
-project<-"industrious_elephant_2023"
 
+# Set cores for parallel processing
 workers<-parallel::detectCores()-2
 
-data_dir<-paste0(era_dir,"/data_entry/",project)
-data_dirs<-list.dirs(data_dir,full.names = T)
-data_dirs<-data_dirs[grep("QCed|Extracted",data_dirs)]
-data_dirs<-data_dirs[!grepl("rejected|Rejected|Duplicate|Mistake|Adriana|Accident",data_dirs)]
+# Set the project name, this should usually refer to the ERA extraction template used
+project<-"industrious_elephant_2023"
 
-extracted_dir<-paste0(data_dir,"/extracted")
-if(!dir.exists(extracted_dir)){
-  dir.create(extracted_dir)
+# Where extraction files are stored
+data_dir<-paste0(era_dir,"/data_entry/",project,"/excel_files")
+if(!dir.exists(data_dir)){
+  dir.create(data_dir,recursive=T)
 }
 
+# Where processed extraction files are stored
+extracted_dir<-paste0(era_dir,"/data_entry/",project,"/extracted")
+if(!dir.exists(extracted_dir)){
+  dir.create(extracted_dir,recursive=T)
+}
+
+# Where data on errors in the data are stored
 error_dir<-paste0(project_dir,"/data/data_entry/",project,"/data_issues")
 if(!dir.exists(error_dir)){
   dir.create(error_dir,recursive=T)
 }
 
 # 1) Download data ####
-# Excel data entry
+update<-F
+
+s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
+
+local_file<-file.path(data_dir,basename(s3_file))
+if(length(list.files(data_dir))<1|update==T){
+  options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
+  download.file(s3_file, destfile = local_file)
+  unzip(local_file, exdir = data_dir,overwrite=T,junkpaths=T)
+  unlink(local_file)
+}
+
 
 # 2) Load data ####
 # 2.1) Load era vocab #####
@@ -55,7 +72,7 @@ sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
 master_codes <- sapply(sheet_names, FUN=function(x){readxl::read_excel(vocab_file, sheet = x)},USE.NAMES=T)
 
 # 2.2) Load excel data entry template #####
-Master<-paste0(data_dir,"/V2.0.24 - Industrious Elephant.xlsm")
+Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
 
 # List sheet names that we need to extract
 SheetNames<-excel_sheets(Master)
@@ -72,10 +89,10 @@ XL.M<-sapply(SheetNames,FUN=function(SName){
 # Subset Cols
 XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
 
-# 2.3) Check for duplicate files #####
-Files<-unlist(lapply(data_dirs, list.files,".xlsm$",full.names=T))
-Files<-Files[!grepl("[~][$]",Files)]
+# 2.3) List extraction excel files #####
+Files<-list.files(data_dir,".xlsm$",full.names=T)
 
+# 2.4) Check for duplicate files #####
 FNames<-unlist(tail(tstrsplit(Files,"/"),1))
 FNames<-gsub(" ","",FNames)
 FNames<-unlist(tstrsplit(FNames,"-",keep=2))
@@ -101,9 +118,7 @@ excel_files[N>1][order(era_code)]
 excel_files<-excel_files[!N>1][,N:=NULL]
 excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
 
-
-# 2.4) Read in data from excel files #####
-
+# 2.5) Read in data from excel files #####
 
 # If files have already been imported and converted to list form should the important process be run again?
 overwrite<-F
@@ -124,7 +139,7 @@ XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
   if (overwrite == TRUE || !file.exists(save_name)) {
     X <- tryCatch({
       lapply(SheetNames, FUN=function(SName){
-        cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName)
+        cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
         flush.console()
         data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
       })
@@ -152,7 +167,6 @@ names(XL)<-excel_files$filename
 
 # Filter out any missing data
 XL <- Filter(Negate(is.null), XL)
-
 
 rm(Files,SheetNames,XL.M,Master)
 
@@ -235,12 +249,15 @@ Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2]
 # Save any errors
 (errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)][order(B.Code)])
 error_file<-file.path(error_dir,"pub_code_errors.csv")
-if(nrow(errors)>1){
+if(nrow(errors)>0){
   errors[,issue_addressed:=F][,addressed_by_whom:=""]
   fwrite(errors,error_file)
 }else{
   unlink(error_file)
 }
+
+error_list<-list()
+error_list$pub_code_error<-errors
 
 # Reset B.Codes to filename
 Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue"):=NULL]
@@ -249,7 +266,7 @@ Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue"):=NULL]
 Site.Out<-lapply(XL,"[[","Site.Out")
 site_names<-colnames(Site.Out[[1]])
 
-# Check that column names match between sheets
+# Structure errors: Check that column names match between sheets
 errors<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
   dt<-Site.Out[[i]]
   if(!all(colnames(dt) == site_names)){
@@ -258,68 +275,107 @@ errors<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
   }))
 
 error_file<-file.path(error_dir,"site_structure_errors.csv")
-if(nrow(errors)>1){
-  errors[,issue:="Problem with structure of Soil.Out tab, does not match other excels"][,issue_addressed:=F][,addressed_by_whom:=""]
+if(nrow(errors)>0){
+  errors[,issue:="Problem with structure of Site.Out tab, does not match other excels"][,issue_addressed:=F][,addressed_by_whom:=""]
   fwrite(errors,error_file)
 }else{
   unlink(error_file)
 }
 
-# Read in data excluding files
-Site.Out<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
+error_list$site_structure_errors<-errors
+
+# Missing data errors
+errors<-rbindlist(pblapply(1:length(Site.Out),FUN=function(i){
   dt<-Site.Out[[i]]
-  
-  if(!all(colnames(dt) == site_names)){
   dt$B.Code<-Pub.Out$B.Code[i]
-  dt$filename<-names(XL)[i]
-  cols_to_remove <- grep("^\\.\\.\\.", names(dt), value = TRUE)
-  dt[, (cols_to_remove) := NULL]
-  dt
+  
+  dt[,Site.LatD:=gsub(",","",Site.LatD)
+     ][Site.LatD=="",Site.LatD:=NA
+       ][,Site.LatD:=as.numeric(as.character(Site.LatD))
+         ][,Site.LatD:=round(as.numeric(Site.LatD),6)]
+  
+  dt[,Site.LonD:=gsub(",","",Site.LonD)
+     ][Site.LonD=="",Site.LonD:=NA
+       ][,Site.LonD:=as.numeric(as.character(Site.LonD))
+         ][,Site.LonD:=round(as.numeric(Site.LonD),6)]
+
+  dt<-dt[!is.na(Site.ID)]
+  
+  if(nrow(dt)==0){
+    dt<-data.table(B.Code=Pub.Out$B.Code[i])[,
+                                             c("Site.ID","Site.Type","Country","Site.LatD","Site.LonD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual"):=NA
+    ][,missing:=T]
+  }else{
+    
+    dt<-dt[,missing:=F
+    ][is.na(Site.Type)|is.na(Country)|is.na(Site.LatD)|is.na(Site.LonD),missing:=T
+    ][(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manual),missing:=T
+    ][,list(B.Code,Site.ID,Site.Type,Country,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,missing)]
+    
+    dt<-dt[!grepl("[.][.]",Site.ID)]
+  }
+  
+  if(dt[,sum(missing)>0]){
+    dt[missing==T][,missing:=NULL]
   }else{
     NULL
   }
+  
 }))
 
+error_file<-file.path(error_dir,"site_missing_fields_errors.csv")
+if(nrow(errors)>0){
+  errors[,issue:="Compulsory information appears to be missing"
+         ][,issue_addressed:=F
+           ][,addressed_by_whom:=""]
+  fwrite(errors,error_file)
+}else{
+  unlink(error_file)
+}
 
+error_list$site_missing_fields_errors<-errors
 
-
-colnames(Site.Out[[1]])
-colnames(Site.Out[[21]])
-names(XL)[1]
-names(XL)[21]
+# Read in data excluding files with non-match structure
+Site.Out<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
+  dt<-Site.Out[[i]]
+  dt<-dt[!is.na(Site.ID)]
+  
+  if(nrow(dt)==0){
+    cat("Site.ID missing",i,Pub.Out$B.Code[i],"\n")
+    NULL
+  }else{
+    if(suppressWarnings(all(colnames(dt) == site_names))){
+    dt$B.Code<-Pub.Out$B.Code[i]
+    cols_to_remove <- grep("^\\.\\.\\.", names(dt), value = TRUE)
+    dt[, (cols_to_remove) := NULL]
+    dt
+    }else{
+      cat("Structural issue with file",i,Pub.Out$B.Code[i],"\n")
+      NULL
+    }
+  }
+}))
 
 # Remove any parenthesis in names
 Site.Out[,Site.ID:=gsub("[(]","",Site.ID)][,Site.ID:=gsub("[)]","",Site.ID)]
 
-# Cleaning
-colnames(Site.Out)[colnames(Site.Out) == "LatD...8"]<-"LatD"
-colnames(Site.Out)[colnames(Site.Out) == "LatD...10"]<-"LonD"
-colnames(Site.Out)[colnames(Site.Out) == "MSP...20"]<-"MSP.S1"
-colnames(Site.Out)[colnames(Site.Out) == "MSP...21"]<-"MSP.S2"
+# Tidy lat and lon fields
+Site.Out[,Site.LatD:=gsub(",","",Site.LatD)
+   ][Site.LatD=="",Site.LatD:=NA
+     ][,Site.LatD:=as.numeric(as.character(Site.LatD))
+       ][,Site.LatD:=round(as.numeric(Site.LatD),6)]
 
-Site.Out[,LatD:=gsub(",","",LatD)][LatD=="",LatD:=NA][,LatD:=as.numeric(as.character(LatD))]
-Site.Out[,LonD:=gsub(",","",LonD)][LonD=="",LonD:=NA][,LonD:=as.numeric(as.character(LonD))]
+Site.Out[,Site.LonD:=gsub(",","",Site.LonD)
+   ][Site.LonD=="",Site.LonD:=NA
+     ][,Site.LonD:=as.numeric(as.character(Site.LonD))
+       ][,Site.LonD:=round(as.numeric(Site.LonD),6)]
 
-Site.Out[,LatD:=round(as.numeric(LatD),6)]
-Site.Out[,LonD:=round(as.numeric(LonD),6)]
+Zero.Cols<-colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")]
+Site.Out<-Site.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
 
 
-
-colnames(Site.Out)[-c(1:6,28)]<-paste0("Site.",colnames(Site.Out)[-c(1:6,28)])
-
-N<-colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")]
-
-Site.Out<-data.frame(Site.Out)
-
-for(NN in N){
-  # print(NN)
-  NNN<-which(Site.Out[,NN]==0)
-  Site.Out[NNN,NN]<-NA
-}
-
-Site.Out<-data.table(Site.Out)
-
-# Site.Out: Update Fields From Harmonization Sheet ####
+# !!! TO DO !!! Site.Out: Update Fields From Harmonization Sheet ####
+if(F){
 # Make sure blanks read NA
 Site.Out[Site.Buffer.Manual==""|Site.Buffer.Manual=="NA"|is.na(Site.Buffer.Manual),Site.Buffer.Manual:=NA]
 Site.Out[Site.Lon.Unc==""|Site.Lon.Unc=="NA"|is.na(Site.Lon.Unc),Site.Lon.Unc:=NA]
@@ -371,100 +427,186 @@ Agg.Site.Name.Fun<-function(Site.ID,SiteHarmonization){
 }
 
 Site.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
-
-# ***Soil (Soil.Out) =====
+}
+# 3.3) Soil (Soil.Out) =====
 Soil.Out<-lapply(XL,"[[","Soils.Out")
 
-Error.Cols<-c("Soil.CEC.Unit", "Soil.EC.Unit", "Soil.FC.Unit", "Soil.N.Unit...29", "Soil.NH4.Unit", "Soil.NO3.Unit", "Soil.N.Unit...32", "Soil.SOC.Method", "Soil.SOM.Method", "Soil.pH.Method")
+# Structure errors: Check for malformed column names
+errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
+  dt<-Soil.Out[[i]]
+  if(colnames(dt)[1]=="...1"|!any(grepl("Unit",colnames(dt)))){
+    data.table(B.Code=Pub.Out$B.Code[i],filename=names(XL)[i])
+  }
+}))
 
+error_file<-file.path(error_dir,"soil_structure_errors.csv")
+if(nrow(errors)>0){
+  errors[,issue:="Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present"][,issue_addressed:=F][,addressed_by_whom:=""]
+  fwrite(errors,error_file)
+}else{
+  unlink(error_file)
+}
+
+error_list$soil_structure_errors<-errors
+
+# Structure errors: Check for case where only one of upper or lower is present
+errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
+  dt<-Soil.Out[[i]]
+
+  if(colnames(dt)[1]!="...1"){
+    # Filter out columns that are all NA
+    dt <- dt[, .SD, .SDcols = colSums(is.na(dt)) != nrow(dt)]
+    Xcols<-colnames(dt)
+    
+    if(("Soil.Upper" %in% Xcols + "Soil.Lower" %in% Xcols)==1){
+      data.table(B.Code=Pub.Out$B.Code[i],filename=names(XL)[i])
+    }
+  }
+}))
+
+error_file<-file.path(error_dir,"soil_depth_one_missing_errors.csv")
+if(nrow(errors)>0){
+  errors[,issue:="Only one of upper or lower depth has value"][,issue_addressed:=F][,addressed_by_whom:=""]
+  fwrite(errors,error_file)
+}else{
+  unlink(error_file)
+}
+
+error_list$soil_depth_one_missing_errors<-errors
+
+# Combine soil data into a table
 Soil.Out<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
   X<-Soil.Out[[i]]
-  X<-na.omit(X, cols=c("Site.ID"))
-  
-  # Fix Excel Bug Where NA values showing in nrows>1
-  if(nrow(X)>1){
+
+  if(colnames(X)[1]=="...1"|!any(grepl("Unit",colnames(X)))){
+    cat("Issue with soil table structure:",Pub.Out$B.Code[i],"\n")
+    NULL
+  }else{
+    X<-X[!is.na(Site.ID)]
     
-    X<-as.data.frame(X)
-    X[-1,Error.Cols]<-X[rep(1,nrow(X)-1),Error.Cols]
-    X<-as.data.table(X)
+    if(nrow(X)>0){
+    # Filter out columns that are all NA
+    X <- X[, .SD, .SDcols = colSums(is.na(X)) != nrow(X)]
     
+    # Make table long with cols for value, variable, unit and method
+    Xcols<-colnames(X)
+    
+    # Determine variable column start position
+    N<-"Soil.Upper" %in% Xcols + "Soil.Lower" %in% Xcols
+    if(N==1){
+      start.pos<-3
+    }else{
+      if(N==2){
+        start.pos<-4
+      }else{
+        start.pos<-2
+      }
+    }
+    
+    fixed.cols<-Xcols[1:(start.pos-1)]
+    var.cols<-c(fixed.cols,Xcols[start.pos:(grep("Unit",Xcols)[1]-1)])
+    unit.cols<-c(fixed.cols[1],grep("Unit",Xcols,value=T))
+    method.cols<-c(fixed.cols[1],grep("Method",Xcols,value=T))
+    
+    # Deal with instances where more than one pH method is present
+    N<-grep("Soil.pH",var.cols,value=T)
+    if(length(N)>=2){
+     colnames(X)[colnames(X) %in% N]<-paste0("Soil.pH_",1:length(N))
+     var.cols[var.cols %in% N]<-paste0("Soil.pH_",1:length(N))
+    }
+    
+    N<-grep("Soil.pH",method.cols,value=T)
+    if(length(N)>=2){
+      colnames(X)[colnames(X) %in% N]<-paste0("Soil.pH.Method_",1:length(N))
+      method.cols[method.cols %in% N]<-paste0("Soil.pH.Method_",1:length(N))
+    }
+    
+    # Deal with instances where more than one N Unit is present
+    N<-grep("Soil.TN",var.cols,value=T)
+    if(length(N)>=2){
+      colnames(X)[colnames(X) %in% N]<-paste0("Soil.TN_",1:length(N))
+      var.cols[var.cols %in% N]<-paste0("Soil.TN_",1:length(N))
+    }
+    
+    N<-grep("Soil.TN",unit.cols,value=T)
+    if(length(N)>=2){
+      colnames(X)[colnames(X) %in% N]<-paste0("Soil.TN.Unit_",1:length(N))
+      unit.cols[unit.cols %in% N]<-paste0("Soil.TN.Unit_",1:length(N))
+    }
+    
+    # Melt values and units into long form
+    var_tab<-melt(X[,..var.cols],id.vars = fixed.cols)
+    unit_tab<-melt(X[1,..unit.cols],id.vars =fixed.cols[1],value.name = "Unit")[,variable:=gsub("[.]Unit","",variable)][Unit!="NA"]
+    
+    if(var_tab[,any(grepl("[.][.][.]",variable))]){
+      cat("... present in variables",i,Pub.Out$B.Code[i],"\n")
+    }
+    
+    
+    if(unit_tab[,any(grepl("[.][.][.]",variable))]){
+      cat("... present in units",i,Pub.Out$B.Code[i],"\n")
+    }
+
+    # Merge values and units
+    Y<-merge(var_tab,unit_tab,all.x=T)
+    
+    # If methods are present melt into long form and merge with values and units
+    if(length(method.cols)>1){
+      method_tab<-melt(X[1,..method.cols],id.vars =fixed.cols[1],value.name = "Method")[,variable:=gsub("[.]Method","",variable)][Method!="NA"]
+      if(method_tab[,any(grepl("[.][.][.]",variable))]){
+        cat("... present in methods",i,Pub.Out$B.Code[i],"\n")
+      }
+      
+      Y<-merge(Y,method_tab,all.x=T)
+    }else{
+      Y[,Method:=NA]
+    }
+    
+    # Remove delimiters used to align multiple pH methods
+    Y[,variable:=unlist(tstrsplit(variable,"_",keep=1))][,Method:=unlist(tstrsplit(Method,"_",keep=1))]
+ 
+    Y$B.Code<-Pub.Out$B.Code[i]
+    Y
+    }else{
+      NULL
+    }
   }
   
-  X$B.Code<-Pub.Out$B.Code[i]
-  
-  X
-}))
+}),fill=T)
 
-# Remove any parenthesis in names
-Soil.Out[,Site.ID:=gsub("[(]","",Site.ID)][,Site.ID:=gsub("[)]","",Site.ID)]
+# Check for "..." in column names
+errors<-unique(Soil.Out[grep("[.][.][.]",variable),list(variable,B.Code)])
 
-setnames(Soil.Out, "Soil.N.Unit...29", "Soil.TN.Unit")
-setnames(Soil.Out, "Soil.N.Unit...32", "Soil.AN.Unit")
+error_file<-file.path(error_dir,"soil_variable_errors.csv")
+if(nrow(errors)>1){
+  errors[,issue:="Potential duplicate soil variable recorded"][,issue_addressed:=F][,addressed_by_whom:=""]
+  fwrite(errors,error_file)
+}else{
+  unlink(error_file)
+}
 
-# Soil.Out: Fix Soils.Out Excel Bug ####
-# Prior to 16/07/2020 Soil.SOC.Method	Soil.SOM.Method	Soil.pH.Method not populating with correct data
+error_list$soil_variable_errors<-errors
 
-# Extract soils entry form from excel
-Site.Soils<-lapply(XL,"[[","Site.Soils")
+# Check for multiple instance of same depth for same site
+error<-unique(Soil.Out[,.N,by=list(B.Code,Site.ID,Soil.Upper,Soil.Lower,variable)][,variable:=NULL][N>1][,c("N","Soil.Upper","Soil.Lower"):=NULL])
 
-# Extract cells for values that have an issue
-Site.Soils<-rbindlist(lapply(1:length(Site.Soils),FUN=function(i){
-  X<-Site.Soils[[i]][33,c(9,10,11)]
-  names(X)<-c("Soil.SOC.Method","Soil.SOM.Method","Soil.pH.Method")
-  X$B.Code<-Pub.Out$B.Code[i]
-  X
-}))
+error_file<-file.path(error_dir,"soil_depth_duplicate_errors.csv")
+if(nrow(errors)>1){
+  errors[,issue:="Soil x site combinations appears to have duplicates of the same depth"][,issue_addressed:=F][,addressed_by_whom:=""]
+  fwrite(errors,error_file)
+}else{
+  unlink(error_file)
+}
 
-# Papers with an issue
-Err.B.Codes<-Soil.Out[grepl("Soil.SOC.Method",Soil.SOC.Method),unique(B.Code)]
+error_list$soil_depth_duplicate_errors<-errors
 
-N<-match(Soil.Out[B.Code %in% Err.B.Codes,B.Code],Site.Soils[,B.Code])
-Soil.Out[B.Code %in% Err.B.Codes,Soil.SOC.Method:=Site.Soils[N,Soil.SOC.Method]]
-Soil.Out[B.Code %in% Err.B.Codes,Soil.SOM.Method:=Site.Soils[N,Soil.SOM.Method]]
-Soil.Out[B.Code %in% Err.B.Codes,Soil.pH.Method:=Site.Soils[N,Soil.pH.Method]]
-
-rm(Site.Soils,Err.B.Codes,N)
-
-
-# Deal with 0 that should be NA
-# Where depth are both 0 set to NA
-Soil.Out[Soil.Upper==0 & Soil.Lower==0,Soil.Upper:=NA]
-Soil.Out[is.na(Soil.Upper) & Soil.Lower==0,Soil.Lower:=NA]
-Soil.Out[,Texture.Total:=SND+SLT+CLY]
-Soil.Out[Texture.Total<98 & SND==0,SND:=NA]
-Soil.Out[Texture.Total<98 & SLT==0,SLT:=NA]
-Soil.Out[Texture.Total<98 & CLY==0,CLY:=NA]
-Soil.Out[Soil.BD==0,Soil.BD:=NA]
-Soil.Out[Soil.TC==0,Soil.TC:=NA]
-Soil.Out[Soil.SOC==0,Soil.SOC:=NA]
-Soil.Out[Soil.SOM ==0,Soil.SOM:=NA]
-Soil.Out[Soil.pH==0,Soil.pH:=NA]
-Soil.Out[Soil.CEC==0,Soil.CEC:=NA]
-Soil.Out[Soil.EC==0,Soil.EC:=NA]
-Soil.Out[Soil.FC==0,Soil.FC:=NA]
-Soil.Out[Soil.BD==0,Soil.BD:=NA]
-Soil.Out[Soil.TN==0,Soil.TN:=NA]
-Soil.Out[Soil.NH4==0,Soil.NH4:=NA]
-Soil.Out[Soil.NO3==0,Soil.NO3:=NA]
-Soil.Out[SND.Unit==0,SND.Unit:=NA]
-Soil.Out[SLT.Unit==0,SLT.Unit:=NA]
-Soil.Out[CLY.Unit==0,CLY.Unit:=NA]
-Soil.Out[Soil.BD.Unit==0,Soil.BD.Unit:=NA]
-Soil.Out[Soil.TC.Unit==0,Soil.TC.Unit:=NA]
-Soil.Out[Soil.FC.Unit==0,Soil.FC.Unit:=NA]
-Soil.Out[Soil.SOC.Unit==0,Soil.SOC.Unit:=NA]
-Soil.Out[Soil.SOM.Unit==0,Soil.SOM.Unit:=NA]
-Soil.Out[Soil.CEC.Unit==0,Soil.CEC.Unit:=NA]
-Soil.Out[Soil.EC.Unit==0,Soil.EC.Unit:=NA]
-Soil.Out[Soil.TN.Unit==0,Soil.TN.Unit:=NA]
-Soil.Out[Soil.NH4.Unit==0,Soil.NH4.Unit:=NA]
-Soil.Out[Soil.NO3.Unit==0,Soil.NO3.Unit:=NA]
-Soil.Out[Soil.AN.Unit==0,Soil.AN.Unit:=NA]
 
 # Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
 
-Soil.Out[,N:=1:.N]
-Soil.Out[,Soil.Text.N:=sum(!is.na(CLY),!is.na(SND),!is.na(SLT)),by=N]
+Soil.Out.Texture<-Soil.Out[variable %in% c("SND","SLT","CLY"),list(B.Code,Site.ID,Soil.Upper,Soil.Lower,variable,value)]
+
+Soil.Out.Texture<-dcast(Soil.Out.Texture,B.Code+Site.ID+Soil.Upper+Soil.Lower~variable,value.var = "value")
+
 
 N<-which(Soil.Out[,Soil.Text.N]==2)
 Soil.Out<-data.frame(Soil.Out)
