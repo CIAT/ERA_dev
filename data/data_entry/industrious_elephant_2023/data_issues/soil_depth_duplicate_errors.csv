@@ -1,0 +1,4 @@
+variable,B.Code,issue,issue_addressed,addressed_by_whom
+Soil.CEC...10,AC0092,Soil x site combinations appears to have duplicates of the same depth,FALSE,""
+Soil.SOC...13,CJ0168,Soil x site combinations appears to have duplicates of the same depth,FALSE,""
+Soil.SOC...8,CJ0168,Soil x site combinations appears to have duplicates of the same depth,FALSE,""
