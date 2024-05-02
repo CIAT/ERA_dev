@@ -435,19 +435,14 @@ Soil.Out<-lapply(XL,"[[","Soils.Out")
 errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
   dt<-Soil.Out[[i]]
   if(colnames(dt)[1]=="...1"|!any(grepl("Unit",colnames(dt)))){
-    data.table(B.Code=Pub.Out$B.Code[i],filename=names(XL)[i])
+    Y<-data.table(B.Code=Pub.Out$B.Code[i],filename=basename(names(XL)[i]))
+    Y[,issue:="Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present"][,issue_addressed:=F][,addressed_by_whom:=""]
+    Y
   }
 }))
-
-error_file<-file.path(error_dir,"soil_structure_errors.csv")
 if(nrow(errors)>0){
-  errors[,issue:="Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present"][,issue_addressed:=F][,addressed_by_whom:=""]
-  fwrite(errors,error_file)
-}else{
-  unlink(error_file)
+  error_list$soil_structure_errors<-errors
 }
-
-error_list$soil_structure_errors<-errors
 
 # Structure errors: Check for case where only one of upper or lower is present
 errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
@@ -459,20 +454,15 @@ errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
     Xcols<-colnames(dt)
     
     if(("Soil.Upper" %in% Xcols + "Soil.Lower" %in% Xcols)==1){
-      data.table(B.Code=Pub.Out$B.Code[i],filename=names(XL)[i])
+      Y<-data.table(B.Code=Pub.Out$B.Code[i],filename=basename(names(XL)[i]))
+      Y[,issue:="Only one of upper or lower depth has value"][,issue_addressed:=F][,addressed_by_whom:=""]
+      Y
     }
   }
 }))
-
-error_file<-file.path(error_dir,"soil_depth_one_missing_errors.csv")
 if(nrow(errors)>0){
-  errors[,issue:="Only one of upper or lower depth has value"][,issue_addressed:=F][,addressed_by_whom:=""]
-  fwrite(errors,error_file)
-}else{
-  unlink(error_file)
+  error_list$soil_depth_one_missing_errors<-errors
 }
-
-error_list$soil_depth_one_missing_errors<-errors
 
 # Combine soil data into a table
 Soil.Out<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
@@ -566,6 +556,7 @@ Soil.Out<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
     Y[,variable:=unlist(tstrsplit(variable,"_",keep=1))][,Method:=unlist(tstrsplit(Method,"_",keep=1))]
  
     Y$B.Code<-Pub.Out$B.Code[i]
+    Y$filename<-basename(names(XL)[i])
     Y
     }else{
       NULL
@@ -575,31 +566,24 @@ Soil.Out<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
 }),fill=T)
 
 # Check for "..." in column names
-errors<-unique(Soil.Out[grep("[.][.][.]",variable),list(variable,B.Code)])
-
-error_file<-file.path(error_dir,"soil_variable_errors.csv")
-if(nrow(errors)>1){
+errors<-unique(Soil.Out[grep("[.][.][.]",variable),list(variable,B.Code,filename)])
+if(nrow(errors)>0){
   errors[,issue:="Potential duplicate soil variable recorded"][,issue_addressed:=F][,addressed_by_whom:=""]
-  fwrite(errors,error_file)
-}else{
-  unlink(error_file)
+  error_list$soil_variable_errors<-errors
 }
-
-error_list$soil_variable_errors<-errors
 
 # Check for multiple instance of same depth for same site
-error<-unique(Soil.Out[,.N,by=list(B.Code,Site.ID,Soil.Upper,Soil.Lower,variable)][,variable:=NULL][N>1][,c("N","Soil.Upper","Soil.Lower"):=NULL])
-
-error_file<-file.path(error_dir,"soil_depth_duplicate_errors.csv")
-if(nrow(errors)>1){
-  errors[,issue:="Soil x site combinations appears to have duplicates of the same depth"][,issue_addressed:=F][,addressed_by_whom:=""]
-  fwrite(errors,error_file)
-}else{
-  unlink(error_file)
+errors<-unique(Soil.Out[,.N,by=list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable)][,variable:=NULL][N>1][,c("N","Soil.Upper","Soil.Lower"):=NULL])
+if(nrow(errors)>0){
+  errors[,issue:="Check for multiple instance of same depth for same site"][,issue_addressed:=F][,addressed_by_whom:=""]
+  error_list$soil_depth_duplicate_errors<-errors
 }
 
-error_list$soil_depth_duplicate_errors<-errors
+# Combine errors
+errors<-rbindlist(error_list[grepl("soil_",names(error_list))],fill=T)
+errors<-errors[,c(1,2,7,6,3,4,5)][order(B.Code)]
 
+fwrite(errors,file.path(error_dir,"soil_errors.csv"))
 
 # Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
 
