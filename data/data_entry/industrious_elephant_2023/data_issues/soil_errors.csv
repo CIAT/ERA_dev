@@ -26,7 +26,7 @@ CJ0187,V2.0.24 - CJ0187.xlsm,Poa village,,Check for multiple instance of same de
 CJ0187,V2.0.24 - CJ0187.xlsm,Ramongo village,,Check for multiple instance of same depth for same site,FALSE,"Charity"
 CJ0189,V2.0.24 - CJ0189.xlsm,Chelekura_Middle,,"Sand, silt, clay sum to beyond 2% different to 100%",TRUE,"Charity"
 DM0006,V2.0.10 - DM0006.xlsm,Gumselassa,,Check for multiple instance of same depth for same site,TRUE,"Charity"
-JO0009,V2.0.9 - JO0009.xlsm,,,"Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present",TRUE,"Charity""
+JO0009,V2.0.9 - JO0009.xlsm,,,"Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present",TRUE,"Charity"
 JO0017,V2.0.13 - JO0017.xlsm,,,"Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present",TRUE,"Charity"
 JO0047,V2.0.20 - JO0047.xlsm,Picos-Semi Arid Brazil,,Check for multiple instance of same depth for same site,FALSE,"Charity"
 JO0058,V2.0.21 - JO0058.xlsm,Chuka-Org-L,,Check for multiple instance of same depth for same site,FALSE,"Charity"
