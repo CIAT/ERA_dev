@@ -1,4 +1,4 @@
-# Load packages
+# 0.1) Load packages #####
 if (!require("pacman")) {
   install.packages("pacman")
   require(pacman)
@@ -8,7 +8,7 @@ if (!require("pacman")) {
 p_load(s3fs,zip)
 
 
-# Create function to upload files S3 bucket ####
+# 0.2) Create function to upload files S3 bucket #####
 upload_files_to_s3 <- function(files,s3_file_names=NULL, folder=NULL, selected_bucket, new_only=F, max_attempts = 3, overwrite=F,mode="private") {
   
   # Create the s3 directory if it does not already exist
@@ -71,7 +71,7 @@ if(length(s3fs::s3_dir_ls(era_s3))==0){
 }
 
 
-# Upload era master files to s3 ####
+# 1.1) Upload era master files to s3 #####
 folder<-"data"
 s3_bucket<-paste0(era_s3,"/",folder)
 
@@ -85,26 +85,26 @@ upload_files_to_s3(files = files,
                    overwrite=T,
                    mode="public-read")
 
-# Upload 2023 extraction files to s3 ####
+# 1.2) Upload 2023 extraction files to s3 #####
 # where is the working folder for the ERA data extractions (internal team directory)
 folder_local<-"G:/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
 
 # this is the target folder on the S3 bucket and generalized structured file system
-folder<-"data_entry/industrious_elephant_2023"
+folder<-"data_entry/industrious_elephant_2023/excel_files"
 s3_bucket<-paste0(era_s3,"/",folder)
 
-# 
+# List excel files to be zipped
 files<-list.files(folder_local,full.names = T,recursive=T)
 files <- files[!file.info(files)$isdir]
 files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
+files<- grep("xlsm$",files,value=T)
+files<-files[!grepl("~",files)]
+files<- grep("/QCed/|/Extracted/",files,value=T)
 
 # zip all the excels and upload to the s3
-output_zip_file <- file.path(folder,paste0(basename(folder),".zip"))
-files2<- grep("xlsm$",files,value=T)
-files2<- grep("/QCed/|/Extracted/",files2,value=T)
+output_zip_file <- file.path(folder,"industrious_elephant_2023.zip")
 
 zip::zipr(zipfile = output_zip_file, files =files)
-
 
 upload_files_to_s3(files = output_zip_file,
                    selected_bucket=s3_bucket,
@@ -112,7 +112,7 @@ upload_files_to_s3(files = output_zip_file,
                    overwrite=T,
                    mode="public-read")
 
-# Upload livestock 2024 search to s3 ####
+# 1.3) Upload livestock 2024 search to s3 #####
 folder<-"data_entry/data_entry_2024/search_history/livestock_2024"
 s3_bucket<-paste0(era_s3,"/",folder)
 
