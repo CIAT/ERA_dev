@@ -213,7 +213,7 @@ if(file_status){
   # 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the important process be run again?
-  overwrite<-T
+  overwrite<-F
   
   # Delete existing files if overwrite =T
   if(overwrite){
@@ -268,8 +268,16 @@ if(file_status){
   
   rm(Files,SheetNames,XL.M,Master)
   
+  # List any files that did not load
+
+  errors<-excel_files[!filename %in% names(XL)
+                      ][,c("status","era_code"):=NULL
+                        ][,issue:="Excel import failed"]
+  setnames(errors,"era_code2","B.Code")
+  error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
+  
+  
 # 3) Process imported data ####
-error_list<-list()
 
 # 3.1) Publication (Pub.Out) #####
 data<-lapply(XL,"[[","Pub.Out")
@@ -290,7 +298,7 @@ Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2]
 
 # Save any errors
 errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)][order(B.Code)]
-error_list<-error_tracker(errors=errors,filename = "pub_code_errors",error_dir=error_dir,error_list = NULL)
+error_list<-error_tracker(errors=errors,filename = "pub_code_errors",error_dir=error_dir,error_list = error_list)
 
 # Reset B.Codes to filename
 Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue"):=NULL]
@@ -454,10 +462,13 @@ Times.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
   }
 }))
 
-# Error checking odd valyes in Time.Year.Start or Time.Year.End
+# Error checking odd values in Time.Year.Start or Time.Year.End
 errors<-Times.Out[is.na(as.numeric(Time.Year.End))|is.na(as.numeric(Time.Year.Start))|nchar(Time.Year.Start)>4|nchar(Time.Year.End)>4
                   ][!(is.na(Time.Year.Start)|is.na(Time.Year.End)|grepl("unspecified",Time.Year.Start,ignore.case = T))
-                    ][,list(B.Code,Time.Year.End,Time.Year.Start)]
+                    ][,list(B.Code,Time.Year.End,Time.Year.Start)
+                      ][,issue:="None YYYY values in time tab for year start or end."]
+
+error_list<-error_tracker(errors=errors,filename = "time_year_errors",error_dir=error_dir,error_list = error_list)
 
 Times.Out[,c("Time.Year.Start","Time.Year.End"):=list(as.integer(Time.Year.Start),as.integer(Time.Year.End))]
 
@@ -472,13 +483,27 @@ Times.Clim<-rbindlist(pblapply(1:length(data),FUN=function(i){
   }
 }))
 
-Times.Clim[,Time.Clim.SP:=as.integer(Time.Clim.SP)
-           ][,Time.Clim.TAP:=as.integer(Time.Clim.TAP)
-             ][,Time.Clim.Temp.Mean:=round(Time.Clim.Temp.Mean,1)
-               ][,Time.Clim.Temp.Max:=round(Time.Clim.Temp.Max,1)]
+Times.Clim[,Time.Clim.SP:=as.integer(gsub(",",".",Time.Clim.SP))
+           ][,Time.Clim.TAP:=as.integer(gsub(",",".",Time.Clim.TAP))
+             ][,Time.Clim.Temp.Mean:=round(as.numeric(gsub(",",".",Time.Clim.Temp.Mean)),1)
+               ][,Time.Clim.Temp.Max:=round(as.numeric(gsub(",",".",Time.Clim.Temp.Max)),1)
+                 ][,Time.Clim.Temp.Min:=round(as.numeric(gsub(",",".",Time.Clim.Temp.Min)),1)]
 
+errors1<-Times.Clim[Time.Clim.Temp.Mean>45|Time.Clim.Temp.Max>50|Time.Clim.Temp.Min>30|
+             Time.Clim.Temp.Min>Time.Clim.Temp.Max|Time.Clim.Temp.Min>Time.Clim.Temp.Mean|Time.Clim.Temp.Mean>Time.Clim.Temp.Max
+             ][,issue:="Extremely high temperature or min>mean,min>max,mean>max"]
 
-# 3.3) Soil (Soil.Out) =====
+errors2<-Times.Clim[Time.Clim.Temp.Mean<5|Time.Clim.Temp.Max<10|Time.Clim.Temp.Min<0
+                    ][,issue:="Extremely low temperature or min>mean,min>max,mean>max"]
+
+errors3<-Times.Clim[Time.Clim.SP>Time.Clim.TAP
+                    ][,issue:="Seasonal > annual precip"]
+
+errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL]
+
+error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
+
+# 3.3) Soil (Soil.Out) #####
 data<-lapply(XL,"[[","Soils.Out")
 
 # Structure errors: Check for malformed column names
@@ -681,14 +706,15 @@ if(nrow(errors5)>0){
   errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6),fill = T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "soil_errors",error_dir=error_dir,error_list = error_list)
 
-  # !!TO DO: Soil.Out: Update Fields From Harmonization Sheet ####
-  N<-match(trimws(Soil.Out[,Site.ID]),SiteHarmonization[,ED.Site.ID])
-  
-  Soil.Out[!is.na(N),ED.Site.ID:=SiteHarmonization[N[!is.na(N)],ED.Site.ID.Corrected]]
-  
-  # Soil.Out: Update Aggregated Site Name
-  Soil.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
-  
+  # !!TO DO: Soil.Out: Update Site.ID Fields From Harmonization Sheet ####
+  if(F){
+    N<-match(trimws(Soil.Out[,Site.ID]),SiteHarmonization[,ED.Site.ID])
+    
+    Soil.Out[!is.na(N),ED.Site.ID:=SiteHarmonization[N[!is.na(N)],ED.Site.ID.Corrected]]
+    
+    # Soil.Out: Update Aggregated Site Name
+    Soil.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
+  }
 # 3.4) Experimental Design (ExpD.Out) ####
 ExpD.Out<-lapply(XL,"[[","ExpD.Out")
 col_names<-colnames(ExpD.Out[[1]])
@@ -879,11 +905,13 @@ h3<-h_result$h_tasks
 harmonization_list<-error_tracker(errors=rbind(h1,h2,h3),filename = "till_harmonization",error_dir=error_dir,error_list = harmonization_list)
 
 # Error checking: look for non-matches in keyfield
-errors1<-unique(merge(Till.Out[,list(B.Code,Till.Level.Name)],Till.Codes[,list(B.Code,Till.Level.Name)][,Check:=T],all.x=T))[Field:="Till.Level.Name"]
+errors1<-unique(merge(Till.Out[,list(B.Code,Till.Level.Name)],
+                      Till.Codes[,list(B.Code,Till.Level.Name)][,Check:=T],all.x=T)
+                )[,field:="Till.Level.Name"]
 setnames(errors1,"Till.Level.Name","value")
 errors1<-errors1[is.na(Check)
                  ][,Check:=NULL
-                   ][,issue:="A base practice has some description in the tillage, but no practice has been associated with it."]
+                   ][,issue:="A practice has some description in the tillage (typically base), but no practice has been associated with it."]
 
 # Non-match in site.id
 errors2<-unique(Till.Out[!Site.ID %in% c("All Sites")
@@ -893,24 +921,17 @@ errors2<-unique(Till.Out[!Site.ID %in% c("All Sites")
                                ][,field:="Site.ID"])
 setnames(errors2,"Site.ID","value")
 
-
 # NEED TO READ IN TIME DATA TO CHECK THIS - Non-match in time period #####
-errors3<-unique(Till.Out[!Times %in% c("All Times")
-][!is.na(Times)
-][!Times %in% Times$Site.ID,list(B.Code,Site.ID)
-][,issue:="A time period name used in tillage tab does not match the time tab"][,field="Times"])
+errors3<-unique(Till.Out[!grepl("All Times|Unspecified|Not specified",Times,ignore.case = T)
+                         ][!is.na(Times)
+                           ][!Times %in% Times.Out$Time,list(B.Code,Times)
+                             ][,issue:="A time period name used in tillage tab does not match the time tab"
+                               ][,field:="Times"])
 
 setnames(errors3,"Times","value")
 
-
 errors<-rbindlist(list(errors1,errors2,errors3),fill=T)[order(B.Code)]
-
-
 error_list<-error_tracker(errors=errors,filename = "till_errors",error_dir=error_dir,error_list = error_list)
-
-
-
-
 
 # ***Planting (Plant.Out) =====
 Plant.Out<-lapply(XL,"[[",9)
