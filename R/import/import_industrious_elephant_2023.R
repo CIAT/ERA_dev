@@ -59,7 +59,7 @@ error_tracker<-function(errors,filename,error_dir,error_list=NULL){
 #   A list containing:
 #   - 'data': DataFrame with the harmonized data.
 #   - 'h_tasks': DataFrame listing any non-matched harmonization tasks by B.Code and value.
-harmonizer <- function(data, master_codes, h_table, h_field, h_table_alt=NA, h_field_alt=NA) {
+harmonizer <- function(data, master_codes, h_table, h_field, h_table_alt=NA, h_field_alt=NA,ignore_vals=NULL) {
   data<-data.table(data)
   
   # Selecting relevant columns for output
@@ -85,18 +85,37 @@ harmonizer <- function(data, master_codes, h_table, h_field, h_table_alt=NA, h_f
   
   # Check for any non-matches after harmonization
   N <- match(unlist(data[, ..h_field]), h_tab[, Values_New])
-  h_tasks <- unique(data[is.na(N), ..h_cols])
+  if(!is.null(ignore_vals)){
+    h_tasks <- unique(data[is.na(N) & !grepl(paste(ignore_vals,collapse="|"),unlist(data[, ..h_field]),ignore.case = T), ..h_cols])
+  }else{
+    h_tasks <- unique(data[is.na(N), ..h_cols])
+  }
   colnames(h_tasks)[2] <- "value"
-  h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)]
+  h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
   
   # Adding metadata columns to the tasks output for further tracking
-  h_tasks[, table := h_table
-  ][, field := h_field
-  ][, checked := FALSE
-  ][, checked_by_whom := ""]
+  h_tasks[, table := h_table][, field := h_field]
   
   return(list(data = data, h_tasks = h_tasks))
 }
+
+# Function to find and report non-numeric values
+find_non_numeric<-function(data,numeric_cols,tabname){
+  results<-rbindlist(lapply(1:length(numeric_cols),FUN=function(i){
+    n_col<-numeric_cols[i]
+    vals<-unlist(data[,..n_col])
+    vals_u<-unique(vals)
+    vals_u<-vals_u[!is.na(vals_u)]
+    NAs<-vals_u[is.na(as.numeric(vals_u))]
+    n_col2<-c("B.Code",n_col)
+    result<-unique(data[vals %in% NAs,..n_col2])[,table:=tabname][,field:=n_col]
+    setnames(result,n_col,"value")
+    result
+  }))
+  
+  return(results)
+}
+
 
 # 0.2) Set directories and parallel cores ####
 
@@ -449,7 +468,7 @@ Agg.Site.Name.Fun<-function(Site.ID,SiteHarmonization){
 
 Site.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
 }
-# 3.x) Times periods
+# 3.3) Times periods #####
 data<-lapply(XL,"[[","Times.Out")
 Times.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
   X<-data[[i]][,1:5]
@@ -503,7 +522,7 @@ errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL]
 
 error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
 
-# 3.3) Soil (Soil.Out) #####
+# 3.4) Soil (Soil.Out) #####
 data<-lapply(XL,"[[","Soils.Out")
 
 # Structure errors: Check for malformed column names
@@ -656,7 +675,7 @@ if(nrow(errors5)>0){
   errors5[,issue:="Upper depth value is greater than lower depth value"]
 }
 
-  # 3.3.1) Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
+  # 3.4.1) Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
   Soil.Out.Texture<-Soil.Out[variable %in% c("SND","SLT","CLY"),list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable,value)]
   
   # Remove studies with issues
@@ -715,7 +734,7 @@ if(nrow(errors5)>0){
     # Soil.Out: Update Aggregated Site Name
     Soil.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
   }
-# 3.4) Experimental Design (ExpD.Out) ####
+# 3.5) Experimental Design (ExpD.Out) ####
 ExpD.Out<-lapply(XL,"[[","ExpD.Out")
 col_names<-colnames(ExpD.Out[[1]])
 ExpD.Out<-lapply(1:length(ExpD.Out),FUN=function(i){
@@ -723,9 +742,8 @@ ExpD.Out<-lapply(1:length(ExpD.Out),FUN=function(i){
   B.Code<-Pub.Out[,B.Code[i]]
   Filename<-basename(names(XL)[i])
   if(!all(col_names %in% colnames(X))){
-    cat("Structural issue with file",i,Pub.Out$B.Code[i],"\n")
-    list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with ExpD.Out tab structure")[,issue_addressed:=F
-    ][,addressed_by_whom:=""])
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with ExpD.Out tab structure"))
   }else{
     X[,B.Code:=B.Code]
     list(data=X)
@@ -745,7 +763,7 @@ ExpD.Out<-ExpD.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.
 val.cols<-c("EX.Plot.Size","EX.HPlot.Size")
 ExpD.Out[, (val.cols) := lapply(.SD, function(x) as.numeric(gsub(",", ".", x))), .SDcols = val.cols]
 
-# 3.5) Products (Prod.Out) ####
+# 3.6) Products (Prod.Out) ####
 data<-lapply(XL,"[[","Prod.Out")
 Prod.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
@@ -755,7 +773,7 @@ Prod.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
 }))
 
 # TO DO - updated mulched and incorporated codes, check product is in master codes ####
-# 3.6) Var (Var.Out) ####
+# 3.7) Var (Var.Out) ####
 data<-lapply(XL,"[[","Var.Out")
 Var.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
@@ -778,7 +796,7 @@ Var.Out[, (names(Var.Out)[char_cols]) := lapply(.SD, trimws), .SDcols = char_col
 # Update V.Codes
 Var.Out[,V.Codes:=master_codes$prac[match(Var.Out$V.Crop.Practice,master_codes$prac$Subpractice),Code]]
 
-# 3.6.1) Var.Out: Harmonize Variety Naming and Codes #####
+  # 3.7.1) Var.Out: Harmonize Variety Naming and Codes #####
 
 N<-match(Var.Out$V.Var,master_codes$vars$V.Var)
 Var.Out[!is.na(N),V.Var:=master_codes$vars[N[!is.na(N)],V.Var1]]
@@ -807,7 +825,7 @@ errors<-errors[,list(B.Code=paste(B.Code,collapse = "/")),by=list(V.Product,V.Va
 error_list<-error_tracker(errors=errors,filename = "var_practice_check",error_dir=error_dir,error_list = error_list)
 
   # Q: Should we update traits and maturity too? ####
-# 3.7) Agroforestry (AF.Out) ####
+# 3.8) Agroforestry (AF.Out) ####
 data<-lapply(XL,"[[","AF.Out")
 
 AF.Out<-pblapply(1:length(data),FUN=function(i){
@@ -861,7 +879,7 @@ AF.Trees<-rbindlist(pblapply(1:length(data),FUN=function(i){
 # No match between key fields
 AF.Trees[!AF.Trees$AF.Level.Name %in% AF.Out$AF.Level.Name]
 
-# 3.8) Tillage (Till.Out) ####
+# 3.9) Tillage (Till.Out) ####
 data<-lapply(XL,"[[","Till.Out")
 Till.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
   X<-data[[i]][,-(1:5)]
@@ -884,7 +902,7 @@ Till.Codes<-rbindlist(pblapply(1:length(data),FUN=function(i){
   }
 }))
 
-# 3.8.1) Till.Out: Update Fields From Harmonization Sheet ####
+  # 3.9.1) Till.Out: Update Fields From Harmonization Sheet ######
 # T.Method
 h_result<-harmonizer(data=Till.Out,master_codes = master_codes,h_table = "Till.Out", h_field="T.Method")
 Till.Out<-h_result$data
@@ -921,7 +939,7 @@ errors2<-unique(Till.Out[!Site.ID %in% c("All Sites")
                                ][,field:="Site.ID"])
 setnames(errors2,"Site.ID","value")
 
-# NEED TO READ IN TIME DATA TO CHECK THIS - Non-match in time period #####
+# Non-match in time period
 errors3<-unique(Till.Out[!grepl("All Times|Unspecified|Not specified",Times,ignore.case = T)
                          ][!is.na(Times)
                            ][!Times %in% Times.Out$Time,list(B.Code,Times)
@@ -933,42 +951,135 @@ setnames(errors3,"Times","value")
 errors<-rbindlist(list(errors1,errors2,errors3),fill=T)[order(B.Code)]
 error_list<-error_tracker(errors=errors,filename = "till_errors",error_dir=error_dir,error_list = error_list)
 
-# ***Planting (Plant.Out) =====
-Plant.Out<-lapply(XL,"[[",9)
-Plant.Out<-rbindlist(lapply(1:length(Plant.Out),FUN=function(i){
-  X<-Plant.Out[[i]]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("P.Product"))
-  X
-}))
+# 3.10) Planting (Plant.Out) #####
+data<-lapply(XL,"[[","Plant.Out")
+col_names<-colnames(data[[800]])
+col_names[c(2,8)]<-"P.Level.Name"
 
-# Remove any parenthesis in names
-Plant.Out[,P.Level.Name:=gsub("[(]","",P.Level.Name)][,P.Level.Name:=gsub("[)]","",P.Level.Name)]
+Plant.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,1:6]
+  colnames(X)[2]<-"P.Level.Name"
 
-# Replace 0 with NA
-Plant.Out[P.Method==0,P.Method:=NA]
-Plant.Out[Plant.Density==0,Plant.Density:=NA]
-Plant.Out[Plant.Density.Unit==0,Plant.Density.Unit:=NA]
-Plant.Out[Plant.Row==0,Plant.Row:=NA]
-Plant.Out[Plant.Station==0,Plant.Station:=NA]
-Plant.Out[Plant.Seeds==0,Plant.Seeds:=NA]
-Plant.Out[Plant.Thin==0,Plant.Thin:=NA]
-Plant.Out[Plant.Tram.Row==0,Plant.Tram.Row:=NA]
-Plant.Out[Plant.Tram.N==0,Plant.Tram.N:=NA]
-Plant.Out[Plant.Intercrop==0,Plant.Intercrop:=NA]
-Plant.Out[Plant.Block.Rows==0,Plant.Block.Rows:=NA]
-Plant.Out[Plant.Block.Perc==0,Plant.Block.Perc:=NA]
-Plant.Out[Plant.Block.Width==0,Plant.Block.Width:=NA]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!all(col_names[1:6] %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure,corruption of excel file?"))
+  }else{
+    X<-X[!is.na(P.Product)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }
+})
+errors1<-rbindlist(lapply(Plant.Out,"[[","error"))
+Plant.Out<-rbindlist(lapply(Plant.Out,"[[","data"))
 
-#write.table(Plant.Out[!is.na(P.Method)][order(P.Method),unique(P.Method)],"clipboard",row.names = F,sep="\t")
-#write.table(Plant.Out[!is.na(Plant.Density.Unit)][order(Plant.Density.Unit),unique(Plant.Density.Unit)],"clipboard",row.names = F,sep="\t")
-#Plant.Out[grepl("m3",Plant.Density.Unit)]
+Plant.Method<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!"Plant.Relay" %in% colnames(X)){
+    X[,Plant.Relay:=as.character(NA)]
+  }
+  if(ncol(X)<length(col_names)){
+    cat("Structural issue with file too few cols",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure,P.Level.Name column may be missing in column H"))
+  }else{
+    X<-X[,8:23]
+    colnames(X)[1]<-"P.Level.Name"
+    if(!all(col_names[8:23] %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure,corruption of excel file?"))
+    }else{
+      X<-X[!is.na(P.Level.Name)]
+      if(nrow(X)>0){
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }else{
+        NULL
+      }
+    }
+  }
+})
+errors2<-rbindlist(lapply(Plant.Method,"[[","error"),use.names = T)
+Plant.Method<-rbindlist(lapply(Plant.Method,"[[","data"),use.names = T)
+setnames(Plant.Method,"P.Method","Plant.Method")
 
-# Plant.Out: Update Fields From Harmonization Sheet ####
-N<-match(Plant.Out[,P.Method],OtherHarmonization[,P.Method])
+error_list<-error_tracker(errors=rbind(errors1,errors2),filename = "plant_structure_errors",error_dir=error_dir,error_list = error_list)
 
-Plant.Out[!is.na(N),P.Method:=OtherHarmonization[N[!is.na(N)],P.Method.Correct]]
-rm(N)
+# Substitute , for . in numeric columns
+numeric_cols<-c("Plant.Density","Plant.Row","Plant.Station","Plant.Seeds","Plant.Thin","Plant.Tram.Row","Plant.Tram.N","Plant.Block.Rows","Plant.Block.Perc","Plant.Block.Width")
+
+Plant.Method[, (numeric_cols) := lapply(.SD, function(x) gsub(",", ".", x)), .SDcols = numeric_cols]
+
+# Check for errors in Plant.Method table
+errors1<-find_non_numeric(data=Plant.Method,numeric_cols=numeric_cols,tabname="Plant.Method")[,issue:="Non-numeric value in numeric field"]
+Plant.Method[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
+
+
+errors2<-Plant.Method[!P.Level.Name %in% Plant.Out$P.Level.Name,list(B.Code,P.Level.Name)
+                      ][,table:="Plant.Method"
+                        ][,field:="P.Level.Name"
+                          ][,issue:="P.Level.Name in method does not match practice name row above."]
+setnames(errors2,"P.Level.Name","value")
+
+errors3<-Plant.Method[Plant.Row<Plant.Station
+                      ][,value:=paste("row = ",Plant.Row[1],", station =",Plant.Station[1]),by=list(Plant.Row,Plant.Station)
+                        ][,list(B.Code,value)
+                          ][,table:="Plant.Method"
+                            ][,field:="P.Level.Name"
+                              ][,issue:="Row spacing is less than station spacing, possible error."]
+
+error_list<-error_tracker(errors=rbind(errors1,errors2,errors3),filename = "plant_method_value_errors",error_dir=error_dir,error_list = error_list)
+
+# 3.10.1) Plant.Method: Update fields from master_codes ######
+h_result<-harmonizer(data=Plant.Method,
+                     master_codes = master_codes,
+                     h_table = "Plant.Out", 
+                     h_field="Plant.Method",
+                     ignore_vals = "unspecified")
+Till.Out<-h_result$data
+h1<-h_result$h_tasks
+
+
+h_result<-harmonizer(data=Plant.Method,
+                     master_codes = master_codes,
+                     h_table = "Plant.Out", 
+                     h_field="Plant.Density.Unit",
+                     ignore_vals = "unspecified")
+Till.Out<-h_result$data
+h2<-h_result$h_tasks
+
+
+h_result<-harmonizer(data=Plant.Method,
+                     master_codes = master_codes,
+                     h_table = "Plant.Out", 
+                     h_field="Plant.Mechanization",
+                     h_table_alt = "Fert.Out", 
+                     h_field_alt="F.Mechanization",
+                     ignore_vals = "unspecified")
+Till.Out<-h_result$data
+h3<-h_result$h_tasks
+
+h_result<-harmonizer(data=Plant.Method,
+                     master_codes = master_codes,
+                     h_table = "Plant.Out", 
+                     h_field="Plant.Intercrop",
+                     h_table_alt = "Plant.Out", 
+                     h_field_alt="Intercrop.Types",
+                     ignore_vals = "unspecified")
+Till.Out<-h_result$data
+h4<-h_result$h_tasks
+
+
+harmonization_list<-error_tracker(errors=rbind(h1,h2,h3,h4),filename = "plant_method_harmonization",error_dir=error_dir,error_list = error_list)
+
+
+
 # ***Fertilizer (Fert.Out) =====
 # Fert.Out
 Fert.Out<-lapply(XL,"[[","Fert.Out")
