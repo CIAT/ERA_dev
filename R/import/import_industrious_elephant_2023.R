@@ -116,6 +116,125 @@ find_non_numeric<-function(data,numeric_cols,tabname){
   return(results)
 }
 
+# Check site and time fields match those tables
+check_site_time<-function(data,tabname,ignore_values,site_data,time_data){
+  errors<-list()
+  if("Site.ID" %in% colnames(data)){
+    site_data<-site_data[,check:=T][,list(Site.ID,B.Code,check)]
+    # Non-match in site.id
+    errors1<-unique(data[!grepl(paste0(ignore_values,collapse = "|"),Site.ID,ignore.case = T)
+                         ][!is.na(Site.ID),list(B.Code,Site.ID)])
+    errors1<-merge(errors1,site_data,all.x=T)[is.na(check)
+                                              ][,check:=NULL
+                                                ][,table:=tabname
+                                                  ][,field:="Site.ID"
+                                                    ][,issue:="A Site.ID used  does not match the Site tab"]
+    setnames(errors1,"Site.ID","value")
+    errors$errors1<-errors1
+    }
+  
+  
+  if("Time" %in% colnames(data)){
+    # Non-match in time period
+    time_data<-time_data[,check:=T][,list(Time,B.Code,check)]
+    
+    errors2<-unique(data[!grepl(paste0(ignore_values,collapse = "|"),Time,ignore.case = T)
+                         ][!is.na(Time),list(B.Code,Time)])
+    errors2<-merge(errors2,time_data,all.x=T)[is.na(check)
+                                              ][,check:=NULL
+                                                ][,table:=tabname
+                                                  ][,field:="Time"
+                                                    ][,issue:="A Time used does not match the time tab"]
+    
+    setnames(errors2,"Time","value")
+    errors$errors2<-errors2
+  }
+  
+  if(length(errors)>0){
+    errors<-rbindlist(errors)
+  }else{
+    NULL
+  }
+  
+  return(errors)
+}
+
+# Define the valid date range
+valid_start <- as.Date("1950-01-01")
+valid_end <- as.Date("2023-12-01")
+
+check_dates<-function(data,date_cols,valid_start,valid_end,tabname){
+  
+  results<-rbindlist(lapply(1:length(date_cols),FUN=function(i){
+    n_col<-c("B.Code",date_cols[i])
+    data_ss<-data[,..n_col]
+    colnames(data_ss)[2]<-"value"
+    
+    data_ss<-data_ss[!is.na(value)]
+    
+    data_ss<-data_ss[,problem:=T
+    ][value >= valid_start & value <= valid_end,problem:=F
+    ][,field:=date_cols[i]]
+    data_ss
+  }))
+  
+  results<-  results[problem==T
+  ][,table:=tabname
+  ][,problem:=NULL
+  ][,issue:=paste("Date not between",valid_start,"&",valid_end)]
+  
+  return(results)
+}
+
+
+validator<-function(data,
+                    numeric_cols,
+                    date_cols=NULL,
+                    tabname,
+                    valid_start,
+                    valid_end,
+                    site_data,
+                    time_data,
+                    ignore_values){
+  if(!is.null(date_cols)){
+    numeric_cols<-unique(c(numeric_cols,date_cols))
+  }
+  
+  # Substitute , for . in numeric columns
+  data[, (numeric_cols) := lapply(.SD, function(x) gsub(",", ".", x)), .SDcols = numeric_cols]
+  
+  # Look for instances where a non-numeric value is present in a numeric field
+  errors<-find_non_numeric(data=data,numeric_cols=numeric_cols,tabname=tabname)[,issue:="Non-numeric value in numeric field"]
+  
+  # Convert numeric fields to being numeric
+  data[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
+  
+  # Convert date cols to date format
+  if(!is.null(date_cols)){
+    # Convert Excel date numbers to R dates
+    data[, (date_cols) := lapply(.SD, function(x) as.Date(x, origin = "1899-12-30")), .SDcols = date_cols]
+    
+    # Look for dates outside of a specified range
+    errors2<-check_dates(data=data,
+                         date_cols=date_cols,
+                         valid_start=valid_start,
+                         valid_end=valid_end,
+                         tabname=tabname)[,value:=as.character(value)]
+    errors<-rbind(errors,errors2)
+  }
+  
+  # Check for non-matches between site.id and time fields and their parent tables
+  if(any(c("Site.ID","Time") %in% colnames(data))){
+    errors3<-check_site_time(data=data,
+                             ignore_values = c("All Times","Unspecified","Not specified","All Sites"),
+                             tabname=tabname,
+                             site_data=site_data,
+                             time_data=time_data)
+    errors<-rbind(errors,errors3)
+  }
+  
+  return(list(data=data,errors=errors))
+}
 
 # 0.2) Set directories and parallel cores ####
 
@@ -881,16 +1000,7 @@ AF.Trees[!AF.Trees$AF.Level.Name %in% AF.Out$AF.Level.Name]
 
 # 3.9) Tillage (Till.Out) ####
 data<-lapply(XL,"[[","Till.Out")
-Till.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]][,-(1:5)]
-  colnames(X)[1]<-"Till.Level.Name"
-  X<-X[!is.na(Till.Level.Name)]
-  
-  if(nrow(X)>0){
-    X$B.Code<-Pub.Out$B.Code[i]
-    X
-  }
-}))
+
 Till.Codes<-rbindlist(pblapply(1:length(data),FUN=function(i){
   X<-data[[i]][,1:4]
   colnames(X)[2]<-"Till.Level.Name"
@@ -902,55 +1012,79 @@ Till.Codes<-rbindlist(pblapply(1:length(data),FUN=function(i){
   }
 }))
 
-  # 3.9.1) Till.Out: Update Fields From Harmonization Sheet ######
-# T.Method
-h_result<-harmonizer(data=Till.Out,master_codes = master_codes,h_table = "Till.Out", h_field="T.Method")
-Till.Out<-h_result$data
-h1<-h_result$h_tasks
+Till.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,-(1:5)]
+  colnames(X)[1]<-"Till.Level.Name"
+  X<-X[!is.na(Till.Level.Name)]
+  
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+  }
+}))
+# Correct naming of Time col to match Time Tab
+setnames(Till.Out,c("Times","T.Method.Other"),c("Time","Till.Other"))
 
-# T.Method.Other
-setnames(Till.Out,"T.Method.Other","Till.Other")
-h_result<-harmonizer(data=Till.Out,master_codes = master_codes,h_table = "Till.Out", h_field="Till.Other")
-Till.Out<-h_result$data
-h2<-h_result$h_tasks
+results<-validator(data=Till.Out,
+                   numeric_cols=c("T.Depth","T.Strip.P","T.Strip.WT","T.Strip.WU","T.Freq"),
+                   date_cols=c("T.Date.End", "T.Date.Start"),
+                   tabname="Till.Out",
+                   valid_start=valid_start,
+                   valid_end=valid_end,
+                   site_data=Site.Out,
+                   time_data=Times.Out,
+                   ignore_values= c("All Times","Unspecified","Not specified","All Sites"))
 
-# T.Mechanization 
-h_result<-harmonizer(data=Till.Out,master_codes = master_codes,h_table = "Till.Out", h_field="T.Mechanization",
-                     h_table_alt="Fert.Out",h_field_alt="F.Mechanization")
-Till.Out<-h_result$data
-h3<-h_result$h_tasks
-
-harmonization_list<-error_tracker(errors=rbind(h1,h2,h3),filename = "till_harmonization",error_dir=error_dir,error_list = harmonization_list)
+errors1<-results$errors
+Till.Out<-results$data
 
 # Error checking: look for non-matches in keyfield
-errors1<-unique(merge(Till.Out[,list(B.Code,Till.Level.Name)],
+errors2<-unique(merge(Till.Out[,list(B.Code,Till.Level.Name)],
                       Till.Codes[,list(B.Code,Till.Level.Name)][,Check:=T],all.x=T)
-                )[,field:="Till.Level.Name"]
-setnames(errors1,"Till.Level.Name","value")
-errors1<-errors1[is.na(Check)
+                )[,tabname:="Till.Out"
+                  ][,field:="Till.Level.Name"]
+setnames(errors2,"Till.Level.Name","value")
+
+errors2<-errors2[is.na(Check)
                  ][,Check:=NULL
                    ][,issue:="A practice has some description in the tillage (typically base), but no practice has been associated with it."]
 
-# Non-match in site.id
-errors2<-unique(Till.Out[!Site.ID %in% c("All Sites")
-                         ][!is.na(Site.ID)
-                           ][!Site.ID %in% Site.Out$Site.ID,list(B.Code,Site.ID)
-                             ][,issue:="A Site.ID used in tillage tab does not match the site tab"
-                               ][,field:="Site.ID"])
-setnames(errors2,"Site.ID","value")
-
-# Non-match in time period
-errors3<-unique(Till.Out[!grepl("All Times|Unspecified|Not specified",Times,ignore.case = T)
-                         ][!is.na(Times)
-                           ][!Times %in% Times.Out$Time,list(B.Code,Times)
-                             ][,issue:="A time period name used in tillage tab does not match the time tab"
-                               ][,field:="Times"])
-
-setnames(errors3,"Times","value")
-
-errors<-rbindlist(list(errors1,errors2,errors3),fill=T)[order(B.Code)]
+# save errors
+errors<-rbindlist(list(errors1,errors2),fill=T)[order(B.Code)]
 error_list<-error_tracker(errors=errors,filename = "till_errors",error_dir=error_dir,error_list = error_list)
 
+  # 3.9.1) Till.Out: Update fields from master_codes ######
+  h_params<-data.table(h_table="Till.Out",
+                       h_field=c("T.Method","Till.Other","T.Mechanization"),
+                       h_table_alt=c(NA,NA,"Fert.Out"),
+                       h_field_alt=c(NA,NA,"F.Mechanization"))
+  
+  harmonizer_wrap<-function(data,h_params,master_codes){
+    h_tasks<-list()
+    for(i in 1:nrow(h_params)){
+      results<-harmonizer(data=data,
+                          master_codes = master_codes,
+                          h_table = h_params$h_table[i], 
+                          h_field = h_params$h_field[i],
+                          h_table_alt =  h_params$h_table_alt[i],
+                          h_field_alt =  h_params$h_field_alt[i]
+      )
+      data<-results$data
+      h_tasks[[i]]<-results$h_tasks
+    }
+    
+    return(list(data=data,h_tasks=rbindlist(h_tasks)))
+    
+  }
+  
+  results<-harmonizer_wrap(data=Till.Out,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  harmonization_list<-error_tracker(errors=results$h_tasks,filename = "till_harmonization",error_dir=error_dir,error_list = harmonization_list)
+  
+  Till.Out<-results$data
+  
 # 3.10) Planting (Plant.Out) #####
 data<-lapply(XL,"[[","Plant.Out")
 col_names<-colnames(data[[800]])
@@ -983,7 +1117,7 @@ Plant.Method<-lapply(1:length(data),FUN=function(i){
   B.Code<-Pub.Out$B.Code[i]
   
   if(!"Plant.Relay" %in% colnames(X)){
-    X[,Plant.Relay:=as.character(NA)]
+    X[,Plant.Relay:="Not in template"]
   }
   if(ncol(X)<length(col_names)){
     cat("Structural issue with file too few cols",i,B.Code,"\n")
@@ -1013,7 +1147,6 @@ error_list<-error_tracker(errors=rbind(errors1,errors2),filename = "plant_struct
 
 # Substitute , for . in numeric columns
 numeric_cols<-c("Plant.Density","Plant.Row","Plant.Station","Plant.Seeds","Plant.Thin","Plant.Tram.Row","Plant.Tram.N","Plant.Block.Rows","Plant.Block.Perc","Plant.Block.Width")
-
 Plant.Method[, (numeric_cols) := lapply(.SD, function(x) gsub(",", ".", x)), .SDcols = numeric_cols]
 
 # Check for errors in Plant.Method table
@@ -1024,7 +1157,7 @@ Plant.Method[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols
 errors2<-Plant.Method[!P.Level.Name %in% Plant.Out$P.Level.Name,list(B.Code,P.Level.Name)
                       ][,table:="Plant.Method"
                         ][,field:="P.Level.Name"
-                          ][,issue:="P.Level.Name in method does not match practice name row above."]
+                          ][,issue:="P.Level.Name in methods table does not match practice name row."]
 setnames(errors2,"P.Level.Name","value")
 
 errors3<-Plant.Method[Plant.Row<Plant.Station
@@ -1034,9 +1167,9 @@ errors3<-Plant.Method[Plant.Row<Plant.Station
                             ][,field:="P.Level.Name"
                               ][,issue:="Row spacing is less than station spacing, possible error."]
 
-error_list<-error_tracker(errors=rbind(errors1,errors2,errors3),filename = "plant_method_value_errors",error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=rbind(errors1,errors2,errors3)[order(B.Code)],filename = "plant_method_value_errors",error_dir=error_dir,error_list = error_list)
 
-# 3.10.1) Plant.Method: Update fields from master_codes ######
+  # 3.10.1) Plant.Method: Update fields from master_codes ######
 h_result<-harmonizer(data=Plant.Method,
                      master_codes = master_codes,
                      h_table = "Plant.Out", 
@@ -1080,38 +1213,127 @@ harmonization_list<-error_tracker(errors=rbind(h1,h2,h3,h4),filename = "plant_me
 
 
 
-# ***Fertilizer (Fert.Out) =====
-# Fert.Out
-Fert.Out<-lapply(XL,"[[","Fert.Out")
+# 3.11) Fertilizer (Fert.Out) #####
+data<-lapply(XL,"[[","Fert.Out")
+col_names<-colnames(data[[1]])
 
-# Fert.Method ####
+# 3.11.1) Fert.Out ######
+col_names2<-col_names[c(1:7,9:18)]
+Fert.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!"F.Int" %in% colnames(X)){
+    X[,F.Int:="Not in template"]
+  }
+  
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure,corruption of excel file?"))
+  }else{
+    X<-X[,..col_names2]
+    X<-X[!is.na(F.Level.Name)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }
+})
 
-Fert.Method<-rbindlist(lapply(1:length(Fert.Out),FUN=function(i){
-  X<-Fert.Out[[i]][,-(c(1:21,36:59))]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("F.Name"))
-  X
-}))
+errors_a<-rbindlist(lapply(Fert.Out,"[[","errors"))
+Fert.Out<-rbindlist(lapply(Fert.Out,"[[","data"))
 
-setnames(Fert.Method, "F.Type...24", "F.Type")
-Fert.Method[F.NPK==0,F.NPK:=NA]
-Fert.Method[F.Unit==0,F.Unit:=NA]
-Fert.Method[F.Method==0, F.Method:=NA]
-Fert.Method[F.Fate==0,F.Fate:=NA]
-Fert.Method[F.Date==0,F.Date:=NA]
-Fert.Method[F.Date.Stage==0,F.Date.Stage:=NA]
-Fert.Method[F.Date.DAP==0,F.Date.DAP:=NA]
-Fert.Method[F.Date.DAE ==0,F.Date.DAE :=NA]
-Fert.Method[F.Source ==0,F.Source :=NA]
-Fert.Method[F.Date.Text==0,F.Date.Text:=NA]
-Fert.Method[F.Amount==0,F.Amount:=NA]
+# Replace zeros with NAs
+Zero.Cols<-c("F.O.Unit","F.I.Unit")
+Fert.Out<-Fert.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
 
-# Fert.Method: Remove any parenthesis in names
-Fert.Method[,F.Name:=gsub("[(]","",F.Name)][,F.Name:=gsub("[)]","",F.Name)]
+# Substitute , for . in numeric columns
+numeric_cols<-c("F.NO","F.PO","F.KO","F.NI","F.PI","F.P2O5","F.KI","F.K2O")
+Fert.Out[, (numeric_cols) := lapply(.SD, function(x) gsub(",", ".", x)), .SDcols = numeric_cols]
 
-# write.table(Fert.Method[!is.na(F.Method)][order(F.Method),unique(F.Method)],"clipboard",row.names = F,sep="\t")
+# Check for errors in Fert.Out table
 
-# Fert.Composition
+# Non-numeric values in numeric columns
+errors1<-find_non_numeric(data=Fert.Out,numeric_cols=numeric_cols,tabname="Fert.Out")[,issue:="Non-numeric value in numeric field"]
+Fert.Out[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
+
+errors2<-unique(Fert.Out[(!is.na(F.NO)|!is.na(F.PO)|!is.na(F.KO)) & is.na(F.O.Unit),"B.Code"
+                  ][,value:=NA
+                    ][,table:="Fert.Out"
+                      ][,field:="F.O.Unit"
+                        ][,issue:="Organic fertilizer unit missing"])
+
+errors3<-unique(Fert.Out[(!is.na(F.NI)|!is.na(F.PI)|!is.na(F.KI)|!is.na(F.K2O)|!is.na(F.P2O5)) & is.na(F.I.Unit),"B.Code"
+                  ][,value:=NA
+                    ][,table:="Fert.Out"
+                      ][,field:="F.I.Unit"
+                        ][,issue:="Inorganic fertilizer unit missing"])
+
+# 3.11.2) Fert.Method ####
+col_names2<-col_names[c(30:49)]
+col_names2[3]<-"F.Type1"
+Fert.Method<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  colnames(X)[grep("F.Type",colnames(X))]<-paste0("F.Type",1:length(grep("F.Type",colnames(X))))
+  
+  col_names3<-col_names2
+  if("F.NP2O5K2O" %in% colnames(X)){
+    col_names3[4]<-"F.NP2O5K2O"
+  }
+  
+  if(!all(col_names3 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(errors=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Fert.Method tab structure. Could be that NPK is missing"))
+  }else{
+    X<-X[,..col_names3]
+    colnames(X)[1]<-"F.Level.Name"
+    X<-X[!is.na(F.Level.Name)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      setnames(X,"F.Type1","F.Type")
+      list(data=X)
+    }else{
+      NULL
+    }
+  }
+})
+setnames(Fert.Method,"Times","Time")
+
+errors_b<-rbindlist(lapply(Fert.Method,"[[","errors"))
+Fert.Method<-rbindlist(lapply(Fert.Method,"[[","data"),fill=T)
+
+# Substitute , for . in numeric columns
+numeric_cols<-c("F.Amount","F.Date.Start","F.Date.End","F.Date.DAP","F.Date.DAE","F.Date")
+Fert.Method[, (numeric_cols) := lapply(.SD, function(x) gsub(",", ".", x)), .SDcols = numeric_cols]
+
+# Check for errors in Fert.Out table
+errors4<-find_non_numeric(data=Fert.Method,numeric_cols=numeric_cols,tabname="Fert.Method")[,issue:="Non-numeric value in numeric field"]
+Fert.Method[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
+
+# Convert Excel date numbers to R dates
+date_columns <- c("F.Date.End", "F.Date.Start", "F.Date")
+Fert.Method[, (date_columns) := lapply(.SD, function(x) as.Date(x, origin = "1899-12-30")), .SDcols = date_columns]
+
+# Check date ranges
+
+errors5<-check_dates(data=Fert.Method,
+                     date_columns=date_columns,
+                     valid_start=valid_start,
+                    valid_end=valid_end,
+                    tabname="Fert.Method")
+
+errors6<-check_site_time(data=Fert.Method,
+                         ignore_values = c("All Times","Unspecified","Not specified","All Sites"),
+                         tabname="Fert.Method",
+                         site_data=Site.Out,
+                         time_data=Times.Out)
+
+
+# Fert.Composition ######
 Fert.Composition<-rbindlist(lapply(1:length(Fert.Out),FUN=function(i){
   X<-Fert.Out[[i]][,-(c(1:36))]
   X$B.Code<-Pub.Out$B.Code[i]
