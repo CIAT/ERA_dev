@@ -2,7 +2,7 @@
 
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
-pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply)
+pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply,soiltexture,httr)
 
 
 # 0.1) Create functions ####
@@ -18,6 +18,84 @@ waitifnot <- function(cond) {
 replace_zero_with_NA<-function(data){
   data[data==0]<-NA
   return(data)
+}
+
+# Create an error report and check if issues have been addressed if an error report already exists
+error_tracker<-function(errors,filename,error_dir,error_list=NULL){
+  if(is.null(error_list)){
+    error_list<-list()
+  }
+  error_file<-file.path(error_dir,paste0(filename,".csv"))
+  if(nrow(errors)>0){
+    if(file.exists(error_file)){
+      error_tracking<-fread(error_file)
+      errors<-merge(errors,error_tracking,all.x=T)
+      errors[is.na(issue_addressed),issue_addressed:=F][is.na(addressed_by_whom),addressed_by_whom:=""]
+    }else{
+      errors[,issue_addressed:=F][,addressed_by_whom:=""]
+    }
+    error_list[[filename]]<-errors
+    fwrite(errors,error_file)
+  }else{
+    unlink(error_file)
+  }
+  return(error_list)
+}
+
+
+# 'harmonizer' function:
+# This function harmonizes data fields by replacing old values with new values based on master codes.
+# It supports both primary and alternate harmonization rules if provided.
+#
+# Args:
+#   data: DataFrame - The data.table to be harmonized.
+#   master_codes: List - A list containing the 'lookup_levels' DataFrame with old to new value mappings.
+#   h_table: String - The name of the table in 'lookup_levels' used for the primary harmonization.
+#   h_field: String - The name of the field in 'lookup_levels' used for the primary harmonization.
+#   h_table_alt: String - Optional. The name of the alternate table for harmonization if different from primary.
+#   h_field_alt: String - Optional. The name of the alternate field for harmonization if different from primary.
+#
+# Returns:
+#   A list containing:
+#   - 'data': DataFrame with the harmonized data.
+#   - 'h_tasks': DataFrame listing any non-matched harmonization tasks by B.Code and value.
+harmonizer <- function(data, master_codes, h_table, h_field, h_table_alt=NA, h_field_alt=NA) {
+  data<-data.table(data)
+  
+  # Selecting relevant columns for output
+  h_cols <- c("B.Code", h_field)
+  
+  # Harmonize old names to new names
+  if (is.na(h_field_alt)) {
+    # Retrieve mappings for primary fields if no alternate field is provided
+    h_tab <- master_codes$lookup_levels[Table == h_table & Field == h_field, list(Values_New, Values_Old)]
+  } else {
+    if (is.na(h_table_alt)) {
+      # Warning if alternate field is provided without an alternate table
+      warning("If h_field_alt is provided, h_table_alt should also be provided, currently using h_table which may result in non-matches.")
+      h_table_alt <- h_table
+    }
+    # Retrieve mappings for alternate fields
+    h_tab <- master_codes$lookup_levels[Table == h_table_alt & Field == h_field_alt, list(Values_New, Values_Old)]
+  }
+  
+  # Matching old values to new values and updating data
+  N <- match(unlist(data[, ..h_field]), h_tab[, Values_Old])
+  data <- data[!is.na(N), (h_field) := h_tab[N[!is.na(N)], Values_New]]
+  
+  # Check for any non-matches after harmonization
+  N <- match(unlist(data[, ..h_field]), h_tab[, Values_New])
+  h_tasks <- unique(data[is.na(N), ..h_cols])
+  colnames(h_tasks)[2] <- "value"
+  h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)]
+  
+  # Adding metadata columns to the tasks output for further tracking
+  h_tasks[, table := h_table
+  ][, field := h_field
+  ][, checked := FALSE
+  ][, checked_by_whom := ""]
+  
+  return(list(data = data, h_tasks = h_tasks))
 }
 
 # 0.2) Set directories and parallel cores ####
@@ -46,194 +124,158 @@ if(!dir.exists(error_dir)){
   dir.create(error_dir,recursive=T)
 }
 
-# 1) Download data ####
-update<-F
+# 1) Download  or update data ####
+update<-T
 
 s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
 
+# Check if the file exists
+if (grepl("success",http_status(HEAD(s3_file))$category,ignore.case = T)) {
+  print("The file exists.")
+  file_status<-T
+} else {
+  print("The file does not exist.")
+  file_status<-F
+}
+
 local_file<-file.path(data_dir,basename(s3_file))
-if(length(list.files(data_dir))<1|update==T){
-  options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
-  download.file(s3_file, destfile = local_file)
-  unzip(local_file, exdir = data_dir,overwrite=T,junkpaths=T)
-  unlink(local_file)
+
+if(file_status){
+  if(length(list.files(data_dir))<1|update==T){
+    rm_files<-list.files(data_dir,"xlsm$",full.names = T)
+    unlink(rm_files)
+    options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
+    download.file(s3_file, destfile = local_file)
+    unzip(local_file, exdir = data_dir,overwrite=T,junkpaths=T)
+    unlink(local_file)
+  }
 }
 
 
 # 2) Load data ####
-# 2.1) Load era vocab #####
-vocab_file<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
-
-# Get names of all sheets in the workbook
-sheet_names <- readxl::excel_sheets(vocab_file)
-sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
-
-# Read each sheet into a list
-master_codes <- sapply(sheet_names, FUN=function(x){readxl::read_excel(vocab_file, sheet = x)},USE.NAMES=T)
-
-# 2.2) Load excel data entry template #####
-Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
-
-# List sheet names that we need to extract
-SheetNames<-excel_sheets(Master)
-SheetNames<-grep(".Out",SheetNames,fixed = T,value=T)
-
-# List column names for the sheets to be extracted
-XL.M<-sapply(SheetNames,FUN=function(SName){
-  cat('\r                                                                                                                                          ')
-  cat('\r',paste0("Importing Sheet = ",SName))
-  flush.console()
-  colnames(data.table(suppressWarnings(suppressMessages(readxl::read_excel(Master,sheet = SName)))))
-},USE.NAMES = T)
-
-# Subset Cols
-XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
-
-# 2.3) List extraction excel files #####
-Files<-list.files(data_dir,".xlsm$",full.names=T)
-
-# 2.4) Check for duplicate files #####
-FNames<-unlist(tail(tstrsplit(Files,"/"),1))
-FNames<-gsub(" ","",FNames)
-FNames<-unlist(tstrsplit(FNames,"-",keep=2))
-FNames<-gsub("[(]1[])]|[(]2[])]","",FNames)
-FNames<-gsub("_1|_2|_3|_4",".1|.2|.3|.4",FNames,fixed=T)
-FNames<-gsub("..",".",FNames,fixed=T)
-
-excel_files<-data.table(filename=Files,era_code=FNames)
-excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
-
-# Flag any naming issues
-excel_files[grepl("_",era_code)]
-excel_files<-excel_files[!grepl("_",era_code)]
-
-# Look for duplicate files
-excel_files[,N:=.N,by=era_code]
-excel_files[N>1][order(era_code)]
-
-# Remove not qced duplicates
-excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
-excel_files[N>1][order(era_code)]
-
-excel_files<-excel_files[!N>1][,N:=NULL]
-excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
-
-# 2.5) Read in data from excel files #####
-
-# If files have already been imported and converted to list form should the important process be run again?
-overwrite<-F
-
-# Set up parallel back-end
-if (.Platform$OS.type == "windows") {
-  plan(multisession, workers = workers)
-} else {
-  plan(multicore, workers = workers)
-}
-
-# Run future apply loop to read in data from each excel file in parallel
-XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
-  File <- excel_files$filename[i]
-  era_code <- excel_files$era_code2[i]
-  save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+  # 2.1) Load era vocab #####
+  vocab_file<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
   
-  if (overwrite == TRUE || !file.exists(save_name)) {
-    X <- tryCatch({
-      lapply(SheetNames, FUN=function(SName){
-        cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
-        flush.console()
-        data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
-      })
-    }, error=function(e){
-      cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
-      return(NULL)  # Return NULL if there was an error
-    })
-    
-    if (!is.null(X)) {
-      names(X) <- SheetNames
-      save(X, file=save_name)
-    }
-  } else {
-    miceadds::load.Rdata(filename=save_name, objname="X")
-  }
+  # Get names of all sheets in the workbook
+  sheet_names <- readxl::excel_sheets(vocab_file)
+  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
   
-  X
-})
-
-# Reset plan to default setting
-future::plan(sequential)
-
-# Add names
-names(XL)<-excel_files$filename
-
-# Filter out any missing data
-XL <- Filter(Negate(is.null), XL)
-
-rm(Files,SheetNames,XL.M,Master)
-
-# Temporary code to explore which excels have junk data issues ####
-
-# Junk data in Residue composition data
-if(F){
+  # Read each sheet into a list
+  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(vocab_file, sheet = x))},USE.NAMES=T)
   
-  future::plan(multisession,workers=workers)  # Change to multicore on Unix/Linux
+  # 2.2) Load excel data entry template #####
+  Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
   
-  X<-future.apply::future_sapply(1:length(Files),FUN=function(i){
-    
-    # Display progress
-    cat('\r                                                                                                                     ')
-    cat('\r',paste(i,"/",length(Files)), "-",tail(unlist(tstrsplit(Files[i]," - ")),1))
+  # List sheet names that we need to extract
+  SheetNames<-excel_sheets(Master)
+  SheetNames<-grep(".Out",SheetNames,fixed = T,value=T)
+  
+  # List column names for the sheets to be extracted
+  XL.M<-sapply(SheetNames,FUN=function(SName){
+    cat('\r                                                                                                                                          ')
+    cat('\r',paste0("Importing Sheet = ",SName))
     flush.console()
-    
-    X<-data.table(suppressMessages(suppressWarnings(readxl::read_excel(Files[i],sheet = "Residues.Out",.name_repair = "minimal",trim_ws = T))))
-    if(colnames(X[,33])=="M.Tree"){
-      X[1:2,33][,paste(M.Tree,collapse="-") == "Acacia angustissima-Acacia caerulescens"]
-    }else{
-      X[1:2,32][,paste(M.Tree,collapse="-") == "Acacia angustissima-Acacia caerulescens"]
-    }
+    colnames(data.table(suppressWarnings(suppressMessages(readxl::read_excel(Master,sheet = SName)))))
   },USE.NAMES = T)
   
-  future::plan(sequential)
-  closeAllConnections()
+  # Subset Cols
+  XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
   
-  names(X)<-FNames
+  # 2.3) List extraction excel files #####
+  Files<-list.files(data_dir,".xlsm$",full.names=T)
   
-  names(X)[X==T]
+  # 2.4) Check for duplicate files #####
+  FNames<-unlist(tail(tstrsplit(Files,"/"),1))
+  FNames<-gsub(" ","",FNames)
+  FNames<-unlist(tstrsplit(FNames,"-",keep=2))
+  FNames<-gsub("[(]1[])]|[(]2[])]","",FNames)
+  FNames<-gsub("_1|_2|_3|_4",".1|.2|.3|.4",FNames,fixed=T)
+  FNames<-gsub("..",".",FNames,fixed=T)
   
-}
-
-# Junk data in PH Base practice
-if(F){
-  future::plan(multisession,workers=workers)  # Change to multicore on Unix/Linux
+  excel_files<-data.table(filename=Files,era_code=FNames)
+  excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
   
-  X<-future.apply::future_sapply(1:length(Files),FUN=function(i){
+  # Flag any naming issues
+  excel_files[grepl("_",era_code)]
+  excel_files<-excel_files[!grepl("_",era_code)]
+  
+  # Look for duplicate files
+  excel_files[,N:=.N,by=era_code]
+  excel_files[N>1][order(era_code)]
+  
+  # Remove not qced duplicates
+  excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
+  excel_files[N>1][order(era_code)]
+  
+  excel_files<-excel_files[!N>1][,N:=NULL]
+  excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
+  
+  # 2.5) Read in data from excel files #####
+  
+  # If files have already been imported and converted to list form should the important process be run again?
+  overwrite<-T
+  
+  # Delete existing files if overwrite =T
+  if(overwrite){
+    unlink(extracted_dir,recursive = T)
+    dir.create(extracted_dir)
+  }
+  
+  # Set up parallel back-end
+  if (.Platform$OS.type == "windows") {
+    plan(multisession, workers = workers)
+  } else {
+    plan(multicore, workers = workers)
+  }
+  
+  # Run future apply loop to read in data from each excel file in parallel
+  XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
+    File <- excel_files$filename[i]
+    era_code <- excel_files$era_code2[i]
+    save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
     
-    # Display progress
-    cat('\r                                                                                                                     ')
-    cat('\r',paste(i,"/",length(Files)), "-",tail(unlist(tstrsplit(Files[i]," - ")),1))
-    flush.console()
+    if (overwrite == TRUE || !file.exists(save_name)) {
+      X <- tryCatch({
+        lapply(SheetNames, FUN=function(SName){
+          cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
+          flush.console()
+          data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
+        })
+      }, error=function(e){
+        cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+        return(NULL)  # Return NULL if there was an error
+      })
+      
+      if (!is.null(X)) {
+        names(X) <- SheetNames
+        save(X, file=save_name)
+      }
+    } else {
+      miceadds::load.Rdata(filename=save_name, objname="X")
+    }
     
-    X<-data.table(suppressMessages(suppressWarnings(readxl::read_excel(Files[i],sheet = "pH.Out",.name_repair = "minimal",trim_ws = T))))
-    
-    X[,1:4][pH.Level.Name=="Base",!is.na(pH.Prac)]& !("Base" %in% X[,6])
+    X
   })
   
+  # Reset plan to default setting
   future::plan(sequential)
-  closeAllConnections()
   
-  X<-unlist(X)
+  # Add names
+  names(XL)<-excel_files$filename
   
-  names(X)<-FNames
+  # Filter out any missing data
+  XL <- Filter(Negate(is.null), XL)
   
-  names(X)[X==T]
+  rm(Files,SheetNames,XL.M,Master)
   
-}
-
 # 3) Process imported data ####
-# 3.1) Publication (Pub.Out) #####
-Pub.Out<-lapply(XL,"[[","Pub.Out")
+error_list<-list()
 
-Pub.Out<-rbindlist(pblapply(1:length(Pub.Out),FUN=function(i){
-  X<-Pub.Out[[i]]
+# 3.1) Publication (Pub.Out) #####
+data<-lapply(XL,"[[","Pub.Out")
+
+Pub.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
   X$filename<-names(XL)[i]
   X
 }))
@@ -247,47 +289,33 @@ Pub.Out<-merge(Pub.Out,excel_files[,list(filename,era_code2)],all.x=T)
 Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2]
 
 # Save any errors
-(errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)][order(B.Code)])
-error_file<-file.path(error_dir,"pub_code_errors.csv")
-if(nrow(errors)>0){
-  errors[,issue_addressed:=F][,addressed_by_whom:=""]
-  fwrite(errors,error_file)
-}else{
-  unlink(error_file)
-}
-
-error_list<-list()
-error_list$pub_code_error<-errors
+errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)][order(B.Code)]
+error_list<-error_tracker(errors=errors,filename = "pub_code_errors",error_dir=error_dir,error_list = NULL)
 
 # Reset B.Codes to filename
 Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue"):=NULL]
 
 # 3.2) Site.Out #####
-Site.Out<-lapply(XL,"[[","Site.Out")
-site_names<-colnames(Site.Out[[1]])
+data<-lapply(XL,"[[","Site.Out")
+site_names<-colnames(data[[1]])
 
 # Structure errors: Check that column names match between sheets
-errors<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
-  dt<-Site.Out[[i]]
-  if(!all(colnames(dt) == site_names)){
-   data.table(B.Code=Pub.Out$B.Code[i],filename=names(XL)[i])
+errors<-rbindlist(lapply(1:length(data),FUN=function(i){
+  dt<-data[[i]]
+  if(!all(colnames(dt) %in% site_names)){
+   data.table(B.Code=Pub.Out$B.Code[i],filename=basename(names(XL)[i]))[,issue:="Problem with structure of Site.Out tab, does not match other excels"]
+  }else{
+    NULL
   }
   }))
-
-error_file<-file.path(error_dir,"site_structure_errors.csv")
-if(nrow(errors)>0){
-  errors[,issue:="Problem with structure of Site.Out tab, does not match other excels"][,issue_addressed:=F][,addressed_by_whom:=""]
-  fwrite(errors,error_file)
-}else{
-  unlink(error_file)
-}
-
-error_list$site_structure_errors<-errors
+error_list<-error_tracker(errors=errors,filename = "site_structure_errors",error_dir=error_dir,error_list = error_list)
 
 # Missing data errors
-errors<-rbindlist(pblapply(1:length(Site.Out),FUN=function(i){
-  dt<-Site.Out[[i]]
+errors<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  dt<-data[[i]]
   dt$B.Code<-Pub.Out$B.Code[i]
+  
+  dt[,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)][,Buffer.Manual:=as.numeric(Buffer.Manual)]
   
   dt[,Site.LatD:=gsub(",","",Site.LatD)
      ][Site.LatD=="",Site.LatD:=NA
@@ -316,28 +344,17 @@ errors<-rbindlist(pblapply(1:length(Site.Out),FUN=function(i){
   }
   
   if(dt[,sum(missing)>0]){
-    dt[missing==T][,missing:=NULL]
+    dt[missing==T][,missing:=NULL][,issue:="Compulsory information appears to be missing"]
   }else{
     NULL
   }
   
 }))
-
-error_file<-file.path(error_dir,"site_missing_fields_errors.csv")
-if(nrow(errors)>0){
-  errors[,issue:="Compulsory information appears to be missing"
-         ][,issue_addressed:=F
-           ][,addressed_by_whom:=""]
-  fwrite(errors,error_file)
-}else{
-  unlink(error_file)
-}
-
-error_list$site_missing_fields_errors<-errors
+error_list<-error_tracker(errors=errors,filename = "site_missing_fields_errors",error_dir=error_dir,error_list = error_list)
 
 # Read in data excluding files with non-match structure
-Site.Out<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
-  dt<-Site.Out[[i]]
+Site.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
+  dt<-data[[i]]
   dt<-dt[!is.na(Site.ID)]
   
   if(nrow(dt)==0){
@@ -356,9 +373,6 @@ Site.Out<-rbindlist(lapply(1:length(Site.Out),FUN=function(i){
   }
 }))
 
-# Remove any parenthesis in names
-Site.Out[,Site.ID:=gsub("[(]","",Site.ID)][,Site.ID:=gsub("[)]","",Site.ID)]
-
 # Tidy lat and lon fields
 Site.Out[,Site.LatD:=gsub(",","",Site.LatD)
    ][Site.LatD=="",Site.LatD:=NA
@@ -373,8 +387,7 @@ Site.Out[,Site.LonD:=gsub(",","",Site.LonD)
 Zero.Cols<-colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")]
 Site.Out<-Site.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
 
-
-# !!! TO DO !!! Site.Out: Update Fields From Harmonization Sheet ####
+  # !!! TO DO !!! Site.Out: Update Fields From Harmonization Sheet - BEST LEFT TILL OTHER SHEETS READ IN ####
 if(F){
 # Make sure blanks read NA
 Site.Out[Site.Buffer.Manual==""|Site.Buffer.Manual=="NA"|is.na(Site.Buffer.Manual),Site.Buffer.Manual:=NA]
@@ -428,25 +441,59 @@ Agg.Site.Name.Fun<-function(Site.ID,SiteHarmonization){
 
 Site.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
 }
+# 3.x) Times periods
+data<-lapply(XL,"[[","Times.Out")
+Times.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,1:5]
+  colnames(X)[1]<-"Time"
+  X<-X[!is.na(Time)]
+  
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+  }
+}))
+
+# Error checking odd valyes in Time.Year.Start or Time.Year.End
+errors<-Times.Out[is.na(as.numeric(Time.Year.End))|is.na(as.numeric(Time.Year.Start))|nchar(Time.Year.Start)>4|nchar(Time.Year.End)>4
+                  ][!(is.na(Time.Year.Start)|is.na(Time.Year.End)|grepl("unspecified",Time.Year.Start,ignore.case = T))
+                    ][,list(B.Code,Time.Year.End,Time.Year.Start)]
+
+Times.Out[,c("Time.Year.Start","Time.Year.End"):=list(as.integer(Time.Year.Start),as.integer(Time.Year.End))]
+
+Times.Clim<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,7:14]
+  colnames(X)[2]<-"Time"
+  X<-X[!is.na(Time)]
+  
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+  }
+}))
+
+Times.Clim[,Time.Clim.SP:=as.integer(Time.Clim.SP)
+           ][,Time.Clim.TAP:=as.integer(Time.Clim.TAP)
+             ][,Time.Clim.Temp.Mean:=round(Time.Clim.Temp.Mean,1)
+               ][,Time.Clim.Temp.Max:=round(Time.Clim.Temp.Max,1)]
+
+
 # 3.3) Soil (Soil.Out) =====
-Soil.Out<-lapply(XL,"[[","Soils.Out")
+data<-lapply(XL,"[[","Soils.Out")
 
 # Structure errors: Check for malformed column names
-errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
-  dt<-Soil.Out[[i]]
+errors1<-rbindlist(lapply(1:length(data),FUN=function(i){
+  dt<-data[[i]]
   if(colnames(dt)[1]=="...1"|!any(grepl("Unit",colnames(dt)))){
     Y<-data.table(B.Code=Pub.Out$B.Code[i],filename=basename(names(XL)[i]))
-    Y[,issue:="Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present"][,issue_addressed:=F][,addressed_by_whom:=""]
+    Y[,issue:="Problem with structure of Soil.Out tab, first col has incorrect name or no unit colnames present"]
     Y
   }
 }))
-if(nrow(errors)>0){
-  error_list$soil_structure_errors<-errors
-}
 
 # Structure errors: Check for case where only one of upper or lower is present
-errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
-  dt<-Soil.Out[[i]]
+errors2<-rbindlist(lapply(1:length(data),FUN=function(i){
+  dt<-data[[i]]
 
   if(colnames(dt)[1]!="...1"){
     # Filter out columns that are all NA
@@ -455,18 +502,15 @@ errors<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
     
     if(("Soil.Upper" %in% Xcols + "Soil.Lower" %in% Xcols)==1){
       Y<-data.table(B.Code=Pub.Out$B.Code[i],filename=basename(names(XL)[i]))
-      Y[,issue:="Only one of upper or lower depth has value"][,issue_addressed:=F][,addressed_by_whom:=""]
+      Y[,issue:="Only one of upper or lower depth has value"]#
       Y
     }
   }
 }))
-if(nrow(errors)>0){
-  error_list$soil_depth_one_missing_errors<-errors
-}
 
 # Combine soil data into a table
-Soil.Out<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
-  X<-Soil.Out[[i]]
+Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
 
   if(colnames(X)[1]=="...1"|!any(grepl("Unit",colnames(X)))){
     cat("Issue with soil table structure:",Pub.Out$B.Code[i],"\n")
@@ -565,305 +609,308 @@ Soil.Out<-rbindlist(lapply(1:length(Soil.Out),FUN=function(i){
   
 }),fill=T)
 
+# Convert character fields to numeric converting any "," to "."
+val.cols<-c("Soil.Upper","Soil.Lower","value")
+Soil.Out[, (val.cols) := lapply(.SD, function(x) as.numeric(gsub(",", ".", x))), .SDcols = val.cols]
+
 # Check for "..." in column names
-errors<-unique(Soil.Out[grep("[.][.][.]",variable),list(variable,B.Code,filename)])
-if(nrow(errors)>0){
-  errors[,issue:="Potential duplicate soil variable recorded"][,issue_addressed:=F][,addressed_by_whom:=""]
-  error_list$soil_variable_errors<-errors
+errors3<-unique(Soil.Out[grep("[.][.][.]",variable),list(variable,B.Code,filename)])
+if(nrow(errors3)>0){
+  errors3[,issue:="Potential duplicate soil variable recorded"]
 }
 
 # Check for multiple instance of same depth for same site
-errors<-unique(Soil.Out[,.N,by=list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable)][,variable:=NULL][N>1][,c("N","Soil.Upper","Soil.Lower"):=NULL])
-if(nrow(errors)>0){
-  errors[,issue:="Check for multiple instance of same depth for same site"][,issue_addressed:=F][,addressed_by_whom:=""]
-  error_list$soil_depth_duplicate_errors<-errors
+errors4<-unique(Soil.Out[,.N,by=list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable)][,variable:=NULL][N>1][,c("N","Soil.Upper","Soil.Lower"):=NULL])
+if(nrow(errors4)>0){
+  errors4[,issue:="Check for multiple instance of same depth for same site"]
 }
 
-# Combine errors
-errors<-rbindlist(error_list[grepl("soil_",names(error_list))],fill=T)
-errors<-errors[,c(1,2,7,6,3,4,5)][order(B.Code)]
-
-fwrite(errors,file.path(error_dir,"soil_errors.csv"))
-
-# Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
-
-Soil.Out.Texture<-Soil.Out[variable %in% c("SND","SLT","CLY"),list(B.Code,Site.ID,Soil.Upper,Soil.Lower,variable,value)]
-
-Soil.Out.Texture<-dcast(Soil.Out.Texture,B.Code+Site.ID+Soil.Upper+Soil.Lower~variable,value.var = "value")
-
-
-N<-which(Soil.Out[,Soil.Text.N]==2)
-Soil.Out<-data.frame(Soil.Out)
-for(i in N){
-  NX<-which(is.na(unlist(Soil.Out[i,c("CLY","SND","SLT")])))
-  NX2<-c("CLY","SND","SLT")[!c("CLY","SND","SLT") %in% names(NX)]
-  Soil.Out[i,names(NX)]<-100-sum(Soil.Out[i,NX2])
+# Check for depth lower > depth upper
+errors5<-unique(Soil.Out[Soil.Upper>Soil.Lower,list(variable,B.Code,filename)])
+if(nrow(errors5)>0){
+  errors5[,issue:="Upper depth value is greater than lower depth value"]
 }
-Soil.Out<-data.table(Soil.Out)
 
-X<-Soil.Out[!(is.na(CLY)|is.na(SND)|is.na(SLT)),c("CLY","SND","SLT")]
-setnames(X,c("CLY","SND","SLT"),c("CLAY","SAND","SILT"))
-Texture<-TT.points.in.classes(tri.data =X,class.sys = "USDA.TT",text.tol = 1) 
-
-Texture.FullName<-c("Clay","Silty Clay","Sandy Clay","Clay Loam","Silty Clay Loam","Sandy Clay Loam","Loam","Silty Loam",
-                    "Sandy Loam","Silt","Loamy Sand","Sand")
-Texture<-unlist(apply(Texture,1,FUN=function(X){paste(Texture.FullName[which(X>=1)],collapse = "/")}))
-
-Soil.Out[!(is.na(CLY)|is.na(SND)|is.na(SLT)),USDA.Texture:=Texture]
-rm(Texture,Texture.FullName,X,N)
-Soil.Out[,Soil.Text.N:=NULL]
-
-# Site.Out: Update Site.Out Soil Texture from USDA Classes ####
-USDA.Text<-unlist(pblapply(1:nrow(Site.Out),FUN=function(i){
-  Texture<-Soil.Out[Soil.Out[,Site.ID] %in% Site.Out[i,Site.ID],USDA.Texture]
-  Texture<-unique(unlist(strsplit(Texture,"[/]")))
-  if(all(is.na(Texture))){
-    NA
-  }else{
-    paste(Texture[!is.na(Texture)],collapse = "/")
+  # 3.3.1) Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
+  Soil.Out.Texture<-Soil.Out[variable %in% c("SND","SLT","CLY"),list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable,value)]
+  
+  # Remove studies with issues
+  Soil.Out.Texture<-Soil.Out.Texture[!B.Code %in% errors4$B.Code]
+  
+  # Make dataset wide
+  Soil.Out.Texture<-dcast(Soil.Out.Texture,B.Code+filename+Site.ID+Soil.Upper+Soil.Lower~variable,value.var = "value")
+  
+  # Keep rows with 2 or more observations
+  Soil.Out.Texture<-Soil.Out.Texture[,N:=is.na(CLY)+is.na(SLT)+is.na(SND)][N<2]
+  
+  # Add missing values where 2/3 are present
+  Soil.Out.Texture[,val:=sum(c(CLY,SLT,SND),na.rm=T),by=list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower)]
+  
+  Soil.Out.Texture[is.na(SLT),SLT:=100-val
+                   ][is.na(CLY),CLY:=100-val
+                     ][is.na(SND),SND:=100-val]
+  
+  # Any values not 100
+  errors6<-unique(Soil.Out.Texture[N!=1 & (val>102|val<98),list(B.Code,filename,Site.ID)])
+  
+  if(nrow(errors6)>0){
+    errors6[,issue:="Sand, silt, clay sum to beyond 2% different to 100%"]
   }
-}))
+  
+  # Subset to sensible soil textures
+  Soil.Out.Texture<-Soil.Out.Texture[!(N!=1 & (val>102|val<98))]
+  
+  X<-Soil.Out.Texture[,list(CLY,SND,SLT)]
+  setnames(X,c("CLY","SND","SLT"),c("CLAY","SAND","SILT"))
+  Texture<-soiltexture::TT.points.in.classes(tri.data =X,class.sys = "USDA.TT",text.tol = 1) 
+  Texture.FullName<-c("Clay","Silty Clay","Sandy Clay","Clay Loam","Silty Clay Loam","Sandy Clay Loam","Loam","Silty Loam",
+                      "Sandy Loam","Silt","Loamy Sand","Sand")
+  Texture<-unlist(apply(Texture,1,FUN=function(X){paste(Texture.FullName[which(X>=1)],collapse = "/")}))
+  
+  Soil.Out.Texture[,Site.Soil.Texture:=Texture][,c("N","val"):=NULL]
+  
+  # Merge texture results back to main dataset
+  Soil.Out<-merge(Soil.Out,Soil.Out.Texture[,list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower)])
+  
+  # Merge missing texture values
+  Soil.Out.Texture<-melt(Soil.Out.Texture[,!"Site.Soil.Texture"],id.vars = c("B.Code","filename","Site.ID","Soil.Upper","Soil.Lower"))
+  X<-merge(Soil.Out.Texture,Soil.Out[,list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable)][,check:=T],all.x=T)
+  Soil.Out.Texture<-rbind(Soil.Out.Texture,X[is.na(check)][,check:=NULL])
+  
+  # Combine & save errors
+  errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6),fill = T)[order(B.Code)]
+  error_list<-error_tracker(errors=errors,filename = "soil_errors",error_dir=error_dir,error_list = error_list)
 
-Site.Out[!is.na(USDA.Text),Site.Soil.Texture:=USDA.Text[!is.na(USDA.Text)]]
-rm(USDA.Text)
-
-# Soil.Out: Update Fields From Harmonization Sheet ####
-N<-match(trimws(Soil.Out[,Site.ID]),SiteHarmonization[,ED.Site.ID])
-
-Soil.Out[!is.na(N),ED.Site.ID:=SiteHarmonization[N[!is.na(N)],ED.Site.ID.Corrected]]
-
-# Soil.Out: Update Aggregated Site Name
-Soil.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
-
-# Soil.Out: Validation ####
-# Check Lower>Upper
-unique(Soil.Out[Soil.Upper>Soil.Lower,c("B.Code","Site.ID","Soil.Upper","Soil.Lower")])
-
-# ***Experimental Design (ExpD.Out) ====
+  # !!TO DO: Soil.Out: Update Fields From Harmonization Sheet ####
+  N<-match(trimws(Soil.Out[,Site.ID]),SiteHarmonization[,ED.Site.ID])
+  
+  Soil.Out[!is.na(N),ED.Site.ID:=SiteHarmonization[N[!is.na(N)],ED.Site.ID.Corrected]]
+  
+  # Soil.Out: Update Aggregated Site Name
+  Soil.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
+  
+# 3.4) Experimental Design (ExpD.Out) ####
 ExpD.Out<-lapply(XL,"[[","ExpD.Out")
-ExpD.Out<-rbindlist(lapply(1:length(ExpD.Out),FUN=function(i){
+col_names<-colnames(ExpD.Out[[1]])
+ExpD.Out<-lapply(1:length(ExpD.Out),FUN=function(i){
   X<-ExpD.Out[[i]]
-  X[,B.Code:=Pub.Out[,B.Code[i]]]
-  X
-}))
+  B.Code<-Pub.Out[,B.Code[i]]
+  Filename<-basename(names(XL)[i])
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,Pub.Out$B.Code[i],"\n")
+    list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with ExpD.Out tab structure")[,issue_addressed:=F
+    ][,addressed_by_whom:=""])
+  }else{
+    X[,B.Code:=B.Code]
+    list(data=X)
+  }
+})
 
-# Covnert 0 to NA
-ExpD.Out[EX.Design==0,EX.Design:=NA]
-ExpD.Out[EX.Plot.Size==0,EX.Plot.Size:=NA]
-ExpD.Out[EX.HPlot.Size==0,EX.HPlot.Size:=NA]
-ExpD.Out[EX.Notes==0,EX.Notes:=NA]
+errors<-rbindlist(lapply(ExpD.Out,"[[","error"))
+error_list<-error_tracker(errors=errors,filename = "expd_structure_errors",error_dir=error_dir,error_list = error_list)
 
-# ***Products (Prod.Out) =====
-Prod.Out<-lapply(XL,"[[",5)
-Prod.Out<-rbindlist(lapply(1:length(Prod.Out),FUN=function(i){
-  X<-Prod.Out[[i]]
+ExpD.Out<-rbindlist(lapply(ExpD.Out,"[[","data"))
+
+# Replace zeros with NAs
+Zero.Cols<-c("EX.Design","EX.Plot.Size","EX.HPlot.Size","EX.Notes")
+ExpD.Out<-ExpD.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
+
+# Convert character fields to numeric converting any "," to "."
+val.cols<-c("EX.Plot.Size","EX.HPlot.Size")
+ExpD.Out[, (val.cols) := lapply(.SD, function(x) as.numeric(gsub(",", ".", x))), .SDcols = val.cols]
+
+# 3.5) Products (Prod.Out) ####
+data<-lapply(XL,"[[","Prod.Out")
+Prod.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
   X$B.Code<-Pub.Out$B.Code[i]
   X<-na.omit(X, cols=c("P.Product"))
   X
 }))
 
-# Validation: Problem of "." in product names using "sp." - change to sp. to sp
-Prod.Out[grepl("Sp[.]",P.Product) | grepl("sp[.]",P.Product) & !grepl("sp[.][.]|Sp[.][.]",P.Product)]
-
-# ***Var (Var.Out) =====
-Var.Out<-lapply(XL,"[[",6)
-Var.Out<-rbindlist(lapply(1:length(Var.Out),FUN=function(i){
-  X<-Var.Out[[i]]
-  X$B.Code<-Pub.Out$B.Code[i]
+# TO DO - updated mulched and incorporated codes, check product is in master codes ####
+# 3.6) Var (Var.Out) ####
+data<-lapply(XL,"[[","Var.Out")
+Var.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  X<-X[!grepl("ERROR",V.Product)]
   X<-na.omit(X, cols=c("V.Var"))
-  X
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+  }
 }))
 
-Var.Out[,"...20":=NULL]
-Var.Out[,V.New.Crop:=NULL]
-Var.Out[,V.New.Var:=NULL]
-Var.Out[,V.New.Species:=NULL]
-Var.Out[,V.New.SubSpecies:=NULL]
-Var.Out[Join==0,Join:=NA]
-Var.Out[V.Var==0,V.Var:=NA]
+# Replace zeros with NAs
+Zero.Cols<-c("V.Var","V.Accession","V.Crop.Practice","V.Base","V.Type","V.Trait1","V.Trait2","V.Trait3","V.Maturity")
+Var.Out<-Var.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
 
-# Remove any parenthesis in names
-Var.Out[,V.Var:=gsub("[(]","",V.Var)][,V.Var:=gsub("[)]","",V.Var)
-][,V.Species:=gsub("[(]","",V.Species)][,V.Species:=gsub("[)]","",V.Species)
-][,Join:=gsub("[(]","",Join)][,Join:=gsub("[)]","",Join)]
+# Trim white space
+char_cols <- sapply(Var.Out, is.character)
+Var.Out[, (names(Var.Out)[char_cols]) := lapply(.SD, trimws), .SDcols = char_cols]
 
-setnames(Var.Out,"V.Subpecies","V.Subspecies")
+# Update V.Codes
+Var.Out[,V.Codes:=master_codes$prac[match(Var.Out$V.Crop.Practice,master_codes$prac$Subpractice),Code]]
 
-# Save Join Field before updating
-Var.Join<-Var.Out[,list(B.Code,V.Var)]
-setnames(Var.Join,"V.Var","Join")
-Var.Join[is.na(Join),Join:=Var.Out[is.na(V.Var),V.Species]]
+# 3.6.1) Var.Out: Harmonize Variety Naming and Codes #####
 
-if(F){
-  # Var.Out: Validation - Check V.Codes == 0
-  X<-Var.Out[V.Codes==0,c("V.Product","V.Var","V.Species","V.Crop.Practice","V.Animal.Practice","B.Code")]
-  write.table(X,"clipboard",row.names = F,sep="\t")
+N<-match(Var.Out$V.Var,master_codes$vars$V.Var)
+Var.Out[!is.na(N),V.Var:=master_codes$vars[N[!is.na(N)],V.Var1]]
+
+N<-match(Var.Out$V.Var,master_codes$vars$V.Var1)
+
+Var.Out[!is.na(N), c("V.Crop.Practice","V.Type"):=master_codes$vars[N[!is.na(N)],list(V.Crop.Practice,V.Type)]]
+
+# Non-matching varieties
+harmonization_list<-list()
+h_tasks<-Var.Out[is.na(N) & !grepl("local|unspecified|unimproved",V.Var,ignore.case=T)
+                 ][,c("V.Base","V.Codes"):=NULL
+                   ][,list(B.Code=paste(B.Code,collapse = "/")),by=list(V.Product,V.Var,V.Accession,V.Crop.Practice,V.Type,V.Trait1,V.Trait2,V.Trait3,V.Maturity)]
+
+harmonization_list<-error_tracker(errors=errors,filename = "var_varieties_harmonization",error_dir=error_dir,error_list = NULL)
+
+# Errors
+errors<-unique(Var.Out[(grepl("local|Local",V.Var) | V.Type %in% c("Local","Landrace")) & V.Crop.Practice != "Unimproved Variety",!c("V.Base","V.Codes")])
+errors<-errors[,list(B.Code=paste(B.Code,collapse = "/")),by=list(V.Product,V.Var,V.Accession,V.Crop.Practice,V.Type,V.Trait1,V.Trait2,V.Trait3,V.Maturity)
+               ][,issue:="Type is local, but not unimproved, possible error (but could be correct)."
+                   ][,issue_addressed:=F
+                     ][,addressed_by_whom:=""
+                       ][,c("V.Accession","V.Trait1","V.Trait2","V.Trait3","V.Maturity"):=NULL
+                         ][order(B.Code)]
+
+error_list<-error_tracker(errors=errors,filename = "var_practice_check",error_dir=error_dir,error_list = error_list)
+
+  # Q: Should we update traits and maturity too? ####
+# 3.7) Agroforestry (AF.Out) ####
+data<-lapply(XL,"[[","AF.Out")
+
+AF.Out<-pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,1:8]
+  colnames(X)[1]<-"AF.Level.Name"
+  X<-X[!is.na(AF.Level.Name)]
   
-  # Extract values for external harmonization
-  X<-unique(Var.Out[,c("V.Product","V.Var","V.Species","V.Subspecies","V.Crop.Practice","V.Animal.Practice","V.Type","V.Trait1","V.Trait2","V.Trait3","V.Maturity")
-  ][order(V.Product,V.Var,V.Species)])
-  write.table(X,"clipboard-256000",row.names = F,sep="\t")
-  rm(X)
-}
+  # Remove any all NA rows
+  na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
+  rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
+  errors<-X[!is.na(AF.Level.Name) & AF.Level.Name!="Base" & rows_with_na==T]
+  X <- X[!rows_with_na]
+  
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    if(nrow(errors)>0){
+      list(data=X,errors=errors)
+    }else{
+      list(data=X)
+    }
+  }else{
+    if(nrow(errors)>0){
+      list(errors=errors)
+    }
+  }
+  })
 
-# Set 0 values to NA
-Var.Out[V.Var==0,V.Var:=NA]
-Var.Out[V.Animal.Practice==0,V.Animal.Practice:=NA]
-Var.Out[V.Crop.Practice==0,V.Crop.Practice:=NA]
-Var.Out[V.Species==0,V.Species:=NA]
-Var.Out[V.Subspecies==0,V.Subspecies:=NA]
-Var.Out[V.Type==0,V.Type:=NA]
-Var.Out[V.Trait1==0,V.Trait1:=NA]
-Var.Out[V.Trait2==0,V.Trait2:=NA]
-Var.Out[V.Trait3==0,V.Trait3:=NA]
-Var.Out[V.Maturity==0,V.Maturity:=NA]
-Var.Out[V.Code.Animal==0,V.Code.Animal:=NA]
-Var.Out[V.Codes==0,V.Codes:=NA]
+# Check for situations where a practices is named but there is no practice selected
+errors<-unique(rbindlist(lapply(AF.Out,"[[","errors"))[,"B.Code"])[,issue:="Agroforestry practice name stated but no practice chosen."]
+error_list<-error_tracker(errors=errors,filename = "af_errors",error_dir=error_dir,error_list = error_list)
 
+AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
 
-# Odd Rounding of Variety names in EO0092 (Excel is correct, but there is an error created when reading in excels)
-Var.Out[V.Var=="396038.10499999998",V.Var:="396038.105"]
-Var.Out[V.Var=="396038.10100000002",V.Var:="396038.101"]
-Var.Out[V.Var=="396031.10800000001",V.Var:="396031.108"]
-Var.Out[V.Var=="396038.10700000002",V.Var:="396038.107"]
-Var.Out[V.Var=="396034.26799999998",V.Var:="396034.268"]
-
-# Var.Out: Harmonize Variety Naming and Codes ####
-
-Var.Fun<-function(V.Product,V.Var){
-  Vars<-unlist(strsplit(V.Var,"[$][$]"))
-  return(list(match(paste(V.Product,Vars),VarHarmonization[,paste(V.Product,V.Var)])))
-}
-
-Var.Out[,N:=1:.N]
-Var.Out[,V.Match:=list(Var.Fun(V.Product,V.Var)),by=N]
-
-# Check for any non-matches
-Var.Out[,V.Match.NA:=sum(is.na(unlist(V.Match))),by=N]
-Variety.Non.Matches<-Var.Out[V.Match.NA>0,list(B.Code,V.Product,V.Var,V.Match)]
-
-if(nrow(Variety.Non.Matches)>0){
-  View(Variety.Non.Matches)
-}
-
-rm(Variety.Non.Matches,Var.Fun)
-
-# Recreate Var.Out table from harmonization table
-Extract.Fun<-function(B.Code,V.Base,V.Match){
-  Y<-VarHarmonization[unlist(V.Match),list(V.Product,V.Var1,V.Species1,V.Subspecies1,V.Crop.Practice,V.Animal.Practice,V.Type,V.Trait1,V.Trait2,V.Trait3,V.Maturity,V.Code)]
-  Y<-data.table(B.Code,V.Base,t(apply(Y,2,FUN=function(Z){paste(unique(Z),collapse = "$$")})))
-  Y[V.Var1=="NA",V.Var1:=NA]
-  Y[,Join:=if(!is.na(V.Var1)){V.Var1}else{V.Species1}]
-  return(Y)
-}
-
-Var.Out2<-Var.Out[,Extract.Fun(B.Code,V.Base,V.Match),by=N]
-
-setnames(Var.Out2,"V.Var1","V.Var")
-setnames(Var.Out2,"V.Species1","V.Species")
-setnames(Var.Out2,"V.Subspecies1","V.Subspecies")
-setnames(Var.Out2,"V.Code","V.Codes")
-
-# Check to see if there are any entries with no species or variety
-Var.NoVar.NoSpecies<-Var.Out2[is.na(V.Var) & is.na(V.Species),]
-if(nrow(Var.NoVar.NoSpecies)>0){
-  View(Var.NoVar.NoSpecies)
-}
-
-Var.Out<-Var.Out2
-
-rm(Var.NoVar.NoSpecies,Var.Out2,Extract.Fun)
-
-# Var.Out: Update trait labels ####
-Trait.Match.Fun<-function(Trait){
-  TraitM<-unlist(strsplit(Trait,"[$][$]"))
-  paste(unique(VarHarmonization.Traits[match(TraitM,V.Trait),V.Trait1]),collapse="$$")
-}
-
-Var.Out[,Trait1.New:=Trait.Match.Fun(V.Trait1),by=N]
-Var.Out[,Trait2.New:=Trait.Match.Fun(V.Trait2),by=N]
-Var.Out[,Trait3.New:=Trait.Match.Fun(V.Trait3),by=N]
-
-Var.Out[Trait1.New=="NA",Trait1.New:=NA]
-Var.Out[Trait2.New=="NA",Trait2.New:=NA]
-Var.Out[Trait3.New=="NA",Trait3.New:=NA]
-Var.Out[V.Trait1=="NA",V.Trait1:=NA]
-Var.Out[V.Trait2=="NA",V.Trait2:=NA]
-Var.Out[V.Trait3=="NA",V.Trait3:=NA]
-
-Var.Out[,N:=NULL]
-
-No.Trait.Match<-unique(rbind(
-  Var.Out[!is.na(V.Trait1) & is.na(Trait1.New),list(B.Code,V.Product,V.Trait1)],
-  Var.Out[!is.na(V.Trait2) & is.na(Trait2.New),list(B.Code,V.Product,V.Trait2)],
-  Var.Out[!is.na(V.Trait3) & is.na(Trait3.New),list(B.Code,V.Product,V.Trait3)],use.names=F))
-
-if(nrow(No.Trait.Match)>0){
-  View(No.Trait.Match)
-}
-
-rm(No.Trait.Match,Trait.Match.Fun)
-
-Var.Out[,V.Trait1:=Trait1.New][,Trait1.New:=NULL]
-Var.Out[,V.Trait2:=Trait2.New][,Trait2.New:=NULL]
-Var.Out[,V.Trait3:=Trait3.New][,Trait3.New:=NULL]
-
-# ***Agroforestry (AF.Out)=====
-AF.Out<-lapply(XL,"[[",7)
-AF.Out<-rbindlist(lapply(1:length(AF.Out),FUN=function(i){
-  X<-AF.Out[[i]]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("AF.Level.Name...1"))
-  X
+AF.Trees<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,10:13]
+  colnames(X)[1]<-"AF.Level.Name"
+  X<-X[!is.na(AF.Level.Name)]
+  
+  # Remove any all NA rows
+  na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
+  rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
+  X <- X[!rows_with_na]
+  
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+  }
   
 }))
-setnames(AF.Out, "AF.Level.Name...1","AF.Level.Name")
 
-# Remove any parenthesis in names
-AF.Out[,AF.Level.Name:=gsub("[(]","",AF.Level.Name)][,AF.Level.Name:=gsub("[)]","",AF.Level.Name)]
+# No match between key fields
+AF.Trees[!AF.Trees$AF.Level.Name %in% AF.Out$AF.Level.Name]
 
-
-# ***Tillage (Till.Out) =====
-Till.Out<-lapply(XL,"[[",8)
-Till.Out<-rbindlist(lapply(1:length(Till.Out),FUN=function(i){
-  X<-Till.Out[[i]][,-(1:4)]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("T.Level.Name...5"))
-  X
+# 3.8) Tillage (Till.Out) ####
+data<-lapply(XL,"[[","Till.Out")
+Till.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,-(1:5)]
+  colnames(X)[1]<-"Till.Level.Name"
+  X<-X[!is.na(Till.Level.Name)]
+  
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+  }
 }))
-setnames(Till.Out, "T.Level.Name...5", "T.Level.Name")
-
-# Replace 0 with NA
-Till.Out[T.Method==0,T.Method:=NA]
-Till.Out[T.Method.Other==0,T.Method.Other:=NA]
-Till.Out[T.Depth==0,T.Depth:=NA]
-Till.Out[T.Freq==0,T.Freq:=NA]
-Till.Out[T.Strip.P==0,T.Strip.P:=NA]
-Till.Out[T.Strip.WT==0,T.Strip.WT:=NA]
-Till.Out[T.Strip.WU==0,T.Strip.WU:=NA]
-
-Till.Codes<-lapply(XL,"[[",8)
-Till.Codes<-rbindlist(lapply(1:length(Till.Codes),FUN=function(i){
-  X<-Till.Codes[[i]][,1:3]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("T.Level.Name...2"))
-  X
+Till.Codes<-rbindlist(pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]][,1:4]
+  colnames(X)[2]<-"Till.Level.Name"
+  X<-X[!is.na(Till.Level.Name)]
+  
+  if(nrow(X)>0){
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+  }
 }))
-setnames(Till.Codes, "T.Level.Name...2", "T.Level.Name")
 
-# Remove any parenthesis in names
-Till.Codes[,T.Level.Name:=gsub("[(]","",T.Level.Name)][,T.Level.Name:=gsub("[)]","",T.Level.Name)]
+# 3.8.1) Till.Out: Update Fields From Harmonization Sheet ####
+# T.Method
+h_result<-harmonizer(data=Till.Out,master_codes = master_codes,h_table = "Till.Out", h_field="T.Method")
+Till.Out<-h_result$data
+h1<-h_result$h_tasks
 
-#write.table(Till.Out[!is.na(T.Method)][order(T.Method),unique(T.Method)],"clipboard",row.names = F,sep="\t")
-#write.table(Till.Out[!is.na(T.Method.Other)][order(T.Method.Other),unique(T.Method.Other)],"clipboard",row.names = F,sep="\t")
+# T.Method.Other
+setnames(Till.Out,"T.Method.Other","Till.Other")
+h_result<-harmonizer(data=Till.Out,master_codes = master_codes,h_table = "Till.Out", h_field="Till.Other")
+Till.Out<-h_result$data
+h2<-h_result$h_tasks
 
-# Till.Out: Update Fields From Harmonization Sheet ####
-N<-match(Till.Out[,T.Method],OtherHarmonization[,Till.Method])
-Till.Out[!is.na(N),Till.Method:=OtherHarmonization[N[!is.na(N)],Till.Method.Correct]]
+# T.Mechanization 
+h_result<-harmonizer(data=Till.Out,master_codes = master_codes,h_table = "Till.Out", h_field="T.Mechanization",
+                     h_table_alt="Fert.Out",h_field_alt="F.Mechanization")
+Till.Out<-h_result$data
+h3<-h_result$h_tasks
 
-N<-match(Till.Out[,T.Method.Other],OtherHarmonization[,T.Method.Other])
-Till.Out[!is.na(N),T.Method.Other:=OtherHarmonization[N[!is.na(N)],T.Method.Other.Correct]]
-rm(N)
+harmonization_list<-error_tracker(errors=rbind(h1,h2,h3),filename = "till_harmonization",error_dir=error_dir,error_list = harmonization_list)
+
+# Error checking: look for non-matches in keyfield
+errors1<-unique(merge(Till.Out[,list(B.Code,Till.Level.Name)],Till.Codes[,list(B.Code,Till.Level.Name)][,Check:=T],all.x=T))[Field:="Till.Level.Name"]
+setnames(errors1,"Till.Level.Name","value")
+errors1<-errors1[is.na(Check)
+                 ][,Check:=NULL
+                   ][,issue:="A base practice has some description in the tillage, but no practice has been associated with it."]
+
+# Non-match in site.id
+errors2<-unique(Till.Out[!Site.ID %in% c("All Sites")
+                         ][!is.na(Site.ID)
+                           ][!Site.ID %in% Site.Out$Site.ID,list(B.Code,Site.ID)
+                             ][,issue:="A Site.ID used in tillage tab does not match the site tab"
+                               ][,field:="Site.ID"])
+setnames(errors2,"Site.ID","value")
+
+
+# NEED TO READ IN TIME DATA TO CHECK THIS - Non-match in time period #####
+errors3<-unique(Till.Out[!Times %in% c("All Times")
+][!is.na(Times)
+][!Times %in% Times$Site.ID,list(B.Code,Site.ID)
+][,issue:="A time period name used in tillage tab does not match the time tab"][,field="Times"])
+
+setnames(errors3,"Times","value")
+
+
+errors<-rbindlist(list(errors1,errors2,errors3),fill=T)[order(B.Code)]
+
+
+error_list<-error_tracker(errors=errors,filename = "till_errors",error_dir=error_dir,error_list = error_list)
+
+
+
+
 
 # ***Planting (Plant.Out) =====
 Plant.Out<-lapply(XL,"[[",9)
@@ -1338,6 +1385,34 @@ Weed.Code<-Weed.Out[,list(W.Code=unique(W.Code[!is.na(W.Code)]),W.Structure=W.St
 Weed.Out<-Weed.Out[,!"W.Structure"]
 
 # ***Residues (Res.Out) =====
+# Junk data in Residue composition data
+if(F){
+  
+  future::plan(multisession,workers=workers)  # Change to multicore on Unix/Linux
+  
+  X<-future.apply::future_sapply(1:length(Files),FUN=function(i){
+    
+    # Display progress
+    cat('\r                                                                                                                     ')
+    cat('\r',paste(i,"/",length(Files)), "-",tail(unlist(tstrsplit(Files[i]," - ")),1))
+    flush.console()
+    
+    X<-data.table(suppressMessages(suppressWarnings(readxl::read_excel(Files[i],sheet = "Residues.Out",.name_repair = "minimal",trim_ws = T))))
+    if(colnames(X[,33])=="M.Tree"){
+      X[1:2,33][,paste(M.Tree,collapse="-") == "Acacia angustissima-Acacia caerulescens"]
+    }else{
+      X[1:2,32][,paste(M.Tree,collapse="-") == "Acacia angustissima-Acacia caerulescens"]
+    }
+  },USE.NAMES = T)
+  
+  future::plan(sequential)
+  closeAllConnections()
+  
+  names(X)<-FNames
+  
+  names(X)[X==T]
+  
+}
 # Res.Method ####
 Res.Out<-lapply(XL,"[[",12)
 Res.Method<-rbindlist(lapply(1:length(Res.Out),FUN=function(i){
@@ -1446,6 +1521,32 @@ setnames(pH.Out, "pH.Level.Name...1", "pH.Level.Name")
 pH.Out[pH.Prac==0,pH.Prac:=NA]
 pH.Out[pH.Notes==0,pH.Notes:=NA]
 
+# Junk data in PH Base practice ####
+if(F){
+  future::plan(multisession,workers=workers)  # Change to multicore on Unix/Linux
+  
+  X<-future.apply::future_sapply(1:length(Files),FUN=function(i){
+    
+    # Display progress
+    cat('\r                                                                                                                     ')
+    cat('\r',paste(i,"/",length(Files)), "-",tail(unlist(tstrsplit(Files[i]," - ")),1))
+    flush.console()
+    
+    X<-data.table(suppressMessages(suppressWarnings(readxl::read_excel(Files[i],sheet = "pH.Out",.name_repair = "minimal",trim_ws = T))))
+    
+    X[,1:4][pH.Level.Name=="Base",!is.na(pH.Prac)]& !("Base" %in% X[,6])
+  })
+  
+  future::plan(sequential)
+  closeAllConnections()
+  
+  X<-unlist(X)
+  
+  names(X)<-FNames
+  
+  names(X)[X==T]
+  
+}
 # ***Irrig (Irrig.Out) =====
 Irrig.Out<-lapply(XL,"[[",18)
 Irrig.Out<-rbindlist(lapply(1:length(Irrig.Out),FUN=function(i){
