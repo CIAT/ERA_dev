@@ -1,12 +1,2 @@
-B.Code,era_code2,filename,N,code_issue,issue_addressed,addressed_by_whom
-AC0009,AC0008,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.8 - AC0008.xlsm,2,TRUE,TRUE,"Charity"
-AC0009,AC0009,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.8 - AC0009.xlsm,2,FALSE,FALSE,"Charity"
-CJ0182-1,CJ0182.1,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - CJ0182.1.xlsm,1,TRUE,TRUE,"Charity"
-HK0161.LTE1,HK0161.1,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - HK0161.1.xlsm,1,TRUE,TRUE,"Charity"
-HK0161.LTE2,HK0161.2,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - HK0161.2.xlsm,1,TRUE,TRUE,"Charity"
-JS0248 ,JS0248,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - JS0248.xlsm,1,TRUE,FALSE,"Charity"
-JS0260,JS0260,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - JS0260.xlsm,2,FALSE,FALSE,"Charity"
-JS0260,JS0278,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - JS0278.xlsm,2,TRUE,TRUE,"Charity"
-LM0008 ,LM0008,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0008.xlsm,1,TRUE,FALSE,"Charity"
-LM0168,LM0168,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0168.xlsm,2,FALSE,FALSE,"Charity"
-LM0168,LM0171,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0171.xlsm,2,TRUE,TRUE,"Charity"
+filename,B.Code.x,era_code2.x,N.x,code_issue.x,B.Code.y,era_code2.y,N.y,code_issue.y,issue_addressed,addressed_by_whom
+C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0008.xlsm,LM0008 ,LM0008,1,TRUE,LM0008,LM0008,1,TRUE,FALSE,Charity

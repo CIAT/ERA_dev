@@ -1,0 +1,3 @@
+B.Code,issue,value,table,field,issue_addressed,addressed_by_whom
+JO0020,Agroforestry practice name stated but no practice chosen.,L_M,AF.Out,AF.Level.Name,FALSE,""
+JO0020,Mismatch in practice name used description table.,L_M,AF.Trees,AF.Level.Name,FALSE,""
