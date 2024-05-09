@@ -30,10 +30,22 @@ error_tracker<-function(errors,filename,error_dir,error_list=NULL){
     if(file.exists(error_file)){
       error_tracking<-unique(fread(error_file))
       error_tracking[,addressed_by_whom:=as.character(addressed_by_whom)]
-      errors<-merge(errors,error_tracking,all.x=T)
-      errors[is.na(issue_addressed),issue_addressed:=F][is.na(addressed_by_whom),addressed_by_whom:=""]
+
+      if("notes" %in% colnames(error_tracking)){
+        error_tracking[,notes:=as.character(notes)]
+      }else{
+        error_tracking[,notes:=""]
+      }
+      
+    
+      errors<-merge(errors,error_tracking,all.x=T,by=colnames(errors))
+      errors[is.na(issue_addressed),issue_addressed:=F
+             ][is.na(addressed_by_whom),addressed_by_whom:=""
+               ][is.na(notes),notes:=""]
     }else{
-      errors[,issue_addressed:=F][,addressed_by_whom:=""]
+      errors[,issue_addressed:=F
+             ][,addressed_by_whom:=""
+               ][,notes:=""]
     }
     error_list[[filename]]<-errors
     fwrite(errors,error_file)
@@ -458,7 +470,7 @@ if(file_status){
   # 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the important process be run again?
-  overwrite<-T
+  overwrite<-F
   
   # Delete existing files if overwrite =T
   if(overwrite){
@@ -538,7 +550,7 @@ Pub.Out<-Pub.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Co
 
 # Pub.Out: Validation: Duplicate or mismatched B.Codes
 Pub.Out<-merge(Pub.Out,excel_files[,list(filename,era_code2)],all.x=T)
-Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2]
+Pub.Out[,N:=.N,by=B.Code][,code_issue:=B.Code!=era_code2][,B.Code:=trimws(B.Code)][,era_code2:=trimws(era_code2)]
 
 # Save any errors
 errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)][order(B.Code)]
@@ -1141,8 +1153,11 @@ AF.Out<-pblapply(1:length(data),FUN=function(i){
   })
 
 # Check for situations where a practices is named but there is no practice selected
-errors1<-unique(rbindlist(lapply(AF.Out,"[[","errors"))[,list(B.Code,AF.Level.Name)])[,field:="AF.Level.Name"][,table:="AF.Out"][,issue:="Agroforestry practice name stated but no practice chosen."]
-setnames(errors1,"AF.Level.Name","value")
+errors1<-rbindlist(lapply(AF.Out,"[[","errors"))
+    
+if(nrow(errors1)>0){
+  errors1<-unique(errors1[,list(B.Code,AF.Level.Name)])[,field:="AF.Level.Name"][,table:="AF.Out"][,issue:="Agroforestry practice name stated but no practice chosen."]
+}
 
 AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
 
@@ -1342,7 +1357,7 @@ col_names[c(2,8)]<-"P.Level.Name"
   errors_bcodes<-Pub.Out$B.Code
   
   errorsx<-Plant.Out[B.Code %in% errors_bcodes,list(N_all=length(unique(P.Level.Name)),N_nobase=length(unique(P.Level.Name[P.Level.Name!="Base"]))),by=list(B.Code)]
-  errorsy<-Plant.Method[B.Code %in% errors_bcodes,list(N_all_methods=length(unique(P.Level.Name)),N_nobase_method=length(unique(P.Level.Name[P.Level.Name!="Base"]))),by=list(B.Code)]
+  errorsy<-Plant.Method[B.Code %in% errors_bcodes,list(N_all_m=length(unique(P.Level.Name)),N_nobase_m=length(unique(P.Level.Name[P.Level.Name!="Base"]))),by=list(B.Code)]
   errorsxy<-merge(errorsx,errorsy,all.x=T)[,check:=F][N_all!=N_all_m,check:=T]
   errorsxy<-merge(errorsxy,Pub.Out[,list(B.Code,B.Version)],all.x=T)
   errorsxy<-errorsxy[check==T | is.na(N_all_m)
@@ -2280,115 +2295,187 @@ col_names<-colnames(data[[1]])
   h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4,h_tasks5),fill=T)
   harmonization_list<-error_tracker(errors=h_tasks,filename = "residue_harmonization",error_dir=error_dir,error_list = harmonization_list)
   
-# ***Harvest (Har.Out) ====
-Har.Out<-lapply(XL,"[[","Harvest.Out")
-Har.Out<-rbindlist(lapply(1:length(Har.Out),FUN=function(i){
-  X<-Har.Out[[i]]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols="H.Level.Name")
-  X
-}))
-
-Har.Out[H.Notes==0,H.Notes:=NA]
-
-# ***pH (pH.Method) =====
-pH.Out<-lapply(XL,"[[","pH.Out")
-pH.Method<-rbindlist(lapply(1:length(pH.Out),FUN=function(i){
-  X<-pH.Out[[i]][,-(1:5)]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("pH.Level.Name...6"))
-  X
-}))
-
-setnames(pH.Method, "pH.Level.Name...6", "pH.Level.Name")
-
-pH.Method[pH.Material==0,pH.Material:=NA]
-pH.Method[pH.ECCE==0,pH.ECCE:=NA]
-pH.Method[pH.CCE==0,pH.CCE:=NA]
-pH.Method[pH.CaCO3==0,pH.CaCO3:=NA]
-pH.Method[pH.MgCO3==0,pH.MgCO3:=NA]
-pH.Method[pH.Amount==0,pH.Amount:=NA]
-pH.Method[pH.Unit==0,pH.Unit:=NA]
-
-# Remove any parenthesis in names
-pH.Method[,pH.Level.Name:=gsub("[(]","",pH.Level.Name)][,pH.Level.Name:=gsub("[)]","",pH.Level.Name)]
-
-# pH Codes
-pH.Out<-lapply(XL,"[[","pH.Out")
-pH.Out<-rbindlist(lapply(1:length(pH.Out),FUN=function(i){
-  X<-pH.Out[[i]][,1:4]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("pH.Level.Name...1"))
-  X
-}))
-
-setnames(pH.Out, "pH.Level.Name...1", "pH.Level.Name")
-pH.Out[pH.Prac==0,pH.Prac:=NA]
-pH.Out[pH.Notes==0,pH.Notes:=NA]
-
-# Junk data in PH Base practice ####
-if(F){
-  future::plan(multisession,workers=workers)  # Change to multicore on Unix/Linux
+# 3.15) pH #####
+data<-lapply(XL,"[[","pH.Out")
+col_names<-colnames(data[[1]])
   
-  X<-future.apply::future_sapply(1:length(Files),FUN=function(i){
-    
-    # Display progress
-    cat('\r                                                                                                                     ')
-    cat('\r',paste(i,"/",length(Files)), "-",tail(unlist(tstrsplit(Files[i]," - ")),1))
-    flush.console()
-    
-    X<-data.table(suppressMessages(suppressWarnings(readxl::read_excel(Files[i],sheet = "pH.Out",.name_repair = "minimal",trim_ws = T))))
-    
-    X[,1:4][pH.Level.Name=="Base",!is.na(pH.Prac)]& !("Base" %in% X[,6])
-  })
+  # 3.15.1) pH.Out ######
+col_names2<-col_names[1:4]
+
+pH.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
   
-  future::plan(sequential)
-  closeAllConnections()
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with pH.Level.Name tab structure"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"pH.Level.Name"
+    X<-X[!is.na(pH.Level.Name)][!is.na(pH.Prac)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
   
-  X<-unlist(X)
+errors_a<-rbindlist(lapply(pH.Out,"[[","errors"))
+pH.Out<-rbindlist(lapply(pH.Out,"[[","data"))  
+
+# Fix missing pH.Codes
+pH.Out[is.na(pH.Codes) & pH.Prac=="Liming or Calcium Addition",pH.Codes:="b32"]
+
+  # 3.15.2) pH.Method ######
+col_names2<-col_names[6:13]
+
+pH.Method<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
   
-  names(X)<-FNames
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with pH.Level.Name tab structure"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"pH.Level.Name"
+    X<-X[!is.na(pH.Level.Name)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
+
+errors_b<-rbindlist(lapply(pH.Method,"[[","errors"))
+pH.Method<-rbindlist(lapply(pH.Method,"[[","data"))  
+
+
+results<-validator(data=pH.Method,
+                   numeric_cols=c("pH.CaCO3","pH.ECCE","pH.MgCO3","pH.Amount"),
+                   tabname="pH.Method")
+
+errors1<-results$errors
+pH.Method<-results$data
+
+errors2<-check_key(parent = pH.Out,child = pH.Method,tabname="pH.Method",keyfield="pH.Level.Name")
+
+errors3<-pH.Method[!is.na(pH.Amount) & is.na(pH.Unit),list(B.Code)][,value:=NA][,table:="pH.Method"][,field:="pH.Unit"][,issue:="Amount specified but unit is blank"]
+
+errors<-rbindlist(list(errors_a,errors_b))
+error_list<-error_tracker(errors=errors,filename = "pH_structure_errors",error_dir=error_dir,error_list = error_list)
+
+errors<-rbindlist(list(errors1,errors2,errors3))
+error_list<-error_tracker(errors=errors,filename = "pH_other_errors",error_dir=error_dir,error_list = error_list)
+
+    # 3.15.2.1) Harmonization ########
+h_params<-data.table(h_table="pH.Method",
+                     h_field=c("pH.Unit","pH.Material"),
+                     h_table_alt=c("Fert.Out",NA),
+                     h_field_alt=c("F.Unit",NA),
+                     ignore_vals=c("unspecified","unspecified"))
+
+results<-harmonizer_wrap(data=pH.Method,
+                         h_params=h_params,
+                         master_codes = master_codes
+                         )
+
+pH.Method<-results$data
+
+harmonization_list<-error_tracker(errors=results$h_tasks,filename = "pH_harmonization",error_dir=error_dir,error_list = harmonization_list)
+
+# 3.16) Irrigation #####
+data<-lapply(XL,"[[","Irrig.Out")
+col_names<-colnames(data[[1]])
+
+  # 3.16.1) Irrig.Out ######
+col_names2<-col_names[1:6]
+
+Irrig.Codes<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
   
-  names(X)[X==T]
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Irrig.Out tab structure"))
+  }else{
+    X<-X[,..col_names2]
+    X<-X[!is.na(I.Level.Name)][!(is.na(I.Strategy) & is.na(I.Method) & is.na(I.Precision))]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
+
+errors_a<-rbindlist(lapply(Irrig.Codes,"[[","errors"))
+Irrig.Codes<-rbindlist(lapply(Irrig.Codes,"[[","data"))  
+colnames(Irrig.Codes)[6]<-"I.Notes"
+
+  # 3.16.2) Irrig.Method ######
+col_names2<-col_names[8:21]
+
+Irrig.Method<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
   
-}
-# ***Irrig (Irrig.Out) =====
-Irrig.Out<-lapply(XL,"[[",18)
-Irrig.Out<-rbindlist(lapply(1:length(Irrig.Out),FUN=function(i){
-  X<-Irrig.Out[[i]][,-(1:6)]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("I.Name"))
-  X
-}))
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Irrig.Out tab structure"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"I.Level.Name"
+    X<-X[!is.na(I.Level.Name)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
 
-# Change 0 to NA
-Irrig.Out[I.Unit==0,I.Unit:=NA]
-Irrig.Out[I.Water.Type==0,I.Water.Type:=NA]
-Irrig.Out[I.New.Unit==0,I.New.Unit:=NA]
-Irrig.Out[I.New.Type==0,I.New.Type:=NA]
+errors_b<-rbindlist(lapply(Irrig.Method,"[[","errors"))
+Irrig.Method<-rbindlist(lapply(Irrig.Method,"[[","data")) 
 
-# Irrig.Out: Validation - should be no rows where amount of water is zero
-Irrig.Out[I.Amount==0]
+# Fix format of date end
+results<-validator(data=Irrig.Method,
+                   numeric_cols=c("I.Amount","I.Date.DAP","I.Date.DAE","I.Date.Inteval"),
+                   date_cols=c("I.Date.End", "I.Date.Start", "I.Date.Gen"),
+                   valid_start=valid_start,
+                   valid_end=valid_end,
+                   site_data=Site.Out,
+                   time_data=Times.Out,
+                   tabname="Irrig.Method",
+                   ignore_values = c("All Times","Unspecified","Not specified","All Sites"))
 
-Irrig.Out[I.Amount==0,I.Amount:=Na]
+errors1<-unique(results$errors)
+Irrig.Method<-results$data
 
-# Remove any parenthesis in names
-Irrig.Out[,I.Name:=gsub("[(]","",I.Name)][,I.Name:=gsub("[)]","",I.Name)]
+errors2<-check_key(parent = Irrig.Out,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
 
-# Irrig.Codes
-Irrig.Codes<-lapply(XL,"[[",18)
-Irrig.Codes<-rbindlist(lapply(1:length(Irrig.Codes),FUN=function(i){
-  X<-Irrig.Codes[[i]][,1:5]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("I.Level.Name"))
-  X
-}))
+errors3<-unique(Irrig.Method[!is.na(I.Amount) & is.na(I.Unit),list(B.Code)][,value:=NA][,table:="Irrig.Method"][,field:="I.Unit"][,issue:="Amount specified but unit is blank"])
 
-# Change 0 to NA
-Irrig.Codes[I.Method==0,I.Method:=NA]
-Irrig.Codes[I.Strategy==0,I.Strategy:=NA]
-Irrig.Codes[I.Notes==0,I.Notes:=NA]
-Irrig.Codes[I.Codes==0,I.Codes:=NA]
+errors<-rbindlist(list(errors1,errors2,errors3))
+error_list<-error_tracker(errors=errors,filename = "Irrig.Method",error_dir=error_dir,error_list = error_list)
+
+
+  # 3.16.2.1) Harmonization #######
+h_params<-data.table(h_table="Irrig.Method",
+                     h_field=c("I.Unit","I.Water.Type"),
+                     h_field_alt=c("I.Unit","I.Water.Type"),
+                     h_table_alt=c("Irrig.Out","Irrig.Out"))
+
+results<-harmonizer_wrap(data=Irrig.Method,
+                         h_params=h_params,
+                         master_codes = master_codes)
+
+Irrig.Method<-results$data
+
+harmonization_list<-error_tracker(errors=results$h_tasks,filename = "irrigation_harmonization",error_dir=error_dir,error_list = harmonization_list)
+
 
 # ***Water Harvesting (WH.Out) =====
 WH.Out<-lapply(XL,"[[","WH.Out")
@@ -2412,6 +2499,17 @@ WH.Out<-WH.Out[apply(WH.Out[,c("P1","P2","P3","P4")],1,FUN=function(X){
 
 # Remove any parenthesis in names
 WH.Out[,WH.Level.Name:=gsub("[(]","",WH.Level.Name)][,WH.Level.Name:=gsub("[)]","",WH.Level.Name)]
+
+# ***Harvest (Har.Out) ====
+Har.Out<-lapply(XL,"[[","Harvest.Out")
+Har.Out<-rbindlist(lapply(1:length(Har.Out),FUN=function(i){
+  X<-Har.Out[[i]]
+  X$B.Code<-Pub.Out$B.Code[i]
+  X<-na.omit(X, cols="H.Level.Name")
+  X
+}))
+
+Har.Out[H.Notes==0,H.Notes:=NA]
 
 # WH.Out: Check for potential invalid comparisons that will need ordering practices specifying ####
 # Count have many ERA practices present for each practice
@@ -2437,34 +2535,12 @@ Base.Out<-list(
   pH.Out[pH.Level.Name=="Base" & !is.na(pH.Codes),c("B.Code","pH.Codes")],
   WH.Out[WH.Level.Name=="Base" & !is.na(WH.Codes),c("B.Code","WH.Codes")],
   Irrig.Codes[I.Level.Name=="Base" & !is.na(I.Codes),c("B.Code","I.Codes")],
-  Animals.Out[A.Level.Name=="Base" & !is.na(A.Codes),c("B.Code","A.Codes")],
-  PO.Out[PO.Level.Name=="Base" & !is.na(PO.Codes),c("B.Code","PO.Codes")],
-  E.Out[E.Level.Name=="Base" & !is.na(E.Codes),c("B.Code","E.Codes")],
   Weed.Code[!is.na(W.Code),c("B.Code","W.Code")],
   Chems.Code[!is.na(C.Code),c("B.Code","C.Code")]
 )
 
 Base.Out<-rbindlist(Base.Out[unlist(lapply(Base.Out,nrow))>0],use.names = F)
 Base.Out<-Base.Out[,list(Base.Codes=paste(unique(V.Codes[order(V.Codes,decreasing = F)]),collapse="-")),by=B.Code]
-
-Base.Out.No.Animal<-list(
-  Var.Out[V.Base=="Yes" & !is.na(V.Codes),c("B.Code","V.Codes")],
-  AF.Out[AF.Level.Name=="Base" & !is.na(AF.Codes),c("B.Code","AF.Codes")],
-  Till.Codes[T.Level.Name=="Base"& !is.na(T.Code),c("B.Code","T.Code")],
-  Fert.Out[F.Level.Name=="Base" & !is.na(F.Codes),c("B.Code","F.Codes")],
-  Res.Out[M.Level.Name=="Base" & !is.na(M.Codes),c("B.Code","M.Codes")],
-  Har.Out[H.Level.Name=="Base" & !is.na(H.Code),c("B.Code","H.Code")],
-  pH.Out[!is.na(pH.Codes) & pH.Level.Name=="Base",c("B.Code","pH.Codes")],
-  WH.Out[WH.Level.Name=="Base" & !is.na(WH.Codes),c("B.Code","WH.Codes")],
-  Irrig.Codes[I.Level.Name=="Base" & !is.na(I.Codes),c("B.Code","I.Codes")],
-  PO.Out[PO.Level.Name=="Base" & !is.na(PO.Codes),c("B.Code","PO.Codes")],
-  E.Out[E.Level.Name=="Base" & !is.na(E.Codes),c("B.Code","E.Codes")],
-  Weed.Code[!is.na(W.Code),c("B.Code","W.Code")],
-  Chems.Code[!is.na(C.Code),c("B.Code","C.Code")]
-)
-
-Base.Out.No.Animal<-rbindlist(Base.Out.No.Animal[unlist(lapply(Base.Out.No.Animal,nrow))>0],use.names = F)
-Base.Out.No.Animal<-Base.Out.No.Animal[,list(Base.Codes.No.Animals=paste(unique(V.Codes[order(V.Codes,decreasing = F)]),collapse="-")),by=B.Code]
 
 # ***Treatments (MT.Out)  =====
 MT.Out<-lapply(XL,"[[","MT.Out")
@@ -3048,17 +3124,6 @@ rm(MT.Out2.ResPrev.vs.ResCode)
 
 # MT.Out2: Update final treatment codes (T.Codes) for aggregrated treatments ####
 MT.Out2[grep("[.][.][.]",T.Name2),T.Codes:=T.Codes.No.Agg]
-
-# ***Times ####
-Times<-lapply(XL,"[[","Times")
-
-Times<-rbindlist(pblapply(1:length(Times),FUN=function(i){
-  X<-Times[[i]][7:30,10:18]
-  names(X)<-c("Time","Site.ID","TSP","TAP","Plant.Start","Plant.End","Harvest.Start","Harvest.End","Harvest.DAP")
-  X<-X[!is.na(Time)]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X
-}))
 
 # ***Intercropping (Int.Out)  =====
 # TO DO - Link to planting information to attempt to better describe intercropping system and estimate % of each component by area ####

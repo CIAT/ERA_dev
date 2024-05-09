@@ -1,0 +1,9 @@
+B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
+JO0016.1,Base,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
+JO0016.2,Base,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
+JO0070,Base,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
+NM0046,Base,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
+NM0047,Base,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
+NN0465,Base,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
+SA0007,Base,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
+SP0034,Lime15 NoTill,pH.Method,pH.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""

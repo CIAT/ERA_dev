@@ -1,6 +1,0 @@
-B.Code,value,table,field,issue,issue_addressed,addressed_by_whom
-CJ0085,Unspecified,ExpD.Out,EX.Plot.Size,Non-numeric value in numeric field,FALSE,""
-CJ0086,Unspecified,ExpD.Out,EX.Plot.Size,Non-numeric value in numeric field,FALSE,""
-SP0008,48-450,ExpD.Out,EX.Plot.Size,Non-numeric value in numeric field,FALSE,""
-SP0021,Maize:13.5/Wheat:10.2,ExpD.Out,EX.Plot.Size,Non-numeric value in numeric field,FALSE,""
-SP0024,54m2,ExpD.Out,EX.Plot.Size,Non-numeric value in numeric field,FALSE,""

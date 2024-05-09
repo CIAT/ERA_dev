@@ -1,28 +1,29 @@
-B.Code,Time.Year.End,Time.Year.Start,issue,issue_addressed,addressed_by_whom
-AC0035,year1or2,year1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-AC0035,year2or3,year2,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-AC0065,year1 or year2,year1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-AC0137,year1or2,year1,None YYYY values in time tab for year start or end.,FALSE,""
-CJ0081,Year 1 or 2,Year 1,None YYYY values in time tab for year start or end.,FALSE,""
-CJ0081,Year 2 or 3,Year 2,None YYYY values in time tab for year start or end.,FALSE,""
-CJ0081,Year 3 or 4,Year 3,None YYYY values in time tab for year start or end.,FALSE,""
-CJ0138,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-CJ0141,YEAR 1,YEAR 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-CJ0141,YEAR 2,YEAR 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-CJ0184,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-JO0154,Season 1,Season 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-JO0154,Season 2,Season 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-NM0028,Year 1,Year 1,None YYYY values in time tab for year start or end.,FALSE,""
-NM0028,Year 2,Year 2,None YYYY values in time tab for year start or end.,FALSE,""
-NM0096,Year1,Year1,None YYYY values in time tab for year start or end.,FALSE,""
-NM0113,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 2,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 2,Year 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 3,Year 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 3,Year 3,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 4,Year 3,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 4,Year 4,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 5,Year 4,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 5,Year 5,None YYYY values in time tab for year start or end.,TRUE,Alvaro
-SA0035,Year 6,Year 5,None YYYY values in time tab for year start or end.,TRUE,Alvaro
+B.Code,Time.Year.End,Time.Year.Start,issue,issue_addressed,addressed_by_whom,notes
+AC0035,year1or2,year1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+AC0035,year2or3,year2,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+AC0065,year1 or year2,year1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+AC0137,year1or2,year1,None YYYY values in time tab for year start or end.,FALSE,"",""
+CJ0081,Year 1 or 2,Year 1,None YYYY values in time tab for year start or end.,FALSE,"",""
+CJ0081,Year 2 or 3,Year 2,None YYYY values in time tab for year start or end.,FALSE,"",""
+CJ0081,Year 3 or 4,Year 3,None YYYY values in time tab for year start or end.,FALSE,"",""
+CJ0138,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+CJ0141,YEAR 1,YEAR 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+CJ0141,YEAR 2,YEAR 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+CJ0184,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+JO0002,Year 1,Year 1,None YYYY values in time tab for year start or end.,FALSE,"",""
+JO0154,Season 1,Season 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+JO0154,Season 2,Season 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+NM0028,Year 1,Year 1,None YYYY values in time tab for year start or end.,FALSE,"",""
+NM0028,Year 2,Year 2,None YYYY values in time tab for year start or end.,FALSE,"",""
+NM0096,Year1,Year1,None YYYY values in time tab for year start or end.,FALSE,"",""
+NM0113,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 1,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 2,Year 1,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 2,Year 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 3,Year 2,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 3,Year 3,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 4,Year 3,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 4,Year 4,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 5,Year 4,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 5,Year 5,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro
+SA0035,Year 6,Year 5,None YYYY values in time tab for year start or end.,TRUE,Alvaro,Alvaro

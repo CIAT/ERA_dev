@@ -1,0 +1,12 @@
+value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
+Canal,SA0051,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+Clean water ,NN0515,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+Fish Drainage Water,CJ0197,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+River,CJ0174,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+Saline,CJ0172,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+Tap,NM0087,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+Waste water,NN0515,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+cm,JO0075/SA0019/SA0022/SA0023/SA0050/SA0051,Irrig.Method,I.Unit,Irrig.Out,I.Unit,lookup_levels,FALSE,"",""
+l/ha,NN0090,Irrig.Method,I.Unit,Irrig.Out,I.Unit,lookup_levels,FALSE,"",""
+m3,AC0031,Irrig.Method,I.Unit,Irrig.Out,I.Unit,lookup_levels,FALSE,"",""
+m3/feddan,NM0132,Irrig.Method,I.Unit,Irrig.Out,I.Unit,lookup_levels,FALSE,"",""
