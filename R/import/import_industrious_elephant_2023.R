@@ -2458,9 +2458,12 @@ errors2<-check_key(parent = Irrig.Out,child = Irrig.Method,tabname="Irrig.Method
 
 errors3<-unique(Irrig.Method[!is.na(I.Amount) & is.na(I.Unit),list(B.Code)][,value:=NA][,table:="Irrig.Method"][,field:="I.Unit"][,issue:="Amount specified but unit is blank"])
 
-errors<-rbindlist(list(errors1,errors2,errors3))
-error_list<-error_tracker(errors=errors,filename = "Irrig.Method",error_dir=error_dir,error_list = error_list)
 
+errors<-rbindlist(list(errors_a,errors_b))
+error_list<-error_tracker(errors=errors,filename = "Irrig_Structure_Errors",error_dir=error_dir,error_list = error_list)
+
+errors<-rbindlist(list(errors1,errors2,errors3))
+error_list<-error_tracker(errors=errors,filename = "Irrig_Other_Errors",error_dir=error_dir,error_list = error_list)
 
   # 3.16.2.1) Harmonization #######
 h_params<-data.table(h_table="Irrig.Method",
@@ -2477,28 +2480,60 @@ Irrig.Method<-results$data
 harmonization_list<-error_tracker(errors=results$h_tasks,filename = "irrigation_harmonization",error_dir=error_dir,error_list = harmonization_list)
 
 
-# ***Water Harvesting (WH.Out) =====
-WH.Out<-lapply(XL,"[[","WH.Out")
-WH.Out<-rbindlist(lapply(1:length(WH.Out),FUN=function(i){
-  X<-WH.Out[[i]]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("WH.Level.Name"))
+# 3.17) Water Harvesting #####
+data<-lapply(XL,"[[","WH.Out")
+col_names<-colnames(data[[1]])
+
+WH.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
   
-  X
-}))
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with pH.Level.Name tab structure"))
+  }else{
+    X<-X[!is.na(WH.Level.Name)][!(is.na(P1) & is.na(P2) & is.na(P3) & is.na(P4))]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
 
-WH.Out[P1==0,P1:=NA
-][P2==0,P2:=NA
-][P3==0,P3:=NA
-][P4==0,P4:=NA
-]
+errors_a<-rbindlist(lapply(WH.Out,"[[","errors"))
+error_list<-error_tracker(errors=errors,filename = "wh_structure_errors",error_dir=error_dir,error_list = error_list)
 
-WH.Out<-WH.Out[apply(WH.Out[,c("P1","P2","P3","P4")],1,FUN=function(X){
-  sum(is.na(X))!=4
-})]
 
-# Remove any parenthesis in names
-WH.Out[,WH.Level.Name:=gsub("[(]","",WH.Level.Name)][,WH.Level.Name:=gsub("[)]","",WH.Level.Name)]
+WH.Out<-rbindlist(lapply(WH.Out,"[[","data"))  
+
+
+# update codes
+WH.Out[,N:=sum(c(!is.na(P1),!is.na(P2) ,!is.na(P3) ,!is.na(P4))),by=list(B.Code, WH.Level.Name)]
+wh_codes<-master_codes$prac[Practice=="Water Harvesting",list(Subpractice,Code)]
+WH.Out[,P1c:=wh_codes[match(WH.Out$P1,Subpractice),Code]]
+WH.Out[,P2c:=wh_codes[match(WH.Out$P2,Subpractice),Code]]
+WH.Out[,P3c:=wh_codes[match(WH.Out$P3,Subpractice),Code]]
+WH.Out[,P4c:=wh_codes[match(WH.Out$P4,Subpractice),Code]]
+
+
+WH.Out[is.na(P1c) & !is.na(P1)]
+
+WH.Out[,WH.Codes:=paste0(sort(c(P1c,P2c,P3c,P4c)[!is.na(c(P1c,P2c,P3c,P4c))]),collapse="-"),by=list(B.Code,WH.Level.Name)]
+WH.Out[,c("P1c","P2c","P3c","P4c"):=NULL][,N1:=stringr::str_count(WH.Codes,"-")]
+
+errors<-WH.Out[N!=N1|WH.Codes=="",list(B.Code,WH.Level.Name)
+               ][,value:=WH.Level.Name
+                 ][,WH.Level.Name:=NULL
+                   ][,table:="WH.Out"
+                     ][,field:="WH.Level.Name"
+                       ][,issue:="Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?"]
+error_list<-error_tracker(errors=errors,filename = "wh_other_errors",error_dir=error_dir,error_list = error_list)
+WH.Out[,c("N","N1"):=NULL]
+
+# 3.18) Dates #####
+
+
 
 # ***Harvest (Har.Out) ====
 Har.Out<-lapply(XL,"[[","Harvest.Out")
