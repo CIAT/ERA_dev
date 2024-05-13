@@ -9,7 +9,7 @@ CJ0037,"row =  75 , station = 90",Plant.Method,P.Level.Name,"Row spacing is less
 CJ0172,"row =  10 , station = 15",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"Alvaro",""
 CJ0197,"row =  300 , station = 400",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"Alvaro",""
 HK0209,"row =  90 , station = 150",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"Alvaro",""
-JO0026,"row =  30 , station = 40",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"","Ill-described in the text. It is likely correct."
+JO0026,"row =  30 , station = 40",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"Alvaro","Ill-described in the text. It is likely correct."
 JS0052,"row =  100 , station = 500",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"Alvaro",""
 NN0466,"row =  30 , station = 50",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"Alvaro","This correct"
 SP0004,"row =  87.5 , station = 150",Plant.Method,P.Level.Name,"Row spacing is less than station spacing, possible error.",TRUE,"Alvaro",""
