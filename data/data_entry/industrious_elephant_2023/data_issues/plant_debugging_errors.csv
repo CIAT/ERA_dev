@@ -1,7 +1,7 @@
 B.Code,N_all,N_nobase,N_all_m,N_nobase_m,B.Version,table,field,issue,issue_addressed,addressed_by_whom,notes
 AC0003,3,3,,,V2.0.7,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
 AC0022,12,12,11,11,V2.0.12,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,""Jabesh,""
-AC0045,2,2,1,1,V2.0.18,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
+AC0045,2,2,1,1,V2.0.18,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,""Jabesh,""
 AC0142,2,2,1,1,V2.0.21,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
 AC0148,3,3,1,1,V2.0.22,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
 AC0149,2,2,1,1,V2.0.22,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
