@@ -1,86 +1,19 @@
 B.Code,value,table,field,issue,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
-AC0026,Mossoro,Res.Method,Site.ID,A Site.ID used  does not match the Site tab,,,,FALSE,"CHARITY",""
-AC0107,Vacoas,Res.Method,Site.ID,A Site.ID used  does not match the Site tab,,,,FALSE,"CHARITY",""
-AC0126,"Experimental Agronomic Station, Federal University of Rio Grande do Sul (UFRGS)",Res.Method,Site.ID,A Site.ID used  does not match the Site tab,,,,FALSE,"CHARITY",""
-CJ0076,Common bean haulms,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,"CHARITY",""
-CJ0124,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,"CHARITY",""
-CJ0124,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,"CHARITY",""
-CJ0176,T1/T2/T3/T4/T5,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,"CHARITY",""
-JO0007,t/ha,Res.Method,M.Cover,Non-numeric value in numeric field,,,,TRUE,"CHARITY",""
-JO0008,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,"CHARITY",""
-JO0008,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,"CHARITY",""
-JO0011,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,"CHARITY",""
-JO0011,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,"CHARITY",""
-JO0038,Mulch retention,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,"CHARITY",""
-JO0066,Base,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
-JO0071,CC_R+/MZ_R+,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0075,0,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0088,Base,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0092,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-JO0092,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0096,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-JO0096,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0140,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-JO0140,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0144,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-JO0144,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0152,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-JO0152,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0157,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-JO0157,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JO0158,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-JO0158,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JS0248,barley mulch/wheat  + barley mulch,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-JS0278,MAIZE,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-LM0176.3,Calliandra Leaves/High Embu Stover/Low Embu Stover/Tithonia Residue,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-LM0189,High Machanga Maize residues/Low Embu Maize residues/Low Machanga Maize residues/Maize residues,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NM0067/CJ0009,TRUE,Res.Out,M.Unit,Issue with units,Fert.Out,F.Unit,lookup_levels,TRUE,”CHARITY”,”“
-NM0079,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NM0079,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NM0080,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NM0080,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NM0080.1,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NM0080.1,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NM0084,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NM0084,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NM0085,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NM0085,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0148,Mz residue,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0417,Natural fallow mulch/Natural fallow till/crotalaria mulch/crotalaria till/tephrosia mulch/tephrosia till,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0421,Bambara Nut/Black Gram/Cowpea/Groundnut/Mung Bean,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0470,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0470,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0471,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0471,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0473,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0473,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0474,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0474,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0475,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0475,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0476,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0476,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0479,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0479,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0480,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0480,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0481,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0481,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0484,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0484,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0485.1,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0485.1,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0485.2,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0485.2,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0486,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0486,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0488,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0488,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0489,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,”CHARITY”,”“
-NN0489,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0500,bean/bean + potato/lab/lab + potato/potato,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-NN0527,straw 1/straw 2,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-SA0006,Green gram residue/Rice residue/Wheat residue,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
-SP0001,%Cover,Res.Method,M.Cover,Non-numeric value in numeric field,,,,TRUE,”CHARITY”,”“
-SP0006,%Cover,Res.Method,M.Cover,Non-numeric value in numeric field,,,,TRUE,”CHARITY”,”“
-SP0039,Base,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,TRUE,”CHARITY”,”“
+AC0026,Mossoro,Res.Method,Site.ID,A Site.ID used  does not match the Site tab,,,,FALSE,"",""
+AC0107,Vacoas,Res.Method,Site.ID,A Site.ID used  does not match the Site tab,,,,FALSE,"",""
+CJ0076,Common bean haulms,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+CJ0124,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,FALSE,"",""
+CJ0124,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+CJ0176,T1/T2/T3/T4/T5,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+JO0038,Mulch retention,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+JO0071,CC_R+/MZ_R+,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+JO0075,0,Res.Method,M.Level.Name,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+JO0144,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,FALSE,"",""
+LM0176.3,Calliandra Leaves/High Embu Stover/Low Embu Stover/Tithonia Residue,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+LM0189,High Machanga Maize residues/Low Embu Maize residues/Low Machanga Maize residues/Maize residues,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+NN0417,Natural fallow mulch/Natural fallow till/crotalaria mulch/crotalaria till/tephrosia mulch/tephrosia till,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+NN0421,Bambara Nut/Black Gram/Cowpea/Groundnut/Mung Bean,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+NN0474,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,FALSE,"",""
+NN0474,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+NN0527,straw 1/straw 2,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""
+SA0006,Green gram residue/Rice residue/Wheat residue,Res.Method,M.Material,Mismatch between practice name in description table and practice naming section.,,,,FALSE,"",""

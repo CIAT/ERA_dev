@@ -1,7 +1,6 @@
 B.Code,Site.ID,Site.Type,Country,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,issue,issue_addressed,addressed_by_whom,notes
-AC0126,,,,,,,,,Compulsory information appears to be missing,FALSE,"Alvaro","Everything seems to be correct in the Excel file."
-JO0210,Gashora,Farmer Interviews,Rwanda,-2.2075,30.24361,,,,Compulsory information appears to be missing,TRUE,"Alvaro",""
-JO0210,Nyakiliba,Farmer Interviews,Rwanda,-1.91917,29.73722,,,,Compulsory information appears to be missing,TRUE,"Alvaro",""
-NN0412,,,,,,,,,Compulsory information appears to be missing,TRUE,"Alvaro",""
-NN0555,,,,,,,,,Compulsory information appears to be missing,FALSE,"Alvaro","Corrupted file. Links to the site_list tab are broken."
-SP0047,,,,,,,,,Compulsory information appears to be missing,FALSE,"Alvaro","ISO.3166.1alpha.3 field in Site.Out tab is broken."
+JO0210,Gashora,Farmer Interviews,Rwanda,-2.2075,30.24361,,,,Compulsory information appears to be missing,TRUE,Alvaro,""
+JO0210,Nyakiliba,Farmer Interviews,Rwanda,-1.91917,29.73722,,,,Compulsory information appears to be missing,TRUE,Alvaro,""
+NN0412,,,,,,,,,Compulsory information appears to be missing,FALSE,"",""
+NN0555,,,,,,,,,Compulsory information appears to be missing,FALSE,"",""
+SP0047,,,,,,,,,Compulsory information appears to be missing,FALSE,"",""

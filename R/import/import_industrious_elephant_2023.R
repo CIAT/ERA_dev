@@ -1,10 +1,9 @@
 # Make sure you have set the era working directory using the 0_set_env.R script
+# CONSIDER ADDING A CHECK DUPLICATES OPTION FOR KEYFIELDS THAT SHOULD BE UNIQUE (validator function)
 
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
-pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply,soiltexture,httr)
-
-
+pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply,soiltexture,httr,stringr)
 # 0.1) Create functions ####
 
 waitifnot <- function(cond) {
@@ -1894,7 +1893,7 @@ col_names2<-col_names[5:23]
 col_names2[grep("C.Type",col_names2)]<-"C.Type1"
 col_names2[grep("C.Brand",col_names2)]<-"C.Brand1"
 
-Chems.Out<-lapply(1:length(data),FUN=function(i){
+Chems.Out<-pblapply(1:length(data),FUN=function(i){
   X<-data[[i]]
   B.Code<-Pub.Out$B.Code[i]
   
@@ -1937,6 +1936,12 @@ results<-validator(data=Chems.Out,
 
 errors1<-results$errors
 Chems.Out<-results$data
+
+# Dates are dd/mm format, (year agnostic)
+Chems.Out[,C.Date:=format(C.Date,"%m-%d")]
+Chems.Out[,unique(C.Date)]
+errors1<-errors1[field!="C.Date"]
+
 
 errors2<-unique(Chems.Out[C.Date.End<C.Date.Start,list(B.Code,C.Date.End,C.Date.Start)])
 errors2[,value:=paste0("C.Date.Start =",C.Date.Start," & C.Date.End = ",C.Date.End)
@@ -2454,7 +2459,7 @@ results<-validator(data=Irrig.Method,
 errors1<-unique(results$errors)
 Irrig.Method<-results$data
 
-errors2<-check_key(parent = Irrig.Out,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
+errors2<-check_key(parent = Irrig.Codes,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
 
 errors3<-unique(Irrig.Method[!is.na(I.Amount) & is.na(I.Unit),list(B.Code)][,value:=NA][,table:="Irrig.Method"][,field:="I.Unit"][,issue:="Amount specified but unit is blank"])
 
@@ -2484,7 +2489,7 @@ harmonization_list<-error_tracker(errors=results$h_tasks,filename = "irrigation_
 data<-lapply(XL,"[[","WH.Out")
 col_names<-colnames(data[[1]])
 
-WH.Out<-lapply(1:length(data),FUN=function(i){
+WH.Out<-pblapply(1:length(data),FUN=function(i){
   X<-data[[i]]
   B.Code<-Pub.Out$B.Code[i]
   
@@ -2504,9 +2509,7 @@ WH.Out<-lapply(1:length(data),FUN=function(i){
 errors_a<-rbindlist(lapply(WH.Out,"[[","errors"))
 error_list<-error_tracker(errors=errors,filename = "wh_structure_errors",error_dir=error_dir,error_list = error_list)
 
-
 WH.Out<-rbindlist(lapply(WH.Out,"[[","data"))  
-
 
 # update codes
 WH.Out[,N:=sum(c(!is.na(P1),!is.na(P2) ,!is.na(P3) ,!is.na(P4))),by=list(B.Code, WH.Level.Name)]
@@ -2532,6 +2535,110 @@ error_list<-error_tracker(errors=errors,filename = "wh_other_errors",error_dir=e
 WH.Out[,c("N","N1"):=NULL]
 
 # 3.18) Dates #####
+data<-lapply(XL,"[[","PD.Out")
+col_names<-colnames(data[[1]])
+
+# 3.18.1) PD.Codes ######
+col_names2<-col_names[1:5]
+
+PD.Codes<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Dates tab structure"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"PD.Level.Name"
+    X<-X[!is.na(PD.Level.Name)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
+
+errors_a<-rbindlist(lapply(PD.Codes,"[[","error"))
+PD.Codes<-rbindlist(lapply(PD.Codes,"[[","data"))  
+
+# 3.18.1.1) Harmonization #######
+h_params<-data.table(h_table="PD.Codes",
+                     h_field=c("PD.Prac","PD.Prac.Info"),
+                     h_field_alt=c("PD.Timing.Pracs","PD.Info.Pracs"),
+                     h_table_alt=c("PD.Codes","PD.Codes"))
+
+results<-harmonizer_wrap(data=PD.Codes,
+                         h_params=h_params,
+                         master_codes = master_codes)
+
+PD.Codes<-results$data
+
+harmonization_list<-error_tracker(errors=results$h_tasks,filename = "dates_harmonization",error_dir=error_dir,error_list = harmonization_list)
+
+
+# 3.18.2) PD.Out ######
+col_names2<-col_names[7:14]
+
+PD.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Dates tab structure"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"PD.Level.Name"
+    X<-X[!is.na(PD.Level.Name)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
+
+errors_b<-rbindlist(lapply(PD.Out,"[[","error"))
+PD.Out<-rbindlist(lapply(PD.Out,"[[","data"))  
+
+
+results<-validator(data=PD.Out,
+                   numeric_cols=c("PD.Date.DAS","PD.Date.DAP"),
+                   date_cols=c("PD.Date.Start", "PD.Date.End"),
+                   valid_start=valid_start,
+                   valid_end=valid_end,
+                   site_data=Site.Out,
+                   time_data=Times.Out,
+                   tabname="PD.Out",
+                   ignore_values = c("All Times","Unspecified","Not specified","All Sites"))
+
+errors1<-results$errors
+PD.Out<-results$data
+
+
+errors2<-unique(PD.Out[is.na(PD.Date.Start) & is.na(PD.Date.End) & is.na(PD.Date.DAS) & is.na(PD.Date.DAP),list(B.Code,PD.Level.Name)
+][,value:=paste0(PD.Level.Name,collapse="/"),by=B.Code
+][,PD.Level.Name:=NULL
+][,table:="PD.Out"
+][,field:="PD.Level.Name"
+][,issue:="No date, DAP or DAE specfied for a practice in the Dates tab."])
+
+errors3<-unique(PD.Out[is.na(PD.Date.Start) & !is.na(PD.Date.End)|!is.na(PD.Date.Start) & is.na(PD.Date.End),list(B.Code,PD.Level.Name)
+][,value:=paste0(PD.Level.Name,collapse="/"),by=B.Code
+][,PD.Level.Name:=NULL
+][,table:="PD.Out"
+][,field:="PD.Level.Name"
+][,issue:="Only one of start and end date specified in the Dates tab."])
+
+
+errors<-rbindlist(list(errors_a,errors_b))
+error_list<-error_tracker(errors=errors,filename = "dates_structure_errors",error_dir=error_dir,error_list = error_list)
+
+errors<-rbindlist(list(errors1,errors2,errors3),fill=T)[order(B.Code)]
+error_list<-error_tracker(errors=errors,filename = "dates_other_errors",error_dir=error_dir,error_list = error_list)
+
 
 
 
@@ -2545,18 +2652,6 @@ Har.Out<-rbindlist(lapply(1:length(Har.Out),FUN=function(i){
 }))
 
 Har.Out[H.Notes==0,H.Notes:=NA]
-
-# WH.Out: Check for potential invalid comparisons that will need ordering practices specifying ####
-# Count have many ERA practices present for each practice
-WH.Out[,N:=1:.N][,N.P:=sum(!is.na(P1),!is.na(P2),!is.na(P3),!is.na(P4)),by=N]
-
-# Count practices >2, practices=1 and controls for each study 
-# List those studies with >1 practices with >2 PH practices, or >1 control
-if(F){
-  (X<-WH.Out[,list(N.2=sum(N.P>1),N.1=sum(N.P==1 & !grepl("h",WH.Codes)),C=sum(grepl("h",WH.Codes))),by=B.Code][N.2>0 & N.1>0])
-  write.table(X,"clipboard",row.names = F,sep="\t")
-}
-WH.Out[,N:=NULL][,N.P:=NULL]
 
 # ***Base Practices (Base.Out) =====
 
