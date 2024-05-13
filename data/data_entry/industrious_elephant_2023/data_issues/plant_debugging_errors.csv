@@ -21,7 +21,7 @@ AC0169,7,7,1,1,V2.0.23,Plant.Method,,Either structural issue with Plant.Out tab 
 AC0175,2,2,1,1,V2.0.23,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,TRUE,""Jabesh,""
 AF0001,3,3,1,1,V2.0.24,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,TRUE,""Jabesh,""
 AF0003,2,2,1,1,V2.0.24,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,TRUE,""Jabesh,""
-CJ0001,7,7,6,6,V2.0.13,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
+CJ0001,7,7,6,6,V2.0.13,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,TRUE,""Jabesh,""
 CJ0022,8,8,6,6,V2.0.14,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
 CJ0099,3,3,1,1,V2.0.23,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
 CJ0100,2,2,,,V2.0.23,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
