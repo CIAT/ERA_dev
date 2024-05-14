@@ -1,10 +1,10 @@
 B.Code,N_all,N_nobase,N_all_m,N_nobase_m,B.Version,table,field,issue,issue_addressed,addressed_by_whom,notes
-AC0003,3,3,,,V2.0.7,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,""Jabesh",""
-AC0022,12,12,11,11,V2.0.12,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"""""Jabesh",""
+AC0003,3,3,,,V2.0.7,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,""Jabesh,""
+AC0022,12,12,11,11,V2.0.12,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,""Jabesh,""
 AC0045,2,2,1,1,V2.0.18,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"""""",""
 AC0142,2,2,1,1,V2.0.21,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"""""",""
 CJ0105,22,22,18,18,V2.0.23,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"",""
-DM0006,1,0,,,V2.0.9,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,TRUE,"""""Jabesh",""
+DM0006,1,0,,,V2.0.9,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,TRUE,""Jabesh,""
 HK0111,12,12,10,10,V2.0.17,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"""""",""
 HK0166,2,2,1,1,V2.0.24,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"""""",""
 HK0202.1,6,6,1,1,V2.0.24,Plant.Method,,Either structural issue with Plant.Out tab from debugging task or formulae in cells H2 and J2 needs copying down.,FALSE,"""""",""
