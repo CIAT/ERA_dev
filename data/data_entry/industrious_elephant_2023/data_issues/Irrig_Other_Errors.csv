@@ -1,2 +1,2 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-NN0296,Base,Irrig.Method,I.Level.Name,Mismatch between practice name in description table and practice naming section.,TRUE,Alvaro,""
+NN0296,Base,Irrig.Method,I.Level.Name,Mismatch between practice name in description table and practice naming section.,FALSE,"",""
