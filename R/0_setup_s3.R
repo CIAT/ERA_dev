@@ -95,7 +95,6 @@ s3_bucket<-paste0(era_s3,"/",folder)
 
 # List excel files to be zipped
 files<-list.files(folder_local,full.names = T,recursive=T)
-files <- files[!file.info(files)$isdir]
 files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
 files<- grep("xlsm$",files,value=T)
 files<-files[!grepl("~",files)]
