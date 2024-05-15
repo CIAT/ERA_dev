@@ -5,7 +5,7 @@ CJ0022,2024-02-01,Chems.Out,C.Date,Date not between 1950-01-01 & 2023-12-01,,,FA
 CJ0022,2024-02-01,Chems.Out,C.Date,Date not between 1950-01-01 & 2023-12-01,,,FALSE,"Charity","Date/month column issue"
 CJ0022,2024-10-01,Chems.Out,C.Date,Date not between 1950-01-01 & 2023-12-01,,,FALSE,"Charity","Date/month column issue"
 CJ0022,2024-10-01,Chems.Out,C.Date,Date not between 1950-01-01 & 2023-12-01,,,FALSE,"Charity","Date/month column issue"
-CJ0106,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"Charity","Kindly remove white space in the master sheet"
+CJ0106,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,TRUE,"Charity","Kindly remove white space in the master sheet"
 
 CJ0159,Bonsoin,Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,"Charity","seems correct"
 CJ0173,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"Charity","Kindly remove white space in the master sheet"
