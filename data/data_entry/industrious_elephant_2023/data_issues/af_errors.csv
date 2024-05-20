@@ -1,8 +1,8 @@
 B.Code,value,table,field,issue,master_table,issue_addressed,addressed_by_whom,notes
-DM0028,Base,AF.Trees,AF.Level.Name,Mismatch in field value between parent and child tables.,,FALSE,"",""
-JO0027,ALBIDA,AF.Tree,AF.Level.Name,Trees number is present without unit.,,FALSE,"",""
-JO0054,SHADE TREES,AF.Tree,AF.Level.Name,Trees number is present without unit.,,FALSE,"",""
-JO0072,Albizia gummifera,AF.Tree,AF.Level.Name,Trees number is present without unit.,,FALSE,"",""
+DM0028,Base,AF.Trees,AF.Level.Name,Mismatch in field value between parent and child tables.,,TRUE,"Charity",""
+JO0027,ALBIDA,AF.Tree,AF.Level.Name,Trees number is present without unit.,,TRUE,"Charity","A challenge when there are 18 trees in 91 ha."
+JO0054,SHADE TREES,AF.Tree,AF.Level.Name,Trees number is present without unit.,,TRUE,"Charity","Information is mising in the zotero document"
+JO0072,Albizia gummifera,AF.Tree,AF.Level.Name,Trees number is present without unit.,,FALSE,"Charity","rejcted document"
 JO0072,Cordia africana,AF.Tree,AF.Level.Name,Trees number is present without unit.,,FALSE,"",""
 JO0072,Croton macrostachyus,AF.Tree,AF.Level.Name,Trees number is present without unit.,,FALSE,"",""
 JO0072,Dracaena steudneri,AF.Tree,AF.Level.Name,Trees number is present without unit.,,FALSE,"",""
