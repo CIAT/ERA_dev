@@ -3,7 +3,7 @@
 
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
-pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply,soiltexture,httr,stringr)
+pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply,soiltexture,httr,stringr,rnaturalearth,rnaturalearthhires,sf,dplyr)
 # 0.1) Create functions ####
 
 waitifnot <- function(cond) {
@@ -231,7 +231,7 @@ check_site_time<-function(data,tabname,ignore_values,site_data,time_data,do_site
                                               ][,check:=NULL
                                                 ][,table:=tabname
                                                   ][,field:="Site.ID"
-                                                    ][,issue:="A Site.ID used  does not match the Site tab"]
+                                                    ][,issue:="A Site.ID used  does not match the Site tab."]
     setnames(errors1,"Site.ID","value")
     errors$errors1<-errors1
     }
@@ -247,7 +247,7 @@ check_site_time<-function(data,tabname,ignore_values,site_data,time_data,do_site
                                               ][,check:=NULL
                                                 ][,table:=tabname
                                                   ][,field:="Time"
-                                                    ][,issue:="A Time used does not match the time tab"]
+                                                    ][,issue:="A Time used does not match the Time tab."]
     
     setnames(errors2,"Time","value")
     errors$errors2<-errors2
@@ -289,6 +289,67 @@ check_dates<-function(data,date_cols,valid_start,valid_end,tabname){
   return(results)
 }
 
+detect_extremes<- function(data, field, lower_bound, upper_bound,tabname) {
+  # Dynamically construct the filtering condition
+  condition <- paste0(field, ">", upper_bound, " | ", field, "<", lower_bound)
+  
+  # Evaluate the condition within the data.table context
+  errors <- data[eval(parse(text = condition))
+  ][, list(value = paste0(unique(get(field)), collapse = "/")), by = list(B.Code)
+  ][, table := tabname
+  ][, field := field
+  ][, issue := paste0("Extreme values detected in field (outside range: ",lower_bound,"-",upper_bound,")")]
+  return(errors)
+}
+
+check_units<-function(data,unit_pairs,tabname){
+  results<-rbindlist(lapply(1:nrow(unit_pairs),FUN=function(i){
+    Unit<-unit_pairs$unit[i]
+    Var<-unit_pairs$var[i]
+    Name_Field<<-unit_pairs$name_field[i]
+    
+    # Dynamically construct the filtering condition
+    condition <- paste0("is.na(", Unit, ") & !is.na(",Var,")")
+    condition2<-paste0(Name_Field,"[!is.na(",Name_Field,")]")
+    
+    # Evaluate the condition within the data.table context
+    errors <- data[eval(parse(text = condition))
+    ][,list(value=paste(eval(parse(text = condition2)),collapse = "/")),by=B.Code
+    ][,table:=tabname
+    ][,field:=Name_Field
+    ][,issue:=paste0("Amount is present, but unit is missing ",Var,".")
+    ][order(B.Code)]
+    errors
+  }))
+  
+  return(results)
+  
+}
+
+check_hilow<-function(data,hilo_pairs,tabname){
+  results<-rbindlist(lapply(1:nrow(hilo_pairs),FUN=function(i){
+    low_col<-hilo_pairs$low_col[i]
+    high_col<-hilo_pairs$high_col[i]   
+    Name_Field<-hilo_pairs$name_field[i]
+    
+    # Dynamically construct the filtering condition
+    condition <- paste0(low_col,">",high_col)
+    condition2<-paste0(Name_Field,"[!is.na(",Name_Field,")]")
+    
+    # Evaluate the condition within the data.table context
+    errors <- data[eval(parse(text = condition))
+    ][,list(value=paste(eval(parse(text = condition2)),collapse = "/")),by=B.Code
+    ][,table:=tabname
+    ][,field:=Name_Field
+    ][,issue:=paste0(low_col," is greater than ",high_col,".")
+    ][order(B.Code)]
+    errors
+  }))
+  
+  return(results)
+}
+
+
 validator<-function(data,
                     numeric_cols=NULL,
                     numeric_ignore_vals=NULL,
@@ -296,6 +357,9 @@ validator<-function(data,
                     zero_cols=NULL,
                     unique_cols=NULL,
                     compulsory_cols=NULL,
+                    extreme_cols=NULL,
+                    unit_pairs=NULL,
+                    hilo_pairs=NULL,
                     tabname,
                     valid_start,
                     valid_end,
@@ -341,12 +405,12 @@ validator<-function(data,
       n_col<-c("B.Code",field,assoc_field)
       dat<-data[,..n_col]
       colnames(dat)[2:3]<-c("focus","value")
-      errors<-unique(dat[is.na(focus),
-                         ][,list(value=paste(value,collapse = "/")),by=B.Code
+      errors<-dat[is.na(focus),
+                         ][,list(value=paste(unique(value),collapse = "/")),by=B.Code
                            ][,table:=tabname
                              ][,field:=assoc_field
                                ][,issue:=paste0("Missing value in compulsory field ",compulsory_cols[i],".")
-                                 ][order(B.Code)])
+                                 ][order(B.Code)]
       errors
     }))
     errors[[n]]<-errors1
@@ -372,10 +436,23 @@ validator<-function(data,
     data[, (numeric_cols) := lapply(.SD, function(x) gsub("−", "-", x)), .SDcols = numeric_cols]
     
     # Look for instances where a non-numeric value is present in a numeric field
-    errors[[n]]<-find_non_numeric(data=data,numeric_cols=numeric_cols,tabname=tabname)[,issue:="Non-numeric value in numeric field"]
+    errors[[n]]<-find_non_numeric(data=data,numeric_cols=numeric_cols,tabname=tabname)[,issue:="Non-numeric value in numeric field."]
     n<-n+1
     # Convert numeric fields to being numeric
     data[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
+  }
+  
+  # Detect extremes
+  if(!is.null(extreme_cols)){
+    errors1<-rbindlist(lapply(1:length(extreme_cols),FUN=function(i){
+      detect_extremes(data=Site.Out,
+                      field=names(extreme_cols)[i],
+                      lower_bound=extreme_cols[[i]][1],
+                      upper_bound = extreme_cols[[i]][2],
+                      tabname = tabname)
+    }))
+    errors[[n]]<-errors1
+    n<-n+1
   }
   
   # Trim white space
@@ -398,6 +475,20 @@ validator<-function(data,
     n<-n+1
   }
   
+  # Check for missing units
+  if(!is.null(unit_pairs)){
+    errors1<-check_units(data,unit_pairs=unit_pairs,tabname = tabname)
+    errors[[n]]<-errors1
+    n<-n+1
+  }
+  
+  # Check for high/low pair issues
+  if(!is.null(hilo_pairs)){
+    errors1<-check_hilow(data,hilo_pairs=hilo_pairs,tabname = tabname)
+    errors[[n]]<-errors1
+    n<-n+1
+  }
+  
   # Check for non-matches between site.id and time fields and their parent tables
   if(any(c("Site.ID","Time") %in% colnames(data)) & tabname!="Site.Out"){
     if(is.null(ignore_values)){
@@ -411,9 +502,10 @@ validator<-function(data,
                              do_site=do_site,
                              do_time=do_time)
     
+    if(length(errors1)>0){
     errors1<-errors1[,list(value=paste0(value,collapse = "/")),by=list(B.Code,table,field,issue)]
-    
     errors[[n]]<-errors1
+    }
   }
   
   errors<-rbindlist(errors,use.names = T)
@@ -440,6 +532,42 @@ check_key<-function(parent,child,tabname,keyfield,collapse_on_code=T,tabname_par
     mergetab[,parent_table:=tabname_parent]
   }
   return(mergetab)
+}
+
+check_coordinates <- function(data) {
+  # Load country boundaries
+  countries <- ne_countries(scale = "large", returnclass = "sf")
+  
+  # Ensure CRS (Coordinate Reference System) is set to WGS84 (EPSG:4326)
+  countries <- st_transform(countries, crs = 4326)
+  
+  # Make geometries valid
+  countries <- st_make_valid(countries)  
+
+  # Convert data to sf object
+  data_sf <- st_as_sf(data, coords = c("Site.LonD", "Site.LatD"), crs = 4326, remove = FALSE)
+  
+  # Initialize result vector
+  is_within_country <- logical(nrow(data))
+  
+  # Iterate over unique ISO codes in the data
+  for (iso3 in unique(data$ISO.3166.1.alpha.3)) {
+    # Filter country boundaries for the current ISO code
+    country_boundary <- countries %>% filter(iso_a3 == iso3)
+    
+    if (nrow(country_boundary) > 0) {
+      # Check if points are within the country boundary
+      points_in_country <- st_within(data_sf, country_boundary, sparse = FALSE)
+      
+      # Store results
+      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- apply(points_in_country, 1, any)[data$ISO.3166.1.alpha.3 == iso3]
+    } else {
+      # Assign NA if country code not found
+      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- NA
+    }
+  }
+  
+  return(is_within_country)
 }
 
 # 0.2) Set directories and parallel cores ####
@@ -481,7 +609,7 @@ if(!dir.exists(harmonization_dir)){
 
 
 
-# 1) Download  or update data ####
+# 1) Download  or update excel data ####
 update<-F
 
 s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
@@ -525,7 +653,7 @@ if(file_status){
   # Read each sheet into a list
   master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(vocab_file, sheet = x))},USE.NAMES=T)
   
-  # 2.1.1) Error checking of era vocab ######
+    # 2.1.1) Error checking of era vocab ######
 
     # Products that are missing mulch codes
     errors<-master_codes$prod[(is.na(Unknown.Fate)|Unknown.Fate=="NA"|
@@ -702,91 +830,70 @@ Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue","...7"):=
 
 # 3.2) Site.Out #####
 data<-lapply(XL,"[[","Site.Out")
-col_names<-colnames(data[[1]])
+col_names<-colnames(data[[800]])
 
-# Structure errors: Check that column names match between sheets
-errors<-rbindlist(lapply(1:length(data),FUN=function(i){
-  dt<-data[[i]]
-  if(!all(colnames(dt) %in% col_names)){
-   data.table(B.Code=Pub.Out$B.Code[i],filename=basename(names(XL)[i]))[,issue:="Problem with structure of Site.Out tab, does not match other excels"]
+Site.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with site out structure"))
   }else{
-    NULL
-  }
-  }))
-error_list<-error_tracker(errors=errors,filename = "site_structure_errors",error_dir=error_dir,error_list = error_list)
+    X<-X[,..col_names]
+    X<-X[!is.na(Site.ID)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="No Site.ID exists"))
+    }
+  }})
 
-# Missing data errors
-errors<-rbindlist(pblapply(1:length(data),FUN=function(i){
-  dt<-data[[i]]
-  dt$B.Code<-Pub.Out$B.Code[i]
-  
-  dt[,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)][,Buffer.Manual:=as.numeric(Buffer.Manual)]
-  
-  dt[,Site.LatD:=gsub(",","",Site.LatD)
-     ][Site.LatD=="",Site.LatD:=NA
-       ][,Site.LatD:=as.numeric(as.character(Site.LatD))
-         ][,Site.LatD:=round(as.numeric(Site.LatD),6)]
-  
-  dt[,Site.LonD:=gsub(",","",Site.LonD)
-     ][Site.LonD=="",Site.LonD:=NA
-       ][,Site.LonD:=as.numeric(as.character(Site.LonD))
-         ][,Site.LonD:=round(as.numeric(Site.LonD),6)]
+errors_a<-rbindlist(lapply(Site.Out,"[[","error"))
+Site.Out<-rbindlist(lapply(Site.Out,"[[","data"))
 
-  dt<-dt[!is.na(Site.ID)]
-  
-  if(nrow(dt)==0){
-    dt<-data.table(B.Code=Pub.Out$B.Code[i])[,
-                                             c("Site.ID","Site.Type","Country","Site.LatD","Site.LonD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual"):=NA
-    ][,missing:=T]
-  }else{
-    
-    dt<-dt[,missing:=F
-    ][is.na(Site.Type)|is.na(Country)|is.na(Site.LatD)|is.na(Site.LonD),missing:=T
-    ][(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manual),missing:=T
-    ][,list(B.Code,Site.ID,Site.Type,Country,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,missing)]
-    
-    dt<-dt[!grepl("[.][.]",Site.ID)]
-  }
-  
-  if(dt[,sum(missing)>0]){
-    dt[missing==T][,missing:=NULL][,issue:="Compulsory information appears to be missing"]
-  }else{
-    NULL
-  }
-  
-}))
-error_list<-error_tracker(errors=errors,filename = "site_missing_fields_errors",error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=errors_a,filename = "site_structure_errors",error_dir=error_dir,error_list = error_list)
 
 # Read in data excluding files with non-match structure
-Site.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
-  dt<-data[[i]]
-  dt<-dt[!is.na(Site.ID)]
-  
-  if(nrow(dt)==0){
-    cat("Site.ID missing",i,Pub.Out$B.Code[i],"\n")
-    NULL
-  }else{
-    if(suppressWarnings(all(colnames(dt) == col_names))){
-    dt$B.Code<-Pub.Out$B.Code[i]
-    cols_to_remove <- grep("^\\.\\.\\.", names(dt), value = TRUE)
-    dt[, (cols_to_remove) := NULL]
-    dt
-    }else{
-      cat("Structural issue with file",i,Pub.Out$B.Code[i],"\n")
-      NULL
-    }
-  }
-}))
-
 results<-validator(data=Site.Out,
                    zero_cols<-colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
-                   numeric_cols=c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree"),
+                   numeric_cols=c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2"),
+                   compulsory_cols = c(Site.ID="Site.Type",Site.ID="Country",Site.ID="Site.LatD",Site.ID="Site.LonD"),
+                   extreme_cols=list(Site.MAT=c(10,34),
+                                     Site.MAP=c(40,4000),
+                                     Site.MSP.S1=c(20,3000),
+                                     Site.MSP.S2=c(20,3000),
+                                     Site.Elevation=c(0,4000),
+                                     Site.Slope.Perc=c(0,50),
+                                     Site.Slope.Degree=c(0,45)),
+                   unique_cols = "Site.ID",
                    date_cols=NULL,
                    tabname="Site.Out")
 
-Site.Out<-results$data
 
-error_list<-error_tracker(errors=results$errors,filename = "site_other_errors",error_dir=error_dir,error_list = error_list)
+Site.Out<-results$data
+errors1<-results$errors
+# remove aggregated sites from error list
+errors1<-errors1[!grepl("[.][.]",value)]
+
+errors2<-Site.Out[(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manual) & !grepl("[.][.]",Site.ID)
+                  ][,list(value=paste0(unique(Site.ID),collapse = "/")),by=list(B.Code)
+                    ][,tabname:="Site.Out"
+                      ][,field:="Site.ID"
+                        ][,issue:="Missing value in compulsory field location uncertainty."]
+
+error_list<-error_tracker(errors=rbindlist(list(errors1,errors2),fill=T),filename = "site_other_errors",error_dir=error_dir,error_list = error_list)
+
+
+dat<-Site.Out[!(is.na(Site.LatD)|is.na(Site.LonD)|is.na(ISO.3166.1.alpha.3))]
+errors3<-check_coordinates(data=dat[,list(Site.LatD,Site.LonD,ISO.3166.1.alpha.3)])
+errors3<-dat[!errors3][,list(value=paste(unique(Site.ID),collapse="/")),by=list(B.Code,Country,ISO.3166.1.alpha.3,Site.LatD,Site.LonD)
+              ][,table:="Site.Out"
+                ][,field:="Site.LonD/Site.LatD"
+                  ][,issue:="Co-ordinates are not in the country specified."]
+
+error_list<-error_tracker(errors=errors3,filename = "site_coordinate_errors",error_dir=error_dir,error_list = error_list)
 
   # 3.2.1) Harmonization ######
     h_params<-data.table(h_table="Site.Out",
@@ -874,44 +981,86 @@ error_list<-error_tracker(errors=results$errors,filename = "site_other_errors",e
   }
 # 3.3) Times periods #####
 data<-lapply(XL,"[[","Times.Out")
-Times.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]][,1:5]
-  colnames(X)[1]<-"Time"
-  X<-X[!is.na(Time)]
+col_names<-colnames(data[[800]])
+    
+# 3.3.1) Times.Out ###### 
+col_names2<-col_names[1:5]
+Times.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
   
-  if(nrow(X)>0){
-    X$B.Code<-Pub.Out$B.Code[i]
-    X
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with time tab structure,corruption of excel file?"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"Time"
+    X<-X[!is.na(Time)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
   }
-}))
+})
+
+errors_a<-rbindlist(lapply(Times.Out,"[[","error"))
+Times.Out<-rbindlist(lapply(Times.Out,"[[","data"))
+
+results<-validator(data=Times.Out,
+                   unique_cols = c("Time"),
+                   tabname="Times.Out",
+                   do_time = F)
+
+errors5<-results$errors
+Times.Out<-results$data
 
 # Error checking odd values in Time.Year.Start or Time.Year.End
 errors<-Times.Out[is.na(as.numeric(Time.Year.End))|is.na(as.numeric(Time.Year.Start))|nchar(Time.Year.Start)>4|nchar(Time.Year.End)>4
                   ][!(is.na(Time.Year.Start)|is.na(Time.Year.End)|grepl("unspecified",Time.Year.Start,ignore.case = T))
                     ][,list(B.Code,Time.Year.End,Time.Year.Start)
-                      ][,issue:="None YYYY values in time tab for year start or end."]
+                      ][,issue:="Non-YYYY values in time tab for year start or end."]
 
 error_list<-error_tracker(errors=errors,filename = "time_year_errors",error_dir=error_dir,error_list = error_list)
 
 Times.Out[,c("Time.Year.Start","Time.Year.End"):=list(as.integer(Time.Year.Start),as.integer(Time.Year.End))]
 
-Times.Clim<-rbindlist(pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]][,7:14]
-  colnames(X)[2]<-"Time"
-  X<-X[!is.na(Time)]
+# 3.3.1) Times.Clim ###### 
+col_names2<-col_names[7:14]
+Times.Clim<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
   
-  if(nrow(X)>0){
-    X$B.Code<-Pub.Out$B.Code[i]
-    X
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with time tab structure,corruption of excel file?"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[2]<-"Time"
+    X<-X[!is.na(Time)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
   }
-}))
+})
 
-Times.Clim[,Time.Clim.SP:=as.integer(gsub(",",".",Time.Clim.SP))
-           ][,Time.Clim.TAP:=as.integer(gsub(",",".",Time.Clim.TAP))
-             ][,Time.Clim.Temp.Mean:=round(as.numeric(gsub(",",".",Time.Clim.Temp.Mean)),1)
-               ][,Time.Clim.Temp.Max:=round(as.numeric(gsub(",",".",Time.Clim.Temp.Max)),1)
-                 ][,Time.Clim.Temp.Min:=round(as.numeric(gsub(",",".",Time.Clim.Temp.Min)),1)]
+errors_b<-rbindlist(lapply(Times.Clim,"[[","error"))
+Times.Clim<-rbindlist(lapply(Times.Clim,"[[","data"))
 
+results<-validator(data=Times.Clim,
+                   numeric_cols=c("Time.Clim.SP","Time.Clim.TAP","Time.Clim.Temp.Mean","Time.Clim.Temp.Max","Time.Clim.Temp.Min"),
+                   time_data = Times.Out,
+                   site_data = Site.Out,
+                   tabname="Times.Clim")
+
+errors4<-results$errors
+Times.Clim<-results$data
+
+# note errors1-errors3 can be moved to the validator function, but some QAQC already exists that would need to be merged wiht the error tracking
 errors1<-Times.Clim[Time.Clim.Temp.Mean>45|Time.Clim.Temp.Max>50|Time.Clim.Temp.Min>30|
              Time.Clim.Temp.Min>Time.Clim.Temp.Max|Time.Clim.Temp.Min>Time.Clim.Temp.Mean|Time.Clim.Temp.Mean>Time.Clim.Temp.Max
              ][,issue:="Extremely high temperature or min>mean,min>max,mean>max"]
@@ -922,9 +1071,12 @@ errors2<-Times.Clim[Time.Clim.Temp.Mean<5|Time.Clim.Temp.Max<10|Time.Clim.Temp.M
 errors3<-Times.Clim[Time.Clim.SP>Time.Clim.TAP
                     ][,issue:="Seasonal > annual precip"]
 
+
 errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL]
 
 error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=rbindlist(list(errors4,errors5),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
+
 
 # 3.4) Soil (Soil.Out) #####
 data<-lapply(XL,"[[","Soils.Out")
@@ -1057,6 +1209,9 @@ Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
   
 }),fill=T)
 
+# Add unit for sand, silt and clay
+Soil.Out[variable %in% c("CLY","SND","SLT"),Unit:="%"]
+
 results<-validator(data=Soil.Out,
                     numeric_cols=c("Soil.Upper","Soil.Lower","value"),
                     tabname="Soil.Out",
@@ -1064,6 +1219,13 @@ results<-validator(data=Soil.Out,
 
 Soil.Out<-results$data
 errors<-results$errors
+
+results<-validator(data=Soil.Out[variable!="Soil.pH"],
+                   compulsory_cols = c(variable="Unit"),
+                   do_site = F,
+                   tabname="Soil.Out",
+                   site_data=Site.Out)
+
 
 # Check for "..." in column names
 errors3<-unique(Soil.Out[grep("[.][.][.]",variable),list(variable,B.Code)])
@@ -1140,10 +1302,10 @@ if(nrow(errors5)>0){
   # ***!!!TO DO!!!***  harmonize methods, units and variables ####
   Soil.Out[,filename:=NULL]
 # 3.5) Experimental Design (ExpD.Out) ####
-ExpD.Out<-lapply(XL,"[[","ExpD.Out")
-col_names<-colnames(ExpD.Out[[1]])
-ExpD.Out<-lapply(1:length(ExpD.Out),FUN=function(i){
-  X<-ExpD.Out[[i]]
+data<-lapply(XL,"[[","ExpD.Out")
+col_names<-colnames(data[[1]])
+ExpD.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
   B.Code<-Pub.Out[,B.Code[i]]
   Filename<-basename(names(XL)[i])
   if(!all(col_names %in% colnames(X))){
@@ -1172,14 +1334,35 @@ error_list<-error_tracker(errors=results$errors,filename = "expd_other_errors",e
 
 # 3.6) Products (Prod.Out) ####
 data<-lapply(XL,"[[","Prod.Out")
-Prod.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
+col_names<-colnames(data[[800]])
+
+Prod.Out<-lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X<-na.omit(X, cols=c("P.Product"))
-  X
-}))
+  B.Code<-Pub.Out[,B.Code[i]]
+  Filename<-basename(names(XL)[i])
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with product tab structure"))
+  }else{
+    X<-X[,..col_names]
+    X[,B.Code:=B.Code]
+    X<-X[!is.na(P.Product)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="No products exists"))
+    }
+    
+    list(data=X)
+  }
+})
 
 
+errors_a<-rbindlist(lapply(Prod.Out,"[[","error"))
+error_list<-error_tracker(errors=errors_a,filename = "prod_structure_errors",error_dir=error_dir,error_list = error_list)
+
+Prod.Out<-rbindlist(lapply(Prod.Out,"[[","data"))
 
 # Check products exists (non-tree)
 mprod<-unique(master_codes$prod[,list(Product.Subtype,Product.Simple)])
@@ -1218,6 +1401,36 @@ error_list<-error_tracker(errors=rbind(errors1,errors2),filename = "prod_other_e
   # TO DO - updated mulched and incorporated codes, check product is in master codes ####
 # 3.7) Var (Var.Out) ####
 data<-lapply(XL,"[[","Var.Out")
+col_names<-colnames(data[[800]])
+
+Var.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  X<-X[!grepl("ERROR",V.Product)]
+  B.Code<-Pub.Out[,B.Code[i]]
+  Filename<-basename(names(XL)[i])
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with varaety tab structure"))
+  }else{
+    X<-X[,..col_names]
+    X[,B.Code:=B.Code]
+    X<-X[!is.na(V.Var)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+    NULL
+      }
+    
+    list(data=X)
+  }
+})
+
+errors_a<-rbindlist(lapply(Var.Out,"[[","error"))
+error_list<-error_tracker(errors=errors_a,filename = "var_structure_errors",error_dir=error_dir,error_list = error_list)
+
+Var.Out<-rbindlist(lapply(Var.Out,"[[","data"))
+
 Var.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
   X<-X[!grepl("ERROR",V.Product)]
@@ -1292,60 +1505,81 @@ harmonization_list<-error_tracker(errors=errors3,filename = "var_varieties_harmo
 
 
   # Q: Should we update traits and maturity too? ####
-# 3.8) Agroforestry (AF.Out) ####
+# 3.8) Agroforestry #####
 data<-lapply(XL,"[[","AF.Out")
+col_names<-colnames(data[[800]])
+
+# 3.8.1) AF.Out ######
+col_names2<-col_names[1:8]
 
 AF.Out<-pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]][,1:8]
-  colnames(X)[1]<-"AF.Level.Name"
-  X<-X[!is.na(AF.Level.Name)]
+  X<-data[[i]]
   B.Code<-Pub.Out$B.Code[i]
+  Filename<-basename(names(XL)[i])
   
-  # Remove any all NA rows
-  na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
-  rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
-  errors<-X[!is.na(AF.Level.Name) & AF.Level.Name!="Base" & rows_with_na==T][,B.Code:=B.Code]
-  X <- X[!rows_with_na]
-  
-  if(nrow(X)>0){
-    X$B.Code<-B.Code
-    if(nrow(errors)>0){
-      list(data=X,errors=errors)
-    }else{
-      list(data=X)
-    }
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(errors2=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure"))
   }else{
-    if(nrow(errors)>0){
-      list(errors=errors)
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"AF.Level.Name"
+    X<-X[!is.na(AF.Level.Name)]
+    
+    # Remove any all NA rows
+    na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
+    rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
+    errors<-X[!is.na(AF.Level.Name) & AF.Level.Name!="Base" & rows_with_na==T][,B.Code:=B.Code]
+    X <- X[!rows_with_na]
+    
+    if(nrow(X)>0){
+      X$B.Code<-B.Code
+      if(nrow(errors)>0){
+        list(data=X,errors=errors)
+      }else{
+        list(data=X)
+      }
+    }else{
+      if(nrow(errors)>0){
+        list(errors=errors)
+      }
     }
   }
   })
 
-# Check for situations where a practices is named but there is no practice selected
+errors_a<-rbindlist(lapply(AF.Out,"[[","errors2"))
 errors1<-rbindlist(lapply(AF.Out,"[[","errors"))
-    
-if(nrow(errors1)>0){
-  errors1<-unique(errors1[,list(B.Code,AF.Level.Name)])[,field:="AF.Level.Name"][,table:="AF.Out"][,issue:="Agroforestry practice name stated but no practice chosen."]
-}
-
 AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
 
-AF.Trees<-rbindlist(pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]][,10:13]
-  colnames(X)[1]<-"AF.Level.Name"
-  X<-X[!is.na(AF.Level.Name)]
+# 3.8.1) AF.Trees ######
+col_names2<-col_names[10:13]
+AF.Trees<-pblapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  Filename<-basename(names(XL)[i])
   
-  # Remove any all NA rows
-  na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
-  rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
-  X <- X[!rows_with_na]
-  
-  if(nrow(X)>0){
-    X$B.Code<-Pub.Out$B.Code[i]
-    X
-  }
-  
-}))
+  if(!all(col_names2 %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure - trees"))
+  }else{
+    X<-X[,..col_names2]
+    colnames(X)[1]<-"AF.Level.Name"
+    X<-X[!is.na(AF.Level.Name)]
+    # Remove any all NA rows
+    na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
+    rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
+    X <- X[!rows_with_na]
+    
+    if(nrow(X)>0){
+      X$B.Code<-B.Code
+      list(data=X)
+
+    }else{
+      NULL
+      }
+    }
+})
+errors_b<-rbindlist(lapply(AF.Trees,"[[","errors2"))
+AF.Trees<-rbindlist(lapply(AF.Trees,"[[","data"))
 
 results<-validator(data=AF.Trees,
                    numeric_cols=c("AF.Tree.N"),
@@ -1354,13 +1588,21 @@ results<-validator(data=AF.Trees,
 AF.Trees<-results$data
 errors2<-results$errors
 
-# Key field does not match between tables in the sheet
-errors3<-AF.Trees[!AF.Level.Name %in% AF.Out$AF.Level.Name,list(B.Code,AF.Level.Name)][,field:="AF.Level.Name"][,table:="AF.Trees"][,issue:="Mismatch in practice name used description table."]
-setnames(errors3,"AF.Level.Name","value")
+# Key field matches
+errors3<-check_key(parent=AF.Out,child=AF.Trees,tabname="AF.Trees",keyfield="AF.Level.Name")
+
+# Check for missing units
+errors4<-AF.Trees[!is.na(AF.Tree.N) & is.na(AF.Tree.Unit)
+                ][,list(value=paste0(unique(AF.Level.Name))),by=B.Code
+                  ][,table:="AF.Tree"
+                    ][,field:="AF.Level.Name"
+                      ][,issue:="Trees number is present without unit."]
 
 # combine and save errors
-errors<-rbindlist(list(errors2,errors3,errors1),fill=T)
+errors<-rbindlist(list(errors2,errors3,errors1,errors4),fill=T)
 error_list<-error_tracker(errors=errors,filename = "af_errors",error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=rbind(errors_a,errors_b),filename = "af_structure_errors",error_dir=error_dir,error_list = error_list)
+
 
   # 3.8.1) Harmonization - TO DO !!! ######
   # AF.Tree and AF.Tree.Unit
@@ -1405,6 +1647,10 @@ errors1<-Till.Codes[is.na(Till.Code),list(B.Code,Till.Practice)
                ][,field:="T.Practice"
                  ][,issue:="Tillage practice selected does not match a value in the master codes."]
 
+
+errors4<-validator(data=Till.Codes,
+                   unique_cols = "Till.Level.Name",
+                   tabname="Till.Codes")$errors
   
   # 3.9.2) Till.Out #######
 col_names2<-col_names[6:18]
@@ -1453,7 +1699,7 @@ Till.Out<-rbindlist(lapply(Till.Out,"[[","data"))
   errors3<-check_key(parent = Till.Codes,child = Till.Out,tabname="Till.Out",keyfield="Till.Level.Name")[,issue:="A practice has some description in the tillage (typically base), but no practice has been associated with it."]
   
   # save errors
-  errors<-rbindlist(list(errors1,errors2,errors3),fill=T)[order(B.Code)]
+  errors<-rbindlist(list(errors1,errors2,errors3,errors4),fill=T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "till_errors",error_dir=error_dir,error_list = error_list)
   
     # 3.9.2.1) Harmonization ######
@@ -1473,20 +1719,20 @@ Till.Out<-rbindlist(lapply(Till.Out,"[[","data"))
 # 3.10) Planting  #####
 data<-lapply(XL,"[[","Plant.Out")
 col_names<-colnames(data[[800]])
-col_names[c(2,8)]<-"P.Level.Name"
 
   # 3.10.1) Plant.Out ####
+col_names2<-col_names[1:6]
   Plant.Out<-lapply(1:length(data),FUN=function(i){
-    X<-data[[i]][,1:6]
-    colnames(X)[2]<-"P.Level.Name"
-  
+    X<-data[[i]]
     B.Code<-Pub.Out$B.Code[i]
     
-    if(!all(col_names[1:6] %in% colnames(X))){
+    if(!all(col_names2 %in% colnames(X))){
       cat("Structural issue with file",i,B.Code,"\n")
       list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure,corruption of excel file?"))
     }else{
-      X<-X[!is.na(P.Product)]
+      X<-X[,..col_names2]
+      colnames(X)[2]<-"P.Level.Name"
+      X<-X[!is.na(P.Level.Name)]
       if(nrow(X)>0){
         X[,B.Code:=B.Code]
         list(data=X)
@@ -1496,7 +1742,7 @@ col_names[c(2,8)]<-"P.Level.Name"
     }
   })
   
-  errors1<-rbindlist(lapply(Plant.Out,"[[","error"))
+  errors_a<-rbindlist(lapply(Plant.Out,"[[","error"))
   Plant.Out<-rbindlist(lapply(Plant.Out,"[[","data"))
   
   # Name added but p-structure is missing
@@ -1508,7 +1754,13 @@ col_names[c(2,8)]<-"P.Level.Name"
   
   error_list<-error_tracker(errors=errors,filename = "plant_comparison_allowed_issue",error_dir=error_dir,error_list = error_list)
   
+  errors1<-validator(data=Plant.Out,
+                     unique_cols = "P.Level.Name",
+                     tabname="Plant.Out")$errors
+  
   # 3.10.2) Plant.Method ####
+  col_names2<-col_names[8:23]
+  
   Plant.Method<-lapply(1:length(data),FUN=function(i){
     X<-data[[i]]
     B.Code<-Pub.Out$B.Code[i]
@@ -1516,16 +1768,13 @@ col_names[c(2,8)]<-"P.Level.Name"
     if(!"Plant.Relay" %in% colnames(X)){
       X[,Plant.Relay:="Not in template"]
     }
-    if(ncol(X)<length(col_names)){
-      cat("Structural issue with file too few cols",i,B.Code,"\n")
-      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure,P.Level.Name column may be missing in column H"))
-    }else{
-      X<-X[,8:23]
-      colnames(X)[1]<-"P.Level.Name"
-      if(!all(col_names[8:23] %in% colnames(X))){
+    
+      if(!all(col_names2 %in% colnames(X))){
         cat("Structural issue with file",i,B.Code,"\n")
-        list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure,corruption of excel file?"))
+        list(errors=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Plant.Out tab structure"))
       }else{
+        X<-X[,..col_names2]
+        colnames(X)[1]<-"P.Level.Name"
         X<-X[!is.na(P.Level.Name)]
         if(nrow(X)>0){
           X[,B.Code:=B.Code]
@@ -1534,34 +1783,43 @@ col_names[c(2,8)]<-"P.Level.Name"
           NULL
         }
       }
-    }
   })
-  errors2<-rbindlist(lapply(Plant.Method,"[[","error"),use.names = T)
+  
+  errors_b<-rbindlist(lapply(Plant.Method,"[[","errors"),use.names = T)
   Plant.Method<-rbindlist(lapply(Plant.Method,"[[","data"),use.names = T)
   setnames(Plant.Method,"P.Method","Plant.Method")
   
-  error_list<-error_tracker(errors=rbind(errors1,errors2),filename = "plant_structure_errors",error_dir=error_dir,error_list = error_list)
+  error_list<-error_tracker(errors=rbind(errors_a,errors_b),filename = "plant_structure_errors",error_dir=error_dir,error_list = error_list)
   
   # Standardization and basic error checks
   results<-validator(data=Plant.Method,
+                     unique_cols="P.Level.Name",
                      numeric_cols=c("Plant.Density","Plant.Row","Plant.Station","Plant.Seeds","Plant.Thin","Plant.Tram.Row","Plant.Tram.N","Plant.Block.Rows","Plant.Block.Perc","Plant.Block.Width"),
                      tabname="Plant.Method")
   
-  errors1<-results$errors
+  errors2<-results$errors
   Plant.Method<-results$data
   
   # Non match of name between tables
-  errors2<-check_key(parent = Plant.Out,child = Plant.Method,tabname="Plant.Method",keyfield="P.Level.Name")
+  errors3<-check_key(parent = Plant.Out,child = Plant.Method,tabname="Plant.Method",keyfield="P.Level.Name")
   
   # Row vs station spacing issue?
-  errors3<-unique(Plant.Method[Plant.Row<Plant.Station
+  errors4<-unique(Plant.Method[Plant.Row<Plant.Station
                         ][,value:=paste("row = ",Plant.Row[1],", station =",Plant.Station[1]),by=list(Plant.Row,Plant.Station)
                           ][,list(B.Code,value)
                             ][,table:="Plant.Method"
                               ][,field:="P.Level.Name"
                                 ][,issue:="Row spacing is less than station spacing, possible error."])
   
-  error_list<-error_tracker(errors=rbind(errors1,errors2,errors3)[order(B.Code)],filename = "plant_method_value_errors",error_dir=error_dir,error_list = error_list)
+  
+  # Planting density without unit
+  errors5<-unique(Plant.Method[is.na(Plant.Density.Unit) & !is.na(Plant.Density)
+  ][,list(value=paste0(P.Level.Name,collapse="/")),by=B.Code
+  ][,table:="Plant.Method"
+  ][,field:="P.Level.Name"
+  ][,issue:="Missing density unit."])
+  
+  error_list<-error_tracker(errors=rbind(errors1,errors2,errors3,errors4,errors5)[order(B.Code)],filename = "plant_method_value_errors",error_dir=error_dir,error_list = error_list)
   
   # errors x
   errors_bcodes<-Pub.Out[B.Version %in% paste0("V2.0.",22:25),B.Code]
@@ -1629,6 +1887,7 @@ Fert.Out<-rbindlist(lapply(Fert.Out,"[[","data"))
 setnames(Fert.Out,c("F.Prac.Rate","F.Prac.Timing","F.Prac.Precision","F.Prac.Info"),c("F.Rate.Pracs","F.Timing.Pracs","F.Precision.Pracs","F.Info.Pracs"))
 
 results<-validator(data=Fert.Out,
+                   unique_cols="F.Level.Name",
                    numeric_cols=c("F.NO","F.PO","F.KO","F.NI","F.PI","F.P2O5","F.KI","F.K2O"),
                    zero_cols=c("F.O.Unit","F.I.Unit"),
                    tabname="Fert.Out")
@@ -1700,15 +1959,12 @@ errors_b<-rbindlist(lapply(Fert.Method,"[[","errors"))
 Fert.Method<-rbindlist(lapply(Fert.Method,"[[","data"),fill=T)
 setnames(Fert.Method,"Times","Time")
 
-errors5<-unique(Fert.Method[is.na(F.Category)|is.na(F.Type),"B.Code"
-][,value:=NA
-][,table:="Fert.Method"
-][,field:="F.Category|F.Type"
-][,issue:="Compulsory field is NA"])
-
 results<-validator(data=Fert.Method,
                    numeric_cols=c("F.Amount","F.Date.DAP","F.Date.DAE"),
                    date_cols=c("F.Date.End", "F.Date.Start", "F.Date"),
+                   compulsory_cols = c(F.Level.Name="F.Category",F.Level.Name="F.Type"),
+                   hilo_pairs = data.table(low_col="F.Date.Start",high_col="F.Date.End",name_field="F.Level.Name"),
+                   unit_pairs = data.table(unit="F.Amount",var="F.Unit",name_field="F.Level.Name"),
                    valid_start=valid_start,
                    valid_end=valid_end,
                    site_data=Site.Out,
@@ -1718,13 +1974,6 @@ results<-validator(data=Fert.Method,
 
 errors6<-results$errors
 Fert.Method<-results$data
-
-errors10<-unique(Fert.Method[F.Date.End<F.Date.Start,list(B.Code,F.Date.End,F.Date.Start)])
-errors10[,value:=paste0("F.Date.Start =",F.Date.Start," & F.Date.End = ",F.Date.End)
-         ][,c("F.Date.Start","F.Date.End"):=NULL
-           ][,table:="Fert.Method"
-             ][,field:="F.Date.Start/F.Date.End"
-               ][,issue:="End date before start date."]
 
 # Check key fields
 errors7<-check_key(parent = Fert.Out,child = Fert.Method,tabname="Fert.Method",keyfield="F.Level.Name")
@@ -1784,23 +2033,21 @@ Fert.Comp<-lapply(1:length(data),FUN=function(i){
 errors_c<-rbindlist(lapply(Fert.Comp,"[[","errors"))
 Fert.Comp<-rbindlist(lapply(Fert.Comp,"[[","data"))
 
+
+vars<-c("F.DM","F.OC","F.N","F.TN","F.AN","F.P","F.TP","F.AP","F.K")
+pairs<-data.table(var=vars,unit=paste0(vars,".Unit"),name_field="F.Type")
+
 results<-validator(data=Fert.Comp,
+                   unique_cols = c("F.Type"),
                    numeric_cols=c("F.DM","F.OC","F.N","F.TN","F.AN","F.CN","F.P","F.TP","F.AP","F.K","F.pH"),
+                   unit_pairs = pairs,
                    tabname="Fert.Comp")
 
 errors8<-results$errors
 Fert.Comp<-results$data
 
 # Check key fields
-errors9<-unique(merge(Fert.Comp[,list(B.Code,F.Type)],Fert.Method[,list(B.Code,F.Type)][,check:=T],all.x=T)[is.na(check)][,check:=NULL])
-errors9<-unique(merge(errors9,Fert.Out[,F.Type:=F.Level.Name][,list(B.Code,F.Type)][,check:=T],all.x=T)[is.na(check)][,check:=NULL])
-Fert.Out[,F.Type:=NULL]
-errors9<-errors9[,list(F.Type=paste(unique(F.Type),collapse = "/")),by=list(B.Code)
-][,table:="Fert.Comp"
-][,field:="F.Type"
-][,issue:="Mismatch between fertilizer type name in composition vs methods sections."]
-setnames(errors9,"F.Type","value")
-
+errors9<-check_key(parent = Fert.Method,child = Fert.Comp,tabname="Fert.Comp",keyfield="F.Type")
 
     # 3.11.3.1) Harmonization #######
 h_params<-data.table(h_table="Fert.Comp",
@@ -1820,7 +2067,7 @@ Fert.Comp<-results$data
 errors<-rbindlist(list(errors_a,errors_b,errors_c))
 error_list<-error_tracker(errors=errors,filename = "fert_structure_errors",error_dir=error_dir,error_list = error_list)
 
-errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6,errors7,errors8,errors9,errors10),fill=T)[order(B.Code)]
+errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors6,errors7,errors8,errors9),fill=T)[order(B.Code)]
 error_list<-error_tracker(errors=errors,filename = "fert_other_errors",error_dir=error_dir,error_list = error_list)
 
 h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3),fill=T)
@@ -2122,6 +2369,10 @@ Chems.Code<-lapply(1:length(data),FUN=function(i){
 errors_a<-rbindlist(lapply(Chems.Code,"[[","errors"))
 Chems.Code<-rbindlist(lapply(Chems.Code,"[[","data"))
 
+errors8<-validator(data=Chems.Code,
+                   unique_cols = "C.Level.Name",
+                   tabname="Chems.Code")$errors
+
   # 3.12.2) Chems.Out ####
 col_names2<-col_names[5:23]
 col_names2[grep("C.Type",col_names2)]<-"C.Type1"
@@ -2159,6 +2410,7 @@ setnames(Chems.Out,"C.Brand","C.Name")
 Chems.Out[,C.Type:=gsub("Animal - ","",C.Type)]
 
 results<-validator(data=Chems.Out,
+                   compulsory_cols = c(C.Level.Name="C.Type",C.Level.Name="C.Name"),
                    numeric_cols=c("C.Amount","C.Date.DAP","C.Date.DAE"),
                    date_cols=c("C.Date.Start", "C.Date.End", "C.Date"),
                    valid_start=valid_start,
@@ -2180,10 +2432,19 @@ errors2[,value:=paste0("C.Date.Start =",C.Date.Start," & C.Date.End = ",C.Date.E
         ][,c("C.Date.Start","C.Date.End"):=NULL
           ][,table:="Chems.Out"
             ][,field:="C.Date.Start/C.Date.End"
-              ][,issue:="End date before start date."]
+              ][,issue:="End date before start date."
+                ][,order(B.Code)]
 
 # Check key_fields
 errors3<-check_key(parent = Chems.Code,child = Chems.Out,tabname="Chems.Out",keyfield="C.Level.Name")
+
+# Check units
+errors9<-Chems.Out[is.na(C.Unit) & !is.na(C.Amount),list(value=paste(C.Level.Name,collapse = "/")),by=B.Code
+                     ][,table:="Chems.Out"
+                       ][,field:="C.Level.Name"
+                         ][,issue:="Amount is present, but unit is missing."
+                           ][order(B.Code)]
+
 
 # Add Code for Herbicide
 Chems.Out[C.Type=="Herbicide",C.Code:="h66.1"]
@@ -2258,6 +2519,13 @@ Chems.AI<-results$data
 
 errors5<-check_key(parent = Chems.Out,child = Chems.AI,tabname="Chems.AI",keyfield="C.Name")[,issue:="Mismatch in Product Name (C.Brand or C.Name) between description and AI table."]
 
+# Check units
+errors10<-Chems.AI[is.na(C.AI.Unit) & !is.na(C.AI.Amount),list(value=paste(C.Name,collapse = "/")),by=B.Code
+][,table:="Chems.AI"
+][,field:="C.Name"
+][,issue:="Amount is present, but unit is missing (active ingredient section)."
+][order(B.Code)]
+
     # 3.12.3.1) Harmonization #######
 h_params<-data.table(h_table="Chems.AI",
                      h_field="C.AI.Unit",
@@ -2286,7 +2554,7 @@ h_tasks4<-h_tasks4[C.Type %in% mergedat$C.Type]
 errors<-rbindlist(list(errors_a,errors_b,errors_c))
 error_list<-error_tracker(errors=errors,filename = "chem_structure_errors",error_dir=error_dir,error_list = error_list)
 
-errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6,errors7),fill=T)[order(B.Code)]
+errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6,errors7,errors8,errors9,errors10),fill=T)[order(B.Code)]
 error_list<-error_tracker(errors=errors,filename = "chem_other_errors",error_dir=error_dir,error_list = error_list)
 
 h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4),fill=T)
@@ -2362,6 +2630,7 @@ col_names<-colnames(data[[1]])
   Res.Out<-rbindlist(lapply(Res.Out,"[[","data"))
   
   results<-validator(data=Res.Out,
+                     unique_cols = "M.Level.Name",
                      numeric_cols=c("M.NO","M.PO","M.KO"),
                      zero_cols="M.Unit",
                      tabname="Res.Out")
@@ -2371,6 +2640,14 @@ col_names<-colnames(data[[1]])
   
   Res.Out<-Res.Out[!(is.na(P1) & is.na(P2) & is.na(P3) & is.na(P4))]
   
+  # Check units
+  errors2<-Res.Out[is.na(M.Unit) & !(is.na(M.KO) & is.na(M.NO) & is.na(M.PO)),list(value=paste(M.Level.Name,collapse = "/")),by=B.Code
+  ][,table:="Res.Out"
+  ][,field:="M.Level.Name"
+  ][,issue:="Amount is present, but unit is missing."
+  ][order(B.Code)]
+  
+  # 3.14.1.1) Harmonization ########
   h_params<-data.table(h_table="Res.Out",
                        h_field=c("M.Unit"),
                        h_table_alt=c("Fert.Out"),
@@ -2431,6 +2708,8 @@ col_names<-colnames(data[[1]])
   results<-validator(data=Res.Method,
                      numeric_cols=c("M.Amount","M.Cover","M.Date.DAP","M.Date.DAE"),
                      date_cols=c("M.Date.End", "M.Date.Start", "M.Date"),
+                     hilo_pairs = data.table(low_col="M.Date.Start",high_col="M.Date.End",name_field="M.Level.Name"),
+                     unit_pairs = data.table(unit="M.Unit",var="M.Amount",name_field="M.Level.Name"),
                      valid_start=valid_start,
                      valid_end=valid_end,
                      site_data=Site.Out,
@@ -2442,6 +2721,13 @@ col_names<-colnames(data[[1]])
   Res.Method<-results$data
   
   errors4<-check_key(parent = Res.Out,child = Res.Method,tabname="Res.Method",keyfield="M.Level.Name")
+  
+  # Check compulsory field
+  errors5<-Res.Method[is.na(M.Tree) & is.na(M.Material),list(value=paste(M.Level.Name,collapse = "/")),by=B.Code
+  ][,table:="Res.Method"
+  ][,field:="M.Level.Name"
+  ][,issue:="Compulsory field is NA M.Tree and M.Material"
+  ][order(B.Code)]
   
     # 3.14.2.1) Harmonization ########
   h_params<-data.table(h_table="Res.Method",
@@ -2500,13 +2786,20 @@ col_names<-colnames(data[[1]])
                      numeric_cols=c("M.DM","M.OC","M.N","M.TN","M.AN","M.CN","M.P","M.TP","M.AP","M.K"),
                      tabname="Res.Comp")
   
-  errors5<-results$errors
+  errors6<-results$errors
   Res.Comp<-results$data
   
   # Check key fields
-  errors6<-check_key(parent = Res.Method,child = Res.Comp[!is.na(M.Tree)],tabname="Res.Method",keyfield="M.Tree")[value=="Acacia angustissima/Acacia caerulescens",issue:="Junk data in composition tab"]
-  errors7<-check_key(parent = Res.Method,child = Res.Comp[is.na(M.Tree)],tabname="Res.Method",keyfield="M.Material")
+  errors7<-check_key(parent = Res.Method,child = Res.Comp[!is.na(M.Tree)],tabname="Res.Method",keyfield="M.Tree")[value=="Acacia angustissima/Acacia caerulescens",issue:="Junk data in composition tab"]
+  errors8<-check_key(parent = Res.Method,child = Res.Comp[is.na(M.Tree)],tabname="Res.Method",keyfield="M.Material")
   
+  vars<-c("M.DM","M.OC","M.N","M.TN","M.AN","M.P","M.TP","M.AP","M.K")
+  pairs<-data.table(var=vars,unit=paste0(vars,".Unit"),name_field="M.Material")
+  
+  errorsx<-check_units(data=Res.Comp,unit_pairs=pairs,tabname="Res.Comp")
+  errorsy<-check_units(data=Res.Comp,unit_pairs=pairs[,name_field:="M.Tree"],tabname="Res.Comp")
+
+  errors9<-rbind(errorsx,errorsy)[value!=""][order(B.Code)]
   
    # 3.14.3.1) Harmonization #######
   h_params<-data.table(h_table="Res.Comp",
@@ -2526,7 +2819,7 @@ col_names<-colnames(data[[1]])
   errors<-rbindlist(list(errors_a,errors_b,errors_c))
   error_list<-error_tracker(errors=errors,filename = "residue_structure_errors",error_dir=error_dir,error_list = error_list)
   
-  errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6,errors7),fill=T)[order(B.Code)]
+  errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6,errors7,errors8,errors9),fill=T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "residues_other_errors",error_dir=error_dir,error_list = error_list)
   
   h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4,h_tasks5),fill=T)
@@ -2564,6 +2857,10 @@ pH.Out<-rbindlist(lapply(pH.Out,"[[","data"))
 # Fix missing pH.Codes
 pH.Out[is.na(pH.Codes) & pH.Prac=="Liming or Calcium Addition",pH.Codes:="b32"]
 
+errors1<-validator(data=pH.Out,
+                   unique_cols = "pH.Level.Name",
+                   tabname="pH.Out")$errors
+
   # 3.15.2) pH.Method ######
 col_names2<-col_names[6:13]
 
@@ -2589,17 +2886,16 @@ pH.Method<-lapply(1:length(data),FUN=function(i){
 errors_b<-rbindlist(lapply(pH.Method,"[[","errors"))
 pH.Method<-rbindlist(lapply(pH.Method,"[[","data"))  
 
-
 results<-validator(data=pH.Method,
                    numeric_cols=c("pH.CaCO3","pH.ECCE","pH.MgCO3","pH.Amount"),
+                   compulsory_cols = c(pH.Level.Name="pH.Material"),
+                   unit_pairs = data.table(unit="pH.Unit",var="pH.Amount",name_field="pH.Level.Name"),
                    tabname="pH.Method")
 
-errors1<-results$errors
+errors2<-results$errors
 pH.Method<-results$data
 
-errors2<-check_key(parent = pH.Out,child = pH.Method,tabname="pH.Method",keyfield="pH.Level.Name")
-
-errors3<-pH.Method[!is.na(pH.Amount) & is.na(pH.Unit),list(B.Code)][,value:=NA][,table:="pH.Method"][,field:="pH.Unit"][,issue:="Amount specified but unit is blank"]
+errors3<-check_key(parent = pH.Out,child = pH.Method,tabname="pH.Method",keyfield="pH.Level.Name")
 
 errors<-rbindlist(list(errors_a,errors_b))
 error_list<-error_tracker(errors=errors,filename = "pH_structure_errors",error_dir=error_dir,error_list = error_list)
@@ -2652,6 +2948,13 @@ errors_a<-rbindlist(lapply(Irrig.Codes,"[[","errors"))
 Irrig.Codes<-rbindlist(lapply(Irrig.Codes,"[[","data"))  
 colnames(Irrig.Codes)[6]<-"I.Notes"
 
+errors1<-validator(data=Irrig.Codes,
+                   unique_cols = "I.Level.Name",
+                   compulsory_cols = c(I.Level.Name="I.Method",I.Level.Name="I.Strategy"),
+                   tabname="Irrig.Codes")$errors
+errors1<-errors1[!(grepl("Missing value",issue) & value=="Base")]
+
+
   # 3.16.2) Irrig.Method ######
 col_names2<-col_names[8:21]
 
@@ -2681,6 +2984,8 @@ Irrig.Method<-rbindlist(lapply(Irrig.Method,"[[","data"))
 results<-validator(data=Irrig.Method,
                    numeric_cols=c("I.Amount","I.Date.DAP","I.Date.DAE","I.Date.Inteval"),
                    date_cols=c("I.Date.End", "I.Date.Start", "I.Date.Gen"),
+                   unit_pairs = data.table(unit="I.Unit",var="I.Amount",name_field="I.Level.Name"),
+                   hilo_pairs = data.table(low_col="I.Date.Start",high_col="I.Date.End",name_field="I.Level.Name"),
                    valid_start=valid_start,
                    valid_end=valid_end,
                    site_data=Site.Out,
@@ -2688,12 +2993,10 @@ results<-validator(data=Irrig.Method,
                    tabname="Irrig.Method",
                    ignore_values = c("All Times","Unspecified","Not specified","All Sites"))
 
-errors1<-unique(results$errors)
+errors2<-unique(results$errors)
 Irrig.Method<-results$data
 
-errors2<-check_key(parent = Irrig.Codes,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
-
-errors3<-unique(Irrig.Method[!is.na(I.Amount) & is.na(I.Unit),list(B.Code)][,value:=NA][,table:="Irrig.Method"][,field:="I.Unit"][,issue:="Amount specified but unit is blank"])
+errors3<-check_key(parent = Irrig.Codes,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
 
 
 errors<-rbindlist(list(errors_a,errors_b))
@@ -2757,13 +3060,18 @@ WH.Out[is.na(P1c) & !is.na(P1)]
 WH.Out[,WH.Codes:=paste0(sort(c(P1c,P2c,P3c,P4c)[!is.na(c(P1c,P2c,P3c,P4c))]),collapse="-"),by=list(B.Code,WH.Level.Name)]
 WH.Out[,c("P1c","P2c","P3c","P4c"):=NULL][,N1:=stringr::str_count(WH.Codes,"-")]
 
-errors<-WH.Out[N!=N1|WH.Codes=="",list(B.Code,WH.Level.Name)
+errors1<-WH.Out[N!=N1|WH.Codes=="",list(B.Code,WH.Level.Name)
                ][,value:=WH.Level.Name
                  ][,WH.Level.Name:=NULL
                    ][,table:="WH.Out"
                      ][,field:="WH.Level.Name"
                        ][,issue:="Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?"]
-error_list<-error_tracker(errors=errors,filename = "wh_other_errors",error_dir=error_dir,error_list = error_list)
+
+errors2<-validator(data=WH.Out,
+                   unique_cols = "WH.Level.Name",
+                   tabname="WH.Out")$errors
+
+error_list<-error_tracker(errors=rbindlist(list(errors1,errors2),fill=T),filename = "wh_other_errors",error_dir=error_dir,error_list = error_list)
 WH.Out[,c("N","N1"):=NULL]
 
 # 3.18) Dates #####
@@ -2794,6 +3102,11 @@ PD.Codes<-lapply(1:length(data),FUN=function(i){
 
 errors_a<-rbindlist(lapply(PD.Codes,"[[","error"))
 PD.Codes<-rbindlist(lapply(PD.Codes,"[[","data"))  
+
+errors1<-validator(data=PD.Codes,
+                   unique_cols = "PD.Level.Name",
+                   tabname="PD.Codes")$errors
+
 
     # 3.18.1.1) Harmonization #######
 h_params<-data.table(h_table="PD.Codes",
@@ -2835,10 +3148,10 @@ PD.Out<-lapply(1:length(data),FUN=function(i){
 errors_b<-rbindlist(lapply(PD.Out,"[[","error"))
 PD.Out<-rbindlist(lapply(PD.Out,"[[","data"))  
 
-
 results<-validator(data=PD.Out,
                    numeric_cols=c("PD.Date.DAS","PD.Date.DAP"),
                    date_cols=c("PD.Date.Start", "PD.Date.End"),
+                   hilo_pairs = data.table(low_col="PD.Date.Start",high_col="PD.Date.End",name_field="PD.Level.Name"),
                    valid_start=valid_start,
                    valid_end=valid_end,
                    site_data=Site.Out,
@@ -2846,18 +3159,18 @@ results<-validator(data=PD.Out,
                    tabname="PD.Out",
                    ignore_values = c("All Times","Unspecified","Not specified","All Sites"))
 
-errors1<-results$errors
+errors2<-results$errors
 PD.Out<-results$data
 
 
-errors2<-unique(PD.Out[is.na(PD.Date.Start) & is.na(PD.Date.End) & is.na(PD.Date.DAS) & is.na(PD.Date.DAP),list(B.Code,PD.Level.Name)
+errors3<-unique(PD.Out[is.na(PD.Date.Start) & is.na(PD.Date.End) & is.na(PD.Date.DAS) & is.na(PD.Date.DAP),list(B.Code,PD.Level.Name)
 ][,value:=paste0(PD.Level.Name,collapse="/"),by=B.Code
 ][,PD.Level.Name:=NULL
 ][,table:="PD.Out"
 ][,field:="PD.Level.Name"
 ][,issue:="No date, DAP or DAE specfied for a practice in the Dates tab."])
 
-errors3<-unique(PD.Out[is.na(PD.Date.Start) & !is.na(PD.Date.End)|!is.na(PD.Date.Start) & is.na(PD.Date.End),list(B.Code,PD.Level.Name)
+errors4<-unique(PD.Out[is.na(PD.Date.Start) & !is.na(PD.Date.End)|!is.na(PD.Date.Start) & is.na(PD.Date.End),list(B.Code,PD.Level.Name)
 ][,value:=paste0(PD.Level.Name,collapse="/"),by=B.Code
 ][,PD.Level.Name:=NULL
 ][,table:="PD.Out"
@@ -2868,11 +3181,8 @@ errors3<-unique(PD.Out[is.na(PD.Date.Start) & !is.na(PD.Date.End)|!is.na(PD.Date
 errors<-rbindlist(list(errors_a,errors_b))
 error_list<-error_tracker(errors=errors,filename = "dates_structure_errors",error_dir=error_dir,error_list = error_list)
 
-errors<-rbindlist(list(errors1,errors2,errors3),fill=T)[order(B.Code)]
+errors<-rbindlist(list(errors1,errors2,errors3,errors4),fill=T)[order(B.Code)]
 error_list<-error_tracker(errors=errors,filename = "dates_other_errors",error_dir=error_dir,error_list = error_list)
-
-
-
 
 # 3.19) Harvest ######
 data<-lapply(XL,"[[","Harvest.Out")
@@ -2902,6 +3212,12 @@ Har.Out<-rbindlist(lapply(Har.Out,"[[","data"))
 
 # Update codes
 Har.Out$H.Code<-master_codes$prac$Code[match(Har.Out$H.Prac,master_codes$prac$Subpractice)]
+
+errors1<-validator(data=Har.Out,
+                   unique_cols = "H.Level.Name",
+                   tabname="Har.Out")$errors
+
+error_list<-error_tracker(errors=errors1,filename = "harvest_other_errors",error_dir=error_dir,error_list = error_list)
 
 
 # 3.20) Other ######
@@ -2933,12 +3249,17 @@ Other.Out<-rbindlist(lapply(Other.Out,"[[","data"))
 Other.Out<-Other.Out[!(is.na(O.Notes) & is.na(O.Structure) & O.Level.Name=="Base")]
 Other.Out<-Other.Out[!(O.Level.Name=="Base" & O.Structure=="No")]
 
+errors1<-validator(data=Other.Out,
+                   unique_cols = "O.Level.Name",
+                   tabname="Other.Out")$errors
+
+
 Other.Out[,N:=.N,by=B.Code][,No_struc:=any(O.Structure=="Yes"),by=B.Code]
 
 # If Base  practice set W.Structure to NA
 Other.Out[O.Level.Name=="Base",O.Structure:=NA]
 
-errors1<-Other.Out[N>1 & No_struc==T
+errors2<-Other.Out[N>1 & No_struc==T
                      ][,N:=NULL
                        ][,No_struc:=NULL
                          ][,list(B.Code,O.Level.Name)
@@ -2949,7 +3270,7 @@ errors1<-Other.Out[N>1 & No_struc==T
                                 ][,field:="O.Level.Name"
                                   ][,issue:=">1 other practice exists and comparison IS allowed, check comparisons field is correct."]
 
-errors2<-Other.Out[N>1 & No_struc==F
+errors3<-Other.Out[N>1 & No_struc==F
 ][,N:=NULL
 ][,No_struc:=NULL
 ][,list(B.Code,O.Level.Name)
@@ -2961,7 +3282,7 @@ errors2<-Other.Out[N>1 & No_struc==F
 ][,issue:=">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct."]
 
 
-errors3<-Other.Out[N==1][,N:=NULL
+errors4<-Other.Out[N==1][,N:=NULL
   ][,list(B.Code,O.Level.Name)
   ][,list(O.Level.Name=paste(O.Level.Name,collapse="/")),by=B.Code
   ][,value:=O.Level.Name
@@ -2970,7 +3291,7 @@ errors3<-Other.Out[N==1][,N:=NULL
   ][,field:="O.Level.Name"
   ][,issue:="One other practice exists, please check that the comparisons field is correctly assigned."]
 
-error_list<-error_tracker(errors=rbind(errors1,errors2,errors3)[order(B.Code)],filename = "other_other_errors",error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=rbind(errors1,errors2,errors3,errors4)[order(B.Code)],filename = "other_other_errors",error_dir=error_dir,error_list = error_list)
 
 Other.Out[,N:=NULL][,No_struc:=NULL]
 
@@ -3005,6 +3326,10 @@ Weed.Out<-Weed.Out[!(W.Level.Name=="Base" & is.na(W.Method) & is.na(W.Freq) & is
 
 # If Base  practice set W.Structure to NA
 Weed.Out[W.Level.Name=="Base",W.Structure:=NA]
+
+errors1<-validator(data=Weed.Out,
+                   unique_cols = "W.Level.Name",
+                   tabname="Weed.Out")$errors
 
 Weed.Out[,N:=.N,by=B.Code][,No_struc:=any(W.Structure=="Yes"),by=B.Code]
 
@@ -4814,7 +5139,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
   error_list<-error_tracker(errors=rbind(errors_a,errors_b),filename = "out_structure_errors",error_dir=error_dir,error_list = error_list)
   error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4),fill=T),filename = "out_other_errors",error_dir=error_dir,error_list = error_list)
   
-# 8) Enter Data ####
+# 8) Enter Data (Data.Out) ####
   data<-lapply(XL,"[[","Data.Out")
   col_names<-colnames(data[[800]])
   
@@ -4969,6 +5294,14 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
                                      ][order(B.Code)]
   
   # Check component names used
+  results<-val_checker(data=Data.Out,
+                       tabname="Data.Out",
+                       master_codes=master_codes,
+                       master_tab="prod_comp",
+                       h_field="ED.Product.Comp",
+                       h_field_alt="Component",
+                       exact=T)
+  
   errors15<-Data.Out[!ED.Product.Comp %in% master_codes$prod_comp$Component & !is.na(ED.Product.Comp)
                    ][,list(value=paste(unique(ED.Product.Comp),collapse = "/")),by=B.Code
                      ][,table:="Data.Out"
