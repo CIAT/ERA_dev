@@ -33,6 +33,7 @@ if(!dir.exists(search_data_dir)){
 
 
 # 1) Create terms ####
+# Read in additional animal breed terms provided by Claudia Arndt's team
 outcome_terms <- c("animal performance", 
                    "ADG",
                    "average daily gain", 
@@ -103,7 +104,6 @@ animal_terms <- c("goat*",
                   "ruminant*", 
                   "calves")
 
-
 animal_terms_update<-c("ram","rams")
 
 region_terms <- c(
@@ -170,6 +170,30 @@ region_terms <- c(
   "DRC"
 )
 
+# load africa specific breeds
+process_breeds <- function(breeds) {
+  # Load necessary library
+  library(stringr)
+  
+  # Initialize an empty vector to store processed breeds
+  processed_breeds <- c()
+  
+  # Iterate over each breed in the input vector
+  for (breed in breeds) {
+    # Remove punctuation and convert to lowercase
+    breed <- tolower(str_replace_all(breed, "[[:punct:]]", ""))
+    
+    # Split on parentheses to extract words within them
+    parts <- str_split(breed, "\\s*\\(\\s*|\\s*\\)\\s*", simplify = TRUE)
+    
+    # Add each part to the processed breeds vector
+    processed_breeds <- c(processed_breeds, parts[parts != ""])
+  }
+  
+  return(processed_breeds)
+}
+africa_breeds<-fread("https://raw.githubusercontent.com/CIAT/ERA_dev/main/data/search_history/livestock_2024/african_livestock_breeds.csv")
+africa_breeds<-process_breeds(breeds=africa_breeds$breed)
 
 # Create a vector called feed_terms with each term as an element
 feed_terms <- c(
@@ -218,8 +242,8 @@ experiment_terms <- c(
 outcome_terms2 <-add_quotes(outcome_terms)
 outcome_boolean<-paste0("(",paste0(outcome_terms2,collapse = " OR "),")")
 
-outcome_terms_ex2 <-add_quotes(c(outcome_terms,outcome_terms_extra))
-outcome_ex_boolean<-paste0("(",paste0(outcome_terms_ex2,collapse = " OR "),")")
+outcome_terms_3 <-add_quotes(c(outcome_terms,outcome_terms_extra))
+outcome_2_boolean<-paste0("(",paste0(outcome_terms_3,collapse = " OR "),")")
 
 animal_terms2 <-add_quotes(animal_terms)
 animal_boolean<-paste0("(",paste0(animal_terms2,collapse = " OR "),")")
@@ -230,6 +254,9 @@ animal_2_boolean<-paste0("(",paste0(animal_terms3,collapse = " OR "),")")
 region_terms2 <-add_quotes(region_terms)
 region_boolean<-paste0("(",paste0(region_terms2,collapse = " OR "),")")
 
+region_terms3 <-add_quotes(c(region_terms,africa_breeds))
+region_2_boolean<-paste0("(",paste0(region_terms3,collapse = " OR "),")")
+
 feed_terms2 <-add_quotes(feed_terms)
 feed_boolean<-paste0("(",paste0(feed_terms2,collapse = " OR "),")")
 
@@ -237,36 +264,57 @@ experiment_terms2 <-add_quotes(experiment_terms)
 experiment_boolean<-paste0("(",paste0(experiment_terms2,collapse = " OR "),")")
 
 terms<-list(l1=outcome_boolean,
-            l1ex=outcome_ex_boolean,
+            l1.1=outcome_2_boolean,
             l2=animal_boolean,
             l3=region_boolean,
             l4=feed_boolean,
             l5=experiment_boolean,
-            l2.2=animal_2_boolean)
+            l2.2=animal_2_boolean,
+            l3.3=region_2_boolean)
+
+fwrite(terms,file.path(search_data_dir,"terms.csv"))
 
 # Create searches
-searches<-list(l12345=paste0(unlist(terms[c(1,3:6)]),collapse=" AND "),
-              l1234=paste0(unlist(terms[c(1,3:5)]),collapse=" AND "),
-              l123=paste0(unlist(terms[c(1,3:4)]),collapse=" AND "),
-              lex_12345=paste0(unlist(terms[c(2,3:6)]),collapse=" AND "),
-              lex_1234=paste0(unlist(terms[c(2,3:5)]),collapse=" AND "),
-             # lex_123=paste0(unlist(terms[c(2,3:4)]),collapse=" AND "),  # Removed as results are too large
-              l12.2345=paste0(unlist(terms[c(1,4:7)]),collapse=" AND "),
-              l12.234=paste0(unlist(terms[c(1,4:5,7)]),collapse=" AND "),
-              l12.23=paste0(unlist(terms[c(1,4,7)]),collapse=" AND "),
-              lex_12.2345=paste0(unlist(terms[c(2,4:7)]),collapse=" AND "),
-              lex_12.234=paste0(unlist(terms[c(2,4:5,7)]),collapse=" AND ")
-             # lex_12.23=paste0(unlist(terms[c(2,4,7)]),collapse=" AND ")
-             )
+searches<-list(
+  paste0("l",1:5),
+  paste0("l",1:4),
+  paste0("l",1:3),
+  paste0("l",c(1.1,2:5)),
+  paste0("l",c(1.1,2:4)),
+  paste0("l",c(1,2.2,3:5)),
+  paste0("l",c(1,2.2,3:4)),
+  paste0("l",c(1,2.2,3)),
+  paste0("l",c(1.1,2.2,3:5)),
+  paste0("l",c(1.1,2.2,3:4)),
+  paste0("l",c(1:2,3.3,4:5)),
+  paste0("l",c(1:2,3.3,4)),
+  paste0("l",c(1:2,3.3)),
+  paste0("l",c(1.1,2,3.3,4:5)),
+  paste0("l",c(1.1,2,3.3,4)),
+  paste0("l",c(1,2.2,3.3,4:5)),
+  paste0("l",c(1,2.2,3.3,4)),
+  paste0("l",c(1,2.2,3.3)),
+  paste0("l",c(1.1,2.2,3.3,4:5)),
+  paste0("l",c(1.1,2.2,3.3,4))
+)
+
+s_names<-sapply(searches,FUN=function(x){paste0(gsub("l","",unlist(x)),collapse="")})
+
+search_strings<-lapply(searches,FUN=function(x){
+  paste0(unlist(terms[x]),collapse=" AND ")
+})
+
+searches<-data.table(terms=sapply(searches,paste,collapse="|"),search_name=s_names,string=unlist(search_strings))
+fwrite(searches,file.path(search_data_dir,"searches.csv"))
 
 # 2) OpenAlex ####
 
-run_searches<-c(1:length(searches))
+run_searches<-1:nrow(searches)
 overwrite<-F
 
 for(i in run_searches){
   
-  search_code<-gsub("l","",names(searches)[i])
+  search_code<-searches$search_name[i]
 
   save_file<-file.path(search_data_dir,paste0("openalex_",search_code,".csv"))
   cat(save_file,"\n")
@@ -275,7 +323,7 @@ for(i in run_searches){
   if(!file.exists(save_file)|overwrite==T){
 
     
-  base_search_query <-searches[[i]]
+  base_search_query <-searches$string[i]
 
   # URL-encode the query
   encoded_query <- URLencode(base_search_query)
