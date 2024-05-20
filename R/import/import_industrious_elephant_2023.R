@@ -4734,14 +4734,16 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
     }
 
     # 6.1.x) ***!!!TO DO!!!*** Add structure ######
-    X<-data.table(
-    MT.Out2[match(Rot.Seq[,paste(B.Code,`Rotation Component`)],MT.Out2[,paste(B.Code,T.Name2)]),Structure.Comb],
-    Int.Out[match(Rot.Seq[,paste(B.Code,`Rotation Component`)],Int.Out[,paste(B.Code,IN.Level.Name2)]),IN.Structure]
-    )
-    Join.Fun<-function(X,Y){c(X,Y)[!is.na(c(X,Y))]}
-    X<-X[,N:=1:.N][,R.Structure:=Join.Fun(V1,V2),by=N][,R.Structure]
-    Rot.Seq[,R.Structure:=X]
-    rm(X,Join.Fun)
+    if(F){
+        X<-data.table(
+        MT.Out2[match(Rot.Seq[,paste(B.Code,`Rotation Component`)],MT.Out2[,paste(B.Code,T.Name2)]),Structure.Comb],
+        Int.Out[match(Rot.Seq[,paste(B.Code,`Rotation Component`)],Int.Out[,paste(B.Code,IN.Level.Name2)]),IN.Structure]
+        )
+        Join.Fun<-function(X,Y){c(X,Y)[!is.na(c(X,Y))]}
+        X<-X[,N:=1:.N][,R.Structure:=Join.Fun(V1,V2),by=N][,R.Structure]
+        Rot.Seq[,R.Structure:=X]
+        rm(X,Join.Fun)
+    }
     # 6.1.x) ***!!!TO DO!!!***  Other validation ######
     #  View Residues of Aggregated Products
     if(F){
@@ -4788,7 +4790,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
                      compulsory_cols = c(R.Level.Name="R.Practice"),
                      time_data=Times.Out)$errors
   
-  error_list<-error_tracker(errors=rbind(errors1,errors2,errors3),filename = "rotation_other_errors",error_dir=error_dir,error_list = error_list)
+  error_list<-error_tracker(errors=rbind(errors1,errors2,errors3),filename = "rot_other_errors",error_dir=error_dir,error_list = error_list)
 
     # 6.2.1) ***!!!TO DO!!!*** Update/add fields from Rot.Seq ######
       # ***!!!TO DO!!!*** R.T.Level.Names.All
