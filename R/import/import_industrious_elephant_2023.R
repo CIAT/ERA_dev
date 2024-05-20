@@ -5235,8 +5235,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
   errors2[,table:="Data.Out"
           ][,issue:="Time in treatments tab does not match Time tab"]
   
-  error_list<-error_tracker(errors,filename = "enterdata_time_errors",error_dir=error_dir,error_list = error_list)
-  
+  error_list<-error_tracker(errors2,filename = "enterdata_time_errors",error_dir=error_dir,error_list = error_list)
   
   # Check that sites match
   results<-validator(data=Data.Out,
@@ -5319,8 +5318,6 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
   ][,field:="Out.Code.Joined"
   ][,issue:="Outcome derived from T vs C (e.g. LER) does not have comparison specified."
   ][order(B.Code)]
-  
-  errors2
   
   errors<-rbindlist(list(errors1,errors3,errors4,errors5,errors6,errors7,errors8,errors9,
                          errors10,errors12,errors13,errors14,errors15,errors16),fill=T)
