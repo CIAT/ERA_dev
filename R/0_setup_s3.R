@@ -63,7 +63,7 @@ upload_files_to_s3 <- function(files,s3_file_names=NULL, folder=NULL, selected_b
   }
 }
 
-# Set s3 era directory ####
+# 0.3) Set s3 era directory ####
 era_s3<-"s3://digital-atlas/era"
 
 if(length(s3fs::s3_dir_ls(era_s3))==0){
