@@ -1,7 +1,7 @@
 value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
-Control timing of planting (generic),NN0427/NN0477,PD.Codes,PD.Prac,PD.Codes,PD.Timing.Pracs,lookup_levels,FALSE,"",""
 Base,CJ0097,PD.Codes,PD.Prac,PD.Codes,PD.Timing.Pracs,lookup_levels,FALSE,"",""
-Optimized timing of planting (CIS),NN0458/AC0008,PD.Codes,PD.Prac,PD.Codes,PD.Timing.Pracs,lookup_levels,FALSE,"",""
 Control timing of planting (farmer),NN0458/NN0477,PD.Codes,PD.Prac,PD.Codes,PD.Timing.Pracs,lookup_levels,FALSE,"",""
-Yes,CJ0010,PD.Codes,PD.Prac.Info,PD.Codes,PD.Info.Pracs,lookup_levels,FALSE,"",""
+Control timing of planting (generic),NN0427/NN0477,PD.Codes,PD.Prac,PD.Codes,PD.Timing.Pracs,lookup_levels,FALSE,"",""
 Improved timing of planting information,NN0427,PD.Codes,PD.Prac.Info,PD.Codes,PD.Info.Pracs,lookup_levels,FALSE,"",""
+Optimized timing of planting (CIS),NN0458/AC0008,PD.Codes,PD.Prac,PD.Codes,PD.Timing.Pracs,lookup_levels,FALSE,"",""
+Yes,CJ0010,PD.Codes,PD.Prac.Info,PD.Codes,PD.Info.Pracs,lookup_levels,FALSE,"",""

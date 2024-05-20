@@ -1,8 +1,0 @@
-B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-AC0025,tillage,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
-AC0053,MTR and T0,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
-AC0148,2 weedings,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
-HK0294,icraf,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
-NN0049,Weeding,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
-NN0558,HRS Weeding,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
-AC0004,Maize weeding,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""

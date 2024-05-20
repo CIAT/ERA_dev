@@ -1,8 +1,2 @@
 B.Code,filename,issue,issue_addressed,addressed_by_whom,notes
-AC0003,V2.0.7 - AC0003.xlsm,"Problem with Plant.Out tab structure,corruption of excel file?",FALSE,Alvaro,I don't see any errors with the file/tab
-DM0006,V2.0.10 - DM0006.xlsm,"Problem with Plant.Out tab structure,corruption of excel file?",TRUE,Alvaro,""
-JO0012,V2.0.9 - JO0012.xlsm,"Problem with Plant.Out tab structure,corruption of excel file?",TRUE,Alvaro,"Relay field did not exist in this version, but formulas in Plant.Out ""required"" this field."
-JO0013,V2.0.10 - JO0013.xlsm,"Problem with Plant.Out tab structure,corruption of excel file?",TRUE,Alvaro,"Relay field did not exist in this version, but formulas in Plant.Out ""required"" this field."
-NN0415,V2.0.8 - NN0415.xlsm,"Problem with Plant.Out tab structure,corruption of excel file?",FALSE,Alvaro,I don't see any errors with the file/tab
-NN0419,V2.0.9 - NN0419.xlsm,"Problem with Plant.Out tab structure,corruption of excel file?",TRUE,Alvaro,"Relay field did not exist in this version, but formulas in Plant.Out ""required"" this field."
-SP0005,V2.0.10 - SP0005.xlsm,"Problem with Plant.Out tab structure,corruption of excel file?",TRUE,Alvaro,"Relay field did not exist in this version, but formulas in Plant.Out ""required"" this field."
+DM0006,V2.0.10 - DM0006.xlsm,Problem with Plant.Out tab structure,FALSE,"",""

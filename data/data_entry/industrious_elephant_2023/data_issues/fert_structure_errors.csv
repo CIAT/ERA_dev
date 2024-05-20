@@ -1,6 +1,4 @@
 B.Code,filename,issue,issue_addressed,addressed_by_whom,notes
-NM0063,V2.0.21 - NM0063.xlsm,Problem with Fert.Composition tab structure,TRUE,"Charity",""
-NM0063,V2.0.21 - NM0063.xlsm,Problem with Fert.Method tab structure. Could be that NPK is missing,TRUE,"Charity",""
 NN0412,V2.0.8 - NN0412.xlsm,Problem with Fert.Composition tab structure,FALSE,"",""
 NN0555,V2.0.24 - NN0555.xlsm,Problem with Fert.Composition tab structure,FALSE,"",""
 SP0047,V2.0.23 - SP0047.xlsm,Problem with Fert.Composition tab structure,FALSE,"",""

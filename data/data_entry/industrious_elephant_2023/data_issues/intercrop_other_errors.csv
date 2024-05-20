@@ -1,0 +1,4 @@
+B.Code,value,table,field,issue,parent_table,issue_addressed,addressed_by_whom,notes
+HK0240,Unspecified,Int.Out,IN.Start.Year,Non-numeric value in numeric field.,,FALSE,"",""
+JO0014,Intrarow Intercrop CB +50 DWACE__Intrarow intercrop CP +50 DWACE,Int.Out,IN.Level.Name,Duplicate value in unique field.,,FALSE,"",""
+JO0146,Unspecified,Int.Out,IN.Start.Year,Non-numeric value in numeric field.,,FALSE,"",""
