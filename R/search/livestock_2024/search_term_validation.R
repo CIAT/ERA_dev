@@ -30,9 +30,8 @@ if(!dir.exists(search_data_dir)){
 update<-F
 
 s3_file<-"https://digital-atlas.s3.amazonaws.com/era/data_entry/data_entry_2024/search_history/livestock_2024/livestock_2024.zip"
-
-
 local_file<-file.path(search_data_dir,basename(s3_file))
+
 if(length(list.files(search_data_dir))<1|update==T){
   options(timeout = 300) 
   download.file(s3_file, destfile = local_file)
@@ -41,22 +40,36 @@ if(length(list.files(search_data_dir))<1|update==T){
 }
 
 # Initial searches ####
-search_history<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_history.csv"))
+search_history<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_history.csv"))[,-1]
+search_history[,search_date:=as.Date(trimws(search_date), format = "%d-%b-%y")]
+
+search_history_oa<-fread(file.path(search_data_dir,"searches.csv"))[,list(terms,search_name,search_date)]
+setnames(search_history_oa,c("terms","search_name"),c("search_name","filename"))
+search_history_oa[,citation_db:="openalex"
+                  ][,timeframe:="all"
+                    ][,filename:=paste0("openalex_ta-only_",filename,".csv")
+                      ][,search_date:=as.Date(search_date)]
+
+search_history<-rbindlist(list(search_history,search_history_oa),use.names = T)
 
 # Load titles that should be included
 search_manual<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_manual.csv"))
-search_manual<-search_manual[,year:=as.numeric(year)][year>=2018]
+search_manual<-search_manual[,year:=as.numeric(year)
+                             ][year>=2018
+                               ][,doi:=trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi))
+                                 ][,title:=trimws(tolower(title))]
 
 # Check which dois are 
 oa_dois<-data.table(oa_fetch(
   entity = "works",
-  doi = search_manual[!is.na(doi),unique(gsub("https://doi.org/|http://dx.doi.org/","",doi))],
+  doi = search_manual[!is.na(doi),doi],
   verbose = TRUE
-))[,indexed_oa:="yes"]
+))[,indexed_oa:="yes"
+   ][,list(doi,indexed_oa)
+     ][,doi:=trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi))]
 
-oa_dois[,year:=format(as.Date(publication_date),"%Y")]
 
-search_manual<-merge(search_manual,oa_dois[,list(doi,indexed_oa)],all.x=T)
+search_manual<-merge(search_manual,oa_dois,all.x=T)
 search_manual[is.na(indexed_oa),indexed_oa:="no"]
 
 search_manual[,list(total_dois=sum(!is.na(doi)),
@@ -101,7 +114,7 @@ scopus_searches<-rbindlist(pblapply(1:length(search_files_scopus),FUN=function(i
           ][,relevance_score:=NA]
 
 # openalex #####
-search_files_oa<-grep("openalex_",search_files,value = T)
+search_files_oa<-grep("openalex_ta-only",search_files,value = T)
 
 oa_searches<-rbindlist(pblapply(1:length(search_files_oa),FUN=function(i){
   file<-search_files_oa[i]
@@ -110,14 +123,19 @@ oa_searches<-rbindlist(pblapply(1:length(search_files_oa),FUN=function(i){
   data
 }))[,citation_db:="openalex"
     ][,search:=gsub(".csv","",search)
-      ][,year:=as.numeric(format(as.Date(oa_searches$publication_date,format="%Y-%m-%d"),"%Y"))
-        ][,keywords:=NA]
+      ][,ab:=NA
+        ][,keywords:=NA
+          ][,authors:=NA
+            ][,id:=NA
+              ][,relevance_score:=NA
+                ]
+setnames(oa_searches,"publication_year","year")
 
 # Harmonization fields between scopus and wos
 terms<-c("authors","title","year","doi","abstract","keywords","search","citation_db","citation_db_id","relevance_score")
 wos<-c("Authors","Article Title","Publication Year","DOI","Abstract","Author Keywords","search","citation_db","UT (Unique WOS ID)","relevance_score")
 scopus<-c("Authors","Title","Year","DOI","Abstract","Author Keywords","search","citation_db","EID","relevance_score")
-oa<-c("authors","display_name","year","doi","ab","keywords","search","citation_db","id","relevance_score")
+oa<-c("authors","title","year","doi","ab","keywords","search","citation_db","id","relevance_score")
 
 # Merge data
 wos_searches<-wos_searches[,..wos]
@@ -134,8 +152,15 @@ searches[,search:=gsub("wos_|scopus_|openalex_","",search)]
 
 searches[,list(doi_n=length(unique(doi[!is.na(doi)])),doi_na=sum(is.na(doi))),by=search]
 
-# Cross reference manual search
+searches[,doi:=gsub("https://doi.org/","",doi)]
 
+searches[,search:=gsub("ta-only_","",search)]
+
+# Remove corrections, corrigendum and erratum
+remove_phrases<-c("correction to:","corrigendum to:","erratum")
+searches<-searches[!grepl(paste0(remove_phrases,collapse = "|"),title)]
+
+# Cross reference manual search
 # remove manual targets that did not appear to be in citation dbs?
 rm_no_citation_db<-F
 search_manual[,doi:=tolower(trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi)))]
@@ -147,28 +172,67 @@ if(rm_no_citation_db){
 }
 
 # Match dois
-searches[,doi:=tolower(trimws(doi))][,title:=trimws(tolower(title))]
-searches[,target_doi:=F][grep(paste0(doi_targets,collapse="|"),doi),target_doi:=T]
-searches[,list(targets_found=round(sum(target_doi)/length(doi_targets),2)),by=list(search,citation_db)]
+#searches[,target_doi:=F][grep(paste0(doi_targets,collapse="|"),doi),target_doi:=T]
+searches[,target_doi:=doi[1] %in% doi_targets,by=doi]
+searches[,list(performance=round(sum(target_doi)/nrow(search_manual),2)),by=list(search,citation_db)][order(performance,decreasing=T)]
 
 # Match titles
 title_targets<-search_manual[,trimws(tolower(title))]
-searches[,target_title:=F][grep(paste0(title_targets,collapse="|"),title),target_title:=T]
-searches[,list(targets_found=round(sum(target_title)/length(title_targets),2)),by=list(search,citation_db)]
+searches[,target_title:=grepl(paste0(title_targets,collapse="|"),title)]
+searches[,list(performance=round(sum(target_title)/nrow(search_manual),2)),by=list(search,citation_db)][order(performance,decreasing=T)]
 
 # Combine doi and title matches
 searches[,target_any:=F][target_title|target_doi,target_any:=T]
-searches[,list(hits=.N,targets_found=round(sum(target_any)/length(title_targets),2)),by=list(search,citation_db)]
 
 # Different approach to matching that gives different results, this will need investigation
-search_perf<-rbindlist(pblapply(1:length(doi_targets),FUN=function(i){
-  X<-doi_targets[i]
-  Y<-title_targets[i]
-  searches[grepl(X,doi)|grepl(Y,title),list(doi,search,citation_db)][,target:=X]
-  }))
+search_perf<-searches[,list(search,citation_db,doi,title,target_doi,target_title,target_any)]
 
-search_perf[,list(performance=round(length(unique(target))/length(doi_targets),2)),by=list(search,citation_db)]
-search_perf[,list(performance=round(length(unique(target))/length(doi_targets),2)),by=list(search)]
+search_perf[,list(performance=round(sum(target_any)/nrow(search_manual),2)),by=list(search,citation_db)][order(performance,decreasing = T)]
+
+search_perf[target_any==T,list(performance=round(length(unique(title))/nrow(search_manual),2)),by=list(search,citation_db)][order(performance,decreasing = T)]
+search_perf[target_any==T,list(performance=round(length(unique(title))/nrow(search_manual),2)),by=list(search)][order(performance,decreasing = T)]
+search_perf[target_any==T,list(performance=round(length(unique(title))/nrow(search_manual),2))]
+
+# What papers are not in openalex, but in other databases?
+search_perf[citation_db=="openalex" & target_any==T,sort(unique(title))]
+search_perf[citation_db=="scopus" & target_any==T,sort(unique(title))]
+search_perf[citation_db=="wos" & target_any==T,sort(unique(title))]
+
+hits_other<-dcast(unique(search_perf[citation_db!="openalex" & target_any==T,list(citation_db,title)]),title~citation_db, fun.aggregate=length)
+hits_other[,openalex:=0][title %in% hits_oa,openalex:=1]
+
+search_manual[,ID:=1:.N]
+hits<-search_manual[,list(ID,title,doi,indexed_wos,indexed_scopus,indexed_oa)
+                    ][,title:=trimws(tolower(title))
+                      ][,doi:=trimws(tolower(doi))
+                        ][,indexed_wos:=indexed_wos=="yes"
+                          ][,indexed_scopus :=indexed_scopus =="yes"
+                            ][,indexed_oa :=indexed_oa =="yes"
+                              ][,indexed_any:=any(indexed_oa,indexed_scopus,indexed_wos),by=ID
+                                ][,hit_oa:=F
+                                  ][,hit_wos:=F
+                                    ][,hit_scopus:=F]
+
+hits[title %in% search_perf[citation_db=="openalex" & target_any==T,unique(title)]|
+       doi %in% search_perf[citation_db=="openalex" & target_any==T,unique(doi)],hit_oa:=T]
+     
+hits[title %in% search_perf[citation_db=="wos" & target_any==T,unique(title)]|
+       doi %in% search_perf[citation_db=="wos" & target_any==T,unique(doi)],hit_wos:=T]     
+
+hits[title %in% search_perf[citation_db=="scopus" & target_any==T,unique(title)]|
+       doi %in% search_perf[citation_db=="scopus" & target_any==T,unique(doi)],hit_scopus:=T]     
+
+hits[,hit_any:=any(hit_oa,hit_wos,hit_scopus),by=ID]
+
+# Indexed OA result not found
+search_manual[ID %in% hits[indexed_oa & !hit_oa,ID],list(title,keywords,abstract,doi)]
+
+# Wos result not in OA
+search_manual[ID %in% hits[hit_wos & ! hit_oa,ID]]
+
+# Scopus result not in OA
+search_manual[ID %in% hits[hit_scopus & ! hit_oa,ID]]
+
 
 # Missing papers from search
 missing<-doi_targets[!doi_targets %in% search_perf[,unique(target)]]
