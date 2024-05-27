@@ -1,5 +1,4 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
 AC0039,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,FALSE,"",""
 CJ0021,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,FALSE,"",""
-JS0040.2,dolomitic lime (100N+30P)/dolomitic lime (100N),pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,FALSE,"",""
 NM0086,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,FALSE,"",""

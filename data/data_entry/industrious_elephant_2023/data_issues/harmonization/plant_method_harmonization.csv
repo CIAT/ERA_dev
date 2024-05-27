@@ -1,4 +1,6 @@
 value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
+160000,HK0306.1/HK0306.2,Plant.Out,Plant.Mechanization,Fert.Out,F.Mechanization,lookup_levels,FALSE,"",""
+50,HK0306.1/HK0306.2,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
 Hand planter,AF0002/LM0075.3/LM0108,Plant.Out,Plant.Method,,,lookup_levels,FALSE,"",""
 Planter,NN0435,Plant.Out,Plant.Mechanization,Fert.Out,F.Mechanization,lookup_levels,FALSE,"",""
 Tine planter,AF0003,Plant.Out,Plant.Method,,,lookup_levels,FALSE,"",""

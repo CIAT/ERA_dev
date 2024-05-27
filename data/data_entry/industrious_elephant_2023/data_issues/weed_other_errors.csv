@@ -33,6 +33,7 @@ LM0194,Base/Cont &Inter/rot Bn,Weed.Out,W.Level.Name,">1 weeding practices exist
 LM0321,Maize/Cowpea,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""
 NM0008,Mechanical -1/Mechanical -2,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""
 NN0049,Weeding,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
+NN0069,AT/HC,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 NN0232,W1/W2,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 NN0278,HW-MULCHED/HW-BARE,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""
 NN0410,weed 1/weed 2,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""

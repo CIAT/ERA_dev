@@ -1,6 +1,5 @@
 value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
 Agricultural gypsum,SP0040,pH.Method,pH.Material,,,lookup_levels,FALSE,"",""
 Calcium Hydroxide,DM0027,pH.Method,pH.Material,,,lookup_levels,FALSE,"",""
-Calcium/magnesium silicate,AC0106,pH.Method,pH.Material,,,lookup_levels,FALSE,"",""
 Gypsum,CJ0013/NM0015/JO0061,pH.Method,pH.Material,,,lookup_levels,FALSE,"",""
 Lime ,NM0092,pH.Method,pH.Material,,,lookup_levels,FALSE,"",""
