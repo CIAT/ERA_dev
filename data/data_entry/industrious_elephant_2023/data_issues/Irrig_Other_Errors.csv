@@ -3,7 +3,7 @@ CJ0016,Rainfed,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Meth
 CJ0019,Rainfed,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,FALSE,"",""
 CJ0024,Embu,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,FALSE,"",""
 DM0025,Wheat/Maize/Safflower,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,FALSE,"",""
-JS0283,Melka Werer Research Station,Irrig.Method,Site.ID,A Site.ID used  does not match the Site tab.,FALSE,"",""
+JS0283,Melka Werer Research Station,Irrig.Method,Site.ID,A Site.ID used  does not match the Site tab.,TRUE,"CHARITY",""
 NM0091,S4,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,FALSE,"",""
 NM0131,Drought stress,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,FALSE,"",""
 NN0507,Rainfed,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,FALSE,"",""
