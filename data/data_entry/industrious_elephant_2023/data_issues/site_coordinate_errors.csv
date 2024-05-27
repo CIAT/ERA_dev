@@ -1,5 +1,5 @@
 B.Code,Country,ISO.3166.1.alpha.3,Site.LatD,Site.LonD,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-AC0013,Burkina Faso,BFA,11.54139,3.43556,Boni,Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified.,FALSE,"",""
+AC0013,Burkina Faso,BFA,11.54139,3.43556,Boni,Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified.,TRUE,""Jabesh,""
 AC0065,Nigeria,NGA,4.95,9.46667,"Ikot Effanga, S2",Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified.,FALSE,"",""
 AC0083,Malawi,MWI,14.21,34.1,"Linthipe, H/Linthipe, L",Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified.,FALSE,"",""
 AC0083,Malawi,MWI,14.44,34.6,"Golomoti, M/Golomoti, L",Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified.,FALSE,"",""
