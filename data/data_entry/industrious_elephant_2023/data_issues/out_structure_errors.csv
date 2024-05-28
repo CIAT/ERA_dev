@@ -1,6 +1,6 @@
 B.Code,filename,issue,issue_addressed,addressed_by_whom,notes
-AF0001,V2.0.24 - AF0001.xlsm,No data for outcome name in outcome tab,FALSE,"",""
-JO0216,V2.0.27 - JO0216.xlsm,No data for outcome name in outcome tab,FALSE,"",""
-NN0070.1,V2.0.24 - NN0070.1.xlsm,No data for outcome name in outcome tab,FALSE,"",""
-NN0503,V2.0.24 - NN0503.xlsm,No data for outcome name in outcome tab,FALSE,"",""
-SP0047,V2.0.23 - SP0047.xlsm,No data for outcome name in outcome tab,FALSE,"",""
+AF0001,V2.0.24 - AF0001.xlsm,No data for outcome name in outcome tab,TRUE,"Charity","This paper does not exist, removed from etracted folder"
+JO0216,V2.0.27 - JO0216.xlsm,No data for outcome name in outcome tab,TRUE,"Charity",""
+NN0070.1,V2.0.24 - NN0070.1.xlsm,No data for outcome name in outcome tab,TRUE,"Charity","Incomplete extraction"
+NN0503,V2.0.24 - NN0503.xlsm,No data for outcome name in outcome tab,TRUE,"Charity","Incomplete extraction"
+SP0047,V2.0.23 - SP0047.xlsm,No data for outcome name in outcome tab,FALSE,"Charity","Might have been fixed"
