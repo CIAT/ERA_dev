@@ -1,4 +1,4 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-AC0039,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,FALSE,"",""
-CJ0021,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,FALSE,"",""
-NM0086,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,FALSE,"",""
+AC0039,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,TRUE,"Charity",""
+CJ0021,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,TRUE,"Charity",""
+NM0086,Base,pH.Method,pH.Level.Name,Missing value in compulsory field pH.Material.,TRUE,"Charity",""
