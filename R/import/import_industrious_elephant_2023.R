@@ -578,10 +578,10 @@ workers<-parallel::detectCores()-2
 # Set the project name, this should usually refer to the ERA extraction template used
 project<-"industrious_elephant_2023"
 
-# Where extraction files are stored
-data_dir<-paste0(era_dir,"/data_entry/",project,"/excel_files")
-if(!dir.exists(data_dir)){
-  dir.create(data_dir,recursive=T)
+# Where extraction excel files are stored
+excel_dir<-paste0(era_dir,"/data_entry/",project,"/excel_files")
+if(!dir.exists(excel_dir)){
+  dir.create(excel_dir,recursive=T)
 }
 
 # Where processed extraction files are stored
@@ -594,6 +594,12 @@ if(!dir.exists(extracted_dir)){
 error_dir<-paste0(project_dir,"/data/data_entry/",project,"/data_issues")
 if(!dir.exists(error_dir)){
   dir.create(error_dir,recursive=T)
+}
+
+# Where compiled data is to be stored
+data_dir<-paste0(project_dir,"/data/data_entry/",project,"/data")
+if(!dir.exists(data_dir)){
+  dir.create(data_dir,recursive=T)
 }
 
 error_dir_master<-paste0(error_dir,"/master_codes")
@@ -610,7 +616,8 @@ if(!dir.exists(harmonization_dir)){
 
 
 # 1) Download  or update excel data ####
-update<-F
+download<-F
+update<-T
 
 s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
 
@@ -623,15 +630,17 @@ if (grepl("success",http_status(HEAD(s3_file))$category,ignore.case = T)) {
   file_status<-F
 }
 
-local_file<-file.path(data_dir,basename(s3_file))
+local_file<-file.path(excel_dir,basename(s3_file))
 
 if(file_status){
-  if(length(list.files(data_dir))<1|update==T){
-    rm_files<-list.files(data_dir,"xlsm$",full.names = T)
+  if(length(list.files(excel_dir))<1|update==T){
+    rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
     unlink(rm_files)
     options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
-    download.file(s3_file, destfile = local_file)
-    unzip(local_file, exdir = data_dir,overwrite=T,junkpaths=T)
+    if(download){
+      download.file(s3_file, destfile = local_file)
+    }
+    unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
     unlink(local_file)
   }
 }
@@ -695,7 +704,7 @@ if(file_status){
   XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
   
   # 2.3) List extraction excel files #####
-  Files<-list.files(data_dir,".xlsm$",full.names=T)
+  Files<-list.files(excel_dir,".xlsm$",full.names=T)
   
   # 2.4) Check for duplicate files #####
   FNames<-unlist(tail(tstrsplit(Files,"/"),1))
@@ -726,10 +735,9 @@ if(file_status){
   # 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the important process be run again?
-  overwrite<-F
-  
-  # Delete existing files if overwrite =T
-  if(overwrite){
+
+  # Delete existing files if update ==T
+  if(update){
     unlink(extracted_dir,recursive = T)
     dir.create(extracted_dir)
   }
@@ -747,7 +755,7 @@ if(file_status){
     era_code <- excel_files$era_code2[i]
     save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
     
-    if (overwrite == TRUE || !file.exists(save_name)) {
+    if (update == TRUE || !file.exists(save_name)) {
       X <- tryCatch({
         lapply(SheetNames, FUN=function(SName){
           cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
@@ -983,101 +991,101 @@ error_list<-error_tracker(errors=errors3,filename = "site_coordinate_errors",err
 data<-lapply(XL,"[[","Times.Out")
 col_names<-colnames(data[[800]])
     
-# 3.3.1) Times.Out ###### 
-col_names2<-col_names[1:5]
-Times.Out<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
-  
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with time tab structure,corruption of excel file?"))
-  }else{
-    X<-X[,..col_names2]
-    colnames(X)[1]<-"Time"
-    X<-X[!is.na(Time)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
+  # 3.3.1) Times.Out ###### 
+  col_names2<-col_names[1:5]
+  Times.Out<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    
+    if(!all(col_names2 %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with time tab structure,corruption of excel file?"))
     }else{
-      NULL
+      X<-X[,..col_names2]
+      colnames(X)[1]<-"Time"
+      X<-X[!is.na(Time)]
+      if(nrow(X)>0){
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }else{
+        NULL
+      }
     }
-  }
-})
-
-errors_a<-rbindlist(lapply(Times.Out,"[[","error"))
-Times.Out<-rbindlist(lapply(Times.Out,"[[","data"))
-
-results<-validator(data=Times.Out,
-                   unique_cols = c("Time"),
-                   tabname="Times.Out",
-                   do_time = F)
-
-errors5<-results$errors
-Times.Out<-results$data
-
-# Error checking odd values in Time.Year.Start or Time.Year.End
-errors<-Times.Out[is.na(as.numeric(Time.Year.End))|is.na(as.numeric(Time.Year.Start))|nchar(Time.Year.Start)>4|nchar(Time.Year.End)>4
-                  ][!(is.na(Time.Year.Start)|is.na(Time.Year.End)|grepl("unspecified",Time.Year.Start,ignore.case = T))
-                    ][,list(B.Code,Time.Year.End,Time.Year.Start)
-                      ][,issue:="Non-YYYY values in time tab for year start or end."]
-
-error_list<-error_tracker(errors=errors,filename = "time_year_errors",error_dir=error_dir,error_list = error_list)
-
-Times.Out[,c("Time.Year.Start","Time.Year.End"):=list(as.integer(Time.Year.Start),as.integer(Time.Year.End))]
-
-# 3.3.1) Times.Clim ###### 
-col_names2<-col_names[7:14]
-Times.Clim<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  })
   
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with time tab structure,corruption of excel file?"))
-  }else{
-    X<-X[,..col_names2]
-    colnames(X)[2]<-"Time"
-    X<-X[!is.na(Time)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
+  errors_a<-rbindlist(lapply(Times.Out,"[[","error"))
+  Times.Out<-rbindlist(lapply(Times.Out,"[[","data"))
+  
+  results<-validator(data=Times.Out,
+                     unique_cols = c("Time"),
+                     tabname="Times.Out",
+                     do_time = F)
+  
+  errors5<-results$errors
+  Times.Out<-results$data
+  
+  # Error checking odd values in Time.Year.Start or Time.Year.End
+  errors<-Times.Out[is.na(as.numeric(Time.Year.End))|is.na(as.numeric(Time.Year.Start))|nchar(Time.Year.Start)>4|nchar(Time.Year.End)>4
+                    ][!(is.na(Time.Year.Start)|is.na(Time.Year.End)|grepl("unspecified",Time.Year.Start,ignore.case = T))
+                      ][,list(B.Code,Time.Year.End,Time.Year.Start)
+                        ][,issue:="Non-YYYY values in time tab for year start or end."]
+  
+  error_list<-error_tracker(errors=errors,filename = "time_year_errors",error_dir=error_dir,error_list = error_list)
+  
+  Times.Out[,c("Time.Year.Start","Time.Year.End"):=list(as.integer(Time.Year.Start),as.integer(Time.Year.End))]
+  
+  # 3.3.1) Times.Clim ###### 
+  col_names2<-col_names[7:14]
+  Times.Clim<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    
+    if(!all(col_names2 %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with time tab structure,corruption of excel file?"))
     }else{
-      NULL
+      X<-X[,..col_names2]
+      colnames(X)[2]<-"Time"
+      X<-X[!is.na(Time)]
+      if(nrow(X)>0){
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }else{
+        NULL
+      }
     }
-  }
-})
-
-errors_b<-rbindlist(lapply(Times.Clim,"[[","error"))
-Times.Clim<-rbindlist(lapply(Times.Clim,"[[","data"))
-
-results<-validator(data=Times.Clim,
-                   numeric_cols=c("Time.Clim.SP","Time.Clim.TAP","Time.Clim.Temp.Mean","Time.Clim.Temp.Max","Time.Clim.Temp.Min"),
-                   time_data = Times.Out,
-                   site_data = Site.Out,
-                   tabname="Times.Clim")
-
-errors4<-results$errors
-Times.Clim<-results$data
-
-# note errors1-errors3 can be moved to the validator function, but some QAQC already exists that would need to be merged wiht the error tracking
-errors1<-Times.Clim[Time.Clim.Temp.Mean>45|Time.Clim.Temp.Max>50|Time.Clim.Temp.Min>30|
-             Time.Clim.Temp.Min>Time.Clim.Temp.Max|Time.Clim.Temp.Min>Time.Clim.Temp.Mean|Time.Clim.Temp.Mean>Time.Clim.Temp.Max
-             ][,issue:="Extremely high temperature or min>mean,min>max,mean>max"]
-
-errors2<-Times.Clim[Time.Clim.Temp.Mean<5|Time.Clim.Temp.Max<10|Time.Clim.Temp.Min<0
-                    ][,issue:="Extremely low temperature or min>mean,min>max,mean>max"]
-
-errors3<-Times.Clim[Time.Clim.SP>Time.Clim.TAP
-                    ][,issue:="Seasonal > annual precip"]
-
-
-errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL]
-
-error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
-error_list<-error_tracker(errors=rbindlist(list(errors4,errors5),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
-
-
+  })
+  
+  errors_b<-rbindlist(lapply(Times.Clim,"[[","error"))
+  Times.Clim<-rbindlist(lapply(Times.Clim,"[[","data"))
+  
+  results<-validator(data=Times.Clim,
+                     numeric_cols=c("Time.Clim.SP","Time.Clim.TAP","Time.Clim.Temp.Mean","Time.Clim.Temp.Max","Time.Clim.Temp.Min"),
+                     time_data = Times.Out,
+                     site_data = Site.Out,
+                     tabname="Times.Clim")
+  
+  errors4<-results$errors
+  Times.Clim<-results$data
+  
+  # note errors1-errors3 can be moved to the validator function, but some QAQC already exists that would need to be merged wiht the error tracking
+  errors1<-Times.Clim[Time.Clim.Temp.Mean>45|Time.Clim.Temp.Max>50|Time.Clim.Temp.Min>30|
+               Time.Clim.Temp.Min>Time.Clim.Temp.Max|Time.Clim.Temp.Min>Time.Clim.Temp.Mean|Time.Clim.Temp.Mean>Time.Clim.Temp.Max
+               ][,issue:="Extremely high temperature or min>mean,min>max,mean>max"]
+  
+  errors2<-Times.Clim[Time.Clim.Temp.Mean<5|Time.Clim.Temp.Max<10|Time.Clim.Temp.Min<0
+                      ][,issue:="Extremely low temperature or min>mean,min>max,mean>max"]
+  
+  errors3<-Times.Clim[Time.Clim.SP>Time.Clim.TAP
+                      ][,issue:="Seasonal > annual precip"]
+  
+  
+  errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL]
+  
+  error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
+  error_list<-error_tracker(errors=rbindlist(list(errors4,errors5),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
+  
+  
 # 3.4) Soil (Soil.Out) #####
 data<-lapply(XL,"[[","Soils.Out")
 
@@ -2550,7 +2558,15 @@ h_tasks4<-h_tasks4[,list(B.Code=paste0(unique(B.Code),collapse="/")),by=list(C.T
 errors6<-unique(h_tasks4[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect, or simply missing from Master Sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
 h_tasks4<-h_tasks4[C.Type %in% mergedat$C.Type]
 
-  # 3.12.4) Join and save errors and harmonization tasks ######
+  # 3.12.5) Add/check herbicide codes ######
+# In case there have been changes to C.Codes from harmonization process update these
+mdat<-Chems.Out[C.Type=="Herbicide",list(B.Code,C.Level.Name,C.Code)]
+colnames(mdat)[3]<-"C.Code2"
+
+Chems.Code<-merge(Chems.Code,mdat,all.x=T)
+Chems.Code<-Chems.Code[is.na(C.Code),C.Code:=C.Code2][,C.Code2:=NA]
+
+  # 3.12.5) Join and save errors and harmonization tasks ######
 errors<-rbindlist(list(errors_a,errors_b,errors_c))
 error_list<-error_tracker(errors=errors,filename = "chem_structure_errors",error_dir=error_dir,error_list = error_list)
 
@@ -2561,7 +2577,7 @@ h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4),fill=T)
 harmonization_list<-error_tracker(errors=h_tasks,filename = "chem_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
 
 
-# 3.13) Weeding #####
+# 3.13) Weeding (Weed.Out) #####
 data<-lapply(XL,"[[","Weed.Out")
 col_names<-colnames(data[[1]])
 
@@ -3368,6 +3384,10 @@ error_list<-error_tracker(errors=rbind(errors1,errors2,errors3)[order(B.Code)],f
 
 Weed.Out[,N:=NULL][,No_struc:=NULL]
 
+# Add hand weeding code
+Weed.Out[]
+
+
   # 3.21.1) Harmonization #######
 h_params<-data.table(h_table="Weed.Out",
                      h_field=c("W.Method","W.Freq.Time"),
@@ -3514,12 +3534,11 @@ unique(MT.Out[is.na(T.Residue.Code) &
             !is.na(T.Residue.Prev)),list(P.Product,T.Residue.Prev,T.Residue.Code)])
 
 if(F){
-  # old code
-  # Set Grazed/Mulched to be Mulched (as this value indicates at least some mulching took place)
-  MT.Out2[T.Residue.Prev=="Grazed/Mulched",T.Residue.Prev:="Mulched (left on surface)"]
-  
+
   # Add codes for residues that are from Tree List rather than Product List
-  X<-MT.Out2[(!(T.Residue.Prev %in% c("Removed","Incorporated","Grazed","Burned","Unspecified","NA") | is.na(T.Residue.Prev))) & is.na(T.Residue.Code),
+  master_codes$trees
+  
+    X<-MT.Out2[(!(T.Residue.Prev %in% c("Removed","Incorporated","Grazed","Burned","Unspecified","NA") | is.na(T.Residue.Prev))) & is.na(T.Residue.Code),
   ][T.Comp %in% TreeCodes$Species,c("T.Comp","B.Code","N2","T.Residue.Prev")]
   X<-cbind(X,TreeCodes[match(X$T.Comp, TreeCodes$Species)])
   X[T.Residue.Prev=="Mulched (left on surface)",T.Residue.Code:=Mulched]
@@ -3531,8 +3550,8 @@ if(F){
   rm(X)
 }
 
-# 4.1.2) ***!!!TO DO!!!***MT.Out: Correct Ridge & Furrow 
-# 4.2) ***!!!TO DO!!!*** -  remove water harvesting code if ridge and furrow is a conventional tillage control ####
+# 4.x) ***!!!MOVE TO COMPARISON LOGIC!!!***MT.Out: Correct Ridge & Furrow 
+# remove water harvesting code if ridge and furrow is a conventional tillage control
 if(F){
   # Add row index
   MT.Out[,N:=1:nrow(MT.Out)]
@@ -3565,27 +3584,7 @@ if(F){
   rm(X)
 }
 
-# 4.3) ***!!!TO DO!!!*** Add h-codes for Weeding & Herbicide use ####
-if(F){
-MT.Out[,Weed.Code:=Weed.Code[match(MT.Out[,paste(B.Code,W.Level.Name)],paste(B.Code,W.Level.Name)),W.Code]]
-MT.Out[,Weed.Code2:=Chems.Code[match(MT.Out[,paste(B.Code,C.Level.Name)],paste(B.Code,C.Level.Name)),C.Code]]
-Weed.Join<-function(A,B){
-  C<-c(A,B)
-  C<-C[!is.na(C)]
-  if(length(C)==0){
-    NA
-  }else{
-    paste(C,collapse="-")
-  }
-  
-}
-MT.Out[,N:=1:.N][,Weed.Code:=Weed.Join(Weed.Code,Weed.Code2),by=N][,N:=NULL][,Weed.Code2:=NULL]
-
-# unique(MT.Out[,list(Weed.Code,W.Level.Name,C.Level.Name,B.Code)])[!is.na(W.Level.Name) & !is.na(C.Level.Name)]
-rm(Weed.Join)
-}
-
-# 4.4) ***!!!TO DO!!!***: Update T.Codes ####
+# 4.4) ***!!!MOVE TO COMPARISON LOGIC!!!***: Update T.Codes ####
 if(F){
 T.Code.Fun<-function(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code){
   X<- c(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code)
@@ -3601,7 +3600,7 @@ MT.Out[,N:=NULL]
 rm(T.Code.Fun)
 }
 
-# 4.5) ***!!!TO DO!!!***: Combine Aggregated Treatments - SLOW CONSIDER PARALLEL ####
+# 4.5) ***!!!MOVE TO COMPARISON LOGIC!!!***: Combine Aggregated Treatments - SLOW CONSIDER PARALLEL ####
 if(F){
 # MAKE SURE FERT AND VAR delims are changed from ".." to something else in Till.Level.Name (MT.Out and all Fert/Variety tabs, Data.Out,Int.Out, Rot.Out, Rot.Seq)
 # GIVEN THE ABOVE, A BETTER APPROCH IS COMPILE TABLES IN R RATHER THAN COMPILING IN EXCEL THEN AMENDING THESE TABLES AFTER ERRPR CORRECTIONS
@@ -3789,7 +3788,7 @@ unique(MT.Out2[grep("Aggregated",MT.Out2$T.Codes),"B.Code"])
 MT.Out2[grep("[.][.][.]",T.Name2),T.Codes:=T.Codes.No.Agg]
 }
 
-# 4.6) ***!!!TO DO!!!***: Deal with aggregated products  #####
+# 4.6) ***!!!MOVE TO COMPARISON LOGIC!!!***: Deal with aggregated products  #####
 if(F){
 X<-unlist(pblapply(1:nrow(MT.Out2),FUN=function(i){
   Fate<-unlist(strsplit(MT.Out2$T.Residue.Prev[i],"[.][.][.]"))
@@ -3900,10 +3899,11 @@ results<-validator(data=Int.Out,
                    tabname="Int.Out")
 errors1<-results$errors
 errors<-errors1[value!="Unspecified"]
+Int.Out<-results$data
 
 # Remove duplicates
-N<-Int.Out[,index:=1:.N][,list(index=index[IN.Level.Name %in% unlist(strsplit(errors3$value,"/"))][-1]),by=B.Code]
-Int.Out<-Int.Out[-N$index]
+N<-Int.Out[,N:=.N,by=list(B.Code,IN.Level.Name)]
+Int.Out<-Int.Out[!N>1][,N:=NULL]
 
 
 keyfields<-paste0("IN.Comp",1:4)
@@ -3942,20 +3942,17 @@ Int.Out[,IN.Comp1:=gsub("[.][.]","...",IN.Comp1)
 
 # 5.x) ***!!!TO DO!!!*** - update products and residue codes #####
 if(F){
-  # 1) Update Codes from MT.Out2 ####
-  # Check for any non-matches with MT.Out2
-  N<-match(paste(Int.Out$B.Code,Int.Out$IN.Comp1),paste(MT.Out2$B.Code,MT.Out2$T.Name))
-  Int.Out.MT.Out2.NoMatch<-Int.Out[is.na(N),c("B.Code","IN.Comp1")]
-  if(nrow(Int.Out.MT.Out2.NoMatch)>0){
-    View(Int.Out.MT.Out2.NoMatch)
-  }
-  rm(Int.Out.MT.Out2.NoMatch)
   
-  # Update Codes
-  Int.Out[,IN.Res1:=MT.Out2[match(Int.Out[,paste(B.Code,IN.Comp1)],MT.Out2[,paste(B.Code,T.Name)]),T.Residue.Code]]
-  Int.Out[,IN.Res2:=MT.Out2[match(Int.Out[,paste(B.Code,IN.Comp2)],MT.Out2[,paste(B.Code,T.Name)]),T.Residue.Code]]
-  Int.Out[,IN.Res3:=MT.Out2[match(Int.Out[,paste(B.Code,IN.Comp3)],MT.Out2[,paste(B.Code,T.Name)]),T.Residue.Code]]
-  Int.Out[,IN.Res4:=MT.Out2[match(Int.Out[,paste(B.Code,IN.Comp4)],MT.Out2[,paste(B.Code,T.Name)]),T.Residue.Code]]
+  # 1) Update fate from MT.Out table if NA
+  # 1.1) Split IN.Residue.Fate
+  
+  # 2) Update residue codes from MT.Out sheet
+  
+  # Update Residue Codes where they are NA
+  Int.Out[is.na(IN.Res1),IN.Res1:=MT.Out[match(Int.Out[is.na(IN.Res1),paste(B.Code,IN.Comp1)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
+  Int.Out[is.na(IN.Res2),IN.Res2:=MT.Out[match(Int.Out[is.na(IN.Res2),paste(B.Code,IN.Comp2)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
+  Int.Out[is.na(IN.Res3),IN.Res3:=MT.Out[match(Int.Out[is.na(IN.Res3),paste(B.Code,IN.Comp3)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
+  Int.Out[is.na(IN.Res4),IN.Res4:=MT.Out[match(Int.Out[is.na(IN.Res4),paste(B.Code,IN.Comp4)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
   
   Int.Out[,IN.Res1:=as.character(IN.Res1)]
   Int.Out[,IN.Res2:=as.character(IN.Res2)]
@@ -5100,7 +5097,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
     Out.Out[grepl("<P>",Out.Group),Out.Partial.Outcome.Code:=X[,2]]
     rm(X)
     }
-  # 7.1) Out.Out #####
+  # 7.2) Out.Econ #####
   col_names2<-col_names[13:20]
   
   Out.Econ<-lapply(1:length(data),FUN=function(i){
@@ -6159,44 +6156,48 @@ Data.Out[,V.Animal.Practice:=paste(unique(unlist(strsplit(V.Animal.Practice,"[.]
 Data.Out[V.Animal.Practice=="NA",V.Animal.Practice:=NA]
 
 # Save tables as a list  ####
-Tables_2020<-list(
+
+Tables<-list(
   Pub.Out=Pub.Out, 
   Site.Out=Site.Out, 
   Soil.Out=Soil.Out,
   ExpD.Out=ExpD.Out,
+  Times.Out=Times.Out,
+  Times.Clim=Times.Clim,
   Prod.Out=Prod.Out,
   Var.Out=Var.Out,
   Till.Out=Till.Out,
   Plant.Out=Plant.Out,
+  PD.Codes=PD.Codes,
+  PD.Out=PD.Out,
   Fert.Out=Fert.Out,
   Fert.Method=Fert.Method,
+  Chems.Code=Chems.Code,
+  Chems.AI=Chems.AI,
   Chems.Out=Chems.Out,
   Weed.Out=Weed.Out,
   Res.Out=Res.Out,
   Res.Method=Res.Method,
-  Res.Composition=Res.Composition,
+  Res.Comp=Res.Comp,
   Har.Out=Har.Out,
   pH.Out=pH.Out,
   pH.Method=pH.Method,
-  Irrig.Out=Irrig.Out,
+  Irrig.Codes=Irrig.Codes,
+  Irrig.Method=Irrig.Method,
   WH.Out=WH.Out,
-  E.Out=E.Out,
-  Animals.Out=Animals.Out,
-  Animals.Diet=Animals.Diet,
-  Animals.Diet.Comp=Animals.Diet.Comp,
+  AF.Out=AF.Out,
+  AF.Trees=AF.Trees,
   Other.Out=Other.Out,
-  Base.Out=Base.Out,
+  #Base.Out=Base.Out,
   MT.Out=MT.Out,
-  MT.Out2=MT.Out2,
   Int.Out=Int.Out,
   Rot.Out=Rot.Out,
   Rot.Seq=Rot.Seq,
-  Rot.Seq.Summ=Rot.Seq.Summ,
-  Rot.Levels=Rot.Levels,
+  #Rot.Seq.Summ=Rot.Seq.Summ,
+  #Rot.Levels=Rot.Levels,
   Out.Out=Out.Out,
-  Data.Out=Data.Out,
-  AF.Out=AF.Out,
-  Times=Times
+  Out.Econ=Out.Econ,
+  Data.Out=Data.Out
 )
 
-save(Tables_2020,file=paste0("Data/Compendium Master Database/ERA V1.1 Tables ",as.character(Sys.Date()),".RData"))
+save(Tables,file=file.path(data_dir,paste0(project,"-",Sys.Date(),".RData")))
