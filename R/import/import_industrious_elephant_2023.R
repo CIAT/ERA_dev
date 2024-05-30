@@ -277,6 +277,7 @@ check_dates<-function(data,date_cols,valid_start,valid_end,tabname){
     
     data_ss<-data_ss[,problem:=T
     ][value >= valid_start & value <= valid_end,problem:=F
+    ][,list(value=paste(value,collapse="/")),by=list(B.Code,problem)
     ][,field:=date_cols[i]]
     data_ss
   }))
@@ -436,7 +437,10 @@ validator<-function(data,
     data[, (numeric_cols) := lapply(.SD, function(x) gsub("−", "-", x)), .SDcols = numeric_cols]
     
     # Look for instances where a non-numeric value is present in a numeric field
-    errors[[n]]<-find_non_numeric(data=data,numeric_cols=numeric_cols,tabname=tabname)[,issue:="Non-numeric value in numeric field."]
+    errors1<-find_non_numeric(data=data,numeric_cols=numeric_cols,tabname=tabname)
+    errors1<-errors1[,list(value=paste(value,collapse="/")),by=list(B.Code,table,field)
+            ][,issue:="Non-numeric value in numeric field."]
+    errors[[n]]<-errors1
     n<-n+1
     # Convert numeric fields to being numeric
     data[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
@@ -1462,13 +1466,21 @@ Var.Out<-results$data
 Var.Out[,V.Codes:=master_codes$prac[match(Var.Out$V.Crop.Practice,master_codes$prac$Subpractice),Code]]
 
 # Errors
-errors<-unique(Var.Out[(grepl("local|Local",V.Var) | V.Type %in% c("Local","Landrace")) & V.Crop.Practice != "Unimproved Variety",!c("V.Base","V.Codes")])
+errors<-unique(Var.Out[(V.Type %in% c("Local","Landrace")) & V.Crop.Practice != "Unimproved Variety",!c("V.Base","V.Codes")])
 errors<-errors[,list(B.Code=paste(B.Code,collapse = "/")),by=list(V.Product,V.Var,V.Accession,V.Crop.Practice,V.Type,V.Trait1,V.Trait2,V.Trait3,V.Maturity)
                ][,issue:="Type is local, but not unimproved, possible error (but could be correct)."
                    ][,issue_addressed:=F
                      ][,addressed_by_whom:=""
                        ][,c("V.Accession","V.Trait1","V.Trait2","V.Trait3","V.Maturity"):=NULL
                          ][order(B.Code)]
+
+errors2<-unique(Var.Out[V.Type %in% c("Hybrid") & V.Crop.Practice == "Unimproved Variety",!c("V.Base","V.Codes")])
+errors2<-errors2[,list(B.Code=paste(B.Code,collapse = "/")),by=list(V.Product,V.Var,V.Accession,V.Crop.Practice,V.Type,V.Trait1,V.Trait2,V.Trait3,V.Maturity)
+][,issue:="Type is Hybrid, but practice is improved, probable error."
+][,issue_addressed:=F
+][,addressed_by_whom:=""
+][,c("V.Accession","V.Trait1","V.Trait2","V.Trait3","V.Maturity"):=NULL
+][order(B.Code)]
 
 error_list<-error_tracker(errors=errors,filename = "var_practice_check",error_dir=error_dir,error_list = error_list)
 
@@ -2964,11 +2976,19 @@ errors_a<-rbindlist(lapply(Irrig.Codes,"[[","errors"))
 Irrig.Codes<-rbindlist(lapply(Irrig.Codes,"[[","data"))  
 colnames(Irrig.Codes)[6]<-"I.Notes"
 
-errors1<-validator(data=Irrig.Codes,
+Irrig.Codes[is.na(I.Method) & I.Strategy=="No Irrigation Control or Rainfed Agriculture",I.Method:="NA"]
+
+errors1<-Irrig.Codes[I.Strategy=="No Irrigation Control or Rainfed Agriculture" & grepl("irrigation",I.Method)
+            ][,list(value=paste0(I.Level.Name,collapse = "/"))
+              ][,table:="Irrig.Codes"
+                ][,field:="I.Level.Name"
+                  ][,issue:="Contradiction: no irrigation strategy, but method states irrigation."]
+
+errors2<-validator(data=Irrig.Codes,
                    unique_cols = "I.Level.Name",
                    compulsory_cols = c(I.Level.Name="I.Method",I.Level.Name="I.Strategy"),
                    tabname="Irrig.Codes")$errors
-errors1<-errors1[!(grepl("Missing value",issue) & value=="Base")]
+errors2<-errors2[!(grepl("Missing value",issue) & value=="Base")]
 
 
   # 3.16.2) Irrig.Method ######
@@ -3009,16 +3029,16 @@ results<-validator(data=Irrig.Method,
                    tabname="Irrig.Method",
                    ignore_values = c("All Times","Unspecified","Not specified","All Sites"))
 
-errors2<-unique(results$errors)
+errors3<-unique(results$errors)
 Irrig.Method<-results$data
 
-errors3<-check_key(parent = Irrig.Codes,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
+errors4<-check_key(parent = Irrig.Codes,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
 
 
 errors<-rbindlist(list(errors_a,errors_b))
 error_list<-error_tracker(errors=errors,filename = "irrig_structure_errors",error_dir=error_dir,error_list = error_list)
 
-errors<-rbindlist(list(errors1,errors2,errors3))
+errors<-rbindlist(list(errors1,errors2,errors3,errors4))
 error_list<-error_tracker(errors=errors,filename = "irrig_other_errors",error_dir=error_dir,error_list = error_list)
 
   # 3.16.2.1) Harmonization #######
@@ -5202,18 +5222,18 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
   # Check for missing required fields that don't work with standard validator
   errors1<-unique(rbind(
     Data.Out[is.na(T.Name) & is.na(IN.Level.Name) & is.na(R.Level.Name)
-             ][,value:=Out.Code.Joined
+             ][,list(value=paste0(unique(Out.Code.Joined),collapse="/")),by=B.Code
                ][,field:="Out.Code.Joined"
                  ][,issue:="Compulsory Treatment, Intercropping and Rotation fields are all blank (at least one value must be present)."],
     Data.Out[is.na(P.Product) & !(is.na(IN.Level.Name) & is.na(T.Name))
-             ][,value:=paste0(IN.Level.Name,"/",T.Name)
+             ][,list(value=paste0(unique(IN.Level.Name),collapse="/")),by=B.Code
                ][,field:="IN.Level.Name/T.Name"
                  ][,issue:="Compulsory Product field is blank."]
-  )[,list(B.Code,field,value,issue)])
+  ))
   
-  errors1<-errors1[,list(value=paste(value,collapse="/")),by=list(B.Code,field,issue)
+  errors<-list(errors1[,list(value=paste(value,collapse="/")),by=list(B.Code,field,issue)
                    ][,table:="Data.Out"
-                     ][order(B.Code)]
+                     ][order(B.Code)])
   
     # Check times in treatment tab match time tab (note aggregation too)
   errors2<-Data.Out[,list(B.Code,T.Name,IN.Level.Name,R.Level.Name,Time)]
@@ -5246,50 +5266,53 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
                      do_time=F,
                      convert_NA_strings=T)
   
-  errors3<-results$errors
+  errors<-c(errors,list(results$errors))
+  
   Data.Out<-results$data
   
   # Check that Outcomes match
-  errors4<-check_key(parent=Out.Out,child=Data.Out[!is.na(Out.Code.Joined)],tabname="Data.Out",tabname_parent="Out.Out",keyfield="Out.Code.Joined",collapse_on_code=T)
+  errors<-c(errors,list(check_key(parent=Out.Out,child=Data.Out[!is.na(Out.Code.Joined)],tabname="Data.Out",tabname_parent="Out.Out",keyfield="Out.Code.Joined",collapse_on_code=T)))
   # Check that Treatments match
-  errors5<-check_key(parent=MT.Out,child=Data.Out[!is.na(T.Name)],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)
-  errors9<-check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison1)][,T.Name:=ED.Comparison1],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison1"]
-  errors10<-check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison2) & ED.Comparison2!="Not in template"][,T.Name:=ED.Comparison2],tabname_parent="MT.Out",tabname="Data.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison2"]
+  errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(T.Name)],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)))
+  errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison1)][,T.Name:=ED.Comparison1],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison1"]))
+  errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison2) & ED.Comparison2!="Not in template"][,T.Name:=ED.Comparison2],tabname_parent="MT.Out",tabname="Data.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison2"]))
+  
   # Check that Intercrops match
-  errors6<-check_key(parent=Int.Out,child=Data.Out[!is.na(IN.Level.Name)],tabname="Data.Out",tabname_parent="Int.Out",keyfield="IN.Level.Name",collapse_on_code=T)
+  errors<-c(errors,list(check_key(parent=Int.Out,child=Data.Out[!is.na(IN.Level.Name)],tabname="Data.Out",tabname_parent="Int.Out",keyfield="IN.Level.Name",collapse_on_code=T)))
+
   # Check that Rotations match
-  errors7<-check_key(parent=Rot.Out,child=Data.Out[!is.na(R.Level.Name)],tabname="Data.Out",tabname_parent="Rot.Out",keyfield="R.Level.Name",collapse_on_code=T)
+  errors<-c(errors,list(check_key(parent=Rot.Out,child=Data.Out[!is.na(R.Level.Name)],tabname="Data.Out",tabname_parent="Rot.Out",keyfield="R.Level.Name",collapse_on_code=T)))
   # Check end>start date
-  errors8<-Data.Out[ED.Sample.Start>ED.Sample.End
+  errors<-c(errors,list(Data.Out[ED.Sample.Start>ED.Sample.End
                     ][,list(value=paste0(Out.Code.Joined,collapse="/")),by=B.Code
                       ][,table:="Data.Out"
                         ][,field:="Out.Code.Joined"
                           ][,issue:="Start date is greater than end date."
-                            ][order(B.Code)]
+                            ][order(B.Code)]))
   
   # Check for missing data locations
-  errors12<-unique(Data.Out[is.na(ED.Data.Loc),list(B.Code,Out.Code.Joined)
+  errors<-c(errors,list(unique(Data.Out[is.na(ED.Data.Loc),list(B.Code,Out.Code.Joined)
                ])[,list(value=paste(Out.Code.Joined,collapse="/")),by=B.Code
                  ][,tabname:="Data.Out"
                    ][,field:="Out.Code.Joined"
                      ][,issue:="Data location is missing"
-                       ][order(B.Code)]
+                       ][order(B.Code)]))
   
   # Check for missing error type
-  errors13<-unique(Data.Out[is.na(ED.Error.Type) &!is.na(ED.Error),list(B.Code,Out.Code.Joined)
+  errors<-c(errors,list(unique(Data.Out[is.na(ED.Error.Type) &!is.na(ED.Error),list(B.Code,Out.Code.Joined)
                             ])[,list(value=paste(Out.Code.Joined,collapse="/")),by=B.Code
                                ][,tabname:="Data.Out"
                                  ][,field:="Out.Code.Joined"
                                    ][,issue:="Error type is missing"
-                                     ][order(B.Code)]
+                                     ][order(B.Code)]))
   
   # Check for missing error type
-  errors14<-unique(Data.Out[is.na(T.Name) & grepl("Crop Yield",Out.Code.Joined),list(B.Code,IN.Level.Name)
+  errors<-c(errors,list(unique(Data.Out[is.na(T.Name) & grepl("Crop Yield",Out.Code.Joined),list(B.Code,IN.Level.Name)
                             ])[,list(value=paste(IN.Level.Name,collapse="/")),by=B.Code
                                ][,tabname:="Data.Out"
                                  ][,field:="IN.Level.Name"
                                    ][,issue:="Crop yield is associated with a intercropping outcome"
-                                     ][order(B.Code)]
+                                     ][order(B.Code)]))
   
   # Check component names used
   results<-val_checker(data=Data.Out,
@@ -5300,24 +5323,25 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
                        h_field_alt="Component",
                        exact=T)
   
-  errors15<-Data.Out[!ED.Product.Comp %in% master_codes$prod_comp$Component & !is.na(ED.Product.Comp)
+  errors<-c(errors,list(Data.Out[!ED.Product.Comp %in% master_codes$prod_comp$Component & !is.na(ED.Product.Comp)
                    ][,list(value=paste(unique(ED.Product.Comp),collapse = "/")),by=B.Code
                      ][,table:="Data.Out"
                        ][,master_table:="prod_comp"
                          ][,field:="ED.Product.Comp"
                            ][,issue:="Product component value used does not match master codes."
-                             ][order(B.Code)]
+                             ][order(B.Code)]))
 
+  
   #Check for ratio outcomes that are missing the comparison "control" 
-  errors16<-Data.Out[grepl(master_codes$out[TC.Ratio=="Y",paste0(Subindicator,collapse = "|")],Out.Code.Joined) & is.na(ED.Comparison1)
+  errors<-c(errors,list(Data.Out[grepl(master_codes$out[TC.Ratio=="Y",paste0(Subindicator,collapse = "|")],Out.Code.Joined) & is.na(ED.Comparison1)
   ][,list(value=paste(unique(Out.Code.Joined),collapse = "/")),by=B.Code
   ][,table:="Data.Out"
   ][,field:="Out.Code.Joined"
   ][,issue:="Outcome derived from T vs C (e.g. LER) does not have comparison specified."
-  ][order(B.Code)]
+  ][order(B.Code)]))
   
-  errors<-rbindlist(list(errors1,errors3,errors4,errors5,errors6,errors7,errors8,errors9,
-                         errors10,errors12,errors13,errors14,errors15,errors16),fill=T)
+  errors<-rbindlist(errors,fill=T)
+  
   error_list<-error_tracker(errors,filename = "enterdata_other_errors",error_dir=error_dir,error_list = error_list)
   
 
