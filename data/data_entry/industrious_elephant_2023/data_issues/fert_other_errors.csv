@@ -90,10 +90,10 @@ LM0165(6),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is pres
 LM01652,Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
 LM0176.3,High Manure/High Manure + 120N/Low Manure/Low Manure + 120N,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
 NM0019,B0/B1/B2/B3/B4,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
-NM0071,March,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,FALSE,"",""
-NM0071,November,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,FALSE,"",""
-NM0073,PM10/PM5/PM5+SM5/SM10/SM5,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
-NM0073,PM5+SM5,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
+NM0071,March,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,TRUE,""Jabesh,""
+NM0071,November,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,TRUE,""Jabesh,""
+NM0073,PM10/PM5/PM5+SM5/SM10/SM5,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"",Accept term request
+NM0073,PM5+SM5,Fert.Comp,F.Type,Duplicate value in unique field.,,,,TRUE,""Jabesh,"", Duplicates has different values
 NM0084,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
 NM0109,Biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 NN0187,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
