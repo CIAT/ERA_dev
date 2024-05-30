@@ -1,5 +1,5 @@
 B.Code,T.Name,IN.Level.Name,Time,Missing,R.Level.Name,table,issue,issue_addressed,addressed_by_whom,notes
-CJ0017,ALB 121-Common Bean-mono-IF,NA,2018..2020,2020,NA,Data.Out,Time in treatments tab does not match Time tab,FALSE,"",""
+CJ0017,ALB 121-Common Bean-mono-IF,NA,2018..2020,2020,NA,Data.Out,Time in treatments tab does not match Time tab,TRUE,"GABI",""
 CJ0017,ALB 121Common Bean-intercrop 1:2-IF,ALB 121Common Bean-intercrop 1:2-IF__ICA V10-Maize-intercrop 2:1-IF,2018..2027,2027,NA,Data.Out,Time in treatments tab does not match Time tab,FALSE,"",""
 CJ0017,ALB 121Common Bean-intercrop1: 1-IF,ALB 121Common Bean-intercrop1: 1-IF__ICA V10-Maize-intercrop 1:1-IF,2018..2023,2023,NA,Data.Out,Time in treatments tab does not match Time tab,FALSE,"",""
 CJ0017,BFS 10-Common Bean-intercrop 1:2-OF,BFS 10-Common Bean-intercrop 1:2-IF__ICA V10-Maize-intercrop 2:1-IF,2018..2029,2029,NA,Data.Out,Time in treatments tab does not match Time tab,FALSE,"",""
