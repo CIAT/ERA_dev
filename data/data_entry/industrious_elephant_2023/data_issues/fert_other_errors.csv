@@ -94,10 +94,10 @@ NM0071,March,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,TRUE,""Ja
 NM0071,November,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,TRUE,""Jabesh,""
 NM0073,PM10/PM5/PM5+SM5/SM10/SM5,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"",Accept term request
 NM0073,PM5+SM5,Fert.Comp,F.Type,Duplicate value in unique field.,,,,TRUE,""Jabesh,"", Duplicates has different values
-NM0084,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
-NM0109,Biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
-NN0187,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
-NN0187,"Tany sy Fampandrosoana (TAFA),",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,FALSE,"",""
+NM0084,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,""Jabesh,""
+NM0109,Biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
+NN0187,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
+NN0187,"Tany sy Fampandrosoana (TAFA),",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,TRUE,""Jabesh,""
 NN0423,M manure/S manure/T manure/V manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 NN0427,2002,Fert.Method,Time,A Time used does not match the Time tab.,,,,FALSE,"",""
 NN0427,"Escola Superior de Agricultura Luiz de Queiroz, University of Sao Paulo 
