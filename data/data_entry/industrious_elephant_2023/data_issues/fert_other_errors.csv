@@ -23,11 +23,11 @@ CJ0063,Base,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.U
 CJ0068,NPK,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,""Jabesh,""
 CJ0081,12CF Maize/16CF Maize/6CF Maize,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 CJ0082,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,""Jabesh,""
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
 CJ0115,Mixed Compost/Cattle Farmyard Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
 CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AN.",,,,FALSE,"",""
 CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
