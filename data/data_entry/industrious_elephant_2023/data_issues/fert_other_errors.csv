@@ -88,7 +88,7 @@ LM0165(4),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is pres
 LM0165(5),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
 LM0165(6),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
 LM01652,Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
-LM0176.3,High Manure/High Manure + 120N/Low Manure/Low Manure + 120N,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+LM0176.3,High Manure/High Manure + 120N/Low Manure/Low Manure + 120N,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
 NM0019,B0/B1/B2/B3/B4,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 NM0071,March,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,FALSE,"",""
 NM0071,November,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,FALSE,"",""
