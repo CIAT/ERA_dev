@@ -106,13 +106,13 @@ NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is miss
 NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
 NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,""Jabesh,""
 NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,TRUE,""Jabesh,""
-NN0503,maize,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
-NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Category.,,,,FALSE,"",""
-NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Type.,,,,FALSE,"",""
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+NN0503,maize,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"",Working document
+NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Category.,,,,TRUE,""Jabesh,"",Working document
+NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Type.,,,,TRUE,""Jabesh,"",Working document
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,""Jabesh,""
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,""Jabesh,""
 SA0005,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
 SA0035,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 SA0037,D9+NK+FYM,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
