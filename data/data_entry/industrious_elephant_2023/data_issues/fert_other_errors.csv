@@ -122,4 +122,4 @@ SA0051,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing 
 SA0051,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
 SA0052,1_50NPK/2_100NPK/3_150NPK/4_100NPK+HW/5_100NPK+Zn/6_100NP/7_100N/8_100NPK+FYM/9_100NPK(-S)/1_50NPKw/2_100NPKw/3_150NPKw/4_100NPK+HWw/5_100NPK+Znw/6_100NPw/7_100Nw/8_100NPK+FYMw/9_100NPK(-S)w,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,""Jabesh,""
 SP0019,0 N/60 N/120 N/180 N/240 N,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,""Jabesh,""
-SP0047,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
+SP0047,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,""Jabesh,""
