@@ -1,27 +1,14 @@
 B.Code,value,table,field,issue,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
 AC0145,Inoculation - Leaf,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,Charity,Kindly add Inoculation - Leaf in the master sheet
-CJ0002,"Institute of Agricultural Research (IAR), Zaria",Chems.Out,Site.ID,A Site.ID used  does not match the Site tab.,,,FALSE,Charity,Might have been corrected
-CJ0106,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,,
-CJ0129,Rocket/Rocket/profex/profex,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,
-CJ0159,Bonsoin,Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,Charity,"Pete to review the chem outs tab, it shows base"
-CJ0166,sunphosate 460 SL/Stomp 455 CS/super lambda,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,
-CJ0173,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,,
-CJ0173,Vesicular arbuscular mycorrhizal (VAM),Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,Charity,"Pete to review the chem outs tab, it shows base"
-CJ0174,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,,
-JO0015.2,glyphosate,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,
-JO0037,karate,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,
-JO0075,"fomesafen/fluazifop-p-butyl/atrazine/alachlor/2,4-D",Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,
-JO0086,SB-CHEM,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,TRUE,Charity,
-JO0098,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,,
-JO0132,CA-CHEM_Legumes/CT-CHEM_Legumes,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,TRUE,Charity,
-JO0175,Base,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,TRUE,Charity,
-JO0181,ASC-150/ASC-300/CA-250/CA-500,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,TRUE,Charity,
-JO0186,AMF1/AMF2/AMF3,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,TRUE,Charity,
-JO0186,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,,
-JO0196,Base/Base,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,TRUE,Charity,
-LM0097,Vetox 85,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,
-NN0132,glyphosate,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,missing excel file
-NN0420,cymetox super/cymetox super/lambda-cyhalothrin,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,TRUE,Charity,
-NN0440,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,,
-NN0520,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,,
-SA0046,"ICAR –Indian Agricultural Research Institute, Dehli",Chems.Out,Site.ID,A Site.ID used  does not match the Site tab.,,,FALSE,Charity,Had all sites as the site name
+CJ0002,"Institute of Agricultural Research (IAR), Zaria",Chems.Out,Site.ID,A Site.ID used  does not match the Site tab.,,,FALSE,"",""
+CJ0106,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+CJ0159,Bonsoin,Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,"",""
+CJ0173,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+CJ0173,Vesicular arbuscular mycorrhizal (VAM),Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,"",""
+CJ0174,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0098,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0186,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0196,ridomil,Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,"",""
+NN0132,glyphosate,Chems.AI,C.Name,"Amount is present, but unit is missing (active ingredient section).",,,FALSE,"",""
+NN0440,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+NN0520,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""

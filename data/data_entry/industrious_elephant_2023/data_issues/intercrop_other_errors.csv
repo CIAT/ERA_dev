@@ -1,4 +1,0 @@
-B.Code,value,table,field,issue,parent_table,issue_addressed,addressed_by_whom,notes
-CJ0114,Brown hemp +Millet_CT/Corn  + Brachiaria_CT/Jack bean +millet (Penntsetuyn glaucuyn)_CT/Pigeon pea + millet_CT,Int.Out,IN.Comp1,Non-match btw intercropping and make treatment for name in IN.Comp1 column.,MT.Out,FALSE,"",""
-CJ0114,Bracharia intercrop_CT/Millet intercrop_CT,Int.Out,IN.Comp2,Non-match btw intercropping and make treatment for name in IN.Comp2 column.,MT.Out,FALSE,"",""
-HK0111,(M) Maize + cassava/(M) Maize + cassava + 30/(M) Maize + cassava + 30_mound/(M) Maize + cassava + 60/(M) Maize + cassava + 60_mound/(M) Maize + cassava_mound,Int.Out,IN.Comp1,Non-match btw intercropping and make treatment for name in IN.Comp1 column.,MT.Out,FALSE,"",""
