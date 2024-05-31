@@ -33,7 +33,7 @@ CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.
 CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
 CJ0128,CC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"", Term needs to be accepted
 CJ0133,136.2,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
-CJ0134,Cattle manure/Poultry manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0134,Cattle manure/Poultry manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
 CJ0138,CP1/CP2/TP1/TP2,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"",Term request need to be accepted
 CJ0151,1/4 W+ 1/4C+1/4P+1/4B/B (13 kg)/C (13 kg)/P (13 kg)/W (13 kg)/½ C+ ½B/½ C+ ½P/½ P+½B/½ W+ ½C/½ W+½B/½ W+½P,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"",Term request needs to be accepted
 CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
