@@ -4,7 +4,6 @@ value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addresse
 Hand planter,AF0002/LM0075.3/LM0108,Plant.Out,Plant.Method,,,lookup_levels,FALSE,"",""
 Planter,NN0435,Plant.Out,Plant.Mechanization,Fert.Out,F.Mechanization,lookup_levels,FALSE,"",""
 Tine planter,AF0003,Plant.Out,Plant.Method,,,lookup_levels,FALSE,"",""
-Zero-tillage planter,AC0025,Plant.Out,Plant.Method,,,lookup_levels,FALSE,"",""
 grains/m2,NN0428,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
 hand-hoe  planting holes,JS0216,Plant.Out,Plant.Method,,,lookup_levels,FALSE,"",""
 hills/ha,NM0093/NN0067/NN0070.1/NN0070,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""

@@ -5,6 +5,7 @@ value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addresse
 Alfa alfa,JO0098,Res.Method,M.Tree,,Tree.Latin.Name,trees,FALSE,"",""
 Avena Straw,CJ0071,Res.Method,M.Material,,,residues,FALSE,"",""
 Barley residue,JS0248/JS0248,Res.Method,M.Material,,,residues,FALSE,"",""
+Benth,AC0108,Res.Method,M.Tree,,Tree.Latin.Name,trees,FALSE,"",""
 Biodegradable film,NN0526,Res.Method,M.Material,,,residues,FALSE,"",""
 Bread grass,JO0214,Res.Method,M.Material,,,residues,FALSE,"",""
 Chick pea residue,JS0248,Res.Method,M.Material,,,residues,FALSE,"",""
