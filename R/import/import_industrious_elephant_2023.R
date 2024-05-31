@@ -895,7 +895,10 @@ errors2<-Site.Out[(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manua
                       ][,field:="Site.ID"
                         ][,issue:="Missing value in compulsory field location uncertainty."]
 
-error_list<-error_tracker(errors=rbindlist(list(errors1,errors2),fill=T),filename = "site_other_errors",error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=rbindlist(list(errors1,errors2),fill=T),
+                          filename = "site_other_errors",
+                          error_dir=error_dir,
+                          error_list = error_list)
 
 
 dat<-Site.Out[!(is.na(Site.LatD)|is.na(Site.LonD)|is.na(ISO.3166.1.alpha.3))]
@@ -2979,7 +2982,7 @@ colnames(Irrig.Codes)[6]<-"I.Notes"
 Irrig.Codes[is.na(I.Method) & I.Strategy=="No Irrigation Control or Rainfed Agriculture",I.Method:="NA"]
 
 errors1<-Irrig.Codes[I.Strategy=="No Irrigation Control or Rainfed Agriculture" & grepl("irrigation",I.Method)
-            ][,list(value=paste0(I.Level.Name,collapse = "/"))
+            ][,list(value=paste0(I.Level.Name,collapse = "/")),by=B.Code
               ][,table:="Irrig.Codes"
                 ][,field:="I.Level.Name"
                   ][,issue:="Contradiction: no irrigation strategy, but method states irrigation."]
@@ -3038,7 +3041,7 @@ errors4<-check_key(parent = Irrig.Codes,child = Irrig.Method,tabname="Irrig.Meth
 errors<-rbindlist(list(errors_a,errors_b))
 error_list<-error_tracker(errors=errors,filename = "irrig_structure_errors",error_dir=error_dir,error_list = error_list)
 
-errors<-rbindlist(list(errors1,errors2,errors3,errors4))
+errors<-rbindlist(list(errors1,errors2,errors3,errors4),use.names = T)
 error_list<-error_tracker(errors=errors,filename = "irrig_other_errors",error_dir=error_dir,error_list = error_list)
 
   # 3.16.2.1) Harmonization #######
@@ -3533,7 +3536,6 @@ error_list<-error_tracker(errors=duplicates,filename = "treatment_duplicates",er
 # Convert T.Start.Year and T.Reps fields to integers
 MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)]
 
-
 # Check residue codes
 h_params<-data.table(h_table="MT.Out",
                      h_field=c("T.Residue.Prev"),
@@ -3947,92 +3949,127 @@ errors2<-rbindlist(lapply(1:length(keyfields),FUN=function(i){
 
 error_list<-error_tracker(errors=rbind(errors1,errors2,fill=T),filename = "intercrop_other_errors",error_dir=error_dir,error_list = error_list)
 
-# Question: are aggregated practices allowed in intercropping tab? ######
-
-# 5.1)  ***!!!TO DO!!!*** Update Aggregated Treatment Delimiters #####
-if(F){
-# Agg Treat = "..." 
-
-Int.Out[,IN.Comp1:=gsub("[.][.]","...",IN.Comp1)
-        ][,IN.Comp2:=gsub("[.][.]","...",IN.Comp2)
-          ][,IN.Comp3:=gsub("[.][.]","...",IN.Comp3)
-            ][,IN.Comp4:=gsub("[.][.]","...",IN.Comp4)]
-}
-
-
-# 5.x) ***!!!TO DO!!!*** - update products and residue codes #####
-if(F){
+  # Question: are aggregated practices allowed in intercropping tab? ######
   
-  # 1) Update fate from MT.Out table if NA
-  # 1.1) Split IN.Residue.Fate
-  
-  # 2) Update residue codes from MT.Out sheet
-  
-  # Update Residue Codes where they are NA
-  Int.Out[is.na(IN.Res1),IN.Res1:=MT.Out[match(Int.Out[is.na(IN.Res1),paste(B.Code,IN.Comp1)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
-  Int.Out[is.na(IN.Res2),IN.Res2:=MT.Out[match(Int.Out[is.na(IN.Res2),paste(B.Code,IN.Comp2)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
-  Int.Out[is.na(IN.Res3),IN.Res3:=MT.Out[match(Int.Out[is.na(IN.Res3),paste(B.Code,IN.Comp3)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
-  Int.Out[is.na(IN.Res4),IN.Res4:=MT.Out[match(Int.Out[is.na(IN.Res4),paste(B.Code,IN.Comp4)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
-  
-  Int.Out[,IN.Res1:=as.character(IN.Res1)]
-  Int.Out[,IN.Res2:=as.character(IN.Res2)]
-  Int.Out[,IN.Res3:=as.character(IN.Res3)]
-  Int.Out[,IN.Res4:=as.character(IN.Res4)]
-  
-  join.fun<-function(A,B,C,D){
-    X<-unique(c(A,B,C,D))
-    X<-X[!is.na(X)]
-    if(length(X)==0){
-      NA
-    }else{
-      if(length(X)>1){
-        X<-X[!grepl("h",X)]
-      }
-      paste(X[order(X)],collapse="-")
-    }
-  }
-  
-  Int.Out[,N:=1:.N]
-  Int.Out[,IN.Residue.Code:=join.fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4),by=N]
-  Int.Out[,N:=NULL]
-  
-  # 2) Simplify residue fate values
-  
-  Int.Out[IN.Residue.Fate=="Grazed/Mulched",IN.Residue.Fate:="Mulched (left on surface)"]
-  Int.Out[IN.Residue.Fate=="Burned/Removed",IN.Residue.Fate:="Removed"]
-  
-  # 3) Add codes for non-ERA residue practices
+  # 5.1)  ***!!!TO DO!!!*** Update Aggregated Treatment Delimiters #####
   if(F){
-    # Check there are not contradictory codes btw MT.Out2 and Int.Out
-    View(Int.Out[!is.na(IN.Residue.Code) & IN.Residue.Fate %in% c("Removed","Grazed","Burned","Mulched (left on surface)"),
-                 list(IN.Residue.Code,IN.Residue.Fate,B.Code)])
-    
+  # Agg Treat = "..." 
+  
+  Int.Out[,IN.Comp1:=gsub("[.][.]","...",IN.Comp1)
+          ][,IN.Comp2:=gsub("[.][.]","...",IN.Comp2)
+            ][,IN.Comp3:=gsub("[.][.]","...",IN.Comp3)
+              ][,IN.Comp4:=gsub("[.][.]","...",IN.Comp4)]
   }
   
-  Int.Out[is.na(IN.Residue.Code) & IN.Residue.Fate == "Removed",IN.Residue.Code:="h35"]
-  Int.Out[is.na(IN.Residue.Code) & IN.Residue.Fate == "Grazd",IN.Residue.Code:="h39"]
-  Int.Out[is.na(IN.Residue.Code) & IN.Residue.Fate == "Burned",IN.Residue.Code:="h36"]
   
-  # If residues are NA, but a residue fate for the component is specified then we classify the residues based on
-  # matching the products to the residue fate specified.
-  
-  # Int.Out: Update In.Res column codes for residues that are from Tree List ####
-  Int.Out[,N:=1:.N]
-  Z<-Int.Out[is.na(IN.Residue.Code) & !IN.Residue.Fate %in% c("Removed","Incorporated","Grazed","Burned","Unspecified") & !is.na(IN.Residue.Fate),]
-  
-  X<-Z[IN.Prod1 %in% TreeCodes$Species | IN.Prod2 %in% TreeCodes$Species | IN.Prod3 %in% TreeCodes$Species |IN.Prod4 %in% TreeCodes$Species,
-       c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4","B.Code","N","IN.Residue.Fate")]
-  
-  if(nrow(X)>1){
+  # 5.x) ***!!!TO DO!!!*** - update products and residue codes #####
+  if(F){
+    
+    # 1) Update fate from MT.Out table if NA
+    # 1.1) Split IN.Residue.Fate
+    
+    # 2) Update residue codes from MT.Out sheet
+    
+    # Update Residue Codes where they are NA
+    Int.Out[is.na(IN.Res1),IN.Res1:=MT.Out[match(Int.Out[is.na(IN.Res1),paste(B.Code,IN.Comp1)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
+    Int.Out[is.na(IN.Res2),IN.Res2:=MT.Out[match(Int.Out[is.na(IN.Res2),paste(B.Code,IN.Comp2)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
+    Int.Out[is.na(IN.Res3),IN.Res3:=MT.Out[match(Int.Out[is.na(IN.Res3),paste(B.Code,IN.Comp3)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
+    Int.Out[is.na(IN.Res4),IN.Res4:=MT.Out[match(Int.Out[is.na(IN.Res4),paste(B.Code,IN.Comp4)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
+    
+    Int.Out[,IN.Res1:=as.character(IN.Res1)]
+    Int.Out[,IN.Res2:=as.character(IN.Res2)]
+    Int.Out[,IN.Res3:=as.character(IN.Res3)]
+    Int.Out[,IN.Res4:=as.character(IN.Res4)]
+    
+    join.fun<-function(A,B,C,D){
+      X<-unique(c(A,B,C,D))
+      X<-X[!is.na(X)]
+      if(length(X)==0){
+        NA
+      }else{
+        if(length(X)>1){
+          X<-X[!grepl("h",X)]
+        }
+        paste(X[order(X)],collapse="-")
+      }
+    }
+    
+    Int.Out[,N:=1:.N]
+    Int.Out[,IN.Residue.Code:=join.fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4),by=N]
+    Int.Out[,N:=NULL]
+    
+    # 2) Simplify residue fate values
+    
+    Int.Out[IN.Residue.Fate=="Grazed/Mulched",IN.Residue.Fate:="Mulched (left on surface)"]
+    Int.Out[IN.Residue.Fate=="Burned/Removed",IN.Residue.Fate:="Removed"]
+    
+    # 3) Add codes for non-ERA residue practices
+    if(F){
+      # Check there are not contradictory codes btw MT.Out2 and Int.Out
+      View(Int.Out[!is.na(IN.Residue.Code) & IN.Residue.Fate %in% c("Removed","Grazed","Burned","Mulched (left on surface)"),
+                   list(IN.Residue.Code,IN.Residue.Fate,B.Code)])
+      
+    }
+    
+    Int.Out[is.na(IN.Residue.Code) & IN.Residue.Fate == "Removed",IN.Residue.Code:="h35"]
+    Int.Out[is.na(IN.Residue.Code) & IN.Residue.Fate == "Grazd",IN.Residue.Code:="h39"]
+    Int.Out[is.na(IN.Residue.Code) & IN.Residue.Fate == "Burned",IN.Residue.Code:="h36"]
+    
+    # If residues are NA, but a residue fate for the component is specified then we classify the residues based on
+    # matching the products to the residue fate specified.
+    
+    # Int.Out: Update In.Res column codes for residues that are from Tree List ####
+    Int.Out[,N:=1:.N]
+    Z<-Int.Out[is.na(IN.Residue.Code) & !IN.Residue.Fate %in% c("Removed","Incorporated","Grazed","Burned","Unspecified") & !is.na(IN.Residue.Fate),]
+    
+    X<-Z[IN.Prod1 %in% TreeCodes$Species | IN.Prod2 %in% TreeCodes$Species | IN.Prod3 %in% TreeCodes$Species |IN.Prod4 %in% TreeCodes$Species,
+         c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4","B.Code","N","IN.Residue.Fate")]
+    
+    if(nrow(X)>1){
+      X<-rbindlist(lapply(c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4"),FUN=function(COL){
+        N2<-match(unlist(X[,..COL]), TreeCodes$Species)
+        if(length(N2)!=0){
+          X<-cbind(X,TreeCodes[match(unlist(X[,..COL]), TreeCodes$Species)])
+          X[IN.Residue.Fate=="Mulched (left on surface)",T.Residue.Code:=Mulched]
+          X[IN.Residue.Fate=="Incorporated",T.Residue.Code:=Incorp]
+          X[IN.Residue.Fate=="Retained (unknown if mulched/incorp.)",T.Residue.Code:=Unknown.Fate]
+          
+          X[!is.na(Species),c("N","T.Residue.Code")][,In.Prod:=COL]
+        }
+        
+      }))
+      
+      for(Y in unique(X$In.Prod)){
+        X1<-X[In.Prod==Y]
+        if(Y=="IN.Prod1"){
+          Int.Out[X1$N,IN.Res1:=X1$T.Residue.Code]
+        }
+        if(Y=="IN.Prod2"){
+          Int.Out[X1$N,IN.Res2:=X1$T.Residue.Code]
+        }
+        if(Y=="IN.Prod3"){
+          Int.Out[X1$N,IN.Res3:=X1$T.Residue.Code]
+        }
+        if(Y=="IN.Prod4"){
+          Int.Out[X1$N,IN.Res4:=X1$T.Residue.Code]
+        }
+        
+      }
+    }
+    
+    # Int.Out: Update In.Res column codes for residues that are from Product List #####
+    X<-Z[IN.Prod1 %in% EUCodes$Product.Simple | IN.Prod2 %in% EUCodes$Product.Simple | IN.Prod3 %in% EUCodes$Product.Simple |IN.Prod4 %in% EUCodes$Product.Simple,
+         c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4","B.Code","N","IN.Residue.Fate")]
+    
     X<-rbindlist(lapply(c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4"),FUN=function(COL){
-      N2<-match(unlist(X[,..COL]), TreeCodes$Species)
+      N2<-match(unlist(X[,..COL]),EUCodes$Product.Simple)
       if(length(N2)!=0){
-        X<-cbind(X,TreeCodes[match(unlist(X[,..COL]), TreeCodes$Species)])
+        X<-cbind(X,EUCodes[match(unlist(X[,..COL]), EUCodes$Product.Simple)])
         X[IN.Residue.Fate=="Mulched (left on surface)",T.Residue.Code:=Mulched]
         X[IN.Residue.Fate=="Incorporated",T.Residue.Code:=Incorp]
         X[IN.Residue.Fate=="Retained (unknown if mulched/incorp.)",T.Residue.Code:=Unknown.Fate]
         
-        X[!is.na(Species),c("N","T.Residue.Code")][,In.Prod:=COL]
+        X[!is.na(Product.Simple),c("N","T.Residue.Code","Product.Simple")][,In.Prod:=COL]
       }
       
     }))
@@ -4052,334 +4089,299 @@ if(F){
         Int.Out[X1$N,IN.Res4:=X1$T.Residue.Code]
       }
       
+      Int.Out[X1$N,IN.Residue.Code:=join.fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4),by=N]
     }
-  }
-  
-  # Int.Out: Update In.Res column codes for residues that are from Product List #####
-  X<-Z[IN.Prod1 %in% EUCodes$Product.Simple | IN.Prod2 %in% EUCodes$Product.Simple | IN.Prod3 %in% EUCodes$Product.Simple |IN.Prod4 %in% EUCodes$Product.Simple,
-       c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4","B.Code","N","IN.Residue.Fate")]
-  
-  X<-rbindlist(lapply(c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4"),FUN=function(COL){
-    N2<-match(unlist(X[,..COL]),EUCodes$Product.Simple)
-    if(length(N2)!=0){
-      X<-cbind(X,EUCodes[match(unlist(X[,..COL]), EUCodes$Product.Simple)])
-      X[IN.Residue.Fate=="Mulched (left on surface)",T.Residue.Code:=Mulched]
-      X[IN.Residue.Fate=="Incorporated",T.Residue.Code:=Incorp]
-      X[IN.Residue.Fate=="Retained (unknown if mulched/incorp.)",T.Residue.Code:=Unknown.Fate]
+    
+    # Update combined residue codes
+    Int.Out[is.na(IN.Residue.Code),IN.Residue.Code:=join.fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4),by=N]
+    
+    # Determine residues Codes that are common among components vs those that are different 
+    Code.Shared.Fun<-function(A,B,C,D,Shared){
+      X<-c(unlist(strsplit(A,"-")),unlist(strsplit(B,"-")),unlist(strsplit(C,"-")),unlist(strsplit(D,"-")))
       
-      X[!is.na(Product.Simple),c("N","T.Residue.Code","Product.Simple")][,In.Prod:=COL]
-    }
-    
-  }))
-  
-  for(Y in unique(X$In.Prod)){
-    X1<-X[In.Prod==Y]
-    if(Y=="IN.Prod1"){
-      Int.Out[X1$N,IN.Res1:=X1$T.Residue.Code]
-    }
-    if(Y=="IN.Prod2"){
-      Int.Out[X1$N,IN.Res2:=X1$T.Residue.Code]
-    }
-    if(Y=="IN.Prod3"){
-      Int.Out[X1$N,IN.Res3:=X1$T.Residue.Code]
-    }
-    if(Y=="IN.Prod4"){
-      Int.Out[X1$N,IN.Res4:=X1$T.Residue.Code]
-    }
-    
-    Int.Out[X1$N,IN.Residue.Code:=join.fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4),by=N]
-  }
-  
-  # Update combined residue codes
-  Int.Out[is.na(IN.Residue.Code),IN.Residue.Code:=join.fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4),by=N]
-  
-  # Determine residues Codes that are common among components vs those that are different 
-  Code.Shared.Fun<-function(A,B,C,D,Shared){
-    X<-c(unlist(strsplit(A,"-")),unlist(strsplit(B,"-")),unlist(strsplit(C,"-")),unlist(strsplit(D,"-")))
-    
-    Y<-c(A,B,C,D)
-    Y<-length(Y[!is.na(Y)])
-    
-    X1<-table(X)
-    X1<-names(X1)[X1==Y]
-    
-    
-    
-    if(Shared){
-      if(is.null(X1)){
-        NA
-      }else{
-        X1<-unique(X1)
-        paste(X1[order(X1)],collapse="-")
-      }
-    }else{
-      X<-c(strsplit(A,"-"),strsplit(B,"-"),strsplit(C,"-"),strsplit(D,"-"))
-      X2<-unlist(lapply(X,FUN=function(Z){
-        Z<-Z[!Z %in% X1]
-        if(length(Z)==0 | is.na(Z[1])){
+      Y<-c(A,B,C,D)
+      Y<-length(Y[!is.na(Y)])
+      
+      X1<-table(X)
+      X1<-names(X1)[X1==Y]
+      
+      
+      
+      if(Shared){
+        if(is.null(X1)){
           NA
         }else{
-          paste(Z[order(Z)],collapse = "-")
+          X1<-unique(X1)
+          paste(X1[order(X1)],collapse="-")
+        }
+      }else{
+        X<-c(strsplit(A,"-"),strsplit(B,"-"),strsplit(C,"-"),strsplit(D,"-"))
+        X2<-unlist(lapply(X,FUN=function(Z){
+          Z<-Z[!Z %in% X1]
+          if(length(Z)==0 | is.na(Z[1])){
+            NA
+          }else{
+            paste(Z[order(Z)],collapse = "-")
+          }
+          
+        }))
+        X2<-X2[!is.na(c(A,B,C,D))]
+        if(length(X2)!=0){
+          paste(X2,collapse = "***")
+        }else{
+          NA
         }
         
-      }))
-      X2<-X2[!is.na(c(A,B,C,D))]
-      if(length(X2)!=0){
-        paste(X2,collapse = "***")
-      }else{
-        NA
       }
       
     }
     
+    Int.Out[,N:=1:.N]
+    Int.Out[,IN.R.Codes.Shared:=as.character(Code.Shared.Fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4,Shared=T)),by="N"]
+    Int.Out[,IN.R.Codes.Diff:=as.character(Code.Shared.Fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4,Shared=F)),by="N"]
+    
+    
   }
   
-  Int.Out[,N:=1:.N]
-  Int.Out[,IN.R.Codes.Shared:=as.character(Code.Shared.Fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4,Shared=T)),by="N"]
-  Int.Out[,IN.R.Codes.Diff:=as.character(Code.Shared.Fun(IN.Res1,IN.Res2,IN.Res3,IN.Res4,Shared=F)),by="N"]
-  
-  
-}
-
-# 5.x) ***!!!TO DO!!!*** -  Update T.Codes
-if(F){
-  # (for updated fertilizer codes & agg practices)  ####
-  # Slow consider using parallel
-  # Need rules for IN.T.Codes column? (keep all practices as per current method? keep common practices? keep if 50% or greater?)
-  Code.Comb.Fun<-function(A,B,C,D){
-    X<-c(unlist(strsplit(A,"-")),unlist(strsplit(B,"-")),unlist(strsplit(C,"-")),unlist(strsplit(D,"-")))
-    X<-unique(X[!is.na(X)])
-    if(length(X)==0){
-      NA
-    }else{
-      paste(X[order(X)],collapse="-")
-    }
-  }
-  Code.Shared.Fun<-function(A,B,C,D,Shared){
-    X<-c(unlist(strsplit(A,"-")),unlist(strsplit(B,"-")),unlist(strsplit(C,"-")),unlist(strsplit(D,"-")))
-    
-    Y<-c(A,B,C,D)
-    Y<-length(Y[!is.na(Y)])
-    
-    X1<-table(X)
-    X1<-names(X1)[X1==Y]
-    
-    
-    
-    if(Shared){
-      if(is.null(X1)){
+  # 5.x) ***!!!TO DO!!!*** -  Update T.Codes
+  if(F){
+    # (for updated fertilizer codes & agg practices)  ####
+    # Slow consider using parallel
+    # Need rules for IN.T.Codes column? (keep all practices as per current method? keep common practices? keep if 50% or greater?)
+    Code.Comb.Fun<-function(A,B,C,D){
+      X<-c(unlist(strsplit(A,"-")),unlist(strsplit(B,"-")),unlist(strsplit(C,"-")),unlist(strsplit(D,"-")))
+      X<-unique(X[!is.na(X)])
+      if(length(X)==0){
         NA
       }else{
-        X1<-unique(X1)
-        paste(X1[order(X1)],collapse="-")
+        paste(X[order(X)],collapse="-")
       }
-    }else{
-      X<-c(strsplit(A,"-"),strsplit(B,"-"),strsplit(C,"-"),strsplit(D,"-"))
-      X2<-unlist(lapply(X,FUN=function(Z){
-        Z<-Z[!Z %in% X1]
-        if(length(Z)==0 | is.na(Z[1])){
+    }
+    Code.Shared.Fun<-function(A,B,C,D,Shared){
+      X<-c(unlist(strsplit(A,"-")),unlist(strsplit(B,"-")),unlist(strsplit(C,"-")),unlist(strsplit(D,"-")))
+      
+      Y<-c(A,B,C,D)
+      Y<-length(Y[!is.na(Y)])
+      
+      X1<-table(X)
+      X1<-names(X1)[X1==Y]
+      
+      
+      
+      if(Shared){
+        if(is.null(X1)){
           NA
         }else{
-          paste(Z[order(Z)],collapse = "-")
+          X1<-unique(X1)
+          paste(X1[order(X1)],collapse="-")
+        }
+      }else{
+        X<-c(strsplit(A,"-"),strsplit(B,"-"),strsplit(C,"-"),strsplit(D,"-"))
+        X2<-unlist(lapply(X,FUN=function(Z){
+          Z<-Z[!Z %in% X1]
+          if(length(Z)==0 | is.na(Z[1])){
+            NA
+          }else{
+            paste(Z[order(Z)],collapse = "-")
+          }
+          
+        }))
+        X2<-X2[!is.na(c(A,B,C,D))]
+        if(length(X2)!=0){
+          paste(X2,collapse = "***")
+        }else{
+          NA
         }
         
-      }))
-      X2<-X2[!is.na(c(A,B,C,D))]
-      if(length(X2)!=0){
-        paste(X2,collapse = "***")
-      }else{
-        NA
       }
       
     }
     
+    Int.Out<-rbindlist(pblapply(1:nrow(Int.Out),FUN=function(i){
+      # print(i)
+      X<-Int.Out[i,]
+      Y<-unlist(X[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")])
+      Y<-Y[!(Y==0 | is.na(Y))]
+      Y<-unique(unlist(strsplit(MT.Out2[paste0(MT.Out2$T.Name2,MT.Out2$B.Code) %in% paste0(Y,X$B.Code),T.Codes],"-"))) 
+      if(length(Y)!=0){
+        Y<-Y[!is.na(Y)]
+        Y<-c(Y,X$IN.Code)
+        Y<-paste0(Y[order(Y)],collapse = "-")
+        X$IN.T.Codes<-Y
+      }
+      
+      Y<-unlist(X[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")])
+      Z<-data.table(IN.Comp1.T.Codes=as.character(NA),IN.Comp2.T.Codes=as.character(NA),IN.Comp3.T.Codes=as.character(NA),IN.Comp4.T.Codes=as.character(NA))
+      
+      N<-MT.Out2[match(paste0(Y,X$B.Code),paste0(MT.Out2$T.Name2,MT.Out2$B.Code)),T.Codes]
+      
+      if(length(N)>0){
+        Z[1,1:length(N)]<-as.list(N)
+      }
+      
+      Z<-cbind(X,Z)
+      
+      # Update Combined T.Codes Column
+      Z[,IN.T.Codes:=as.character(Code.Comb.Fun(IN.Comp1.T.Codes,IN.Comp2.T.Codes,IN.Comp3.T.Codes,IN.Comp4.T.Codes))
+      ][,IN.T.Codes.Shared:=as.character(Code.Shared.Fun(IN.Comp1.T.Codes,IN.Comp2.T.Codes,IN.Comp3.T.Codes,IN.Comp4.T.Codes,Shared=T))
+      ][,IN.T.Codes.Diff:=as.character(Code.Shared.Fun(IN.Comp1.T.Codes,IN.Comp2.T.Codes,IN.Comp3.T.Codes,IN.Comp4.T.Codes,Shared=F))]
+      
+    }))
   }
   
-  Int.Out<-rbindlist(pblapply(1:nrow(Int.Out),FUN=function(i){
-    # print(i)
-    X<-Int.Out[i,]
-    Y<-unlist(X[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")])
-    Y<-Y[!(Y==0 | is.na(Y))]
-    Y<-unique(unlist(strsplit(MT.Out2[paste0(MT.Out2$T.Name2,MT.Out2$B.Code) %in% paste0(Y,X$B.Code),T.Codes],"-"))) 
-    if(length(Y)!=0){
-      Y<-Y[!is.na(Y)]
-      Y<-c(Y,X$IN.Code)
-      Y<-paste0(Y[order(Y)],collapse = "-")
-      X$IN.T.Codes<-Y
-    }
-    
-    Y<-unlist(X[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")])
-    Z<-data.table(IN.Comp1.T.Codes=as.character(NA),IN.Comp2.T.Codes=as.character(NA),IN.Comp3.T.Codes=as.character(NA),IN.Comp4.T.Codes=as.character(NA))
-    
-    N<-MT.Out2[match(paste0(Y,X$B.Code),paste0(MT.Out2$T.Name2,MT.Out2$B.Code)),T.Codes]
-    
-    if(length(N)>0){
-      Z[1,1:length(N)]<-as.list(N)
-    }
-    
-    Z<-cbind(X,Z)
-    
-    # Update Combined T.Codes Column
-    Z[,IN.T.Codes:=as.character(Code.Comb.Fun(IN.Comp1.T.Codes,IN.Comp2.T.Codes,IN.Comp3.T.Codes,IN.Comp4.T.Codes))
-    ][,IN.T.Codes.Shared:=as.character(Code.Shared.Fun(IN.Comp1.T.Codes,IN.Comp2.T.Codes,IN.Comp3.T.Codes,IN.Comp4.T.Codes,Shared=T))
-    ][,IN.T.Codes.Diff:=as.character(Code.Shared.Fun(IN.Comp1.T.Codes,IN.Comp2.T.Codes,IN.Comp3.T.Codes,IN.Comp4.T.Codes,Shared=F))]
-    
-  }))
-}
-
-# 5.x) ***!!!TO DO!!!*** -Special rule for when reduced & zero-tillage are both present ####
-# Where both these practices are present then count the combined practice as reduced only, by removing zero till
-
-if(F){
-  N<-Int.Out[,grepl("b39",IN.T.Codes) & grepl("b38",IN.T.Codes)]
-  
-  # Remove b38 & b39 codes from difference col
-  Int.Out[N,IN.T.Codes.Diff:=paste(unlist(strsplit(gsub("-b38|b38-|b38|-b39|b39-|b39","",IN.T.Codes.Diff[1]),"***",fixed = T)),collapse="***"),by=IN.T.Codes.Diff]
-  
-  # Remove b39 codes from IN.T.Codes col
-  Int.Out[N,IN.T.Codes:=gsub("-b39|b39-|b39","",IN.T.Codes[1]),by=IN.T.Codes]
-  
-  # Add b38 code to shared col
-  Int.Out[N,IN.T.Codes.Shared:=paste(sort(c(unlist(strsplit(IN.T.Codes.Shared[1],"-")),"b38")),collapse="-"),by=IN.T.Codes.Shared]
-}
-
-# 5.x) ***!!!TO DO!!!*** - Combine Products ####
-# A duplicate of In.Prods.All column, but using a "-" delimiter that distinguishes productsthat contribute to a system outcome from products aggregated 
-# in the Products tab (results aggregated across products) which use a ".." delim.
-if(F){
-  Int.Out[,IN.Prod:=apply(Int.Out[,c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4")],1,FUN=function(X){
-    X<-unlist(X[!is.na(X)])
-    paste(X[order(X)],collapse="***")
-  })]
-  # Int.Out: Combine Products: Validation - Check for NAs
-  Int.Out.Missing.Prod<-Int.Out[is.na(IN.Prod)|IN.Prod=="",c("IN.Level.Name","B.Code","IN.Prod")]
-  if(nrow(Int.Out.Missing.Prod)>0){
-    View(Int.Out.Missing.Prod)
-  }
-  rm(Int.Out.Missing.Prod)
-}
-# 5.x) ***!!!TO DO!!!*** - Update Intercropping Delimiters ####
-if(F){
-  Int.Out$IN.Level.Name2<-apply(Int.Out[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")],1,FUN=function(X){
-    X<-X[!is.na(X)]
-    X<-paste0(X[order(X)],collapse = "***")
-  })
-}
-
-# 5.x) ***!!!TO DO!!!*** - Structure ####
-if(F){
-  X<-MT.Out2[,c("C.Structure","P.Structure","W.Structure","O.Structure")]
-  X[grepl("Yes",C.Structure),C.Structure:=MT.Out2[grepl("Yes",C.Structure),C.Level.Name]]
-  X[grepl("Yes",P.Structure),P.Structure:=MT.Out2[grepl("Yes",P.Structure),P.Level.Name]]
-  X[grepl("Yes",O.Structure),O.Structure:=MT.Out2[grepl("Yes",O.Structure),O.Level.Name]]
-  X[grepl("Yes",W.Structure),W.Structure:=MT.Out2[grepl("Yes",W.Structure),W.Level.Name]]
-  
-  X<-pbapply(X,1,FUN=function(X){
-    X<-paste(unique(X[!(is.na(X)|X=="")]),collapse=":::")
-    if(is.null(X)|X==""){
-      NA
-    }else{
-      X
-    }
-  })
-  
-  MT.Out2[,Structure.Comb:=X][!is.na(Structure.Comb),Structure.Comb:=paste(T.Comp,Structure.Comb)]
-  
-  I.Cols<-c("B.Code","T.Name2","T.Comp",grep("Structure",colnames(MT.Out2),value=T))
-  X<-data.table(MT.Out2[,..I.Cols],Structure=X)
-  
-  X[!is.na(Structure),Structure:=paste(T.Comp,Structure)]
+  # 5.x) ***!!!TO DO!!!*** -Special rule for when reduced & zero-tillage are both present ####
+  # Where both these practices are present then count the combined practice as reduced only, by removing zero till
   
   if(F){
-    unique(X[grep("[.][.][.]",Structure),c("B.Code","Structure")])
+    N<-Int.Out[,grepl("b39",IN.T.Codes) & grepl("b38",IN.T.Codes)]
+    
+    # Remove b38 & b39 codes from difference col
+    Int.Out[N,IN.T.Codes.Diff:=paste(unlist(strsplit(gsub("-b38|b38-|b38|-b39|b39-|b39","",IN.T.Codes.Diff[1]),"***",fixed = T)),collapse="***"),by=IN.T.Codes.Diff]
+    
+    # Remove b39 codes from IN.T.Codes col
+    Int.Out[N,IN.T.Codes:=gsub("-b39|b39-|b39","",IN.T.Codes[1]),by=IN.T.Codes]
+    
+    # Add b38 code to shared col
+    Int.Out[N,IN.T.Codes.Shared:=paste(sort(c(unlist(strsplit(IN.T.Codes.Shared[1],"-")),"b38")),collapse="-"),by=IN.T.Codes.Shared]
   }
   
-  Z<-MT.Out2[,paste(B.Code,T.Name2)]
-  Z<-unlist(pblapply(1:nrow(Int.Out),FUN = function(i){
+  # 5.x) ***!!!TO DO!!!*** - Combine Products ####
+  # A duplicate of In.Prods.All column, but using a "-" delimiter that distinguishes productsthat contribute to a system outcome from products aggregated 
+  # in the Products tab (results aggregated across products) which use a ".." delim.
+  if(F){
+    Int.Out[,IN.Prod:=apply(Int.Out[,c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4")],1,FUN=function(X){
+      X<-unlist(X[!is.na(X)])
+      paste(X[order(X)],collapse="***")
+    })]
+    # Int.Out: Combine Products: Validation - Check for NAs
+    Int.Out.Missing.Prod<-Int.Out[is.na(IN.Prod)|IN.Prod=="",c("IN.Level.Name","B.Code","IN.Prod")]
+    if(nrow(Int.Out.Missing.Prod)>0){
+      View(Int.Out.Missing.Prod)
+    }
+    rm(Int.Out.Missing.Prod)
+  }
+  # 5.x) ***!!!TO DO!!!*** - Update Intercropping Delimiters ####
+  if(F){
+    Int.Out$IN.Level.Name2<-apply(Int.Out[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")],1,FUN=function(X){
+      X<-X[!is.na(X)]
+      X<-paste0(X[order(X)],collapse = "***")
+    })
+  }
+  
+  # 5.x) ***!!!TO DO!!!*** - Structure ####
+  if(F){
+    X<-MT.Out2[,c("C.Structure","P.Structure","W.Structure","O.Structure")]
+    X[grepl("Yes",C.Structure),C.Structure:=MT.Out2[grepl("Yes",C.Structure),C.Level.Name]]
+    X[grepl("Yes",P.Structure),P.Structure:=MT.Out2[grepl("Yes",P.Structure),P.Level.Name]]
+    X[grepl("Yes",O.Structure),O.Structure:=MT.Out2[grepl("Yes",O.Structure),O.Level.Name]]
+    X[grepl("Yes",W.Structure),W.Structure:=MT.Out2[grepl("Yes",W.Structure),W.Level.Name]]
     
-    Y<-paste(Int.Out[i,B.Code],unlist(strsplit(Int.Out[i,IN.Level.Name2],"[*][*][*]")))
+    X<-pbapply(X,1,FUN=function(X){
+      X<-paste(unique(X[!(is.na(X)|X=="")]),collapse=":::")
+      if(is.null(X)|X==""){
+        NA
+      }else{
+        X
+      }
+    })
     
-    N<-match(Y,Z)
+    MT.Out2[,Structure.Comb:=X][!is.na(Structure.Comb),Structure.Comb:=paste(T.Comp,Structure.Comb)]
     
-    # Hack to fix strange order error coming from the aggregate script used MT.Out2, this only effected EO0053 Cowpea+10tManure+S2...Cowpea+10tManure+S1
-    if(any(is.na(N))){
-      if(any(grepl("[.][.][.]",Y[is.na(N)]))){
-        for(j in 1:sum(is.na(N))){
-          K<-paste(Int.Out[i,B.Code],paste(gsub(paste0(Int.Out[i,B.Code]," "),"",rev(unlist(strsplit(Y[is.na(N)][j],"[.][.][.]")))),collapse = "..."))
-          N[is.na(N)][j]<-match(K,Z)
+    I.Cols<-c("B.Code","T.Name2","T.Comp",grep("Structure",colnames(MT.Out2),value=T))
+    X<-data.table(MT.Out2[,..I.Cols],Structure=X)
+    
+    X[!is.na(Structure),Structure:=paste(T.Comp,Structure)]
+    
+    if(F){
+      unique(X[grep("[.][.][.]",Structure),c("B.Code","Structure")])
+    }
+    
+    Z<-MT.Out2[,paste(B.Code,T.Name2)]
+    Z<-unlist(pblapply(1:nrow(Int.Out),FUN = function(i){
+      
+      Y<-paste(Int.Out[i,B.Code],unlist(strsplit(Int.Out[i,IN.Level.Name2],"[*][*][*]")))
+      
+      N<-match(Y,Z)
+      
+      # Hack to fix strange order error coming from the aggregate script used MT.Out2, this only effected EO0053 Cowpea+10tManure+S2...Cowpea+10tManure+S1
+      if(any(is.na(N))){
+        if(any(grepl("[.][.][.]",Y[is.na(N)]))){
+          for(j in 1:sum(is.na(N))){
+            K<-paste(Int.Out[i,B.Code],paste(gsub(paste0(Int.Out[i,B.Code]," "),"",rev(unlist(strsplit(Y[is.na(N)][j],"[.][.][.]")))),collapse = "..."))
+            N[is.na(N)][j]<-match(K,Z)
+          }
+        }}
+      
+      
+      if(any(is.na(N))){
+        cat(paste("\n No Match: i = ",i," - ",Y[is.na(N)]))
+        "No Match"
+      }else{
+        Y<-X[N,unique(Structure)]
+        Y<-paste(Y,collapse = "***")
+        
+        if(Y=="NA"){
+          NA
+        }else{
+          Y
         }
-      }}
+      }
+    }))
     
+    Int.Out[,IN.Structure:=Z]
     
-    if(any(is.na(N))){
-      cat(paste("\n No Match: i = ",i," - ",Y[is.na(N)]))
-      "No Match"
-    }else{
-      Y<-X[N,unique(Structure)]
-      Y<-paste(Y,collapse = "***")
-      
-      if(Y=="NA"){
-        NA
+    rm(Z,X,I.Cols)
+    
+    if(F){
+      write.table(Int.Out[!is.na(IN.Structure) & grepl("[:][:][:]",IN.Structure),c("B.Code","IN.Level.Name","IN.Structure")],"clipboard-256000",
+                  row.names=F,sep="\t")
+    }
+  }
+  
+  # 5.x) ***!!!TO DO!!!*** - Residues in System Outcomes ####
+  if(F){
+    Recode.Res<-function(X){
+      A<-unlist(strsplit(unlist(X),"-"))
+      if(is.na(A[1])){
+        A
       }else{
-        Y
+        A[grep("b41",A)]<-"b41"
+        A[grep("b40",A)]<-"b40"
+        A[grep("b27",A)]<-"b27"
+        A[A %in% c("a16","a17")]<-"a15"
+        A[A %in% c("a16.1","a17.1")]<-"a15.1"
+        A[A %in% c("a16.2","a17.2")]<-"a15.2"
+        A<-unique(A)
+        paste(A[order(A)],collapse="-")
       }
     }
-  }))
+    
+    Int.Out[,IN.Res.System:=Recode.Res(IN.Residue.Code),by=N]
+  rm(Recode.Res)
+  }
   
-  Int.Out[,IN.Structure:=Z]
   
-  rm(Z,X,I.Cols)
-  
+  # X) ***!!!TO DO!!!*** - check is NA start.date or reps after treatments, intercropping and rotation are merged #####
   if(F){
-    write.table(Int.Out[!is.na(IN.Structure) & grepl("[:][:][:]",IN.Structure),c("B.Code","IN.Level.Name","IN.Structure")],"clipboard-256000",
-                row.names=F,sep="\t")
-  }
-}
-
-# 5.x) ***!!!TO DO!!!*** - Residues in System Outcomes ####
-if(F){
-  Recode.Res<-function(X){
-    A<-unlist(strsplit(unlist(X),"-"))
-    if(is.na(A[1])){
-      A
-    }else{
-      A[grep("b41",A)]<-"b41"
-      A[grep("b40",A)]<-"b40"
-      A[grep("b27",A)]<-"b27"
-      A[A %in% c("a16","a17")]<-"a15"
-      A[A %in% c("a16.1","a17.1")]<-"a15.1"
-      A[A %in% c("a16.2","a17.2")]<-"a15.2"
-      A<-unique(A)
-      paste(A[order(A)],collapse="-")
-    }
+    errors4<-MT.Out[(is.na(T.Start.Year)) & !grepl("[.][.]",T.Name),
+                    list(B.Code,T.Name)
+    ][,list(value=paste0(T.Name,collapse="/")),by=B.Code
+    ][,table:="MT.Out"
+    ][,field:="T.Name"
+    ][,issue:="Start year is NA (change to Unspecified if it is truely unknown)."
+    ][order(B.Code)]
+    
+    
+    errors5<-MT.Out[(is.na(T.Reps)) & !grepl("[.][.]",T.Name),
+                    list(B.Code,T.Name)
+    ][,list(value=paste0(T.Name,collapse="/")),by=B.Code
+    ][,table:="MT.Out"
+    ][,field:="T.Name"
+    ][,issue:="Reps are NA. Change to Unspecified if truely unknown"
+    ][order(B.Code)]
   }
   
-  Int.Out[,IN.Res.System:=Recode.Res(IN.Residue.Code),by=N]
-rm(Recode.Res)
-}
-
-
-# X) ***!!!TO DO!!!*** - check is NA start.date or reps after treatments, intercropping and rotation are merged #####
-if(F){
-  errors4<-MT.Out[(is.na(T.Start.Year)) & !grepl("[.][.]",T.Name),
-                  list(B.Code,T.Name)
-  ][,list(value=paste0(T.Name,collapse="/")),by=B.Code
-  ][,table:="MT.Out"
-  ][,field:="T.Name"
-  ][,issue:="Start year is NA (change to Unspecified if it is truely unknown)."
-  ][order(B.Code)]
   
-  
-  errors5<-MT.Out[(is.na(T.Reps)) & !grepl("[.][.]",T.Name),
-                  list(B.Code,T.Name)
-  ][,list(value=paste0(T.Name,collapse="/")),by=B.Code
-  ][,table:="MT.Out"
-  ][,field:="T.Name"
-  ][,issue:="Reps are NA. Change to Unspecified if truely unknown"
-  ][order(B.Code)]
-}
-
-
 # 6) Time Sequences (Rot.Out) ####
 data<-lapply(XL,"[[","Rot.Out")
 col_names<-colnames(data[[1]])
@@ -5019,7 +5021,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
       } 
     }
 
-# 6.3) ***!!!TO DO!!!*** Rot.Seq.Summ (summarise crop sequence) #####
+  # 6.3) ***!!!TO DO!!!*** Rot.Seq.Summ (summarise crop sequence) #####
 
   if(F){
   Seq.Fun<-function(A){
