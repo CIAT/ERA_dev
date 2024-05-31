@@ -28,7 +28,7 @@ CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is 
 CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
 CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
 CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"", Soybean straw needs to be accepted
-CJ0115,Mixed Compost/Cattle Farmyard Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
+CJ0115,Mixed Compost/Cattle Farmyard Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,TRUE,""Jabesh,""
 CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AN.",,,,TRUE,""Jabesh,""
 CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
 CJ0128,CC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"", Term needs to be accepted
