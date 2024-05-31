@@ -66,7 +66,7 @@ JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.
 JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
 JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,""Jabesh,""
 JO0033,Goat Manure (GM),Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,""Jabesh,""
-JO0033,Goat Manure (GM),Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+JO0033,Goat Manure (GM),Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
 JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
 JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,""Jabesh,""
 JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
