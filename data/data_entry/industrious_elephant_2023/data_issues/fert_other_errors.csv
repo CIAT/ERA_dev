@@ -6,7 +6,7 @@ AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is 
 AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,TRUE,""Jabesh,""
 AC0081,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
 AC0081,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,""Jabesh,""
-AC0123,20P ORG/40P ORG/60P ORG/80P ORG,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+AC0123,20P ORG/40P ORG/60P ORG/80P ORG,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"",Rejected
 AC0137,1:10LVB/1:10LVC/1:20LVB/1:20LVC/1:30LVB/1:30LVC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
 AC0137,1:10LVB/1:20LVB/1:30LVB/1:10LVC/1:20LVC/1:30LVC,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
 AC0137,1:10LVB/1:20LVB/1:30LVB/1:10LVC/1:20LVC/1:30LVC,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,""Jabesh,""
