@@ -78,7 +78,7 @@ JO0102,Vermicast,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN."
 JO0147,AL-B_2015/AL-B_2016/Gateway_2015/Gateway_2016/Organo-F_2015/Organo-F_2016,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,"",Term needs to be accepted
 JO0166,Vermicast/Guano ,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,""Jabesh,""
 JO0169,Unspecified ,Fert.Out,F.I.Unit,"Issue with units of inorganic or organic fertilizer, or practices selected.",Fert.Out,F.Unit,lookup_levels,TRUE,""Jabesh,""
-JO0207,10TPC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+JO0207,10TPC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
 JS0040.1,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,""Jabesh,""
 JS0040.1,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,""Jabesh,""
 JS0248,cereal fetrtilizer,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,""Jabesh,""
