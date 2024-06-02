@@ -1,5 +1,5 @@
 B.Code,value,table,field,issue,T.Practice,issue_addressed,addressed_by_whom,notes
-AF0007.3,1978-SS,Till.Out,Time,A Time used does not match the Time tab.,,FALSE,"",""
-AF0007.3,"IITA, Ibadan-4",Till.Out,Site.ID,A Site.ID used  does not match the Site tab.,,FALSE,"",""
-JO0107,(Société de Développement du coton au Cameroun)-SODE-COTON,Till.Out,Site.ID,A Site.ID used  does not match the Site tab.,,FALSE,"",""
-LM0165,0,Till.Codes,Till.Level.Name,Duplicate value in unique field.,,FALSE,"",""
+AF0007.3,1978-SS,Till.Out,Time,A Time used does not match the Time tab.,,TRUE,"Charity",""
+AF0007.3,"IITA, Ibadan-4",Till.Out,Site.ID,A Site.ID used  does not match the Site tab.,,TRUE,"Charity",""
+JO0107,(Société de Développement du coton au Cameroun)-SODE-COTON,Till.Out,Site.ID,A Site.ID used  does not match the Site tab.,,TRUE,"Charity",""
+LM0165,0,Till.Codes,Till.Level.Name,Duplicate value in unique field.,,TRUE,"Charity",""
