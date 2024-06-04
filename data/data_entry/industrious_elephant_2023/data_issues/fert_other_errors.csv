@@ -1,125 +1,114 @@
 B.Code,value,table,field,issue,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
-AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.DM.",,,,TRUE,Jabesh,
-AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,Jabesh,
-AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,TRUE,Jabesh,
-AC0081,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-AC0081,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-AC0123,20P ORG/40P ORG/60P ORG/80P ORG,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Rejected
-AC0137,1:10LVB/1:10LVC/1:20LVB/1:20LVC/1:30LVB/1:30LVC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-AC0137,1:10LVB/1:20LVB/1:30LVB/1:10LVC/1:20LVC/1:30LVC,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-AC0137,1:10LVB/1:20LVB/1:30LVB/1:10LVC/1:20LVC/1:30LVC,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh,
-AC0137,1:10LVB/1:20LVB/1:30LVB/1:10LVC/1:20LVC/1:30LVC,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-AC0153,20BB 2003/20BB 2006/20BO 2003/20BO 2006/20BO 2007/20BO 2007.2/20BOCV 2004/20BOCV 2005/20M 2004/20M 2005/20M 2007/20PM/20SH/40BB 2003/40BB 2006/40BO 2003/40BO 2006/40BO 2007/40BO 2007.2/40BOCV 2004/40BOCV 2005/40M 2004/40M 2005/40M 2007/40PM/40SH/80BB 2003/80BB 2006/80BO 2003/80BO 2006/80BO 2007/80BO 2007.2/80BOCV 2004/80BOCV 2005/80M 2004/80M 2005/80M 2007/80PM/80SH/BO 2001 20/BO 2001 40/BO 2001 80/BO 2002 20/BO 2002 40/BO 2002 80/PM 2001 20/PM 2001 40/PM 2001 80/PM 2002 20/PM 2002 40/PM 2002 80/Radish 2001 20/Radish 2001 40/Radish 2001 80/Radish 2002 20/Radish 2002 40/Radish 2002 80,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-AC0154,DS BO/DS Maize/PL BO/PL Maize/PS BO/PS Maize,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-CJ0002,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,Jabesh,
-CJ0002,"Institute of Agricultural Research (IAR), Zaria",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,TRUE,Jabesh,
-CJ0020,biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-CJ0022,Coffee/Coffee/Coffee/Coffee/Coffee/Coffee/macademia/macademia/macademia/macademia/macademia/macademia,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-CJ0039,Farm Yard Manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-CJ0062,N0_C40,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-CJ0063,Base,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-CJ0068,NPK,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-CJ0081,12CF Maize/16CF Maize/6CF Maize,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,,
-CJ0082,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,Jabesh,
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh, Soybean straw needs to be accepted
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh, Soybean straw needs to be accepted
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh, Soybean straw needs to be accepted
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh, Soybean straw needs to be accepted
-CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh, Soybean straw needs to be accepted
-CJ0115,Mixed Compost/Cattle Farmyard Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,TRUE,Jabesh,
-CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AN.",,,,TRUE,Jabesh,
-CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-CJ0128,CC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh, Term needs to be accepted
-CJ0133,136.2,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-CJ0134,Cattle manure/Poultry manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-CJ0138,CP1/CP2/TP1/TP2,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Term request need to be accepted
-CJ0151,1/4 W+ 1/4C+1/4P+1/4B/B (13 kg)/C (13 kg)/P (13 kg)/W (13 kg)/½ C+ ½B/½ C+ ½P/½ P+½B/½ W+ ½C/½ W+½B/½ W+½P,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Term request needs to be accepted
-CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,Jabesh,
-CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh,
-CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-CJ0174,HS ,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-CJ0182.1,N138P69_K40S0/N138P69_K40S20/N138P69_K40S40/N138P69_K80S0/N138P69_K80S20/N138P69_K80S40/N138P69_KOS20/N138P69_KOS40/N138P69_KOSO/N46P23_K40S0/N46P23_K40S20/N46P23_K40S40/N46P23_K80S0/N46P23_K80S20/N46P23_K80S40/N46P23_KOS20/N46P23_KOS40/N46P23_KOSO/N92P46_K40S0/N92P46_K40S20/N92P46_K40S40/N92P46_K80S0/N92P46_K80S20/N92P46_K80S40/N92P46_KOS20/N92P46_KOS40/N92P46_KOSO/NOPO_K40S0/NOPO_K40S20/NOPO_K40S40/NOPO_K80S0/NOPO_K80S20/NOPO_K80S40/NOPO_KOS20/NOPO_KOS40,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,,
-CJ0189,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,Jabesh,
-CJ0189,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,TRUE,Jabesh,
-DM0021,Fertilizer maize,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-DM0028,Base/Base/Base/Base,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-HK0106,Base/Base/Base,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-HK0242,21-01-24,Fert.Method,F.Date,Date not between 1950-01-01 & 2023-12-01,,,,TRUE,Jabesh,
-HK0242,21-01-24,Fert.Method,F.Date,Date not between 1950-01-01 & 2023-12-01,,,,TRUE,Jabesh,
-HK0242,11-02-24,Fert.Method,F.Date,Date not between 1950-01-01 & 2023-12-01,,,,TRUE,Jabesh,
-HK0242,11-02-24,Fert.Method,F.Date,Date not between 1950-01-01 & 2023-12-01,,,,TRUE,Jabesh,
-JO0008,Cattle Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,TRUE,Jabesh,
-JO0012,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,Jabesh,Rejected
-JO0021,Chicken Litter,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh,
-JO0023,Vermicast/Goat Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AN.",,,,TRUE,Jabesh,
-JO0023,Vermicast/Goat Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-JO0023,Vermicast/Goat Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AP.",,,,TRUE,Jabesh,
-JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,Jabesh,
-JO0033,Goat Manure (GM),Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,Jabesh,
-JO0033,Goat Manure (GM),Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh,
-JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-JO0070,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,,
-JO0070,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh,
-JO0070,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-JO0102,Vermicast,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,Jabesh,
-JO0147,AL-B_2015/AL-B_2016/Gateway_2015/Gateway_2016/Organo-F_2015/Organo-F_2016,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Term needs to be accepted
-JO0166,Vermicast/Guano ,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-JO0169,Unspecified ,Fert.Out,F.I.Unit,"Issue with units of inorganic or organic fertilizer, or practices selected.",Fert.Out,F.Unit,lookup_levels,TRUE,Jabesh,
-JO0207,10TPC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-JS0040.1,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh,
-JS0040.1,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-JS0248,cereal fetrtilizer,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-LM0108,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,Jabesh,
-LM0165(3),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-LM0165(4),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-LM0165(5),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-LM0165(6),Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-LM01652,Eucalyptus saligna/Unspecified Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-LM0176.3,High Manure/High Manure + 120N/Low Manure/Low Manure + 120N,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NM0019,B0/B1/B2/B3/B4,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NM0071,March,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,TRUE,Jabesh,
-NM0071,November,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,TRUE,Jabesh,
-NM0073,PM10/PM5/PM5+SM5/SM10/SM5,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Accept term request
-NM0073,PM5+SM5,Fert.Comp,F.Type,Duplicate value in unique field.,,,,TRUE,Jabesh, Duplicates has different values
-NM0084,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,Jabesh,
-NM0109,Biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NN0187,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NN0187,"Tany sy Fampandrosoana (TAFA),",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,TRUE,Jabesh,
-NN0423,M manure/S manure/T manure/V manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,,
-NN0427,2002,Fert.Method,Time,A Time used does not match the Time tab.,,,,FALSE,,
+AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.DM.",,,,FALSE,"",""
+AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,FALSE,"",""
+AC0046,Fertisoil/Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,FALSE,"",""
+AC0081,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+AC0081,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+AC0120,10CSS/10TSS,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+AC0137,Sheep leachate/Cattle leachate,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+AC0137,Sheep leachate/Cattle leachate,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+AC0137,Sheep leachate/Cattle leachate,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+AC0153,20BB 2003/20BB 2006/20BO 2003/20BO 2006/20BO 2007/20BO 2007.2/20BOCV 2004/20BOCV 2005/20M 2004/20M 2005/20M 2007/20PM/20SH/40BB 2003/40BB 2006/40BO 2003/40BO 2006/40BO 2007/40BO 2007.2/40BOCV 2004/40BOCV 2005/40M 2004/40M 2005/40M 2007/40PM/40SH/80BB 2003/80BB 2006/80BO 2003/80BO 2006/80BO 2007/80BO 2007.2/80BOCV 2004/80BOCV 2005/80M 2004/80M 2005/80M 2007/80PM/80SH/BO 2001 20/BO 2001 40/BO 2001 80/BO 2002 20/BO 2002 40/BO 2002 80/PM 2001 20/PM 2001 40/PM 2001 80/PM 2002 20/PM 2002 40/PM 2002 80/Radish 2001 20/Radish 2001 40/Radish 2001 80/Radish 2002 20/Radish 2002 40/Radish 2002 80,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+AC0154,DS BO/DS Maize/PL BO/PL Maize/PS BO/PS Maize,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0002,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
+CJ0002,"Institute of Agricultural Research (IAR), Zaria",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,FALSE,"",""
+CJ0020,biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0022,Coffee/Coffee/Coffee/Coffee/Coffee/Coffee/macademia/macademia/macademia/macademia/macademia/macademia,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+CJ0039,Farm Yard Manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0062,N0_C40,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0063,Base,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+CJ0068,NPK,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+CJ0081,12CF Maize/16CF Maize/6CF Maize,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0082,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+CJ0104,ARC15/ARC25/PRC15/PRC25,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0115,Mixed Compost/Cattle Farmyard Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
+CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AN.",,,,FALSE,"",""
+CJ0118,Mixed Compost,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+CJ0128,CC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0133,136.2,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0134,Cattle manure/Poultry manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0138,CP1/CP2/TP1/TP2,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0151,1/4 W+ 1/4C+1/4P+1/4B/B (13 kg)/C (13 kg)/P (13 kg)/W (13 kg)/½ C+ ½B/½ C+ ½P/½ P+½B/½ W+ ½C/½ W+½B/½ W+½P,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+CJ0162,Mango tree,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,FALSE,"",""
+CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+CJ0167,Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+CJ0174,HS ,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0182.1,N138P69_K40S0/N138P69_K40S20/N138P69_K40S40/N138P69_K80S0/N138P69_K80S20/N138P69_K80S40/N138P69_KOS20/N138P69_KOS40/N138P69_KOSO/N46P23_K40S0/N46P23_K40S20/N46P23_K40S40/N46P23_K80S0/N46P23_K80S20/N46P23_K80S40/N46P23_KOS20/N46P23_KOS40/N46P23_KOSO/N92P46_K40S0/N92P46_K40S20/N92P46_K40S40/N92P46_K80S0/N92P46_K80S20/N92P46_K80S40/N92P46_KOS20/N92P46_KOS40/N92P46_KOSO/NOPO_K40S0/NOPO_K40S20/NOPO_K40S40/NOPO_K80S0/NOPO_K80S20/NOPO_K80S40/NOPO_KOS20/NOPO_KOS40,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+CJ0189,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,FALSE,"",""
+CJ0189,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,FALSE,"",""
+DM0021,Fertilizer maize,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+DM0028,Base/Base/Base/Base,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+HK0106,Base/Base/Base,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+HK0242,2024-01-21/2024-02-11/2024-01-21/2024-02-11,Fert.Method,F.Date,Date not between 1950-01-01 & 2023-12-01,,,,FALSE,"",""
+JO0008,Cattle Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
+JO0012,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
+JO0021,Chicken Litter,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+JO0023,Vermicast/Goat Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AN.",,,,FALSE,"",""
+JO0023,Vermicast/Goat Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+JO0023,Vermicast/Goat Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.AP.",,,,FALSE,"",""
+JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+JO0026,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,FALSE,"",""
+JO0033,Goat Manure (GM),Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,FALSE,"",""
+JO0033,Goat Manure (GM),Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+JO0065,Cattle Manure/Poultry Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+JO0070,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+JO0070,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+JO0070,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+JO0102,Vermicast,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,FALSE,"",""
+JO0107,(Société de Développement du coton au Cameroun)-SODE-COTON,Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,FALSE,"",""
+JO0147,AL-B_2015/AL-B_2016/Gateway_2015/Gateway_2016/Organo-F_2015/Organo-F_2016,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+JO0166,Vermicast/Guano ,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+JO0169,Unspecified ,Fert.Out,F.I.Unit,"Issue with units of inorganic or organic fertilizer, or practices selected.",Fert.Out,F.Unit,lookup_levels,FALSE,"",""
+JO0207,10TPC,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+JS0040.1,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+JS0040.1,Cattle Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+JS0248,cereal fetrtilizer,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+LM0108,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
+LM0165,Biochar/Manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+LM0176.3,High Manure/High Manure + 120N/Low Manure/Low Manure + 120N,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+NM0019,B0/B1/B2/B3/B4,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+NM0071,November/March,Fert.Method,F.Date,Non-numeric value in numeric field.,,,,FALSE,"",""
+NM0073,PM10/PM5/PM5+SM5/SM10/SM5,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+NM0073,PM5+SM5,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
+NM0084,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
+NM0109,Biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+NN0187,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+NN0423,M manure/S manure/T manure/V manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+NN0427,2002,Fert.Method,Time,A Time used does not match the Time tab.,,,,FALSE,"",""
 NN0427,"Escola Superior de Agricultura Luiz de Queiroz, University of Sao Paulo 
-",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,FALSE,,
-NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.DM.",,,,TRUE,Jabesh,
-NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,TRUE,Jabesh,
-NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,TRUE,Jabesh,
-NN0503,maize,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Working document
-NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Category.,,,,TRUE,Jabesh,Working document
-NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Type.,,,,TRUE,Jabesh,Working document
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,TRUE,Jabesh,
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,TRUE,Jabesh,
-SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,TRUE,Jabesh,
-SA0005,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-SA0035,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-SA0037,D9+NK+FYM,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-SA0040,RDF_R/RDF_R/RDF_R/RDF_R/RDF_R/IPNS_R/IPNS_R/IPNS_R/IPNS_R/IPNS_R/IPNS_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/OF_R/RDF_W/RDF_W/RDF_W/RDF_W/IPNS_W/IPNS_W/IPNS_W/IPNS_W/IPNS+BS_W/IPNS+BS_W/IPNS+BS_W/IPNS+BS_W,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-SA0046,"ICAR –Indian Agricultural Research Institute, Dehli",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,TRUE,Jabesh,
-SA0051,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.DM.",,,,TRUE,Jabesh,
-SA0051,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,TRUE,Jabesh,
-SA0052,1_50NPK/2_100NPK/3_150NPK/4_100NPK+HW/5_100NPK+Zn/6_100NP/7_100N/8_100NPK+FYM/9_100NPK(-S)/1_50NPKw/2_100NPKw/3_150NPKw/4_100NPK+HWw/5_100NPK+Znw/6_100NPw/7_100Nw/8_100NPK+FYMw/9_100NPK(-S)w,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-SP0019,0 N/60 N/120 N/180 N/240 N,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,TRUE,Jabesh,
-SP0047,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,TRUE,Jabesh,
+",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,FALSE,"",""
+NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.DM.",,,,FALSE,"",""
+NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TN.",,,,FALSE,"",""
+NN0429,Dairy liquid manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.TP.",,,,FALSE,"",""
+NN0503,maize,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Category.,,,,FALSE,"",""
+NN0503,maize,Fert.Method,F.Level.Name,Missing value in compulsory field F.Type.,,,,FALSE,"",""
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.N.",,,,FALSE,"",""
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.OC.",,,,FALSE,"",""
+SA0004,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.P.",,,,FALSE,"",""
+SA0005,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+SA0035,FYM,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+SA0037,D9+NK+FYM,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+SA0040,RDF_R/RDF_R/RDF_R/RDF_R/RDF_R/IPNS_R/IPNS_R/IPNS_R/IPNS_R/IPNS_R/IPNS_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/IPNS+C_R/OF_R/RDF_W/RDF_W/RDF_W/RDF_W/IPNS_W/IPNS_W/IPNS_W/IPNS_W/IPNS+BS_W/IPNS+BS_W/IPNS+BS_W/IPNS+BS_W,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+SA0051,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.DM.",,,,FALSE,"",""
+SA0051,Farmyard Manure,Fert.Comp,F.Type,"Amount is present, but unit is missing F.K.",,,,FALSE,"",""
+SA0052,1_50NPK/2_100NPK/3_150NPK/4_100NPK+HW/5_100NPK+Zn/6_100NP/7_100N/8_100NPK+FYM/9_100NPK(-S)/1_50NPKw/2_100NPKw/3_150NPKw/4_100NPK+HWw/5_100NPK+Znw/6_100NPw/7_100Nw/8_100NPK+FYMw/9_100NPK(-S)w,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
+SP0019,0 N/60 N/120 N/180 N/240 N,Fert.Method,F.Level.Name,"Amount is present, but unit is missing F.Unit.",,,,FALSE,"",""
