@@ -3425,7 +3425,7 @@ Weed.Out<-results$data
 
 harmonization_list<-error_tracker(errors=results$h_tasks,filename = "weed_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
 
-# 3.21) Base Practices (Base.Out) #####
+# 3.22) Base Practices (Base.Out) #####
 Base.Out<-list(
   Var.Out[V.Base=="Yes" & !is.na(V.Codes),c("B.Code","V.Codes")],
   AF.Out[AF.Level.Name=="Base" & !is.na(AF.Codes),c("B.Code","AF.Codes")],
@@ -3508,7 +3508,11 @@ errors2<-rbindlist(lapply(1:nrow(key_params),FUN=function(i){
   N<-!is.na(unlist(child[,..keyfield]))
   child<-child[N]
   
-  result<-check_key(parent = key_params[i,parent][[1]],
+  if(key_params[i,parent][[1]][,.N] != unique(key_params[i,parent][[1]])[,.N]){
+    cat("Warning: Potential non-unique values in key field for",keyfield, "in the",key_params[i,tabname_parent],"table \n")
+  }
+  
+  result<-check_key(parent = unique(key_params[i,parent][[1]]),
             child = child,
             tabname= key_params[i,tabname],
             tabname_parent= key_params[i,tabname_parent],
@@ -3548,343 +3552,343 @@ results<-harmonizer_wrap(data=MT.Out,
 
 harmonization_list<-error_tracker(errors=results$h_tasks,filename = "treatment_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
 
-# 4.1) ***!!!TO DO!!!*** - update residue codes ####
-# I assume the issue is that there is no match for the product and therefore no associated codes
-# Will need  to cross reference to Prod and trees tabs of master_codes
-unique(MT.Out[is.na(T.Residue.Code) & 
-         (!T.Residue.Prev %in% c("Burned","Grazed","Burned or Grazed","Removed","Unspecified","Other") & 
-            !is.na(T.Residue.Prev)),list(P.Product,T.Residue.Prev,T.Residue.Code)])
-
-if(F){
-
-  # Add codes for residues that are from Tree List rather than Product List
-  master_codes$trees
+  # 4.1) ***!!!TO DO!!!*** - update residue codes ####
+  # I assume the issue is that there is no match for the product and therefore no associated codes
+  # Will need  to cross reference to Prod and trees tabs of master_codes
+  unique(MT.Out[is.na(T.Residue.Code) & 
+           (!T.Residue.Prev %in% c("Burned","Grazed","Burned or Grazed","Removed","Unspecified","Other") & 
+              !is.na(T.Residue.Prev)),list(P.Product,T.Residue.Prev,T.Residue.Code)])
   
-    X<-MT.Out2[(!(T.Residue.Prev %in% c("Removed","Incorporated","Grazed","Burned","Unspecified","NA") | is.na(T.Residue.Prev))) & is.na(T.Residue.Code),
-  ][T.Comp %in% TreeCodes$Species,c("T.Comp","B.Code","N2","T.Residue.Prev")]
-  X<-cbind(X,TreeCodes[match(X$T.Comp, TreeCodes$Species)])
-  X[T.Residue.Prev=="Mulched (left on surface)",T.Residue.Code:=Mulched]
-  X[T.Residue.Prev=="Incorporated",T.Residue.Code:=Incorp]
-  X[T.Residue.Prev=="Retained (unknown if mulched/incorp.)",T.Residue.Code:=Unknown.Fate]
+  if(F){
   
-  MT.Out2[X$N2,T.Residue.Code:=X$T.Residue.Code]
-  
-  rm(X)
-}
-
-# 4.x) ***!!!MOVE TO COMPARISON LOGIC!!!***MT.Out: Correct Ridge & Furrow 
-# remove water harvesting code if ridge and furrow is a conventional tillage control
-if(F){
-  # Add row index
-  MT.Out[,N:=1:nrow(MT.Out)]
-  # Is only conventional tillage present in the experiment? (then ridge and furrow must be part of a water harvesting experiment)
-  TC.FUN<-function(X){
-    X<-unlist(X)
-    X<-X[!is.na(X)]
-    if(length(X)==0){
-      "NA"
-    }else{
-      paste(unique(X),collapse = "-")
-    }
+    # Add codes for residues that are from Tree List rather than Product List
+    master_codes$trees
+    
+      X<-MT.Out2[(!(T.Residue.Prev %in% c("Removed","Incorporated","Grazed","Burned","Unspecified","NA") | is.na(T.Residue.Prev))) & is.na(T.Residue.Code),
+    ][T.Comp %in% TreeCodes$Species,c("T.Comp","B.Code","N2","T.Residue.Prev")]
+    X<-cbind(X,TreeCodes[match(X$T.Comp, TreeCodes$Species)])
+    X[T.Residue.Prev=="Mulched (left on surface)",T.Residue.Code:=Mulched]
+    X[T.Residue.Prev=="Incorporated",T.Residue.Code:=Incorp]
+    X[T.Residue.Prev=="Retained (unknown if mulched/incorp.)",T.Residue.Code:=Unknown.Fate]
+    
+    MT.Out2[X$N2,T.Residue.Code:=X$T.Residue.Code]
+    
+    rm(X)
   }
   
-  # Which papers have ridge & furrow with conventional tillage where conventional tillage is not the only tillage practice present?
-  MT.Out[,Unique.TC:=paste(unique(Till.Codes[!is.na(Till.Codes)]),collapse="-"),by="B.Code"][,N:=1:.N]
-  
-  (X<-unique(MT.Out[(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & (Unique.TC != "h6"),c("WH.Level.Name","WH.Codes","B.Code","Unique.TC")]))
-  
-  MT.Out[(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & Unique.TC != "h6",WH.Codes:=gsub("-b71.2","",WH.Codes)
-  ][(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & Unique.TC != "h6",WH.Codes:=gsub("b71.2-","",WH.Codes)
-  ][(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & Unique.TC != "h6",WH.Codes:=gsub("-b71.2","",WH.Codes)
-  ][,N:=NULL][,Unique.TC:=NULL]
-  
-  # Correct WH.Out
-  WH.Out[B.Code %in% X$B.Code & WH.Level.Name %in% X$WH.Level.Name,WH.Codes:=gsub("-b71.2","",WH.Codes)
-  ][B.Code %in% X$B.Code & WH.Level.Name %in% X$WH.Level.Name,WH.Codes:=gsub("b71.2-","",WH.Codes)
-  ][B.Code %in% X$B.Code & WH.Level.Name %in% X$WH.Level.Name,WH.Codes:=gsub("b71.2","",WH.Codes)]
-  
-  rm(X)
-}
-
-# 4.4) ***!!!MOVE TO COMPARISON LOGIC!!!***: Update T.Codes ####
-if(F){
-T.Code.Fun<-function(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code){
-  X<- c(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code)
-  X<-X[!is.na(X)]
-  X<-paste(unique(X[order(X)]),collapse = "-")
-  return(X)
-}
-
-MT.Out[,N:=1:.N]
-MT.Out[,T.Codes:=T.Code.Fun(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code),by="N"]
-MT.Out[,N:=NULL]
-
-rm(T.Code.Fun)
-}
-
-# 4.5) ***!!!MOVE TO COMPARISON LOGIC!!!***: Combine Aggregated Treatments - SLOW CONSIDER PARALLEL ####
-if(F){
-# MAKE SURE FERT AND VAR delims are changed from ".." to something else in Till.Level.Name (MT.Out and all Fert/Variety tabs, Data.Out,Int.Out, Rot.Out, Rot.Seq)
-# GIVEN THE ABOVE, A BETTER APPROCH IS COMPILE TABLES IN R RATHER THAN COMPILING IN EXCEL THEN AMENDING THESE TABLES AFTER ERRPR CORRECTIONS
-N<-grep("[.][.]",MT.Out$T.Name)
-Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name",colnames(MT.Out))]),
-                   Codes =c("T.Residue.Code","AF.Codes","A.Codes",NA,"E.Codes","H.Codes","I.Codes","M.Codes","F.Codes","pH.Codes",NA,"PO.Codes","Till.Codes","V.Codes","WH.Codes",NA,NA,"F.Codes"))
-Fields<-Fields[!grepl("F.Level.Name",Levels)]
-# T.Name2 - uses "..." delim, T.Name retains original ".." delim 
-
-Fields<-rbind(Fields[Levels!="F.Level.Name"],data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
-
-MT.Out2<-rbindlist(pblapply(1:nrow(MT.Out),FUN=function(i){
-  
-  if(i %in% N){
-    
-    # Deal with ".." delim used in Fert tab and Varieties tab that matches ".." delim used to aggregate treatments in MT.Out tab
-    # Above should not be required anyone as Var delim changed to "$$" and combined fertilizers disaggregated.
-    
-    Trts<-MT.Out[i,c("T.Name","F.Level.Name","V.Level.Name")]  
-    F.N<-grep("[.][.]",Trts$F.Level.Name)
-    
-    if(length(F.N)>0){
-      for(j in F.N){
-        Trts$T.Name[F.N]<-gsub(Trts$F.Level.Name[F.N],gsub("[.][.]","---",Trts$F.Level.Name[F.N]),Trts$T.Name[F.N])
+  # 4.x) ***!!!MOVE TO COMPARISON LOGIC!!!***MT.Out: Correct Ridge & Furrow 
+  # remove water harvesting code if ridge and furrow is a conventional tillage control
+  if(F){
+    # Add row index
+    MT.Out[,N:=1:nrow(MT.Out)]
+    # Is only conventional tillage present in the experiment? (then ridge and furrow must be part of a water harvesting experiment)
+    TC.FUN<-function(X){
+      X<-unlist(X)
+      X<-X[!is.na(X)]
+      if(length(X)==0){
+        "NA"
+      }else{
+        paste(unique(X),collapse = "-")
       }
     }
     
-    V.N<-grep("[.][.]",Trts$V.Level.Name)
-    if(length(V.N)>0){
-      for(j in V.N){
-        Trts$T.Name[V.N]<-gsub(Trts$V.Level.Name[V.N],gsub("[.][.]","---",Trts$V.Level.Name[V.N]),Trts$T.Name[V.N])
+    # Which papers have ridge & furrow with conventional tillage where conventional tillage is not the only tillage practice present?
+    MT.Out[,Unique.TC:=paste(unique(Till.Codes[!is.na(Till.Codes)]),collapse="-"),by="B.Code"][,N:=1:.N]
+    
+    (X<-unique(MT.Out[(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & (Unique.TC != "h6"),c("WH.Level.Name","WH.Codes","B.Code","Unique.TC")]))
+    
+    MT.Out[(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & Unique.TC != "h6",WH.Codes:=gsub("-b71.2","",WH.Codes)
+    ][(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & Unique.TC != "h6",WH.Codes:=gsub("b71.2-","",WH.Codes)
+    ][(N %in% grep("b71.2",WH.Codes)) & ((N %in% grep("h6",Till.Codes))) & Unique.TC != "h6",WH.Codes:=gsub("-b71.2","",WH.Codes)
+    ][,N:=NULL][,Unique.TC:=NULL]
+    
+    # Correct WH.Out
+    WH.Out[B.Code %in% X$B.Code & WH.Level.Name %in% X$WH.Level.Name,WH.Codes:=gsub("-b71.2","",WH.Codes)
+    ][B.Code %in% X$B.Code & WH.Level.Name %in% X$WH.Level.Name,WH.Codes:=gsub("b71.2-","",WH.Codes)
+    ][B.Code %in% X$B.Code & WH.Level.Name %in% X$WH.Level.Name,WH.Codes:=gsub("b71.2","",WH.Codes)]
+    
+    rm(X)
+  }
+  
+  # 4.4) ***!!!MOVE TO COMPARISON LOGIC!!!***: Update T.Codes ####
+  if(F){
+  T.Code.Fun<-function(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code){
+    X<- c(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code)
+    X<-X[!is.na(X)]
+    X<-paste(unique(X[order(X)]),collapse = "-")
+    return(X)
+  }
+  
+  MT.Out[,N:=1:.N]
+  MT.Out[,T.Codes:=T.Code.Fun(AF.Codes,A.Codes,E.Codes,H.Codes,I.Codes,M.Codes,F.Codes,pH.Codes,PO.Codes,Till.Codes,V.Codes,WH.Codes,Weed.Code),by="N"]
+  MT.Out[,N:=NULL]
+  
+  rm(T.Code.Fun)
+  }
+  
+  # 4.5) ***!!!MOVE TO COMPARISON LOGIC!!!***: Combine Aggregated Treatments - SLOW CONSIDER PARALLEL ####
+  if(F){
+  # MAKE SURE FERT AND VAR delims are changed from ".." to something else in Till.Level.Name (MT.Out and all Fert/Variety tabs, Data.Out,Int.Out, Rot.Out, Rot.Seq)
+  # GIVEN THE ABOVE, A BETTER APPROCH IS COMPILE TABLES IN R RATHER THAN COMPILING IN EXCEL THEN AMENDING THESE TABLES AFTER ERRPR CORRECTIONS
+  N<-grep("[.][.]",MT.Out$T.Name)
+  Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name",colnames(MT.Out))]),
+                     Codes =c("T.Residue.Code","AF.Codes","A.Codes",NA,"E.Codes","H.Codes","I.Codes","M.Codes","F.Codes","pH.Codes",NA,"PO.Codes","Till.Codes","V.Codes","WH.Codes",NA,NA,"F.Codes"))
+  Fields<-Fields[!grepl("F.Level.Name",Levels)]
+  # T.Name2 - uses "..." delim, T.Name retains original ".." delim 
+  
+  Fields<-rbind(Fields[Levels!="F.Level.Name"],data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
+  
+  MT.Out2<-rbindlist(pblapply(1:nrow(MT.Out),FUN=function(i){
+    
+    if(i %in% N){
+      
+      # Deal with ".." delim used in Fert tab and Varieties tab that matches ".." delim used to aggregate treatments in MT.Out tab
+      # Above should not be required anyone as Var delim changed to "$$" and combined fertilizers disaggregated.
+      
+      Trts<-MT.Out[i,c("T.Name","F.Level.Name","V.Level.Name")]  
+      F.N<-grep("[.][.]",Trts$F.Level.Name)
+      
+      if(length(F.N)>0){
+        for(j in F.N){
+          Trts$T.Name[F.N]<-gsub(Trts$F.Level.Name[F.N],gsub("[.][.]","---",Trts$F.Level.Name[F.N]),Trts$T.Name[F.N])
+        }
       }
-    }
-    
-    Trts<-unlist(strsplit(Trts$T.Name,"[.][.]")) 
-    
-    Trts2<-Trts
-    Trts<-gsub("---","..",Trts)
-    Study<-MT.Out[i,B.Code]
-    
-    Y<-MT.Out[T.Name %in% Trts & B.Code == Study]
-    
-    # Aggregated Treatments: Split T.Codes & Level.Names into those that are the same and those that differ between treatments
-    # This might need some more nuance for fertilizer treatments?
-    Fields1<-Fields
-    
-    # Exclude Other, Chemical, Weeding or Planting Practice Levels if they do no structure outcomes.
-    Exclude<-c("O.Level.Name","P.Level.Name","C.Level.Name","W.Level.Name")[apply(Y[,c("O.Structure","P.Structure","C.Structure","W.Structure")],2,unique)!="Yes" | is.na(apply(Y[,c("O.Structure","P.Structure","C.Structure","W.Structure")],2,unique))]
-    Fields1<-Fields1[!Levels %in% Exclude]
-    
-    
-    # Exception for residues from experimental crop (but not M.Level.Name as long as multiple products present
-    # All residues set the the same code (removing N.fix/Non-N.Fix issue)
-    # Fate labels should not require changing
-    if(length(unique(Y$T.Comp))>1){
-      Y[grep("b41",T.Residue.Code),T.Residue.Code:="b41"]
-      Y[grep("b40",T.Residue.Code),T.Residue.Code:="b40"]
-      Y[grep("b27",T.Residue.Code),T.Residue.Code:="b27"]
-      Y[T.Residue.Code %in% c("a16","a17"),T.Residue.Code:="a15"]
-      Y[T.Residue.Code %in% c("a16.1","a17.1"),T.Residue.Code:="a15.1"]
-      Y[T.Residue.Code %in% c("a16.2","a17.2"),T.Residue.Code:="a15.2"]
-    }
-    
-    
-    COLS<-Fields1$Levels
-    Levels<-apply(Y[,..COLS],2,FUN=function(X){
-      X[as.vector(is.na(X))]<-""
-      length(unique(X))>1
-    })
-    
-    Agg.Levels<-paste0(COLS[Levels],collapse = "-")
-    
-    COLS<-COLS[Levels]
-    
-    Agg.Levels2<-paste(apply(Y[,..COLS],1,FUN=function(X){
-      X[as.vector(is.na(X))]<-"NA"
-      paste(X,collapse="---")
-    }),collapse="...")
-    
-    if("F.Level.Name" %in% COLS){
       
-      COLS2<-gsub("F.Level.Name","F.Level.Name2",COLS)
+      V.N<-grep("[.][.]",Trts$V.Level.Name)
+      if(length(V.N)>0){
+        for(j in V.N){
+          Trts$T.Name[V.N]<-gsub(Trts$V.Level.Name[V.N],gsub("[.][.]","---",Trts$V.Level.Name[V.N]),Trts$T.Name[V.N])
+        }
+      }
       
-      Agg.Levels3<-paste(apply(Y[,..COLS2],1,FUN=function(X){
+      Trts<-unlist(strsplit(Trts$T.Name,"[.][.]")) 
+      
+      Trts2<-Trts
+      Trts<-gsub("---","..",Trts)
+      Study<-MT.Out[i,B.Code]
+      
+      Y<-MT.Out[T.Name %in% Trts & B.Code == Study]
+      
+      # Aggregated Treatments: Split T.Codes & Level.Names into those that are the same and those that differ between treatments
+      # This might need some more nuance for fertilizer treatments?
+      Fields1<-Fields
+      
+      # Exclude Other, Chemical, Weeding or Planting Practice Levels if they do no structure outcomes.
+      Exclude<-c("O.Level.Name","P.Level.Name","C.Level.Name","W.Level.Name")[apply(Y[,c("O.Structure","P.Structure","C.Structure","W.Structure")],2,unique)!="Yes" | is.na(apply(Y[,c("O.Structure","P.Structure","C.Structure","W.Structure")],2,unique))]
+      Fields1<-Fields1[!Levels %in% Exclude]
+      
+      
+      # Exception for residues from experimental crop (but not M.Level.Name as long as multiple products present
+      # All residues set the the same code (removing N.fix/Non-N.Fix issue)
+      # Fate labels should not require changing
+      if(length(unique(Y$T.Comp))>1){
+        Y[grep("b41",T.Residue.Code),T.Residue.Code:="b41"]
+        Y[grep("b40",T.Residue.Code),T.Residue.Code:="b40"]
+        Y[grep("b27",T.Residue.Code),T.Residue.Code:="b27"]
+        Y[T.Residue.Code %in% c("a16","a17"),T.Residue.Code:="a15"]
+        Y[T.Residue.Code %in% c("a16.1","a17.1"),T.Residue.Code:="a15.1"]
+        Y[T.Residue.Code %in% c("a16.2","a17.2"),T.Residue.Code:="a15.2"]
+      }
+      
+      
+      COLS<-Fields1$Levels
+      Levels<-apply(Y[,..COLS],2,FUN=function(X){
+        X[as.vector(is.na(X))]<-""
+        length(unique(X))>1
+      })
+      
+      Agg.Levels<-paste0(COLS[Levels],collapse = "-")
+      
+      COLS<-COLS[Levels]
+      
+      Agg.Levels2<-paste(apply(Y[,..COLS],1,FUN=function(X){
         X[as.vector(is.na(X))]<-"NA"
         paste(X,collapse="---")
       }),collapse="...")
       
-    }else{
-      Agg.Levels3<-Agg.Levels2
-    }
-    
-    CODES.IN<-Fields1$Codes[Levels]
-    CODES.IN<-CODES.IN[!is.na(CODES.IN)]
-    CODES.IN<-apply(Y[,..CODES.IN],1,FUN=function(X){
-      X<-X[!is.na(X)]
-      X<-X[order(X)]
-      if(length(X)==0){"NA"}else{paste(X,collapse="-")}
-    })
-    
-    CODES.OUT<-Fields1$Codes[!Levels]
-    CODES.OUT<-CODES.OUT[!is.na(CODES.OUT)]
-    CODES.OUT<-apply(Y[,..CODES.OUT],2,FUN=function(X){
-      X<-unlist(X)
-      X<-unique(X[!is.na(X)]) 
-      X<-X[order(X)]
-      if(length(X)>1){ # these codes cannot vary
-        "ERROR"
+      if("F.Level.Name" %in% COLS){
+        
+        COLS2<-gsub("F.Level.Name","F.Level.Name2",COLS)
+        
+        Agg.Levels3<-paste(apply(Y[,..COLS2],1,FUN=function(X){
+          X[as.vector(is.na(X))]<-"NA"
+          paste(X,collapse="---")
+        }),collapse="...")
+        
       }else{
-        if(length(X)==0){
-          NA
-        }else{
-          if(X==""){NA}else{X}
-        }
-      }}) 
-    CODES.OUT<-CODES.OUT[!is.na(CODES.OUT)]
-    
-    if(length(CODES.OUT)==0){CODES.OUT<-NA}else{CODES.OUT<-paste(CODES.OUT[order(CODES.OUT)],collapse="-")}
-    if(length(CODES.IN)==0){CODES.IN<-NA}else{
-      CODES.IN<-CODES.IN[order(CODES.IN)]
-      CODES.IN<-paste0(CODES.IN,collapse="...")
-    }
-    
-    # Collapse into a single row using "..." delim to indicate a treatment aggregation
-    Y<-apply(Y,2,FUN=function(X){
-      X<-unlist(X)
-      Z<-unique(X)
-      if(length(Z)==1 | length(Z)==0){
-        if(Z=="NA" | is.na(Z) | length(Z)==0){
-          NA
-        }else{
-          Z
-        }
-      }else{
-        X<-paste0(X,collapse = "...")
-        if(X=="NA"){
-          NA
-        }else{
-          X
-        }
+        Agg.Levels3<-Agg.Levels2
       }
-    })
-    
-    Y<-data.table(t(data.frame(list(Y))))
-    row.names(Y)<-1
-    
-    
-    # Do not combine the Treatment names, keep this consistent with Enter.Data tab
-    Y$T.Name2<-Y$T.Name
-    Y$T.Name<-MT.Out[i,T.Name]
-    Y$T.Agg.Levels<-Agg.Levels
-    Y$T.Agg.Levels2<-Agg.Levels2
-    Y$T.Agg.Levels3<-Agg.Levels3
-    Y$T.Codes.No.Agg<-CODES.OUT
-    Y$T.Codes.Agg<-CODES.IN
-    Y
-  }else{
-    Y<-MT.Out[i]
-    Y$T.Name2<-Y$T.Name
-    Y$T.Agg.Levels<-NA
-    Y$T.Agg.Levels2<-NA
-    Y$T.Agg.Levels3<-NA
-    Y$T.Codes.No.Agg<-NA
-    Y$T.Codes.Agg<-NA
-    Y
-  }
-  
-}))
-
-# Reset N
-MT.Out2[,N2:=1:nrow(MT.Out2)]
-
-# Check for missing values in B.Codes - table should have 0 rows
-unique(MT.Out2[B.Code==""]) 
-unique(MT.Out[B.Code==""])
-
-# Check for any remaining "aggregated" codes - table should have 0 rows
-unique(MT.Out2[grep("Aggregated",MT.Out2$T.Codes),"B.Code"])
-
-# Validate aggregated practices
-#write.table(MT.Out2[grep("[.][.]",T.Name),c("B.Code","T.Name2","T.Agg.Levels","T.Agg.Levels2","T.Codes.No.Agg","T.Codes.Agg","N2")],"clipboard-256000",row.names=F,sep="\t")
-#View(MT.Out2[grep("[.][.]",T.Name),c("B.Code","T.Name2","T.Agg.Levels","T.Agg.Levels2","T.Codes.No.Agg","T.Codes.Agg","N2")])
-
-# MT.Out2: Update final treatment codes (T.Codes) for aggregrated treatments
-MT.Out2[grep("[.][.][.]",T.Name2),T.Codes:=T.Codes.No.Agg]
-}
-
-# 4.6) ***!!!MOVE TO COMPARISON LOGIC!!!***: Deal with aggregated products  #####
-if(F){
-X<-unlist(pblapply(1:nrow(MT.Out2),FUN=function(i){
-  Fate<-unlist(strsplit(MT.Out2$T.Residue.Prev[i],"[.][.][.]"))
-  Y<-unlist(strsplit(MT.Out2$T.Comp[i],"[.][.][.]"))
-  Y<-lapply(Y,strsplit,"[.][.]")
-  if(length(Y)==1 & length(Fate)>1){
-    Y<-rep(Y,length(Fate))
-  }
-  
-  Y<-lapply(1:length(Y),FUN=function(j){
-    Z<-unlist(Y[[j]])
-    if(!is.na(Fate[j]) & Fate[j] == "Retained (unknown if mulched/incorp.)"){
-      A<-EUCodes$Unknown.Fate[match(Z,EUCodes$Product.Simple)]
-      B<-TreeCodes$Unknown.Fate[match(Z,TreeCodes$Species)]
-    }else{
       
-      if(!is.na(Fate[j]) & Fate[j] == "Mulched (left on surface)"){
-        A<-EUCodes$Mulched[match(Z,EUCodes$Product.Simple)]
-        B<-TreeCodes$Mulched[match(Z,TreeCodes$Species)]
+      CODES.IN<-Fields1$Codes[Levels]
+      CODES.IN<-CODES.IN[!is.na(CODES.IN)]
+      CODES.IN<-apply(Y[,..CODES.IN],1,FUN=function(X){
+        X<-X[!is.na(X)]
+        X<-X[order(X)]
+        if(length(X)==0){"NA"}else{paste(X,collapse="-")}
+      })
+      
+      CODES.OUT<-Fields1$Codes[!Levels]
+      CODES.OUT<-CODES.OUT[!is.na(CODES.OUT)]
+      CODES.OUT<-apply(Y[,..CODES.OUT],2,FUN=function(X){
+        X<-unlist(X)
+        X<-unique(X[!is.na(X)]) 
+        X<-X[order(X)]
+        if(length(X)>1){ # these codes cannot vary
+          "ERROR"
+        }else{
+          if(length(X)==0){
+            NA
+          }else{
+            if(X==""){NA}else{X}
+          }
+        }}) 
+      CODES.OUT<-CODES.OUT[!is.na(CODES.OUT)]
+      
+      if(length(CODES.OUT)==0){CODES.OUT<-NA}else{CODES.OUT<-paste(CODES.OUT[order(CODES.OUT)],collapse="-")}
+      if(length(CODES.IN)==0){CODES.IN<-NA}else{
+        CODES.IN<-CODES.IN[order(CODES.IN)]
+        CODES.IN<-paste0(CODES.IN,collapse="...")
+      }
+      
+      # Collapse into a single row using "..." delim to indicate a treatment aggregation
+      Y<-apply(Y,2,FUN=function(X){
+        X<-unlist(X)
+        Z<-unique(X)
+        if(length(Z)==1 | length(Z)==0){
+          if(Z=="NA" | is.na(Z) | length(Z)==0){
+            NA
+          }else{
+            Z
+          }
+        }else{
+          X<-paste0(X,collapse = "...")
+          if(X=="NA"){
+            NA
+          }else{
+            X
+          }
+        }
+      })
+      
+      Y<-data.table(t(data.frame(list(Y))))
+      row.names(Y)<-1
+      
+      
+      # Do not combine the Treatment names, keep this consistent with Enter.Data tab
+      Y$T.Name2<-Y$T.Name
+      Y$T.Name<-MT.Out[i,T.Name]
+      Y$T.Agg.Levels<-Agg.Levels
+      Y$T.Agg.Levels2<-Agg.Levels2
+      Y$T.Agg.Levels3<-Agg.Levels3
+      Y$T.Codes.No.Agg<-CODES.OUT
+      Y$T.Codes.Agg<-CODES.IN
+      Y
+    }else{
+      Y<-MT.Out[i]
+      Y$T.Name2<-Y$T.Name
+      Y$T.Agg.Levels<-NA
+      Y$T.Agg.Levels2<-NA
+      Y$T.Agg.Levels3<-NA
+      Y$T.Codes.No.Agg<-NA
+      Y$T.Codes.Agg<-NA
+      Y
+    }
+    
+  }))
+  
+  # Reset N
+  MT.Out2[,N2:=1:nrow(MT.Out2)]
+  
+  # Check for missing values in B.Codes - table should have 0 rows
+  unique(MT.Out2[B.Code==""]) 
+  unique(MT.Out[B.Code==""])
+  
+  # Check for any remaining "aggregated" codes - table should have 0 rows
+  unique(MT.Out2[grep("Aggregated",MT.Out2$T.Codes),"B.Code"])
+  
+  # Validate aggregated practices
+  #write.table(MT.Out2[grep("[.][.]",T.Name),c("B.Code","T.Name2","T.Agg.Levels","T.Agg.Levels2","T.Codes.No.Agg","T.Codes.Agg","N2")],"clipboard-256000",row.names=F,sep="\t")
+  #View(MT.Out2[grep("[.][.]",T.Name),c("B.Code","T.Name2","T.Agg.Levels","T.Agg.Levels2","T.Codes.No.Agg","T.Codes.Agg","N2")])
+  
+  # MT.Out2: Update final treatment codes (T.Codes) for aggregrated treatments
+  MT.Out2[grep("[.][.][.]",T.Name2),T.Codes:=T.Codes.No.Agg]
+  }
+  
+  # 4.6) ***!!!MOVE TO COMPARISON LOGIC!!!***: Deal with aggregated products  #####
+  if(F){
+  X<-unlist(pblapply(1:nrow(MT.Out2),FUN=function(i){
+    Fate<-unlist(strsplit(MT.Out2$T.Residue.Prev[i],"[.][.][.]"))
+    Y<-unlist(strsplit(MT.Out2$T.Comp[i],"[.][.][.]"))
+    Y<-lapply(Y,strsplit,"[.][.]")
+    if(length(Y)==1 & length(Fate)>1){
+      Y<-rep(Y,length(Fate))
+    }
+    
+    Y<-lapply(1:length(Y),FUN=function(j){
+      Z<-unlist(Y[[j]])
+      if(!is.na(Fate[j]) & Fate[j] == "Retained (unknown if mulched/incorp.)"){
+        A<-EUCodes$Unknown.Fate[match(Z,EUCodes$Product.Simple)]
+        B<-TreeCodes$Unknown.Fate[match(Z,TreeCodes$Species)]
       }else{
         
-        if(!is.na(Fate[j]) & Fate[j] == "Incorporated"){
-          A<-EUCodes$Incorp[match(Z,EUCodes$Product.Simple)]
-          B<-TreeCodes$Incorp[match(Z,TreeCodes$Species)]
+        if(!is.na(Fate[j]) & Fate[j] == "Mulched (left on surface)"){
+          A<-EUCodes$Mulched[match(Z,EUCodes$Product.Simple)]
+          B<-TreeCodes$Mulched[match(Z,TreeCodes$Species)]
         }else{
-          if(!is.na(Fate[j]) & any(Fate[j] %in% c("Removed","Grazed","Burned"))){
-            if(Fate[j]=="Removed"){A<-"h35"}
-            if(Fate[j]=="Grazed"){A<-"h39"}
-            if(Fate[j]=="Burned"){A<-"h36"}
-            B<-NA
-            
+          
+          if(!is.na(Fate[j]) & Fate[j] == "Incorporated"){
+            A<-EUCodes$Incorp[match(Z,EUCodes$Product.Simple)]
+            B<-TreeCodes$Incorp[match(Z,TreeCodes$Species)]
           }else{
-            A<-NA
-            B<-NA
-          }}}}
+            if(!is.na(Fate[j]) & any(Fate[j] %in% c("Removed","Grazed","Burned"))){
+              if(Fate[j]=="Removed"){A<-"h35"}
+              if(Fate[j]=="Grazed"){A<-"h39"}
+              if(Fate[j]=="Burned"){A<-"h36"}
+              B<-NA
+              
+            }else{
+              A<-NA
+              B<-NA
+            }}}}
+      
+      A<-apply(rbind(A,B),2,FUN=function(X){X[!is.na(X)]})
+      
+      if(length(unique(A))>1){
+        A[grep("b41",A)]<-"b41"
+        A[grep("b40",A)]<-"b40"
+        A[grep("b27",A)]<-"b27"
+        A[A %in% c("a16","a17")]<-"a15"
+        A[A %in% c("a16.1","a17.1")]<-"a15.1"
+        A[A %in% c("a16.2","a17.2")]<-"a15.2"
+      }
+      
+      
+      A<-paste0(unique(A[order(A)]),collapse = "-")
+      if(A %in% c("NA","")){NA}else{A}
+      
+    })
     
-    A<-apply(rbind(A,B),2,FUN=function(X){X[!is.na(X)]})
-    
-    if(length(unique(A))>1){
-      A[grep("b41",A)]<-"b41"
-      A[grep("b40",A)]<-"b40"
-      A[grep("b27",A)]<-"b27"
-      A[A %in% c("a16","a17")]<-"a15"
-      A[A %in% c("a16.1","a17.1")]<-"a15.1"
-      A[A %in% c("a16.2","a17.2")]<-"a15.2"
+    if(length(unique(Y))==1){
+      unique(Y)
+    }else{
+      paste(Y,collapse="...")
     }
-    
-    
-    A<-paste0(unique(A[order(A)]),collapse = "-")
-    if(A %in% c("NA","")){NA}else{A}
-    
-  })
+  }))
   
-  if(length(unique(Y))==1){
-    unique(Y)
-  }else{
-    paste(Y,collapse="...")
+  # T.Out2[,T.Residue.Code2:= X]
+  # MT.Out2[T.Residue.Code2=="NA",T.Residue.Code2:= NA]
+  # View(unique(MT.Out2[!(is.na(T.Residue.Code2) & is.na(T.Residue.Code)),c("T.Residue.Code","T.Residue.Code2","T.Comp")]))
+  
+  MT.Out2[,T.Residue.Code:= X]
+  MT.Out2[T.Residue.Code=="NA",T.Residue.Code:= NA]
+  
+  # Find missing values in T.Residue.Prev field (Need to have Rot.Out table in environment first)
+  # X<-unlist(unique(MT.Out2[!grep("[.][.][.]",T.Name2)][is.na(T.Residue.Prev),"B.Code"]))
+  # write.table(data.table(X[!(X %in% Rot.Out$B.Code | X %in% Int.Out$B.Code | X %in% Animals.Out$B.Code | X %in% PO.Out$B.Code | X %in% E.Out$B.Code)]),"clipboard",row.names = F,sep="\t")
+  
   }
-}))
-
-# T.Out2[,T.Residue.Code2:= X]
-# MT.Out2[T.Residue.Code2=="NA",T.Residue.Code2:= NA]
-# View(unique(MT.Out2[!(is.na(T.Residue.Code2) & is.na(T.Residue.Code)),c("T.Residue.Code","T.Residue.Code2","T.Comp")]))
-
-MT.Out2[,T.Residue.Code:= X]
-MT.Out2[T.Residue.Code=="NA",T.Residue.Code:= NA]
-
-# Find missing values in T.Residue.Prev field (Need to have Rot.Out table in environment first)
-# X<-unlist(unique(MT.Out2[!grep("[.][.][.]",T.Name2)][is.na(T.Residue.Prev),"B.Code"]))
-# write.table(data.table(X[!(X %in% Rot.Out$B.Code | X %in% Int.Out$B.Code | X %in% Animals.Out$B.Code | X %in% PO.Out$B.Code | X %in% E.Out$B.Code)]),"clipboard",row.names = F,sep="\t")
-
-}
-
-
+  
+  
 # 5) Intercropping  ####
 data<-lapply(XL,"[[","Int.Out")
 col_names<-colnames(data[[1]])
@@ -4416,7 +4420,6 @@ setnames(Rot.Seq,c("Time Period","Treatment","Fate Crop Residues The Previous Se
 
 errors1<-validator(data=Rot.Seq,
                    tabname="Rot.Seq",
-                   unique_cols = "R.Level.Name",
                    time_data=Times.Out)$errors
 
 
@@ -4790,7 +4793,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
       list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with rotation tab structure"))
     }else{
       X<-X[,..col_names2]
-      X<-X[!is.na( R.Level.Name)]
+      X<-X[!(is.na( R.Level.Name)|R.Level.Name %in% c("#N/A","NA"))]
       if(nrow(X)>0){
         X[,B.Code:=B.Code]
         list(data=X)
@@ -4806,6 +4809,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
   
   errors3<-validator(data=Rot.Out,
                      tabname="Rot.Out",
+                     unique_cols = "R.Level.Name",
                      compulsory_cols = c(R.Level.Name="R.Practice"),
                      time_data=Times.Out)$errors
   
@@ -4897,7 +4901,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
       }
       # ***!!!TO DO!!!*** R.All.Products
       # ***!!!TO DO!!!*** R.All.Structure
-    # 6.2.x) Update delimiters in R.T.Level.Names.All ######
+    # 6.2.x) ***!!!TO DO!!!*** Update delimiters in R.T.Level.Names.All ######
     # This should not be required 
   if(F){
      X<-Rot.Seq[,list(R.T.Level.Names.All2=paste0(`Rotation Component`,collapse="|||")),by=c("Rotation Treatment","B.Code")
@@ -4906,7 +4910,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
     Rot.Out[,R.ID:=paste(B.Code,R.Level.Name)]
     Rot.Out[,R.T.Level.Names.All2:=X$R.T.Level.Names.All2[match(Rot.Out$R.ID,X$R.ID)]]
   }
-    # 6.2.x) Generate T.Codes & Residue for System Outcomes ####
+    # 6.2.x) ***!!!TO DO!!!*** Generate T.Codes & Residue for System Outcomes ####
     if(F){
     # Set Threshold for a practice to be considered present in the sequence (proportion of phases recorded)
     Threshold<-0.5
@@ -4955,7 +4959,7 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
     Rot.Out[R.IN.Codes.Sys=="",R.IN.Codes.Sys:=NA]
     }
   
-    # 6.2.x) Add Practice Level Columns ######
+    # 6.2.x) ***!!!TO DO!!!*** Add Practice Level Columns ######
     if(F){
     #Levels<-Fields[!Levels %in% c("P.Level.Name","O.Level.Name","W.Level.Name","C.Level.Name","T.Residue.Prev"),Levels]
     
