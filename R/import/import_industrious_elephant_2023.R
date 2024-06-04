@@ -3,7 +3,21 @@
 
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
-pacman::p_load(data.table, readxl, future, future.apply,parallel,miceadds,pbapply,soiltexture,httr,stringr,rnaturalearth,rnaturalearthhires,sf,dplyr)
+pacman::p_load(data.table, 
+               readxl,
+               future, 
+               future.apply,
+               parallel,
+               miceadds,
+               pbapply,
+               soiltexture,
+               httr,
+               stringr,
+               rnaturalearth,
+               rnaturalearthhires,
+               sf,
+               dplyr,
+               progressr)
 # 0.1) Create functions ####
 
 waitifnot <- function(cond) {
@@ -29,6 +43,10 @@ error_tracker<-function(errors,filename,error_dir,error_list=NULL){
     if(file.exists(error_file)){
       error_tracking<-unique(fread(error_file))
       error_tracking[,addressed_by_whom:=as.character(addressed_by_whom)]
+      
+      if("value" %in% colnames(error_tracking)){
+        error_tracking[,value:=as.character(value)]
+      }
 
       if("notes" %in% colnames(error_tracking)){
         error_tracking[,notes:=as.character(notes)]
@@ -747,40 +765,52 @@ if(file_status){
   }
   
   # Set up parallel back-end
-  if (.Platform$OS.type == "windows") {
-    plan(multisession, workers = workers)
-  } else {
-    plan(multicore, workers = workers)
-  }
+  plan(multisession, workers = workers)
+
+  # Enable progressr
+  progressr::handlers(global = TRUE)
+  progressr::handlers("progress")
   
-  # Run future apply loop to read in data from each excel file in parallel
-  XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
-    File <- excel_files$filename[i]
-    era_code <- excel_files$era_code2[i]
-    save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+  # Wrap the parallel processing in a with_progress call
+  p<-with_progress({
+    # Define the progress bar
+    progress <- progressr::progressor(along = 1:nrow(excel_files))
     
-    if (update == TRUE || !file.exists(save_name)) {
-      X <- tryCatch({
-        lapply(SheetNames, FUN=function(SName){
-          cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
-          flush.console()
-          data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
-        })
-      }, error=function(e){
-        cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
-        return(NULL)  # Return NULL if there was an error
-      })
+    # Run future apply loop to read in data from each excel file in parallel
+    XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
       
-      if (!is.null(X)) {
-        names(X) <- SheetNames
-        X$file.info<-file.info(File)
-        save(X, file=save_name)
+      
+      File <- excel_files$filename[i]
+      era_code <- excel_files$era_code2[i]
+      save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+      
+      progress(sprintf("File %d/%d-%s", i, nrow(excel_files),basename(File)))
+      
+      
+      if (update == TRUE || !file.exists(save_name)) {
+        X <- tryCatch({
+          lapply(SheetNames, FUN=function(SName){
+            cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
+            flush.console()
+            data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
+          })
+        }, error=function(e){
+          cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+          return(NULL)  # Return NULL if there was an error
+        })
+        
+        if (!is.null(X)) {
+          names(X) <- SheetNames
+          X$file.info<-file.info(File)
+          save(X, file=save_name)
+        }
+      } else {
+        miceadds::load.Rdata(filename=save_name, objname="X")
       }
-    } else {
-      miceadds::load.Rdata(filename=save_name, objname="X")
-    }
+      
+      X
+    })
     
-    X
   })
   
   # Reset plan to default setting
