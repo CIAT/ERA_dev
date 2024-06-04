@@ -370,8 +370,7 @@ search_strings<-lapply(searches,FUN=function(x){
 
 searches<-data.table(terms=sapply(searches,paste,collapse="|"),search_name=s_names,string=unlist(search_strings))
 
-searches[,encoded_string:=URLencode(string)
-         ][,nchar:=nchar(encoded_string)]
+searches[,encoded_string:=URLencode(string)][,nchar:=nchar(encoded_string)]
 
 searches[,list(search_name,nchar)]
 
@@ -379,45 +378,52 @@ searches[,list(search_name,nchar)]
 openalex_dates_file<-file.path(search_data_dir,"openalex_search_dates.csv")
 
 if(file.exists(openalex_dates_file)){
-  search_dates<-fread(openalex_dates_file)
+  search_dates<-fread(openalex_dates_file)[,search_date:=as.Date(search_date)]
 }else{
-  search_dates<-data.table(search_name=as.character(NULL),full=as.logical(NULL),search_date=as.Date(NULL))
+  search_dates<-data.table(search_name=as.character(NULL),search_date=as.Date(NULL))
 }
+
+# Define the year constraints
+from_year <- "2018-01-01"
+to_year <- "2024-05-23"
 
 overwrite<-T
 full<-F
 
+
+if(full){
+  prefix<-"openalex"
+}else{
+  prefix<-"openalex_ta-only"
+}
+
 for(i in 1:nrow(searches)){
   search_code<-searches$search_name[i]
-  
-  if(full){
-    prefix<-"openalex_"
-  }else{
-    prefix<-"openalex_ta-only_"
-  }
 
-  save_file<-file.path(search_data_dir,paste0(prefix,search_code,".csv"))
+  save_file<-file.path(search_data_dir,paste0(prefix,"_",search_code,".csv"))
 
   cat(i,"-",save_file,"\n")
   
   if(!file.exists(save_file)|overwrite==T){
 
-  if(searches$nchar[i]>4000){
-    stop(paste0("String has ",searches$nchar[i]," characters. Max allowed is 4000?"))
-  }
-    
-    
   # Filters
   # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
   # https://docs.openalex.org/api-entities/works/filter-works
   
+    api_endpoint<-oa_query(entity="works",
+                           title_and_abstract.search=searches$string[i],
+                           from_publication_date=from_year,
+                           to_publication_date=to_year)
     
-  if(full){
-    api_endpoint <- paste0("https://api.openalex.org/works?filter=title_and_abstract.search:", searches$encoded_string[i])
-  }else{
-    # Filter title and abstract
-    api_endpoint <- paste0("https://api.openalex.org/works?filter=title_and_abstract.search:", searches$encoded_string[i], "&select=title,doi,publication_year")
-  }
+    if(!full){
+      api_endpoint<-paste0(api_endpoint,"&select=title,doi")
+    }
+    
+    if(nchar(api_endpoint)>4000){
+      stop(paste0("Encoded search string has ",nchar(api_endpoint)," characters. Max allowed is 4000?"))
+    }
+    
+    
   
   # How many hits do we have?
   cat("search =", search_code,"| search hits =",oa_request(query_url=api_endpoint,count_only=T)$count,"\n")
@@ -447,14 +453,12 @@ for(i in 1:nrow(searches)){
   fwrite(hits_tab,file=save_file)
   
   # Update dates
-  search_dates<-unique(rbind(search_dates,data.table(search_name=search_code,full=full,search_date=Sys.Date())))
+  search_dates<-search_dates[search_name != paste0(prefix,"_",search_code)]
+  search_dates<-unique(rbind(search_dates,data.table(search_name=paste0(prefix,"_",search_code),search_date=Sys.Date())))
   }
+  
+  fwrite(search_dates,file=openalex_dates_file)
 }
-
-search_dates<-data.table(search_name=searches$search_name,full=full,prefix=prefix,search_date=Sys.Date()-1)
-searches<-merge(searches,search_dates[,list(search_name,search_date)],all.x=T)
-
-fwrite(search_dates,file=openalex_dates_file)
 
 # 3) Merge searches ####
 
@@ -529,11 +533,11 @@ searches_all<-unique(rbindlist(list(searches,searches_merged),use.names = T))
 
 fwrite(searches_all,file.path(search_data_dir,"searches.csv"))
 
-# 4) Alternative approach using author location to geographical filter research 
+# 4) Alternative approach using author institution location to geographical filter research 
 searches<-list(
   paste0("l",c(1:2,4:5)),
   paste0("l",c(1:2,4)),
-  #paste0("l",1:2),
+  paste0("l",1:2),
   #paste0("l",c(1.1,2,4:5)),
   #paste0("l",c(1.1,2,4)),
  # paste0("l",c(1.1,2)),
@@ -543,13 +547,13 @@ searches<-list(
   
   paste0("l",c(1,2.2,4:5)),
   paste0("l",c(1,2.2,4)),
-  #paste0("l",c(1,2.2)),
+  paste0("l",c(1,2.2)),
   #paste0("l",c(1.1,2.2,4:5)),
   #paste0("l",c(1.1,2.2,4)),
  # paste0("l",c(1.1,2.2)),
   paste0("l",c(1.2,2.2,4:5)),
-  paste0("l",c(1.2,2.2,4))
-  #paste0("l",c(1.2,2.2))
+  paste0("l",c(1.2,2.2,4)),
+  paste0("l",c(1.2,2.2))
 )
 
 s_names<-sapply(searches,FUN=function(x){paste0(gsub("l","",unlist(x)),collapse="")})
@@ -560,15 +564,14 @@ search_strings<-lapply(searches,FUN=function(x){
 
 searches<-data.table(terms=sapply(searches,paste,collapse="|"),search_name=s_names,string=unlist(search_strings))
 
-searches[,encoded_string:=URLencode(string)
-][,nchar:=nchar(encoded_string)]
+searches[,encoded_string:=URLencode(string)][,nchar:=nchar(encoded_string)]
 
 openalex_dates_file<-file.path(search_data_dir,"openalex_search_dates.csv")
 
 if(file.exists(openalex_dates_file)){
-  search_dates<-fread(openalex_dates_file)
+  search_dates<-fread(openalex_dates_file)[,search_date:=as.Date(search_date)]
 }else{
-  search_dates<-data.table(search_name=as.character(NULL),full=as.logical(NULL),search_date=as.Date(NULL))
+  search_dates<-data.table(search_name=as.character(NULL),search_date=as.Date(NULL))
 }
 
 overwrite<-T
@@ -582,9 +585,8 @@ if(full){
 
 download<-T
 
-# Define the year constraints
-from_year <- "2018-01-01"
-to_year <- "2024-05-23"
+# List of African countries
+african_iso2_codes <- data.table(countrycode::codelist)[continent == "Africa",iso2c]
 
 for(i in 1:nrow(searches)){
   search_code<-searches$search_name[i]
@@ -595,23 +597,26 @@ for(i in 1:nrow(searches)){
   
   if(!file.exists(save_file)|overwrite==T){
     
-    if(searches$nchar[i]>4000){
-      stop(paste0("String has ",searches$nchar[i]," characters. Max allowed is 4000?"))
-    }
-    
-    
+
     # Filters
     # https://docs.openalex.org/how-to-use-the-api/get-lists-of-entities/filter-entity-lists
     # https://docs.openalex.org/api-entities/works/filter-works
     
     api_endpoint<-oa_query(entity="works",
                            title_and_abstract.search=searches$string[i],
+                           #authorships.countries = african_iso2_codes,
+                           authorships.institutions.continent="africa",
                            from_publication_date=from_year,
                            to_publication_date=to_year)
     
     if(!full){
       api_endpoint<-paste0(api_endpoint,"&select=title,doi")
-      }
+    }
+    
+    if(nchar(api_endpoint)>4000){
+      stop(paste0("Encoded search string has ",nchar(api_endpoint)," characters. Max allowed is 4000?"))
+    }
+    
     
     # How many hits do we have?
     n_hits<-oa_request(query_url=api_endpoint,count_only=T)$count
@@ -649,16 +654,16 @@ for(i in 1:nrow(searches)){
       fwrite(hits_tab,file=save_file)
       
       # Update dates
-      search_dates<-unique(rbind(search_dates,data.table(search_name=search_code,full=full,search_date=Sys.Date())))
+      search_dates<-unique(rbind(search_dates,data.table(search_name=paste0(prefix,"_",search_code),search_date=Sys.Date())))
     }else{
       n_hits_tab
     }
   }
+  fwrite(search_dates,file=openalex_dates_file)
 }
 
-search_dates<-data.table(search_name=searches$search_name,full=full,prefix=prefix,search_date=Sys.Date()-1)
-searches<-merge(searches,search_dates[,list(search_name,search_date)],all.x=T)
-
-fwrite(search_dates,file=openalex_dates_file)
+searches_all<-rbind(searches_all,searches)
+fwrite(searches_all,file.path(search_data_dir,"searches.csv"))
 
 
+  
