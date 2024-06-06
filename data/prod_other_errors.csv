@@ -1,0 +1,67 @@
+value,B.Code,table,master_table,field,issue,issue_addressed,addressed_by_whom,notes
+Cash Crops/Avocado,JO0036,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Rejected
+Cash Crops/Cheeseman,JO0036,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Rejected
+Cereals/Finger millet,AC0029,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Cereals/Pearl millet,AC0029,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Cereals/Saia oats,LM0148/NN0184.1/NN0184.2/NN0184.3,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Variety requested
+Cereals/Teosinte,NN0511,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cereals/White Oats,NM0020,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Brachiaria brizantha,CJ0092,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Cover Crop/Calopo,NM0076,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Crotalaria ochroleuca,CJ0067,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Crotalaria sp.,CJ0114/NN0517,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Dolicos lab lab,JS0283,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Cover Crop/Jack bean,JO0018,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Cover Crop/Kelson’ medic,LM0148/NN0184.2,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Oilseed radish,JO0063,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Cover Crop/Parabinga’ medic,NN0184.1/NN0184.3,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Paraggio’ medic,LM0148/NN0184.1/NN0184.2/NN0184.3,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Pinto Peanut,NM0076,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/Sesbania sp.,AC0159,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Cover Crop/Urochloa ruziziensis,AC0161,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/grazing vetch,LM0148/NN0184.1/NN0184.2/NN0184.3,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/pink Seradella,LM0148/NN0184.1/NN0184.2/NN0184.3,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Cover Crop/subterranean clover,LM0148/NN0184.2,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Acacia saligna,CJ0007,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Fodders/Brachiaria         ,NM0064,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Fodders/Common vetch,AC0118/AC0126/AC0132/AC0147/AC0153/CJ0105,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Crotalaria paulina,NN0417,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Desmodium intortum,SP0003,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Opuntia stricta,AC0157,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Palisade grass,NN0435,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Pearl Millet,SP0033,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Fodders/Radish,CJ0102,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Rhode grass,NN0373,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Sunn hemp,JO0018,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Fodders/Tephrosia candinda,NN0417,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,Jabesh,Version 9 Excel lacks tree in the product section
+Fodders/Urochloa ruziziensis,AC0158/CJ0107,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Vetch,NM0020,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Vetch ,NM0045,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/Vetch  ,NM0075,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/palisade grass,NN0432,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/purple vetch,CJ0105,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fodders/red clover,NM0020,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Fruits/Grapes,LM0148/NN0184.1/NN0184.2/NN0184.3,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Legumes/Common bean,AC0034,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Legumes/Common vetch,JO0063,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Legumes/Green gram,JO0143,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Legumes/Haricot Bean,JO0078,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Legumes/Haricot bean,JO0094,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Legumes/Lima bean,JO0196,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Legumes/Mucuna jaspeada,NM0065,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Preta is the common name while jaspeada is the scientific name but here they are two
+Legumes/Mucuna preta,NM0065,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,Jabesh,
+Legumes/Pigeon pea,AC0029/AC0004/AC0008,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,
+Legumes/Tropical Kudzu or Puero,JO0139,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Oilseeds and Oils/Ethiopian Mustard ,NN0424,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Starchy Staples/Plantain,JO0163,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Tree/Benth,AC0108,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Rejected
+Tree/Crotalaria pawlonia,NN0555,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,The name is not correct
+Tree/Dhaincha,SA0017/SA0059.1/SA0060,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
+Tree/Inga,AC0076,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
+Tree/Inga edulis..Cordia alliodora..Juglans steyermarkii..Quercus constaricensis,SP0022,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,
+Tree/Inga submuda,AC0130,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
+Tree/Macauba,JO0020,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
+Tree/Teak,JO0183,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
+Tree/Unspecified,AC0039,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,Unspecified tree
+Vegetables/Nightshade,JO0140,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Vegetables/Yacon,JO0067,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
