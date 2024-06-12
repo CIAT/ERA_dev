@@ -1,106 +1,106 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-AC0017,pit,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-AC0036,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-AC0089,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-AC0093,basin,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-AC0108,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-AC0138,LT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-AC0152,Planting Basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-AC0170,Zai pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0029,PB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0077,RT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0088,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0093,S,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0096,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0116,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0166,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0187,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0188,120n_60pk,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0188,60n,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-CJ0188,B,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-DM0004,Grass strips,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-DM0025,CT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-HK0161.2,Zaria,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-HK0209,Maize,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-HK0261,Maize,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-HK0268,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0007,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0015.2,CA- Basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0015.2,Conv-Ridges and Furrows,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0021,Coffee-Ridge-Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0025,PPB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0048,RFMB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0048,RFMG,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0048,RFMT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0057,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0088,Infiltration Pits (Ips),WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0088,Standard Contour (SC),WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0088,Tied Contour (TC),WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0106,Zai Pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0108,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0145,IP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0145,SC,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0145,TC,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0157,SB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0157,SBS,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0157,StnB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JO0188,furrows,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0041,Tied ridge,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0216,RT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0260,CTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0260,CTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0260,OTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0260,OTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0278,CTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0278,CTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0278,OTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-JS0278,OTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-LM0075.1,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-LM0075.2,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0018,HM,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0018,PPB20,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0018,PPB30,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0032,Open Ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0032,Tied Ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0042,CF,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0083,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0096,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0116,Lowland field,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0120,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0124,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NM0130,Bunding and levelling,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0003,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0241,Maize,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0452,CA basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0454,Tied ridge,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0468,SGS,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0477,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0478,Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0479,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0483,Tied Ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0489,IP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0489,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0491,Countour bunds,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0496,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0504,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0509,Tied ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0509,Zai pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0526,RF,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0528,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0528,contours + infiltration pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0528,contours + innovations,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0529,20 cm deep basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0529,30 cm deep basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0529,half moons,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0542,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0547,fanya juu,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0547,soil bund,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0547,soil bunds + vegetation,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0548,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0550,CB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0550,zai,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0552,ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-NN0558,PB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-SP0001,Planting Basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-SP0046,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-SP0048,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
+AC0017,pit,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+AC0036,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+AC0089,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+AC0093,basin,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+AC0108,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+AC0138,LT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+,Planting Basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+AC0170,Zai pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0029,PB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0077,RT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,I transferred to a new excel
+CJ0088,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0093,S,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0096,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0116,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0166,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0187,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0188,120n_60pk,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0188,60n,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+CJ0188,B,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+DM0004,Grass strips,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+DM0025,CT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+HK0161.2,Zaria,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+HK0209,Maize,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+HK0261,Maize,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+HK0268,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0007,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0015.2,CA- Basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0015.2,Conv-Ridges and Furrows,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0021,Coffee-Ridge-Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0025,PPB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0048,RFMB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0048,RFMG,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0048,RFMT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0057,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0088,Infiltration Pits (Ips),WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0088,Standard Contour (SC),WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0088,Tied Contour (TC),WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0106,Zai Pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0108,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0145,IP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0145,SC,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0145,TC,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0157,SB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0157,SBS,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0157,StnB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JO0188,furrows,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0041,Tied ridge,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0216,RT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0260,CTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0260,CTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0260,OTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0260,OTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0278,CTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0278,CTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0278,OTR-IFP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+JS0278,OTR-ORP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+LM0075.1,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+LM0075.2,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0018,HM,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0018,PPB20,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0018,PPB30,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0032,Open Ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0032,Tied Ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0042,CF,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0083,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0096,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0116,Lowland field,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0120,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0124,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NM0130,Bunding and levelling,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0003,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0241,Maize,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0452,CA basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0454,Tied ridge,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0468,SGS,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0477,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0478,Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0479,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0483,Tied Ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0489,IP,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0489,TR,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0491,Countour bunds,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0496,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0504,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0509,Tied ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0509,Zai pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0526,RF,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0528,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0528,contours + infiltration pits,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0528,contours + innovations,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0529,20 cm deep basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0529,30 cm deep basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0529,half moons,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0542,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0547,fanya juu,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0547,soil bund,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0547,soil bunds + vegetation,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,
+NN0548,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
+NN0550,CB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
+NN0550,zai,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
+NN0552,ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
+NN0558,PB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
+SP0001,Planting Basins,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
+SP0046,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
+SP0048,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,,
