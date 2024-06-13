@@ -1,3 +1,3 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-DM0025,Wheat/Maize/Safflower,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,TRUE,Charity,""
-NM0131,Drought stress,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,TRUE,Charity,""
+DM0025,Wheat/Maize/Safflower,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,TRUE,Charity,"This is corrected"
+NM0131,Drought stress,Irrig.Codes,I.Level.Name,Missing value in compulsory field I.Method.,TRUE,Charity,"This is corrected"
