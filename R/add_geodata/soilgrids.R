@@ -57,7 +57,8 @@ fwrite(soil_files,file.path(era_dirs$era_geodata_dir,"soil_af_isda_metadata.csv"
 
 for(i in 1:nrow(soil_files)){
     geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir)
-}
+    geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir,error=T)
+  }
 
 # 3) Extract soil grids data for era buffers ####
 soil_file<-file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet")
@@ -65,6 +66,7 @@ isda_dir<-file.path(era_dirs$soilgrid_dir,"soil_af_isda")
 
 data<-terra::rast(list.files(isda_dir,".tif$",full.names = T))
 data_ex<- exactextractr::exact_extract(data, sf::st_as_sf(pbuf_g), fun = "mean", append_cols = c("Site.Key"))
+data_ex_median<- exactextractr::exact_extract(data, sf::st_as_sf(pbuf_g), fun = "median", append_cols = c("Site.Key"))
 
 
 

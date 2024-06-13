@@ -64,9 +64,9 @@ upload_files_to_s3 <- function(files,s3_file_names=NULL, folder=NULL, selected_b
 }
 
 # 1.1) Upload era master files to s3 #####
-# Inital set-up from old file system:
 s3_bucket<-era_dirs$era_masterdata_s3
 
+# Inital set-up from old file system:
 if(F){
   folder<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Compendium Master Database"
   
@@ -173,8 +173,10 @@ upload_files_to_s3(files = files,
 
 # 1.4) Upload environmental data ####
   # 1.4.1) Aspect, slope, elevation ######
-  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
   s3_bucket<-era_dirs$era_geodata_s3
+  
+  # Inital set-up from old file system:  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
+  if(F){
   files<- list.files(data_dir,".csv$",full.names = T)
   
   # Create parquet version
@@ -182,6 +184,9 @@ upload_files_to_s3(files = files,
   arrow::write_parquet(data,gsub(basename(files),"era_site_topography.parquet",files))
   
   files<- list.files(data_dir,full.names = T)
+  }else{
+    files<-file.path(era_dirs$era_geodata_dir,"era_site_topography.parquet")
+  }
   
   upload_files_to_s3(files = files,
                      selected_bucket=s3_bucket,
@@ -249,15 +254,21 @@ upload_files_to_s3(files = files,
                      mode="public-read")
 
   # 1.4.3) Soils ######
-  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Soils"
   s3_bucket<-era_dirs$era_geodata_s3
-  files<- list.files(data_dir,"19.csv$",full.names = T)
   
-  # Create parquet version
-  data<-data.table::fread(files)
-  arrow::write_parquet(data,gsub(basename(files),"era_site_soilgrids19.parquet",files))
+  # Inital set-up from old file system:  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
+  if(F){
+    data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Soils"
+    files<- list.files(data_dir,"19.csv$",full.names = T)
   
-  files<- list.files(data_dir,full.names = T)
+    # Create parquet version
+    data<-data.table::fread(files)
+    arrow::write_parquet(data,gsub(basename(files),"era_site_soilgrids19.parquet",files))
+    
+    files<- list.files(data_dir,full.names = T)
+  }else{
+    files<-list.files(era_dirs$era_geodata_dir,"soil_af_isda",full.names = T)
+  }
   
   upload_files_to_s3(files = files,
                      selected_bucket=s3_bucket,
