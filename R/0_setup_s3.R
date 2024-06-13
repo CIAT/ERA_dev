@@ -5,7 +5,7 @@ if (!require("pacman")) {
 }
 
 # Use p_load to install if not present and load the packages
-p_load(s3fs,zip)
+p_load(s3fs,zip,arrow,miceadds)
 
 
 # 0.2) Create function to upload files S3 bucket #####
@@ -63,35 +63,71 @@ upload_files_to_s3 <- function(files,s3_file_names=NULL, folder=NULL, selected_b
   }
 }
 
-# 0.3) Set s3 era directory ####
-era_s3<-"s3://digital-atlas/era"
+# 1.1) Upload era master files to s3 #####
+# Inital set-up from old file system:
+s3_bucket<-era_dirs$era_masterdata_s3
 
-if(length(s3fs::s3_dir_ls(era_s3))==0){
-  s3fs::s3_dir_create(era_s3)
+if(F){
+  folder<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Compendium Master Database"
+  
+  files<-list.files(folder,full.names = T)
+  files <- files[!file.info(files)$isdir]
+  files<-grep("csv$|RData$",files,value=T)
+  
+  # Get most recent versions of data
+  files1<-grep("V1.0",files,value=T)
+  files1<-grep(".csv",files1,value = T)
+  data<-fread(files1)
+  arrow::write_parquet(data,file.path(folder,paste0("era_data_",era_projects$v1.0_2018,".parquet")))
+  
+  files1<-grep("V1.1",files,value=T)
+  files1<-grep(".csv",files1,value = T)
+  data<-fread(files1)
+  arrow::write_parquet(data,file.path(folder,paste0("era_data_",era_projects$v1.1_2020,".parquet")))
+  
+  files1<-grep("V1.1 Tab",files,value=T)
+  files1new<-file.path(folder,paste0("era_data_",era_projects$v1.1_2020,"_full.RData"))
+  file.copy(files1,files1new,overwrite = T)
+  
+  files2<-grep("era_skinny",files,value=T)
+  files2<-grep(".RData",files2,value = T)
+  files2new<-file.path(folder,paste0("era_data_",era_projects$skinny_cow_2022,"_full.RData"))
+  file.copy(files2,files2new,overwrite=T)
+  
+  
+  folder1<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/ERA Current Version"
+  files<-list.files(folder1,full.names = T)
+  version<-names(read.delim(grep("Version.txt",files,value = T)))
+  files<-grep("Wide",files,value = T)
+  data<-data.table(miceadds::load.Rdata2(filename=basename(files),path=folder1))
+  files3new<-file.path(folder1,"era.compiled.parquet")
+  arrow::write_parquet(data,files3new)
+  
+  files<-c(list.files(folder,"parquet$",full.names = T),files1new,files2new,files3new)
 }
 
-
-# 1.1) Upload era master files to s3 #####
-folder<-"data"
-s3_bucket<-paste0(era_s3,"/",folder)
-
-files<-list.files(folder,full.names = T,recursive=T)
+# List files in new data structure
+files<-list.files(era_dirs$era_masterdata_dir,full.names = T)
 files <- files[!file.info(files)$isdir]
-files<-grep("csv$|RData$|zip$|xlsx$",files,value=T)
 
 upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
-                   overwrite=T,
+                   overwrite=F,
                    mode="public-read")
 
 # 1.2) Upload 2023 extraction files to s3 #####
 # where is the working folder for the ERA data extractions (internal team directory)
 folder_local<-"G:/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
 
+folder<-file.path(era_dirs$era_dataentry_dir,
+                  era_projects$industrious_elephant_2023,
+                  "excel_files")
+
 # this is the target folder on the S3 bucket and generalized structured file system
-folder<-"data_entry/industrious_elephant_2023/excel_files"
-s3_bucket<-paste0(era_s3,"/",folder)
+s3_bucket<-file.path(era_dirs$era_dataentry_s3,
+                     era_projects$industrious_elephant_2023,
+                     "excel_files")
 
 # List excel files to be zipped
 files<-list.files(folder_local,full.names = T,recursive=T)
@@ -113,8 +149,8 @@ upload_files_to_s3(files = output_zip_file,
 
 # 1.3) Upload livestock 2024 search to s3 #####
 folder<-"data_entry/data_entry_2024/search_history/livestock_2024"
-s3_bucket<-paste0(era_s3,"/",folder)
 
+s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$livestock_2024)
 
 files<-list.files(folder,full.names = T,recursive=T)
 files<-files[!grepl("zip$",files)]
@@ -134,3 +170,137 @@ upload_files_to_s3(files = files,
                    max_attempts = 3,
                    overwrite=T,
                    mode="public-read")
+
+# 1.4) Upload environmental data ####
+  # 1.4.1) Aspect, slope, elevation ######
+  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
+  s3_bucket<-era_dirs$era_geodata_s3
+  files<- list.files(data_dir,".csv$",full.names = T)
+  
+  # Create parquet version
+  data<-data.table::fread(files)
+  arrow::write_parquet(data,gsub(basename(files),"era_site_topography.parquet",files))
+  
+  files<- list.files(data_dir,full.names = T)
+  
+  upload_files_to_s3(files = files,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=T,
+                     mode="public-read")
+  
+  # 1.4.2) Climate ######
+  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Large Files"
+  s3_bucket<-era_dirs$era_geodata_s3
+  files<- list.files(data_dir,".RData$",full.names = T)
+  
+  files<-grep("CHIRPS|AgMERRA|ERA_SOS|POWER.CHIRPS|POWER",files,value=T)
+  
+  # CHIRPS
+  files1<-grep("CHIRPS.RData",files,value=T)
+  data<-data.table(miceadds::load.Rdata2(filename=basename(files1),path=data_dir))
+  num.cols<-c("Temp.Mean","Temp.Min","Temp.Max","Solar.Rad","WindSpeed","RH.Max","Rain")
+  data[, (num.cols) := lapply(.SD, round, digits = 1), .SDcols = num.cols]
+  data[,DayCount:=as.integer(DayCount)][,Buffer:=as.integer(Buffer)]
+  setnames(data,"Site.Key","Site.ID")
+  data<-data[order(Site.ID,Latitude,Longitude,Buffer,DayCount)]
+  arrow::write_parquet(data,gsub(".RData",".parquet",files1))
+  
+  # POWER
+  files1<-grep("POWER",files,value=T)
+  data<-data.table(miceadds::load.Rdata2(filename=basename(files1),path=data_dir))
+  num.cols<-c("SRad","Specific.Humid","Temp.Min","Temp.Mean","Temp.Max","WindSpeed","Humid","Pressure","Rain",'Pressure.Adjusted')
+  data[, (num.cols) := lapply(.SD, round, digits = 1), .SDcols = num.cols]
+  data[,Buffer:=as.integer(Buffer)][,Altitude:=as.integer(round(Altitude,0))]
+  data<-data[,list(Site.Key,Latitude,Longitude,Altitude,Buffer,NCells,DayCount,Year,Day,Date,Temp.Min,Temp.Mean,Temp.Max,Rain,Specific.Humid,Humid,
+             WindSpeed,Pressure,Pressure.Adjusted,SRad,ETo)]
+  data<-data[order(Site.Key,Latitude,Longitude,Buffer,Altitude,DayCount)]
+  arrow::write_parquet(data,gsub(".RData",".parquet",files1))
+  
+  # POWERCHIPS
+  files1<-grep("POWER.CHIRP",files,value=T)
+  data<-data.table(miceadds::load.Rdata2(filename=basename(files1),path=data_dir))
+  num.cols<-c("SRad","Specific.Humid","Temp.Min","Temp.Mean","Temp.Max","WindSpeed","Humid","Pressure","Rain",'Pressure.Adjusted')
+  data[, (num.cols) := lapply(.SD, round, digits = 1), .SDcols = num.cols]
+  data[,Buffer:=as.integer(Buffer)][,Altitude:=as.integer(round(Altitude,0))]
+  data<-data[,list(Site.Key,Latitude,Longitude,Altitude,Buffer,NCells,DayCount,Year,Day,Date,Temp.Min,Temp.Mean,Temp.Max,Rain,Specific.Humid,Humid,
+                   WindSpeed,Pressure,Pressure.Adjusted,SRad,ETo)]
+  data<-data[order(Site.Key,Latitude,Longitude,Buffer,Altitude,DayCount)]
+  arrow::write_parquet(data,gsub(".RData",".parquet",files1))
+  
+  # AgMERRA
+  files1<-grep("AgMERRA",files,value=T)
+  data<-data.table(miceadds::load.Rdata2(filename=basename(files1),path=data_dir))
+  num.cols<-c("Temp.Min","Temp.Mean","Temp.Max","Solar.Rad","WindSpeed","RH.Max","Rain")
+  data[, (num.cols) := lapply(.SD, round, digits = 1), .SDcols = num.cols]
+  data[,Buffer:=as.integer(Buffer)]
+  data<-data[order(Site.Key,Latitude,Longitude,Buffer,DayCount)]
+  arrow::write_parquet(data,gsub(".RData",".parquet",files1))
+  
+  # ERA_SOS
+  files1<-grep("ERA_SOS",files,value=T)
+  
+  files<- c(files1,list.files(data_dir,"parquet",full.names = T))
+  
+  upload_files_to_s3(files = files,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=T,
+                     mode="public-read")
+
+  # 1.4.3) Soils ######
+  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Soils"
+  s3_bucket<-era_dirs$era_geodata_s3
+  files<- list.files(data_dir,"19.csv$",full.names = T)
+  
+  # Create parquet version
+  data<-data.table::fread(files)
+  arrow::write_parquet(data,gsub(basename(files),"era_site_soilgrids19.parquet",files))
+  
+  files<- list.files(data_dir,full.names = T)
+  
+  upload_files_to_s3(files = files,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=T,
+                     mode="public-read")
+  
+  # 1.4.4) Other linked datasets  ######
+  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Other Linked Datasets"
+  s3_bucket<-era_dirs$era_geodata_s3
+  files<- list.files(data_dir,".csv$",full.names = T)
+  
+  # Select most recent data
+  dates<-as.Date(unlist(tstrsplit(basename(files)," ",keep=4)))
+  files<-files[!is.na(dates)]
+  dates<-dates[!is.na(dates)]
+  files<-files[which(dates==max(dates))]
+  
+  # Create parquet version
+  data<-data.table::fread(files)
+  arrow::write_parquet(data,gsub(basename(files),"era_site_others.parquet",files))
+  
+  files<- c(files,list.files(data_dir,".parquet",full.names = T))
+  
+  upload_files_to_s3(files = files,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=T,
+                     mode="public-read") 
+  
+  # 1.4.5) LULC  ######
+  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Landscape"
+  s3_bucket<-era_dirs$era_geodata_s3
+  files<- list.files(data_dir,".csv$",full.names = T)
+  
+  # Create parquet version
+  data<-data.table::fread(files)
+  file<-gsub(basename(files),"era_site_landcover.parquet",files)
+  arrow::write_parquet(data,file)
+  
+  upload_files_to_s3(files = file,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=T,
+                     mode="public-read") 
+  
