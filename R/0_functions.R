@@ -15,6 +15,9 @@
 #' @return A data.table with processed power data.
 #' @examples
 #' \dontrun{
+#' 
+#' See https://github.com/CIAT/ERA_dev/blob/main/R/add_geodata/power.R
+#' 
 #' files <- list.files(path = "path/to/csv/files", full.names = TRUE)
 #'   parameters<-c(
 #'   SRad="ALLSKY_SFC_SW_DWN", # Insolation Incident on a Horizontal Surface - MJ/m^2/day
@@ -131,6 +134,7 @@ process_power <- function(files,
 #' @return None. This function saves the downloaded data as CSV files in the specified directory.
 #' @examples
 #' \dontrun{
+#' See https://github.com/CIAT/ERA_dev/blob/main/R/add_geodata/power.R
 #' era_locations<-unique(ERAg::ERA.Compiled[,list(Site.Key,Latitude,Longitude,Buffer)])
 #' pbuf_g<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=F)
 #'
