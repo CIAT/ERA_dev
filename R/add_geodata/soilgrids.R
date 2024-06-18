@@ -3,31 +3,8 @@
 
 # 0) Set-up workspace ####
 # 0.1) Load packages and create functions #####
-packages<-c("terra","sf","data.table","geodata","exact_extract")
+packages<-c("terra","sf","data.table","geodata","exactextractr")
 p_load(char=packages)
-
-get_soil_grids <- function(vector_box, variable, depth) {
-  base_url <- "https://maps.isric.org/mapserv?map=/map/soilgrids_global_250m.map&SERVICE=WCS&VERSION=2.0.1&REQUEST=GetCoverage"
-  
-  bbox <- ext(vector_box)
-  params <- list(
-    FORMAT = "image/tiff",
-    COVERAGEID = paste(variable, depth, sep = "_"),
-    SUBSET = c(paste0("x(", bbox[1], ",", bbox[2], ")"), paste0("y(", bbox[3], ",", bbox[4], ")"))
-  )
-  
-  response <- GET(base_url, query = params)
-  
-  if (response$status_code == 200) {
-    temp_file <- tempfile(fileext = ".tif")
-    writeBin(content(response, "raw"), temp_file)
-    soil_data <- rast(temp_file)
-    crs(soil_data) <- crs(vector_box)
-    return(soil_data)
-  } else {
-    stop("Failed to download soil grids data.")
-  }
-}
 
 # 1) Prepare ERA data ####
 SS<-era_locations[Buffer<50000]
@@ -61,12 +38,42 @@ for(i in 1:nrow(soil_files)){
   }
 
 # 3) Extract soil grids data for era buffers ####
+overwrite<-F # Re-extract all data that exists for era sites?
 soil_file<-file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet")
 isda_dir<-file.path(era_dirs$soilgrid_dir,"soil_af_isda")
 
+# Filter out sites for which data have already been extracted
+if(file.exists(soil_file) & overwrite==F){
+  existing_data<-arrow::read_parquet(soil_file)
+  pbuf_g<-pbuf_g[!pbuf_g$Site.Key %in% existing_data[,unique(Site.Key)]]
+}
+
+# Stack all the rasters in the soil directory and fast extract data by era site buffers
 data<-terra::rast(list.files(isda_dir,".tif$",full.names = T))
 data_ex<- exactextractr::exact_extract(data, sf::st_as_sf(pbuf_g), fun = "mean", append_cols = c("Site.Key"))
+colnames(data_ex)<-gsub("mean.","",colnames(data_ex))
+data_ex$stat<-"mean"
+
 data_ex_median<- exactextractr::exact_extract(data, sf::st_as_sf(pbuf_g), fun = "median", append_cols = c("Site.Key"))
+colnames(data_ex_median)<-gsub("median.","",colnames(data_ex_median))
+data_ex_median$stat<-"median"
 
+data_ex<-unique(data.table(rbind(data_ex,data_ex_median)))
+data_ex_m<-melt(data_ex,id.vars=c("Site.Key","stat"))
+data_ex_m[grep("error",variable),error:="error"
+          ][!grepl("error",variable),error:="value"
+            ][,variable:=gsub("-error","",variable)
+            ][,variable:=gsub("c.tot.","c.tot_",variable)
+              ][,depth:=unlist(tstrsplit(variable,"_",keep=2))
+                ][,variable:=unlist(tstrsplit(variable,"_",keep=1))]
 
+data_ex_m<-dcast(data_ex_m,Site.Key+stat+variable+depth~error,value.var = "value")
+
+if(file.exists(soil_file) & overwrite==F){
+  data_ex_m<-unique(rbind(existing_data,data_ex_m))
+}
+
+data_ex_m[,error:=round(error,2)][,value:=round(value,2)]
+
+arrow::write_parquet(data_ex_m,soil_file)
 
