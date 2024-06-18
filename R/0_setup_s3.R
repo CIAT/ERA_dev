@@ -194,7 +194,9 @@ upload_files_to_s3(files = files,
                      overwrite=T,
                      mode="public-read")
   
-  # 1.4.2) Climate ######
+  # 1.4.2) Climate (old file system) ######
+  # Inital set-up from old file system:  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
+  if(F){
   data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Large Files"
   s3_bucket<-era_dirs$era_geodata_s3
   files<- list.files(data_dir,".RData$",full.names = T)
@@ -252,11 +254,13 @@ upload_files_to_s3(files = files,
                      max_attempts = 3,
                      overwrite=T,
                      mode="public-read")
+  }
 
   # 1.4.3) Soils ######
   s3_bucket<-era_dirs$era_geodata_s3
   
-  # Inital set-up from old file system:  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
+  # Inital set-up from old file system:  
+  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
   if(F){
     data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Soils"
     files<- list.files(data_dir,"19.csv$",full.names = T)
@@ -315,3 +319,40 @@ upload_files_to_s3(files = files,
                      overwrite=T,
                      mode="public-read") 
   
+  # 1.4.6) POWER #####
+    # 1.4.6.1) Raw Data ######
+    # Upload POWER data from local folder to S3
+    s3_bucket<-era_dirs$power_S3
+    
+    if(F){
+      # Inital set-up from old file system:  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
+      data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Climate/Climate Past/POWER/Downloads"
+    }else{
+      data_dir<-era_dirs$power_dir
+    }
+    
+    files<- list.files(data_dir,".csv$",full.names = T)
+    
+    # zip the files
+    zip_file<-file.path(data_dir,"power_download.zip")
+    zip(zipfile = zip_file,files = files)
+  
+    upload_files_to_s3(files = zip_file,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=T,
+                       mode="public-read") 
+    
+    # 1.4.6.2) Processed Data ######
+    s3_bucket<-era_dirs$era_geodata_s3
+    data_dir<-era_dirs$era_geodata_dir
+    
+    files<- list.files(data_dir,"POWER",full.names = T)
+    files<-files[!grepl("POWER.CHIRPS",files)]
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=T,
+                       mode="public-read") 
+    
