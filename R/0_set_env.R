@@ -20,31 +20,6 @@ if(!require(ERAgON)){
 
 source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
 
-s3_folder_chmod <- function(folder_key, permission = 'public-read') {
-  files <-  s3fs::s3_dir_info(folder_key, recurse = TRUE)[, c('type', 'uri')]
-  # bucket <- files$bucket[1]
-  noDir_files <- files[files$type == 'file', ]
-  keys <- noDir_files$uri
-  # lapply(keys, s3fs::s3_file_chmod, mode = permission)
-  for (k in keys) {
-    # path <- paste0('s3://', bucket, '/', k)
-    # print(path)
-    success <- s3fs::s3_file_chmod(k, mode = permission)
-    print(paste('Set', k, 'as', permission))
-  }
-}
-
-get_s3_object_permission <- function(bucket, key) {
-  s3 <- paws.storage::s3()
-  acl <- s3$get_object_acl(Bucket = bucket, Key = key)
-  tryCatch({
-    public_permission <- acl$Grants[[grep("AllUsers", acl$Grants)]]$Permission
-    paste0("public access:", public_permission)
-  }, error = function(e) {
-    "No public access"
-  })
-}
-
 # 1) Set directories ####
   if(!exists("project_dir")){
     project_dir<-getwd()
@@ -218,9 +193,6 @@ get_s3_object_permission <- function(bucket, key) {
     # Create empty rast with extent of africa
     africa_rast <- terra::rast()
     ext(africa_rast) <- terra::ext(africa_rast)
-    
-
-
     
 # 4) Set time origin ####
     time_origin<-as.Date("1900-01-01")
