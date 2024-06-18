@@ -1,6 +1,4 @@
-# Make sure you have set the era working directory using the 0_set_env.R script
-# CONSIDER ADDING A CHECK DUPLICATES OPTION FOR KEYFIELDS THAT SHOULD BE UNIQUE (validator function)
-
+# Make sure you have set the era working directory using the 0_set_env.R script ####
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
 pacman::p_load(data.table, 
@@ -18,624 +16,616 @@ pacman::p_load(data.table,
                sf,
                dplyr,
                progressr)
-# 0.1) Create functions ####
-
-waitifnot <- function(cond) {
-  if (!cond) {
-    message(deparse(substitute(cond)), " is not TRUE")  
-    while (TRUE) {}
+  # 0.1) Create functions ####
+  
+  waitifnot <- function(cond) {
+    if (!cond) {
+      message(deparse(substitute(cond)), " is not TRUE")  
+      while (TRUE) {}
+    }
   }
-}
-
-# Replace 0 with NA
-replace_zero_with_NA<-function(data){
-  data[data==0]<-NA
-  return(data)
-}
-
-# Create an error report and check if issues have been addressed if an error report already exists
-error_tracker<-function(errors,filename,error_dir,error_list=NULL){
-  if(is.null(error_list)){
-    error_list<-list()
+  
+  # Replace 0 with NA
+  replace_zero_with_NA<-function(data){
+    data[data==0]<-NA
+    return(data)
   }
-  error_file<-file.path(error_dir,paste0(filename,".csv"))
-  if(nrow(errors)>0){
-    if(file.exists(error_file)){
-      error_tracking<-unique(fread(error_file))
-      error_tracking[,addressed_by_whom:=as.character(addressed_by_whom)]
+  
+  # Create an error report and check if issues have been addressed if an error report already exists
+  error_tracker<-function(errors,filename,error_dir,error_list=NULL){
+    if(is.null(error_list)){
+      error_list<-list()
+    }
+    error_file<-file.path(error_dir,paste0(filename,".csv"))
+    if(nrow(errors)>0){
+      if(file.exists(error_file)){
+        error_tracking<-unique(fread(error_file))
+        error_tracking[,addressed_by_whom:=as.character(addressed_by_whom)]
+        
+        if("value" %in% colnames(error_tracking)){
+          error_tracking[,value:=as.character(value)]
+        }
+  
+        if("notes" %in% colnames(error_tracking)){
+          error_tracking[,notes:=as.character(notes)]
+        }else{
+          error_tracking[,notes:=""]
+        }
+        
       
-      if("value" %in% colnames(error_tracking)){
-        error_tracking[,value:=as.character(value)]
-      }
-
-      if("notes" %in% colnames(error_tracking)){
-        error_tracking[,notes:=as.character(notes)]
+        errors<-merge(errors,error_tracking,all.x=T,by=colnames(errors))
+        errors[is.na(issue_addressed),issue_addressed:=F
+               ][is.na(addressed_by_whom),addressed_by_whom:=""
+                 ][is.na(notes),notes:=""]
       }else{
-        error_tracking[,notes:=""]
+        errors[,issue_addressed:=F
+               ][,addressed_by_whom:=""
+                 ][,notes:=""]
       }
-      
-    
-      errors<-merge(errors,error_tracking,all.x=T,by=colnames(errors))
-      errors[is.na(issue_addressed),issue_addressed:=F
-             ][is.na(addressed_by_whom),addressed_by_whom:=""
-               ][is.na(notes),notes:=""]
+      error_list[[filename]]<-errors
+      fwrite(errors,error_file)
     }else{
-      errors[,issue_addressed:=F
-             ][,addressed_by_whom:=""
-               ][,notes:=""]
+      unlink(error_file)
     }
-    error_list[[filename]]<-errors
-    fwrite(errors,error_file)
-  }else{
-    unlink(error_file)
-  }
-  return(error_list)
-}
-
-
-# Function to convert "NA" strings to NA values using .SD for efficiency
-convert_NA_strings_SD <- function(dt) {
-  # Ensure the input is a data.table
-  if (!is.data.table(dt)) {
-    stop("Input must be a data.table")
+    return(error_list)
   }
   
-  # Identify which columns are character type
-  char_cols <- names(dt)[sapply(dt, is.character)]
-  
-  # Perform the operation on all character columns at once
-  dt[, (char_cols) := lapply(.SD, function(x) fifelse(x == "NA", NA_character_, x)), .SDcols = char_cols]
-  
-  # Return the modified data.table
-  return(dt)
-}
-
-
-# 'harmonizer' function:
-# This function harmonizes data fields by replacing old values with new values based on master codes.
-# It supports both primary and alternate harmonization rules if provided.
-#
-# Args:
-#   data: DataFrame - The data.table to be harmonized.
-#   master_codes: List - A list containing the 'lookup_levels' DataFrame with old to new value mappings.
-#   h_table: String - The name of the table in 'lookup_levels' used for the primary harmonization.
-#   h_field: String - The name of the field in 'lookup_levels' used for the primary harmonization.
-#   h_table_alt: String - Optional. The name of the alternate table for harmonization if different from primary.
-#   h_field_alt: String - Optional. The name of the alternate field for harmonization if different from primary.
-#
-# Returns:
-#   A list containing:
-#   - 'data': DataFrame with the harmonized data.
-#   - 'h_tasks': DataFrame listing any non-matched harmonization tasks by B.Code and value.
-harmonizer <- function(data, master_codes, master_tab="lookup_levels",h_table, h_field, h_table_alt=NA, h_field_alt=NA,ignore_vals=NULL) {
-  data<-data.table(data)
-  
-  # subset master_codes to relevant tab
-  m_codes<-master_codes[[master_tab]]
-  
-  # Selecting relevant columns for output
-  h_cols <- c("B.Code", h_field)
-  
-  # Harmonize old names to new names
-  if (is.na(h_field_alt)) {
-    # Retrieve mappings for primary fields if no alternate field is provided
-    h_tab <- m_codes[Table == h_table & Field == h_field, list(Values_New, Values_Old)]
-  } else {
-    if (is.na(h_table_alt)) {
-      # Warning if alternate field is provided without an alternate table
-      warning("If h_field_alt is provided, h_table_alt should also be provided, currently using h_table which may result in non-matches.")
-      h_table_alt <- h_table
+  # Function to convert "NA" strings to NA values using .SD for efficiency
+  convert_NA_strings_SD <- function(dt) {
+    # Ensure the input is a data.table
+    if (!is.data.table(dt)) {
+      stop("Input must be a data.table")
     }
-    # Retrieve mappings for alternate fields
-    h_tab <- m_codes[Table == h_table_alt & Field == h_field_alt, list(Values_New, Values_Old)]
+    
+    # Identify which columns are character type
+    char_cols <- names(dt)[sapply(dt, is.character)]
+    
+    # Perform the operation on all character columns at once
+    dt[, (char_cols) := lapply(.SD, function(x) fifelse(x == "NA", NA_character_, x)), .SDcols = char_cols]
+    
+    # Return the modified data.table
+    return(dt)
   }
   
-  # Matching old values to new values and updating data
-  N <- match(unlist(data[, ..h_field]), h_tab[, Values_Old])
-  data <- data[!is.na(N), (h_field) := h_tab[N[!is.na(N)], Values_New]]
   
-  # Check for any non-matches after harmonization
-  N <- match(unlist(data[, ..h_field]), h_tab[, Values_New])
-  if(!is.null(ignore_vals)){
-    if(!is.na(ignore_vals)){
-    h_tasks <- unique(data[is.na(N) & !grepl(paste(ignore_vals,collapse="|"),unlist(data[, ..h_field]),ignore.case = T), ..h_cols])
+  # 'harmonizer' function:
+  # This function harmonizes data fields by replacing old values with new values based on master codes.
+  # It supports both primary and alternate harmonization rules if provided.
+  #
+  # Args:
+  #   data: DataFrame - The data.table to be harmonized.
+  #   master_codes: List - A list containing the 'lookup_levels' DataFrame with old to new value mappings.
+  #   h_table: String - The name of the table in 'lookup_levels' used for the primary harmonization.
+  #   h_field: String - The name of the field in 'lookup_levels' used for the primary harmonization.
+  #   h_table_alt: String - Optional. The name of the alternate table for harmonization if different from primary.
+  #   h_field_alt: String - Optional. The name of the alternate field for harmonization if different from primary.
+  #
+  # Returns:
+  #   A list containing:
+  #   - 'data': DataFrame with the harmonized data.
+  #   - 'h_tasks': DataFrame listing any non-matched harmonization tasks by B.Code and value.
+  harmonizer <- function(data, master_codes, master_tab="lookup_levels",h_table, h_field, h_table_alt=NA, h_field_alt=NA,ignore_vals=NULL) {
+    data<-data.table(data)
+    
+    # subset master_codes to relevant tab
+    m_codes<-master_codes[[master_tab]]
+    
+    # Selecting relevant columns for output
+    h_cols <- c("B.Code", h_field)
+    
+    # Harmonize old names to new names
+    if (is.na(h_field_alt)) {
+      # Retrieve mappings for primary fields if no alternate field is provided
+      h_tab <- m_codes[Table == h_table & Field == h_field, list(Values_New, Values_Old)]
+    } else {
+      if (is.na(h_table_alt)) {
+        # Warning if alternate field is provided without an alternate table
+        warning("If h_field_alt is provided, h_table_alt should also be provided, currently using h_table which may result in non-matches.")
+        h_table_alt <- h_table
+      }
+      # Retrieve mappings for alternate fields
+      h_tab <- m_codes[Table == h_table_alt & Field == h_field_alt, list(Values_New, Values_Old)]
+    }
+    
+    # Matching old values to new values and updating data
+    N <- match(unlist(data[, ..h_field]), h_tab[, Values_Old])
+    data <- data[!is.na(N), (h_field) := h_tab[N[!is.na(N)], Values_New]]
+    
+    # Check for any non-matches after harmonization
+    N <- match(unlist(data[, ..h_field]), h_tab[, Values_New])
+    if(!is.null(ignore_vals)){
+      if(!is.na(ignore_vals)){
+      h_tasks <- unique(data[is.na(N) & !grepl(paste(ignore_vals,collapse="|"),unlist(data[, ..h_field]),ignore.case = T), ..h_cols])
+      }else{
+        h_tasks <- unique(data[is.na(N), ..h_cols])
+      }
     }else{
       h_tasks <- unique(data[is.na(N), ..h_cols])
     }
-  }else{
-    h_tasks <- unique(data[is.na(N), ..h_cols])
-  }
-  colnames(h_tasks)[2] <- "value"
-  h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
-  
-  # Adding metadata columns to the tasks output for further tracking
-  h_tasks[, table := h_table][, field := h_field][,table_alt:=h_table_alt][,field_alt:=h_field_alt][,master_tab:=master_tab]
-  
-  return(list(data = data, h_tasks = h_tasks))
-}
-harmonizer_wrap<-function(data,h_params,master_codes){
-  h_tasks<-list()
-  
-  if(!any(grepl("master_tab",colnames(h_params)))){
-    h_params$master_tab<-"lookup_levels"
-  }
-  
-  if(!any(grepl("ignore_vals",colnames(h_params)))){
-    h_params$ignore_vals<-NA
-  }
-  
-  for(i in 1:nrow(h_params)){
-    results<-harmonizer(data=data,
-                        master_codes = master_codes,
-                        master_tab = h_params$master_tab[i],
-                        h_table = h_params$h_table[i], 
-                        h_field = h_params$h_field[i],
-                        h_table_alt =  h_params$h_table_alt[i],
-                        h_field_alt =  h_params$h_field_alt[i],
-                        ignore_vals = h_params$ignore_vals[i])
+    colnames(h_tasks)[2] <- "value"
+    h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
     
-    data<-results$data
-    h_tasks[[i]]<-results$h_tasks
+    # Adding metadata columns to the tasks output for further tracking
+    h_tasks[, table := h_table][, field := h_field][,table_alt:=h_table_alt][,field_alt:=h_field_alt][,master_tab:=master_tab]
+    
+    return(list(data = data, h_tasks = h_tasks))
   }
-  
-  return(list(data=data,h_tasks=rbindlist(h_tasks)))
-  
-}
-
-val_checker<-function(data,tabname,master_codes,master_tab,h_field,h_field_alt=NA,exact=T,ignore_vals=NULL){
-  
-  n_col<-c("B.Code",h_field)
-  h_tasks<-data.table(data)[,..n_col]
-  setnames(h_tasks,h_field,"value")
-  h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
-  h_tasks[,field:=h_field][,field_alt:=h_field_alt][,table:=tabname][,master_tab:=master_tab]
-  
-  # subset master_codes to relevant tab
-  m_codes<-master_codes[[master_tab]]
-  
-  # Harmonize old names to new names
-  if(is.na(h_field_alt)) {
-    # Retrieve mappings for primary fields if no alternate field is provided
-    mc_vals <- unlist(m_codes[,..h_field])
-  } else {
-    # Retrieve mappings for alternate fields
-    mc_vals <- unlist(m_codes[,..h_field_alt])
-  }
-  
-  # Check if values are in mastercodes
-  if(exact==T){
-    h_tasks<-  h_tasks[,check:=F][value %in% mc_vals,check:=T][check==F][,check:=NULL]
-    return(h_tasks)
-  }else{
-    matched<-as.character(mc_vals)[match(tolower(h_tasks$value),tolower(mc_vals))]
-    h_tasks<-h_tasks[is.na(matched)]
-    setnames(data,h_field,"value")
-    matched<-as.character(mc_vals)[match(tolower(data$value),tolower(mc_vals))]
-    data[!is.na(matched),value:=matched[!is.na(matched)]]
-    setnames(data,"value",h_field)
-    if(!is.null(ignore_vals)){
-      h_tasks<-h_tasks[!grepl(paste0(ignore_vals,collapse = "|"),value,ignore.case = T)]
+  harmonizer_wrap<-function(data,h_params,master_codes){
+    h_tasks<-list()
+    
+    if(!any(grepl("master_tab",colnames(h_params)))){
+      h_params$master_tab<-"lookup_levels"
     }
-    return(list(h_task=h_tasks,data=data))
-  }
-}
-
-# Function to find and report non-numeric values
-find_non_numeric<-function(data,numeric_cols,tabname){
-  results<-rbindlist(lapply(1:length(numeric_cols),FUN=function(i){
-    n_col<-numeric_cols[i]
-    vals<-unlist(data[,..n_col])
-    vals_u<-unique(vals)
-    vals_u<-vals_u[!is.na(vals_u)]
-    NAs<-vals_u[is.na(as.numeric(vals_u))]
-    n_col2<-c("B.Code",n_col)
-    result<-unique(data[vals %in% NAs,..n_col2])[,table:=tabname][,field:=n_col]
-    setnames(result,n_col,"value")
-    result
-  }))
-  
-  return(results)
-}
-
-# Check site and time fields match those tables
-check_site_time<-function(data,tabname,ignore_values,site_data,time_data,do_site=T,do_time=T){
-  errors<-list()
-  if("Site.ID" %in% colnames(data) & do_site){
-    site_data<-site_data[,check:=T][,list(Site.ID,B.Code,check)]
-    # Non-match in site.id
-    errors1<-unique(data[!grepl(paste0(ignore_values,collapse = "|"),Site.ID,ignore.case = T)
-                         ][!is.na(Site.ID),list(B.Code,Site.ID)])
-    errors1<-merge(errors1,site_data,all.x=T)[is.na(check)
-                                              ][,check:=NULL
-                                                ][,table:=tabname
-                                                  ][,field:="Site.ID"
-                                                    ][,issue:="A Site.ID used  does not match the Site tab."]
-    setnames(errors1,"Site.ID","value")
-    errors$errors1<-errors1
+    
+    if(!any(grepl("ignore_vals",colnames(h_params)))){
+      h_params$ignore_vals<-NA
     }
-  
-  
-  if("Time" %in% colnames(data) & do_time){
-    # Non-match in time period
-    time_data<-time_data[,check:=T][,list(Time,B.Code,check)]
     
-    errors2<-unique(data[!grepl(paste0(ignore_values,collapse = "|"),Time,ignore.case = T)
-                         ][!is.na(Time),list(B.Code,Time)])
-    errors2<-merge(errors2,time_data,all.x=T)[is.na(check)
-                                              ][,check:=NULL
-                                                ][,table:=tabname
-                                                  ][,field:="Time"
-                                                    ][,issue:="A Time used does not match the Time tab."]
-    
-    setnames(errors2,"Time","value")
-    errors$errors2<-errors2
-  }
-  
-  if(length(errors)>0){
-    errors<-rbindlist(errors)
-  }else{
-    NULL
-  }
-  
-  return(errors)
-}
-
-# Define the valid date range
-valid_start <- as.Date("1950-01-01")
-valid_end <- as.Date("2023-12-01")
-
-check_dates<-function(data,date_cols,valid_start,valid_end,tabname){
-  
-  results<-rbindlist(lapply(1:length(date_cols),FUN=function(i){
-    n_col<-c("B.Code",date_cols[i])
-    data_ss<-data[,..n_col]
-    colnames(data_ss)[2]<-"value"
-    
-    data_ss<-data_ss[!is.na(value)]
-    
-    data_ss<-data_ss[,problem:=T
-    ][value >= valid_start & value <= valid_end,problem:=F
-    ][,list(value=paste(value,collapse="/")),by=list(B.Code,problem)
-    ][,field:=date_cols[i]]
-    data_ss
-  }))
-  
-  results<-  results[problem==T
-  ][,table:=tabname
-  ][,problem:=NULL
-  ][,issue:=paste("Date not between",valid_start,"&",valid_end)]
-  
-  return(results)
-}
-
-detect_extremes<- function(data, field, lower_bound, upper_bound,tabname) {
-  # Dynamically construct the filtering condition
-  condition <- paste0(field, ">", upper_bound, " | ", field, "<", lower_bound)
-  
-  # Evaluate the condition within the data.table context
-  errors <- data[eval(parse(text = condition))
-  ][, list(value = paste0(unique(get(field)), collapse = "/")), by = list(B.Code)
-  ][, table := tabname
-  ][, field := field
-  ][, issue := paste0("Extreme values detected in field (outside range: ",lower_bound,"-",upper_bound,")")]
-  return(errors)
-}
-
-check_units<-function(data,unit_pairs,tabname){
-  results<-rbindlist(lapply(1:nrow(unit_pairs),FUN=function(i){
-    Unit<-unit_pairs$unit[i]
-    Var<-unit_pairs$var[i]
-    Name_Field<<-unit_pairs$name_field[i]
-    
-    # Dynamically construct the filtering condition
-    condition <- paste0("is.na(", Unit, ") & !is.na(",Var,")")
-    condition2<-paste0(Name_Field,"[!is.na(",Name_Field,")]")
-    
-    # Evaluate the condition within the data.table context
-    errors <- data[eval(parse(text = condition))
-    ][,list(value=paste(eval(parse(text = condition2)),collapse = "/")),by=B.Code
-    ][,table:=tabname
-    ][,field:=Name_Field
-    ][,issue:=paste0("Amount is present, but unit is missing ",Var,".")
-    ][order(B.Code)]
-    errors
-  }))
-  
-  return(results)
-  
-}
-
-check_hilow<-function(data,hilo_pairs,tabname){
-  results<-rbindlist(lapply(1:nrow(hilo_pairs),FUN=function(i){
-    low_col<-hilo_pairs$low_col[i]
-    high_col<-hilo_pairs$high_col[i]   
-    Name_Field<-hilo_pairs$name_field[i]
-    
-    # Dynamically construct the filtering condition
-    condition <- paste0(low_col,">",high_col)
-    condition2<-paste0(Name_Field,"[!is.na(",Name_Field,")]")
-    
-    # Evaluate the condition within the data.table context
-    errors <- data[eval(parse(text = condition))
-    ][,list(value=paste(eval(parse(text = condition2)),collapse = "/")),by=B.Code
-    ][,table:=tabname
-    ][,field:=Name_Field
-    ][,issue:=paste0(low_col," is greater than ",high_col,".")
-    ][order(B.Code)]
-    errors
-  }))
-  
-  return(results)
-}
-
-
-validator<-function(data,
-                    numeric_cols=NULL,
-                    numeric_ignore_vals=NULL,
-                    date_cols=NULL,
-                    zero_cols=NULL,
-                    unique_cols=NULL,
-                    compulsory_cols=NULL,
-                    extreme_cols=NULL,
-                    unit_pairs=NULL,
-                    hilo_pairs=NULL,
-                    tabname,
-                    valid_start,
-                    valid_end,
-                    site_data=NULL,
-                    time_data=NULL,
-                    ignore_values=NULL,
-                    trim_ws=F,
-                    do_site=T,
-                    do_time=T,
-                    convert_NA_strings=F){
-  
-  errors<-list()
-  n<-1
-  
-  if(convert_NA_strings){
-    data <- convert_NA_strings_SD(data)
-  }
-  
-  if(!is.null(unique_cols)){
-    errors1<-rbindlist(lapply(1:length(unique_cols),FUN=function(i){
-      field<-unique_cols[i]
-      n_col<-c("B.Code",field)
-      dat<-data[,..n_col]
-      colnames(dat)[2]<-"value"
-      errors<-dat[,list(N=.N),by=list(B.Code,value)
-                  ][N>1
-                    ][,N:=NULL
-                      ][,list(value=paste(value,collapse = "/")),by=B.Code
-                        ][,table:=tabname
-                          ][,field:=field
-                            ][,issue:="Duplicate value in unique field."
-                              ][order(B.Code)]
-      errors
-    }))
-    errors[[n]]<-errors1
-    n<-n+1
-  }
-  
-  if(!is.null(compulsory_cols)){
-    errors1<-rbindlist(lapply(1:length(compulsory_cols),FUN=function(i){
-      field<-compulsory_cols[i]
-      assoc_field<-names(compulsory_cols)[i]
-      n_col<-c("B.Code",field,assoc_field)
-      dat<-data[,..n_col]
-      colnames(dat)[2:3]<-c("focus","value")
-      errors<-dat[is.na(focus),
-                         ][,list(value=paste(unique(value),collapse = "/")),by=B.Code
-                           ][,table:=tabname
-                             ][,field:=assoc_field
-                               ][,issue:=paste0("Missing value in compulsory field ",compulsory_cols[i],".")
-                                 ][order(B.Code)]
-      errors
-    }))
-    errors[[n]]<-errors1
-    n<-n+1
-  }
-  
-  
-  if(!is.null(date_cols)){
-    numeric_cols<-unique(c(numeric_cols,date_cols))
-  }
-  
-  # zero cols
-  if(!is.null(zero_cols)){
-    data<-data[,(zero_cols):=lapply(.SD, replace_zero_with_NA),.SDcols=zero_cols]
-  }
-  
-  # Substitute , for . in numeric columns
-  if(!is.null(numeric_cols)){
-    data[, (numeric_cols) := lapply(.SD, function(x) gsub(",|·", ".", x)), .SDcols = numeric_cols]
-    # Remove spaces in numeric columns
-    data[, (numeric_cols) := lapply(.SD, function(x) gsub(" ", "", x)), .SDcols = numeric_cols]
-    # Replace − with -
-    data[, (numeric_cols) := lapply(.SD, function(x) gsub("−", "-", x)), .SDcols = numeric_cols]
-    
-    # Look for instances where a non-numeric value is present in a numeric field
-    errors1<-find_non_numeric(data=data,numeric_cols=numeric_cols,tabname=tabname)
-    errors1<-errors1[,list(value=paste(value,collapse="/")),by=list(B.Code,table,field)
-            ][,issue:="Non-numeric value in numeric field."]
-    errors[[n]]<-errors1
-    n<-n+1
-    # Convert numeric fields to being numeric
-    data[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
-  }
-  
-  # Detect extremes
-  if(!is.null(extreme_cols)){
-    errors1<-rbindlist(lapply(1:length(extreme_cols),FUN=function(i){
-      detect_extremes(data=Site.Out,
-                      field=names(extreme_cols)[i],
-                      lower_bound=extreme_cols[[i]][1],
-                      upper_bound = extreme_cols[[i]][2],
-                      tabname = tabname)
-    }))
-    errors[[n]]<-errors1
-    n<-n+1
-  }
-  
-  # Trim white space
-  if(trim_ws){
-    char_cols <- sapply(data, is.character)
-    data[, (names(data)[char_cols]) := lapply(.SD, trimws), .SDcols = char_cols]
-  }
-  
-  # Convert date cols to date format
-  if(!is.null(date_cols)){
-    # Convert Excel date numbers to R dates
-    data[, (date_cols) := lapply(.SD, function(x) as.Date(x, origin = "1899-12-30")), .SDcols = date_cols]
-    
-    # Look for dates outside of a specified range
-    errors[[n]]<-check_dates(data=data,
-                         date_cols=date_cols,
-                         valid_start=valid_start,
-                         valid_end=valid_end,
-                         tabname=tabname)[,value:=as.character(value)]
-    n<-n+1
-  }
-  
-  # Check for missing units
-  if(!is.null(unit_pairs)){
-    errors1<-check_units(data,unit_pairs=unit_pairs,tabname = tabname)
-    errors[[n]]<-errors1
-    n<-n+1
-  }
-  
-  # Check for high/low pair issues
-  if(!is.null(hilo_pairs)){
-    errors1<-check_hilow(data,hilo_pairs=hilo_pairs,tabname = tabname)
-    errors[[n]]<-errors1
-    n<-n+1
-  }
-  
-  # Check for non-matches between site.id and time fields and their parent tables
-  if(any(c("Site.ID","Time") %in% colnames(data)) & tabname!="Site.Out"){
-    if(is.null(ignore_values)){
-      ignore_values<-c("All Times","Unspecified","Not specified","All Sites")
-    }
-    errors1<-check_site_time(data=data,
-                             ignore_values =ignore_values,
-                             tabname=tabname,
-                             site_data=site_data,
-                             time_data=time_data,
-                             do_site=do_site,
-                             do_time=do_time)
-    
-    if(length(errors1)>0){
-    errors1<-errors1[,list(value=paste0(value,collapse = "/")),by=list(B.Code,table,field,issue)]
-    errors[[n]]<-errors1
-    }
-  }
-  
-  errors<-rbindlist(errors,use.names = T)
-  
-  return(list(data=data,errors=errors))
-}
-
-check_key<-function(parent,child,tabname,keyfield,collapse_on_code=T,tabname_parent=NULL){
-  n_col<-c("B.Code",keyfield)
-  
-  mergetab<-unique(merge(child[,..n_col],parent[,..n_col][,check:=T],all.x=T)[is.na(check)][,check:=NULL])
-  setnames(mergetab,keyfield,"value")
-  
-  if(collapse_on_code){
-    mergetab<-mergetab[,list(value=paste(unique(value),collapse = "/")),by=list(B.Code)]
-    }else{
-      mergetab<-mergetab[,list(B.Code,value)]
-      }
-  mergetab[,table:=tabname
-           ][,field:=keyfield
-             ][,issue:="Mismatch in field value between parent and child tables."]
-  
-  if(!is.null(tabname_parent)){
-    mergetab[,parent_table:=tabname_parent]
-  }
-  return(mergetab)
-}
-
-check_coordinates <- function(data) {
-  # Load country boundaries
-  countries <- ne_countries(scale = "large", returnclass = "sf")
-  
-  # Ensure CRS (Coordinate Reference System) is set to WGS84 (EPSG:4326)
-  countries <- st_transform(countries, crs = 4326)
-  
-  # Make geometries valid
-  countries <- st_make_valid(countries)  
-
-  # Convert data to sf object
-  data_sf <- st_as_sf(data, coords = c("Site.LonD", "Site.LatD"), crs = 4326, remove = FALSE)
-  
-  # Initialize result vector
-  is_within_country <- logical(nrow(data))
-  
-  # Iterate over unique ISO codes in the data
-  for (iso3 in unique(data$ISO.3166.1.alpha.3)) {
-    # Filter country boundaries for the current ISO code
-    country_boundary <- countries %>% filter(iso_a3 == iso3)
-    
-    if (nrow(country_boundary) > 0) {
-      # Check if points are within the country boundary
-      points_in_country <- st_within(data_sf, country_boundary, sparse = FALSE)
+    for(i in 1:nrow(h_params)){
+      results<-harmonizer(data=data,
+                          master_codes = master_codes,
+                          master_tab = h_params$master_tab[i],
+                          h_table = h_params$h_table[i], 
+                          h_field = h_params$h_field[i],
+                          h_table_alt =  h_params$h_table_alt[i],
+                          h_field_alt =  h_params$h_field_alt[i],
+                          ignore_vals = h_params$ignore_vals[i])
       
-      # Store results
-      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- apply(points_in_country, 1, any)[data$ISO.3166.1.alpha.3 == iso3]
+      data<-results$data
+      h_tasks[[i]]<-results$h_tasks
+    }
+    
+    return(list(data=data,h_tasks=rbindlist(h_tasks)))
+    
+  }
+  
+  val_checker<-function(data,tabname,master_codes,master_tab,h_field,h_field_alt=NA,exact=T,ignore_vals=NULL){
+    
+    n_col<-c("B.Code",h_field)
+    h_tasks<-data.table(data)[,..n_col]
+    setnames(h_tasks,h_field,"value")
+    h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
+    h_tasks[,field:=h_field][,field_alt:=h_field_alt][,table:=tabname][,master_tab:=master_tab]
+    
+    # subset master_codes to relevant tab
+    m_codes<-master_codes[[master_tab]]
+    
+    # Harmonize old names to new names
+    if(is.na(h_field_alt)) {
+      # Retrieve mappings for primary fields if no alternate field is provided
+      mc_vals <- unlist(m_codes[,..h_field])
     } else {
-      # Assign NA if country code not found
-      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- NA
+      # Retrieve mappings for alternate fields
+      mc_vals <- unlist(m_codes[,..h_field_alt])
+    }
+    
+    # Check if values are in mastercodes
+    if(exact==T){
+      h_tasks<-  h_tasks[,check:=F][value %in% mc_vals,check:=T][check==F][,check:=NULL]
+      return(h_tasks)
+    }else{
+      matched<-as.character(mc_vals)[match(tolower(h_tasks$value),tolower(mc_vals))]
+      h_tasks<-h_tasks[is.na(matched)]
+      setnames(data,h_field,"value")
+      matched<-as.character(mc_vals)[match(tolower(data$value),tolower(mc_vals))]
+      data[!is.na(matched),value:=matched[!is.na(matched)]]
+      setnames(data,"value",h_field)
+      if(!is.null(ignore_vals)){
+        h_tasks<-h_tasks[!grepl(paste0(ignore_vals,collapse = "|"),value,ignore.case = T)]
+      }
+      return(list(h_task=h_tasks,data=data))
     }
   }
   
-  return(is_within_country)
-}
-
-# 0.2) Set directories and parallel cores ####
-
-# Set cores for parallel processing
-workers<-parallel::detectCores()-2
-
-# Set the project name, this should usually refer to the ERA extraction template used
-project<-"industrious_elephant_2023"
-
-# Where extraction excel files are stored
-excel_dir<-paste0(era_dir,"/data_entry/",project,"/excel_files")
-if(!dir.exists(excel_dir)){
-  dir.create(excel_dir,recursive=T)
-}
-
-# Where processed extraction files are stored
-extracted_dir<-paste0(era_dir,"/data_entry/",project,"/extracted")
-if(!dir.exists(extracted_dir)){
-  dir.create(extracted_dir,recursive=T)
-}
-
-# Where data on errors in the data are stored
-error_dir<-paste0(project_dir,"/data/data_entry/",project,"/data_issues")
-if(!dir.exists(error_dir)){
-  dir.create(error_dir,recursive=T)
-}
-
-# Where compiled data is to be stored
-data_dir<-paste0(project_dir,"/data/data_entry/",project,"/data")
-if(!dir.exists(data_dir)){
-  dir.create(data_dir,recursive=T)
-}
-
-error_dir_master<-paste0(error_dir,"/master_codes")
-if(!dir.exists(error_dir_master)){
-  dir.create(error_dir_master)
-}
-
-
-harmonization_dir<-paste0(error_dir,"/harmonization")
-if(!dir.exists(harmonization_dir)){
-  dir.create(harmonization_dir)
-}
-
-
+  # Function to find and report non-numeric values
+  find_non_numeric<-function(data,numeric_cols,tabname){
+    results<-rbindlist(lapply(1:length(numeric_cols),FUN=function(i){
+      n_col<-numeric_cols[i]
+      vals<-unlist(data[,..n_col])
+      vals_u<-unique(vals)
+      vals_u<-vals_u[!is.na(vals_u)]
+      NAs<-vals_u[is.na(as.numeric(vals_u))]
+      n_col2<-c("B.Code",n_col)
+      result<-unique(data[vals %in% NAs,..n_col2])[,table:=tabname][,field:=n_col]
+      setnames(result,n_col,"value")
+      result
+    }))
+    
+    return(results)
+  }
+  
+  # Check site and time fields match those tables
+  check_site_time<-function(data,tabname,ignore_values,site_data,time_data,do_site=T,do_time=T){
+    errors<-list()
+    if("Site.ID" %in% colnames(data) & do_site){
+      site_data<-site_data[,check:=T][,list(Site.ID,B.Code,check)]
+      # Non-match in site.id
+      errors1<-unique(data[!grepl(paste0(ignore_values,collapse = "|"),Site.ID,ignore.case = T)
+                           ][!is.na(Site.ID),list(B.Code,Site.ID)])
+      errors1<-merge(errors1,site_data,all.x=T)[is.na(check)
+                                                ][,check:=NULL
+                                                  ][,table:=tabname
+                                                    ][,field:="Site.ID"
+                                                      ][,issue:="A Site.ID used  does not match the Site tab."]
+      setnames(errors1,"Site.ID","value")
+      errors$errors1<-errors1
+      }
+    
+    
+    if("Time" %in% colnames(data) & do_time){
+      # Non-match in time period
+      time_data<-time_data[,check:=T][,list(Time,B.Code,check)]
+      
+      errors2<-unique(data[!grepl(paste0(ignore_values,collapse = "|"),Time,ignore.case = T)
+                           ][!is.na(Time),list(B.Code,Time)])
+      errors2<-merge(errors2,time_data,all.x=T)[is.na(check)
+                                                ][,check:=NULL
+                                                  ][,table:=tabname
+                                                    ][,field:="Time"
+                                                      ][,issue:="A Time used does not match the Time tab."]
+      
+      setnames(errors2,"Time","value")
+      errors$errors2<-errors2
+    }
+    
+    if(length(errors)>0){
+      errors<-rbindlist(errors)
+    }else{
+      NULL
+    }
+    
+    return(errors)
+  }
+  
+  # Define the valid date range
+  valid_start <- as.Date("1950-01-01")
+  valid_end <- as.Date("2023-12-01")
+  
+  check_dates<-function(data,date_cols,valid_start,valid_end,tabname){
+    
+    results<-rbindlist(lapply(1:length(date_cols),FUN=function(i){
+      n_col<-c("B.Code",date_cols[i])
+      data_ss<-data[,..n_col]
+      colnames(data_ss)[2]<-"value"
+      
+      data_ss<-data_ss[!is.na(value)]
+      
+      data_ss<-data_ss[,problem:=T
+      ][value >= valid_start & value <= valid_end,problem:=F
+      ][,list(value=paste(value,collapse="/")),by=list(B.Code,problem)
+      ][,field:=date_cols[i]]
+      data_ss
+    }))
+    
+    results<-  results[problem==T
+    ][,table:=tabname
+    ][,problem:=NULL
+    ][,issue:=paste("Date not between",valid_start,"&",valid_end)]
+    
+    return(results)
+  }
+  
+  detect_extremes<- function(data, field, lower_bound, upper_bound,tabname) {
+    # Dynamically construct the filtering condition
+    condition <- paste0(field, ">", upper_bound, " | ", field, "<", lower_bound)
+    
+    # Evaluate the condition within the data.table context
+    errors <- data[eval(parse(text = condition))
+    ][, list(value = paste0(unique(get(field)), collapse = "/")), by = list(B.Code)
+    ][, table := tabname
+    ][, field := field
+    ][, issue := paste0("Extreme values detected in field (outside range: ",lower_bound,"-",upper_bound,")")]
+    return(errors)
+  }
+  
+  check_units<-function(data,unit_pairs,tabname){
+    results<-rbindlist(lapply(1:nrow(unit_pairs),FUN=function(i){
+      Unit<-unit_pairs$unit[i]
+      Var<-unit_pairs$var[i]
+      Name_Field<<-unit_pairs$name_field[i]
+      
+      # Dynamically construct the filtering condition
+      condition <- paste0("is.na(", Unit, ") & !is.na(",Var,")")
+      condition2<-paste0(Name_Field,"[!is.na(",Name_Field,")]")
+      
+      # Evaluate the condition within the data.table context
+      errors <- data[eval(parse(text = condition))
+      ][,list(value=paste(eval(parse(text = condition2)),collapse = "/")),by=B.Code
+      ][,table:=tabname
+      ][,field:=Name_Field
+      ][,issue:=paste0("Amount is present, but unit is missing ",Var,".")
+      ][order(B.Code)]
+      errors
+    }))
+    
+    return(results)
+    
+  }
+  
+  check_hilow<-function(data,hilo_pairs,tabname){
+    results<-rbindlist(lapply(1:nrow(hilo_pairs),FUN=function(i){
+      low_col<-hilo_pairs$low_col[i]
+      high_col<-hilo_pairs$high_col[i]   
+      Name_Field<-hilo_pairs$name_field[i]
+      
+      # Dynamically construct the filtering condition
+      condition <- paste0(low_col,">",high_col)
+      condition2<-paste0(Name_Field,"[!is.na(",Name_Field,")]")
+      
+      # Evaluate the condition within the data.table context
+      errors <- data[eval(parse(text = condition))
+      ][,list(value=paste(eval(parse(text = condition2)),collapse = "/")),by=B.Code
+      ][,table:=tabname
+      ][,field:=Name_Field
+      ][,issue:=paste0(low_col," is greater than ",high_col,".")
+      ][order(B.Code)]
+      errors
+    }))
+    
+    return(results)
+  }
+  
+  validator<-function(data,
+                      numeric_cols=NULL,
+                      numeric_ignore_vals=NULL,
+                      date_cols=NULL,
+                      zero_cols=NULL,
+                      unique_cols=NULL,
+                      compulsory_cols=NULL,
+                      extreme_cols=NULL,
+                      unit_pairs=NULL,
+                      hilo_pairs=NULL,
+                      tabname,
+                      valid_start,
+                      valid_end,
+                      site_data=NULL,
+                      time_data=NULL,
+                      ignore_values=NULL,
+                      trim_ws=F,
+                      do_site=T,
+                      do_time=T,
+                      convert_NA_strings=F){
+    
+    errors<-list()
+    n<-1
+    
+    if(convert_NA_strings){
+      data <- convert_NA_strings_SD(data)
+    }
+    
+    if(!is.null(unique_cols)){
+      errors1<-rbindlist(lapply(1:length(unique_cols),FUN=function(i){
+        field<-unique_cols[i]
+        n_col<-c("B.Code",field)
+        dat<-data[,..n_col]
+        colnames(dat)[2]<-"value"
+        errors<-dat[,list(N=.N),by=list(B.Code,value)
+                    ][N>1
+                      ][,N:=NULL
+                        ][,list(value=paste(value,collapse = "/")),by=B.Code
+                          ][,table:=tabname
+                            ][,field:=field
+                              ][,issue:="Duplicate value in unique field."
+                                ][order(B.Code)]
+        errors
+      }))
+      errors[[n]]<-errors1
+      n<-n+1
+    }
+    
+    if(!is.null(compulsory_cols)){
+      errors1<-rbindlist(lapply(1:length(compulsory_cols),FUN=function(i){
+        field<-compulsory_cols[i]
+        assoc_field<-names(compulsory_cols)[i]
+        n_col<-c("B.Code",field,assoc_field)
+        dat<-data[,..n_col]
+        colnames(dat)[2:3]<-c("focus","value")
+        errors<-dat[is.na(focus),
+                           ][,list(value=paste(unique(value),collapse = "/")),by=B.Code
+                             ][,table:=tabname
+                               ][,field:=assoc_field
+                                 ][,issue:=paste0("Missing value in compulsory field ",compulsory_cols[i],".")
+                                   ][order(B.Code)]
+        errors
+      }))
+      errors[[n]]<-errors1
+      n<-n+1
+    }
+    
+    
+    if(!is.null(date_cols)){
+      numeric_cols<-unique(c(numeric_cols,date_cols))
+    }
+    
+    # zero cols
+    if(!is.null(zero_cols)){
+      data<-data[,(zero_cols):=lapply(.SD, replace_zero_with_NA),.SDcols=zero_cols]
+    }
+    
+    # Substitute , for . in numeric columns
+    if(!is.null(numeric_cols)){
+      data[, (numeric_cols) := lapply(.SD, function(x) gsub(",|·", ".", x)), .SDcols = numeric_cols]
+      # Remove spaces in numeric columns
+      data[, (numeric_cols) := lapply(.SD, function(x) gsub(" ", "", x)), .SDcols = numeric_cols]
+      # Replace − with -
+      data[, (numeric_cols) := lapply(.SD, function(x) gsub("−", "-", x)), .SDcols = numeric_cols]
+      
+      # Look for instances where a non-numeric value is present in a numeric field
+      errors1<-find_non_numeric(data=data,numeric_cols=numeric_cols,tabname=tabname)
+      errors1<-errors1[,list(value=paste(value,collapse="/")),by=list(B.Code,table,field)
+              ][,issue:="Non-numeric value in numeric field."]
+      errors[[n]]<-errors1
+      n<-n+1
+      # Convert numeric fields to being numeric
+      data[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
+    }
+    
+    # Detect extremes
+    if(!is.null(extreme_cols)){
+      errors1<-rbindlist(lapply(1:length(extreme_cols),FUN=function(i){
+        detect_extremes(data=Site.Out,
+                        field=names(extreme_cols)[i],
+                        lower_bound=extreme_cols[[i]][1],
+                        upper_bound = extreme_cols[[i]][2],
+                        tabname = tabname)
+      }))
+      errors[[n]]<-errors1
+      n<-n+1
+    }
+    
+    # Trim white space
+    if(trim_ws){
+      char_cols <- sapply(data, is.character)
+      data[, (names(data)[char_cols]) := lapply(.SD, trimws), .SDcols = char_cols]
+    }
+    
+    # Convert date cols to date format
+    if(!is.null(date_cols)){
+      # Convert Excel date numbers to R dates
+      data[, (date_cols) := lapply(.SD, function(x) as.Date(x, origin = "1899-12-30")), .SDcols = date_cols]
+      
+      # Look for dates outside of a specified range
+      errors[[n]]<-check_dates(data=data,
+                           date_cols=date_cols,
+                           valid_start=valid_start,
+                           valid_end=valid_end,
+                           tabname=tabname)[,value:=as.character(value)]
+      n<-n+1
+    }
+    
+    # Check for missing units
+    if(!is.null(unit_pairs)){
+      errors1<-check_units(data,unit_pairs=unit_pairs,tabname = tabname)
+      errors[[n]]<-errors1
+      n<-n+1
+    }
+    
+    # Check for high/low pair issues
+    if(!is.null(hilo_pairs)){
+      errors1<-check_hilow(data,hilo_pairs=hilo_pairs,tabname = tabname)
+      errors[[n]]<-errors1
+      n<-n+1
+    }
+    
+    # Check for non-matches between site.id and time fields and their parent tables
+    if(any(c("Site.ID","Time") %in% colnames(data)) & tabname!="Site.Out"){
+      if(is.null(ignore_values)){
+        ignore_values<-c("All Times","Unspecified","Not specified","All Sites")
+      }
+      errors1<-check_site_time(data=data,
+                               ignore_values =ignore_values,
+                               tabname=tabname,
+                               site_data=site_data,
+                               time_data=time_data,
+                               do_site=do_site,
+                               do_time=do_time)
+      
+      if(length(errors1)>0){
+      errors1<-errors1[,list(value=paste0(value,collapse = "/")),by=list(B.Code,table,field,issue)]
+      errors[[n]]<-errors1
+      }
+    }
+    
+    errors<-rbindlist(errors,use.names = T)
+    
+    return(list(data=data,errors=errors))
+  }
+  
+  check_key<-function(parent,child,tabname,keyfield,collapse_on_code=T,tabname_parent=NULL){
+    n_col<-c("B.Code",keyfield)
+    
+    mergetab<-unique(merge(child[,..n_col],parent[,..n_col][,check:=T],all.x=T)[is.na(check)][,check:=NULL])
+    setnames(mergetab,keyfield,"value")
+    
+    if(collapse_on_code){
+      mergetab<-mergetab[,list(value=paste(unique(value),collapse = "/")),by=list(B.Code)]
+      }else{
+        mergetab<-mergetab[,list(B.Code,value)]
+        }
+    mergetab[,table:=tabname
+             ][,field:=keyfield
+               ][,issue:="Mismatch in field value between parent and child tables."]
+    
+    if(!is.null(tabname_parent)){
+      mergetab[,parent_table:=tabname_parent]
+    }
+    return(mergetab)
+  }
+  
+  check_coordinates <- function(data) {
+    # Load country boundaries
+    countries <- rnaturalearth::ne_countries(scale = "large", returnclass = "sf")
+    
+    # Ensure CRS (Coordinate Reference System) is set to WGS84 (EPSG:4326)
+    countries <- st_transform(countries, crs = 4326)
+    
+    # Make geometries valid
+    countries <- sf::st_make_valid(countries)  
+  
+    # Convert data to sf object
+    data_sf <- sf::st_as_sf(data, coords = c("Site.LonD", "Site.LatD"), crs = 4326, remove = FALSE)
+    
+    # Initialize result vector
+    is_within_country <- logical(nrow(data))
+    
+    # Iterate over unique ISO codes in the data
+    for (iso3 in unique(data$ISO.3166.1.alpha.3)) {
+      # Filter country boundaries for the current ISO code
+      country_boundary <- countries %>% filter(iso_a3 == iso3)
+      
+      if (nrow(country_boundary) > 0) {
+        # Check if points are within the country boundary
+        points_in_country <- st_within(data_sf, country_boundary, sparse = FALSE)
+        
+        # Store results
+        is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- apply(points_in_country, 1, any)[data$ISO.3166.1.alpha.3 == iso3]
+      } else {
+        # Assign NA if country code not found
+        is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- NA
+      }
+    }
+    
+    return(is_within_country)
+  }
+  
+  # 0.2) Set directories and parallel cores ####
+  
+  # Set cores for parallel processing
+  workers<-parallel::detectCores()-2
+  
+  # Set the project name, this should usually refer to the ERA extraction template used
+  project<-era_projects$industrious_elephant_2023
+  
+  # Where extraction excel files are stored
+  excel_dir<-file.path(era_dirs$era_dataentry_dir,project,"excel_files")
+  if(!dir.exists(excel_dir)){
+    dir.create(excel_dir,recursive=T)
+  }
+  
+  # Where processed extraction files are stored
+  extracted_dir<-file.path(era_dirs$era_dataentry_dir,project,"extracted")
+  if(!dir.exists(extracted_dir)){
+    dir.create(extracted_dir,recursive=T)
+  }
+  
+  # Set directory for error and harmonization tasks
+  error_dir<-file.path(era_dirs$era_dataentry_prj,project,"data_issues")
+  if(!dir.exists(error_dir)){
+    dir.create(error_dir,recursive=T)
+  }
+  
+  error_dir_master<-file.path(error_dir,"master_codes")
+  if(!dir.exists(error_dir_master)){
+    dir.create(error_dir_master)
+  }
+  
+  harmonization_dir<-file.path(error_dir,"harmonization")
+  if(!dir.exists(harmonization_dir)){
+    dir.create(harmonization_dir)
+  }
+  
+  # Where compiled data is to be stored
+  data_dir<-era_dirs$era_masterdata_dir
 
 # 1) Download  or update excel data ####
 download<-F
@@ -644,7 +634,7 @@ update<-T
 s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
 
 # Check if the file exists
-if (grepl("success",http_status(HEAD(s3_file))$category,ignore.case = T)) {
+if (grepl("success",httr::http_status(httr::HEAD(s3_file))$category,ignore.case = T)) {
   print("The file exists.")
   file_status<-T
 } else {
@@ -667,171 +657,6 @@ if(file_status){
   }
 }
 
-# 2) Load data ####
-  # 2.1) Load era vocab #####
-  vocab_file<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
-
-  update<-T
-  if(update){
-    file_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
-    download.file(file_url, vocab_file, mode = "wb")  # Download and write in binary mode
-  }  
-  
-  # Get names of all sheets in the workbook
-  sheet_names <- readxl::excel_sheets(vocab_file)
-  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
-  
-  # Read each sheet into a list
-  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(vocab_file, sheet = x))},USE.NAMES=T)
-  
-    # 2.1.1) Error checking of era vocab ######
-
-    # Products that are missing mulch codes
-    errors<-master_codes$prod[(is.na(Unknown.Fate)|Unknown.Fate=="NA"|
-                                 is.na(Mulched)|Mulched=="NA"|
-                                 is.na(Incorp)|Incorp=="NA") & 
-                                !Product.Type %in% c("Animal","Non-product"),
-                              list(EU,Product.Type,Product.Subtype,Product.Simple,Unknown.Fate,Mulched,Incorp)
-    ][,master_table:="Prod"
-    ][,issue:="No mulch codes present for plant product type."]
-    
-    error_list_master<-error_tracker(errors=errors,filename = "prod_issues",error_dir=error_dir_master,error_list = NULL)
-    
-    # More than one tree present?
-    errors1<-unique(master_codes$trees[,N:=.N,by=Tree.Latin.Name][N>1,list(Tree.Latin.Name,N)])
-    errors1[,master_table:="trees"][,issue:="More than one entry for same tree name"]
-    
-    errors2<-unique(master_codes$trees[is.na(Tree.Nfix),"Tree.Latin.Name"])
-    errors2[,master_table:="trees"][,issue:="Needs n-fixing status adding"]
-  
-    error_list_master<-error_tracker(errors=rbindlist(list(errors1,errors2),fill=T),filename = "tree_issues",error_dir=error_dir_master,error_list = NULL)
-    
-    
-  # 2.2) Load excel data entry template #####
-  Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
-  
-  # List sheet names that we need to extract
-  SheetNames<-excel_sheets(Master)
-  SheetNames<-grep(".Out",SheetNames,fixed = T,value=T)
-  
-  # List column names for the sheets to be extracted
-  XL.M<-sapply(SheetNames,FUN=function(SName){
-    cat('\r                                                                                                                                          ')
-    cat('\r',paste0("Importing Sheet = ",SName))
-    flush.console()
-    colnames(data.table(suppressWarnings(suppressMessages(readxl::read_excel(Master,sheet = SName)))))
-  },USE.NAMES = T)
-  
-  # Subset Cols
-  XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
-  
-  # 2.3) List extraction excel files #####
-  Files<-list.files(excel_dir,".xlsm$",full.names=T)
-  
-  # 2.4) Check for duplicate files #####
-  FNames<-unlist(tail(tstrsplit(Files,"/"),1))
-  FNames<-gsub(" ","",FNames)
-  FNames<-unlist(tstrsplit(FNames,"-",keep=2))
-  FNames<-gsub("[(]1[])]|[(]2[])]","",FNames)
-  FNames<-gsub("_1|_2|_3|_4",".1|.2|.3|.4",FNames,fixed=T)
-  FNames<-gsub("..",".",FNames,fixed=T)
-  
-  excel_files<-data.table(filename=Files,era_code=FNames)
-  excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
-  
-  # Flag any naming issues
-  excel_files[grepl("_",era_code)]
-  excel_files<-excel_files[!grepl("_",era_code)]
-  
-  # Look for duplicate files
-  excel_files[,N:=.N,by=era_code]
-  excel_files[N>1][order(era_code)]
-  
-  # Remove not qced duplicates
-  excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
-  excel_files[N>1][order(era_code)]
-  
-  excel_files<-excel_files[!N>1][,N:=NULL]
-  excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
-  
-  # 2.5) Read in data from excel files #####
-  
-  # If files have already been imported and converted to list form should the important process be run again?
-
-  # Delete existing files if update ==T
-  if(update){
-    unlink(extracted_dir,recursive = T)
-    dir.create(extracted_dir)
-  }
-  
-  # Set up parallel back-end
-  plan(multisession, workers = workers)
-
-  # Enable progressr
-  progressr::handlers(global = TRUE)
-  progressr::handlers("progress")
-  
-  # Wrap the parallel processing in a with_progress call
-  p<-with_progress({
-    # Define the progress bar
-    progress <- progressr::progressor(along = 1:nrow(excel_files))
-    
-    # Run future apply loop to read in data from each excel file in parallel
-    XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
-      
-      
-      File <- excel_files$filename[i]
-      era_code <- excel_files$era_code2[i]
-      save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
-      
-      progress(sprintf("File %d/%d-%s", i, nrow(excel_files),basename(File)))
-      
-      
-      if (update == TRUE || !file.exists(save_name)) {
-        X <- tryCatch({
-          lapply(SheetNames, FUN=function(SName){
-            cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
-            flush.console()
-            data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
-          })
-        }, error=function(e){
-          cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
-          return(NULL)  # Return NULL if there was an error
-        })
-        
-        if (!is.null(X)) {
-          names(X) <- SheetNames
-          X$file.info<-file.info(File)
-          save(X, file=save_name)
-        }
-      } else {
-        miceadds::load.Rdata(filename=save_name, objname="X")
-      }
-      
-      X
-    })
-    
-  })
-  
-  # Reset plan to default setting
-  future::plan(sequential)
-  
-  # Add names
-  names(XL)<-excel_files$filename
-  
-  # Filter out any missing data
-  XL <- Filter(Negate(is.null), XL)
-  
-  rm(Files,SheetNames,XL.M,Master)
-  
-  # List any files that did not load
-
-  errors<-excel_files[!filename %in% names(XL)
-                      ][,c("status","era_code"):=NULL
-                        ][,issue:="Excel import failed"]
-  setnames(errors,"era_code2","B.Code")
-  error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
-  
 # 3) Process imported data ####
 # 3.1) Publication (Pub.Out) #####
 data<-lapply(XL,"[[","Pub.Out")
