@@ -5,8 +5,19 @@ if (!require("pacman", character.only = TRUE)) {
   library(pacman)
 }
 
-packages<-c("s3fs","paws.storage","rnaturalearth","terra","elevatr","remotes")
+packages<-c("s3fs","paws.storage","rnaturalearth","terra","remotes","data.table")
 pacman::p_load(char=packages)
+
+if(!require(ERAg)){
+  remotes::install_github(repo="https://github.com/EiA2030/ERAg")
+  library(ERAg)
+}
+
+if(!require(ERAgON)){
+  remotes::install_github(repo="https://github.com/EiA2030/ERAgON")
+  library(ERAgON)
+}
+
 
 s3_folder_chmod <- function(folder_key, permission = 'public-read') {
   files <-  s3fs::s3_dir_info(folder_key, recurse = TRUE)[, c('type', 'uri')]
@@ -34,19 +45,22 @@ get_s3_object_permission <- function(bucket, key) {
 }
 
 # 1) Set directories ####
-  if(!exists(project_dir)){
+  if(!exists("project_dir")){
     project_dir<-getwd()
   }
-  
+
   # Set era s3 dir
   era_s3<-"s3://digital-atlas/era"
+  era_s3_http<-"https://digital-atlas.s3.amazonaws.com/era"
   
-  if(length(s3fs::s3_dir_ls(era_s3))==0){
-    s3fs::s3_dir_create(era_s3)
+  # If the project directory does not exist you will need to provide credentials to create it
+  if(F){
+    if(length(s3fs::s3_dir_ls(era_s3))==0){
+      s3fs::s3_dir_create(era_s3)
+    }
   }
   
   s3<-s3fs::S3FileSystem$new(anonymous = T)
-  
   
   # CGlabs server
   if(project_dir=="/home/jovyan/rstudio/ERA_dev"){
@@ -95,8 +109,17 @@ get_s3_object_permission <- function(bucket, key) {
   
   # ancillary data folders
   era_dirs$ancillary_dir<-file.path(era_dir,"ancillary_datasets")
+  era_dirs$ancillary_s3<-file.path(era_s3,"ancillary_datasets")
+  
   era_dirs$dem_dir<-file.path(era_dirs$ancillary_dir,"dem_download")
+  era_dirs$dem_s3<-file.path(era_dirs$ancillary_s3,"dem_download")
+  
   era_dirs$soilgrid_dir<-file.path(era_dirs$ancillary_dir,"soilgrids_download")
+  era_dirs$soilgrid_s3<-file.path(era_dirs$ancillary_s3,"soilgrids_download")
+  
+  era_dirs$power_dir<-file.path(era_dirs$ancillary_dir,"power_download")
+  era_dirs$power_S3<-file.path(era_dirs$ancillary_s3,"power_download")
+  era_dirs$power_S3_file<-file.path(era_dirs$power_S3,"power_download.zip")
   
   # create folders if they do not exist
   for(i in grep("_dir",names(era_dirs))){
@@ -123,7 +146,7 @@ get_s3_object_permission <- function(bucket, key) {
   # 2.2) ERA geodata #####
     update<-F
     # List files in the specified S3 bucket and prefix
-    files_s3<-s3fs::s3_dir_ls(era_geodata_s3)
+    files_s3<-s3fs::s3_dir_ls(era_dirs$era_geodata_s3)
     files_s3<-files_s3[!grepl(".csv|ESA-CCI",files_s3)]
     files_local<-gsub(era_dirs$era_geodata_s3,era_dirs$era_geodata_dir,files_s3)
     
@@ -133,8 +156,6 @@ get_s3_object_permission <- function(bucket, key) {
         s3$file_download(files_s3[i],file)
       }
     }
-    
-    
 
 # 3) Create table of unique locations (for use with geodata functions) ####
     data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
@@ -184,10 +205,10 @@ get_s3_object_permission <- function(bucket, key) {
     CRS.new<-"+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     
     # Buffer points - projected 
-    era_locations_vect_p<-Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=T)
+    #era_locations_vect_p<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=T)
     
     # Buffer points - projected - geographic
-    era_locations_vect_g<-Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=F)
+    era_locations_vect_g<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=F)
 
     # 3.2) Get a vector of Africa #####
   
@@ -203,4 +224,7 @@ get_s3_object_permission <- function(bucket, key) {
     
 
 
+    
+# 4) Set time origin ####
+    time_origin<-as.Date("1900-01-01")
     
