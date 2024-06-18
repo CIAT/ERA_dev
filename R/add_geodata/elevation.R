@@ -61,7 +61,7 @@
   # for info on z values https://github.com/tilezen/joerd/blob/master/docs/data-sources.md#what-is-the-ground-resolution
   # z =12 is about 75m resoltion
   
-   SS.P<-rbindlist(pblapply(1:length(pbuf_g),FUN=function(i){
+   era_elevation<-rbindlist(pblapply(1:length(pbuf_g),FUN=function(i){
       site_vect<-pbuf_g[i]
       dem_file<-file.path(era_dirs$dem_dir,paste0(site_vect$Site.Key,".tif"))
       
@@ -94,10 +94,10 @@
       PData
       
     }))
-   SS.P<-cbind(Site.Key=pbuf_g$Site.Key,SS.P)
+   era_elevation<-cbind(Site.Key=pbuf_g$Site.Key,era_elevation)
  # Save resulting dataset
    
-   arrow::write_parquet(SS.P,era_topo_file)
+   arrow::write_parquet(era_elevation,era_topo_file)
   
 # 8) EXTRACT & SAVE SOILGRIDS DATA ####
   # File name codes: http://www.isric.org/explore/soilgrids/faq-soilgrids
