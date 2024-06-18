@@ -209,3 +209,177 @@ download_power <- function(vect_data, date_start, date_end, altitude, save_dir, 
   }
   options(warn = 0)
 }
+#' Make S3 Bucket Public
+#'
+#' This function sets the policy of an S3 bucket to allow public read access to specified folders.
+#'
+#' @param s3_bucket A character string specifying the S3 bucket and folder path (e.g., "s3://bucket-name/folder-path").
+#' @return None. This function modifies the S3 bucket policy.
+#' @importFrom jsonlite fromJSON toJSON
+#' @importFrom paws s3
+#' @examples
+#' \dontrun{
+#' make_s3_public("s3://your-bucket-name/your-folder-path")
+#' }
+#' @export
+make_s3_public <- function(s3_bucket) {
+  s3 <- paws::s3()
+  bucket_name <- unlist(strsplit(s3_bucket, "/"))[3]
+  folder_path <- gsub(paste0("s3://", bucket_name, "/"), "", s3_bucket)
+  
+  # Retrieve the current bucket policy
+  current_policy <- tryCatch(
+    {
+      s3$get_bucket_policy(Bucket = bucket_name)$Policy
+    },
+    error = function(e) {
+      # Return an empty policy if no policy exists
+      return('{"Version": "2012-10-17", "Statement": []}')
+    }
+  )
+  
+  # Parse the current policy as JSON
+  current_policy <- jsonlite::fromJSON(current_policy, simplifyVector = FALSE)
+  
+  # Define the new statements for the folder to be made public
+  new_statements <- list(
+    list(
+      Sid = paste0("PublicReadListBucket-", gsub("[^A-Za-z0-9]", "", folder_path)),
+      Effect = "Allow",
+      Principal = list(AWS = "*"),
+      Action = "s3:ListBucket",
+      Resource = paste0("arn:aws:s3:::", bucket_name),
+      Condition = list(
+        StringLike = list(
+          `s3:prefix` = paste0(folder_path, "/*")
+        )
+      )
+    ),
+    list(
+      Sid = paste0("PublicReadGetObject-", gsub("[^A-Za-z0-9]", "", folder_path)),
+      Effect = "Allow",
+      Principal = list(AWS = "*"),
+      Action = "s3:GetObject",
+      Resource = paste0("arn:aws:s3:::", bucket_name, "/", folder_path, "/*")
+    )
+  )
+  
+  # Remove any existing statements for the given s3_bucket
+  current_policy$Statement <- lapply(current_policy$Statement, function(statement) {
+    if (!is.null(statement$Condition) &&
+        !is.null(statement$Condition$StringLike) &&
+        !is.null(statement$Condition$StringLike$`s3:prefix`) &&
+        grepl(folder_path, statement$Condition$StringLike$`s3:prefix`)) {
+      return(NULL)
+    } else if (!is.null(statement$Resource) &&
+               grepl(paste0("arn:aws:s3:::", bucket_name, "/", folder_path), statement$Resource)) {
+      return(NULL)
+    } else {
+      return(statement)
+    }
+  })
+  
+  # Filter out NULLs from the list
+  current_policy$Statement <- Filter(Negate(is.null), current_policy$Statement)
+  
+  # Append the new statements to the current policy
+  current_policy$Statement <- append(current_policy$Statement, new_statements)
+  
+  # Convert the updated policy back to JSON
+  updated_policy <- jsonlite::toJSON(current_policy, auto_unbox = TRUE, pretty = TRUE)
+  
+  # Set the updated bucket policy
+  s3$put_bucket_policy(
+    Bucket = bucket_name,
+    Policy = updated_policy
+  )
+  
+  message("Bucket policy updated successfully.")
+}
+#' Upload Files to S3
+#'
+#' This function uploads local files to an S3 bucket, optionally setting the access mode.
+#'
+#' @param files A character vector of local file paths to be uploaded.
+#' @param s3_file_names A character vector of filenames to use in S3 (optional).
+#' @param folder A character string specifying a local folder to list files from (optional).
+#' @param selected_bucket A character string specifying the S3 bucket.
+#' @param new_only Logical; whether to upload only new files. Default is \code{FALSE}.
+#' @param max_attempts Integer; maximum number of attempts for each file upload. Default is 3.
+#' @param overwrite Logical; whether to overwrite existing files. Default is \code{FALSE}.
+#' @param mode A character string specifying the access mode ("private", "public-read"). Default is "private".
+#' @return None. This function uploads files to an S3 bucket.
+#' @importFrom paws s3
+#' @importFrom utils flush.console
+#' @examples
+#' \dontrun{
+#' upload_files_to_s3(files = c("file1.txt", "file2.txt"), selected_bucket = "s3://your-bucket-name")
+#' }
+#' @export
+upload_files_to_s3 <- function(files,
+                               s3_file_names = NULL, 
+                               folder = NULL, 
+                               selected_bucket, 
+                               new_only = FALSE, 
+                               max_attempts = 3, 
+                               overwrite = FALSE,
+                               mode = "private") {
+  s3 <- paws::s3()
+  
+  # Create the s3 directory if it does not already exist
+  if (!s3_dir_exists(selected_bucket)) {
+    s3_dir_create(selected_bucket)
+  }
+  
+  # List files if a folder location is provided
+  if (!is.null(folder)) {
+    files <- list.files(folder, full.names = TRUE)
+  }
+  
+  if (!overwrite) {
+    # List files in the s3 bucket
+    files_s3 <- basename(s3_dir_ls(selected_bucket))
+    # Remove any files that already exist in the s3 bucket
+    files <- files[!basename(files) %in% files_s3]
+  }
+  
+  for (i in seq_along(files)) {
+    cat('\r', paste("File:", i, "/", length(files)), " | ", basename(files[i]), "                                                 ")
+    flush.console()
+    
+    if (is.null(s3_file_names)) {
+      s3_file_path <- paste0(selected_bucket, "/", basename(files[i]))
+    } else {
+      if (length(s3_file_names) != length(files)) {
+        stop("s3 filenames provided different length to local files")
+      }
+      s3_file_path <- paste0(selected_bucket, "/", s3_file_names[i])
+    }
+    
+    tryCatch({
+      attempt <- 1
+      while (attempt <= max_attempts) {
+        s3_file_upload(files[i], s3_file_path, overwrite = overwrite)
+        # Check if upload successful
+        file_check <- s3_file_exists(s3_file_path)
+        
+        if (mode != "private") {
+          s3_file_chmod(path = s3_file_path, mode = mode)
+        }
+        
+        if (file_check) break # Exit the loop if upload is successful
+        
+        if (attempt == max_attempts && !file_check) {
+          stop("File did not upload successfully after ", max_attempts, " attempts.")
+        }
+        attempt <- attempt + 1
+      }
+    }, error = function(e) {
+      cat("Error during file upload:", e$message, "\n")
+    })
+  }
+  
+  if (mode == "public-read") {
+    make_s3_public(selected_bucket)
+  }
+}
