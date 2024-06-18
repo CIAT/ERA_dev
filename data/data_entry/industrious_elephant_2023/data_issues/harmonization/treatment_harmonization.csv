@@ -1,2 +1,2 @@
 value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
-Other,JS0369/LM0075.3/LM0108/LM0189/NN0553,MT.Out,T.Residue.Prev,Res.Method,M.Fate,lookup_levels,FALSE,"",""
+Other,JS0369/LM0108/NN0553,MT.Out,T.Residue.Prev,Res.Method,M.Fate,lookup_levels,FALSE,"",""

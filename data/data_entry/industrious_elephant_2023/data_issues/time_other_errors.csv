@@ -1,11 +1,6 @@
 B.Code,table,field,value,issue,issue_addressed,addressed_by_whom,notes
-AC0014,Times.Clim,Site.ID,"Kitarinda, Rubavu",A Site.ID used  does not match the Site tab.,TRUE,Charity,""
-CJ0002,Times.Clim,Site.ID,"Institute of Agricultural Research (IAR), Zaria..Institute of Agricultural Research (IAR), Zaria-A..Institute of Agricultural Research (IAR), Zaria-B",A Site.ID used  does not match the Site tab.,FALSE,Charity,""
-CJ0111,Times.Clim,Site.ID,"Tarakea secondary school.. Tanzania Coffee Research Institute farm, Lyamungo..Nelson Mandela African Institution of Science and Technology, Tengeru",A Site.ID used  does not match the Site tab.,FALSE,Charity,""
 CJ0126,Times.Clim,Site.ID,B N1..B N2..B N3..B N4..B N5..B N6..B N7..B N8..B N9/BS W1..BS W2..BS W3..BS W4..BS W5..BS W6..BS W7..BS W8..BS W9,A Site.ID used  does not match the Site tab.,FALSE,Charity,""
 JO0003,Times.Clim,Site.ID,"IAR/Amadu Bello University, Shika Farm",A Site.ID used  does not match the Site tab.,FALSE,Charity,""
 JO0004,Times.Clim,Time,2007,A Time used does not match the Time tab.,FALSE,Charity,""
 JO0007,Times.Clim,Time,LR- 2012/LR-2013/SR- 2012/SR-2011,A Time used does not match the Time tab.,FALSE,Charity,""
 JO0040,Times.Clim,Site.ID,GSAEZ-Chereponi..Walewale..Salaga..Sawla..Karaga..Saboba/SSAEZ-Bawku..Bolgatanga..Garu..Lawra..Nandom..Tumu,A Site.ID used  does not match the Site tab.,FALSE,Charity,""
-NN0526,Times.Clim,Site.ID,"JKUAT, juja",A Site.ID used  does not match the Site tab.,FALSE,Charity,""
-SP0006,Times.Clim,Site.ID,Runyenjes Division of Embu County,A Site.ID used  does not match the Site tab.,TRUE,Charity,""

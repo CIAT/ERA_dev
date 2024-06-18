@@ -1,9 +1,9 @@
 B.Code,era_code2,filename,N,code_issue,issue_addressed,addressed_by_whom,notes
-JS0041,JS0041,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - JS0041.xlsm,1,TRUE,TRUE,Charity,""
-JS0248,JS0248,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - JS0248.xlsm,1,TRUE,TRUE,Charity,""
-LM0008,LM0008,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0008.xlsm,1,TRUE,TRUE,TRUE,Charity
-LM0075.1,LM0075.1,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0075.1.xlsm,1,TRUE,TRUE,Charity,"duplicates, I deleted them"
-NN0090,NN0090,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - NN0090.xlsm,1,TRUE,TRUE,Charity,""
-NN0164,NN0164,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - NN0164.xlsm,1,TRUE,TRUE,Charity,""
-NN0184.2,LM0148,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.27 - LM0148.xlsm,2,TRUE,TRUE,Charity,""
-NN0184.2,NN0184.2,C:/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.27 - NN0184.2.xlsm,2,FALSE,FALSE,Charity,""
+HK0161.LTE1,HK0161.1,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - HK0161.1.xlsm,1,TRUE,FALSE,"",""
+JS0041,JS0041,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - JS0041.xlsm,1,TRUE,FALSE,"",""
+JS0248,JS0248,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - JS0248.xlsm,1,TRUE,FALSE,"",""
+LM0008,LM0008,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0008.xlsm,1,TRUE,FALSE,"",""
+LM0075.1,LM0075.1,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0075.1.xlsm,1,TRUE,FALSE,"",""
+LM0188,LM0188,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0188.xlsm,1,TRUE,FALSE,"",""
+NN0090,NN0090,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - NN0090.xlsm,1,TRUE,FALSE,"",""
+NN0164,NN0164,C:/rprojects/common_data/era/data/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - NN0164.xlsm,1,TRUE,FALSE,"",""

@@ -1,261 +1,52 @@
 B.Code,field,issue,value,table,parent_table,tabname,master_table,issue_addressed,addressed_by_whom,notes
-AC0001,Site.ID,A Site.ID used  does not match the Site tab.,"Ahmadu Bello University, Zaria..Samaru-Kataf",Data.Out,,,,TRUE,Charity,
-AC0002,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio..NA,Data.Out,,,,TRUE,Charity,Tripple intercrop
-AC0004,Out.Code.Joined,Mismatch in field value between parent and child tables.,Gross margin..XOF/ha,Data.Out,Out.Out,,,TRUE,Charity,
-AC0004,R.Level.Name,Mismatch in field value between parent and child tables.,MaPpMaMa 0 fert/MaPpMaMa 40N/MaPpMaMa 40N 30P/MaPpMaMa 80N 30P/MaPpMaPp 0 fert/MaPpMaPp 40N/MaPpMaPp 40N 30P/MaPpMaPp 80N 30P/MaVeMaMa 0 fert/MaVeMaMa 40N/MaVeMaMa 40N 30P/MaVeMaMa 80N 30P/MaVeMaVe 0 fert/MaVeMaVe 40N/MaVeMaVe 40N 30P/MaVeMaVe 80N 30P,Data.Out,Rot.Out,,,TRUE,Charity,
-AC0007,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio..NA,Data.Out,,,,TRUE,Charity,
-AC0008,IN.Level.Name,Mismatch in field value between parent and child tables.,Cowpea CA intercrop__Maize CA intercrop__Pigeon pea CA intercrop,Data.Out,Int.Out,,,TRUE,Charity,
-AC0008,IN.Level.Name/T.Name,Compulsory Product field is blank.,Cowpea CA intercrop__Maize CA intercrop__Pigeon pea CA intercrop,Data.Out,,,,FALSE,Charity,
-AC0008,Site.ID,A Site.ID used  does not match the Site tab.,Balaka-Herbert..Balaka-Lemu..Balaka-Malula/Balaka-Herbert..Balaka-Lemu..Balaka-Malula..Dowa-Chipeni..Dowa-Chisepo..Machinga-Matandika..Mzimba-Enyezini..Nkhotakota-Linga..Nkhotakota-Mwansambo..Nkhotakota-Zidyana..Salima-Chinguluwe..Zomba-Songani/Dowa-Chipeni..Dowa-Chisepo..Nkhotakota-Linga..Nkhotakota-Mwansambo..Nkhotakota-Zidyana,Data.Out,,,,TRUE,Charity,
-AC0014,Site.ID,A Site.ID used  does not match the Site tab.,"Kitarinda, Rubavu, Al-40m..Kitarinda, Rubavu, Al 1&3m/Kitarinda, Rubavu, Ma-40m..Kitarinda, Rubavu, Ma-1&3m",Data.Out,,,,TRUE,Charity,
-AC0016,Site.ID,A Site.ID used  does not match the Site tab.,"Cheyohi No. 2, NR..Tingoli, NR..Duko, NR..Tibali, NR/Samboligo, UER..Nyangua, UER..Gia, UER..Bonia, UER",Data.Out,,,,TRUE,Charity,
-AC0020,Site.ID,A Site.ID used  does not match the Site tab.,Anambra State..Benue State..Cross River State..Ogun State..Oyo State,Data.Out,,,,TRUE,Charity,
-AC0029,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-AC0029,T.Name,Mismatch in field value between parent and child tables.,Natural or Bare Fallow,Data.Out,MT.Out,,,TRUE,Charity,
-AC0033,Site.ID,A Site.ID used  does not match the Site tab.,"JKUAT, Thika, Cambisol..JKUAT, Thika, Vertisol",Data.Out,,,,TRUE,Charity,
-AC0034,Site.ID,A Site.ID used  does not match the Site tab.,Goma..Kimenyedde,Data.Out,,,,TRUE,Charity,
-AC0044,Site.ID,A Site.ID used  does not match the Site tab.,Shamva..Wedza..Masvingo,Data.Out,,,,TRUE,Charity,
-AC0045,Site.ID,A Site.ID used  does not match the Site tab.,"Kola Diba, Dembosage..Kola Diba, Chylo Mariam",Data.Out,,,,TRUE,Charity,
-AC0046,Site.ID,A Site.ID used  does not match the Site tab.,Kpalga..Tunayilli..Busa,Data.Out,,,,TRUE,Charity,
-AC0047.2,ED.Sample.End,Date not between 1950-01-01 & 2023-12-01,2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30/2029-10-30,Data.Out,,,,TRUE,Charity,
-AC0048,Site.ID,A Site.ID used  does not match the Site tab.,"Robit Bata WS, P1..Robit Bata WS, P2..Robit Bata WS, P3..Robit Bata WS, P4..Robit Bata WS, P5",Data.Out,,,,TRUE,Charity,
-AC0051,Site.ID,A Site.ID used  does not match the Site tab.,Hoima..Nyando,Data.Out,,,,TRUE,Charity,Aggregation across countries
-AC0052,IN.Level.Name,Crop yield is associated with a intercropping outcome,Canav3__Maize int/Canav1__Maize int/Cowpea__Maize int/Maize int__Sesbania3,,,Data.Out,,TRUE,Charity,
-AC0068,Site.ID,A Site.ID used  does not match the Site tab.,Ethiopia..Kenya..Mozambique..Tanzania,Data.Out,,,,TRUE,Charity,Aggregation across countries
-AC0070,Site.ID,A Site.ID used  does not match the Site tab.,Kawalala..Kapara..Hoya..Mtaya..Chanje..Vuu,Data.Out,,,,TRUE,Charity,
-AC0072,Site.ID,A Site.ID used  does not match the Site tab.,Saboba..Gbulung..Garu,Data.Out,,,,TRUE,Charity,
-AC0077.2,R.Level.Name,Mismatch in field value between parent and child tables.,0 N 0 Res/2 t/ha Res/4 t/ha Res/50 kg N/6 t/ha Res/8 t/ha Res,Data.Out,Rot.Out,,,TRUE,Charity,
-AC0083,Site.ID,A Site.ID used  does not match the Site tab.,"Golomoti, M..Kandeu, M..Nsipe, M/Linthipe, H..Golomoti, M..Kandeu, H..Nsipe, H..Linthipe, L..Golomoti, L..Kandeu, M..Nsipe, M..Kandeu, L..Nsipe, L/Linthipe, H..Kandeu, H..Nsipe, H/Linthipe, L..Golomoti, L..Kandeu, L..Nsipe, L",Data.Out,,,,TRUE,Charity,
-AC0100,Site.ID,A Site.ID used  does not match the Site tab.,Suba District..Oyugis District,Data.Out,,,,TRUE,Charity,
-AC0108,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg/kg N/Phosphorus Agronomic Efficiency..kg/kg P/Potassium Agronomic Efficiency..kg/kg K,Data.Out,,,,TRUE,Charity,
-AC0108,R.Level.Name,Mismatch in field value between parent and child tables.,Ac 0P/Ac P+/Aj 0P/Aj P+/Al 0P/Al P+/BF 0P/BF N++/BF P+/Lp 0P/Lp N++/Lp P+/Ss 0P/Ss N++/Ss P+,Data.Out,Rot.Out,,,TRUE,Charity,Structural Issue
-AC0124,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency (AGB)..kg grain/kg N,Data.Out,,,,TRUE,Charity,
-AC0134,ED.Comparison1,Mismatch in field value between parent and child tables.,D1__N0/D2__N0/D3__N0,Data.Out,MT.Out,,,TRUE,Charity,
-AC0136,Out.Code.Joined,Mismatch in field value between parent and child tables.,Soil Moisture..%,Data.Out,Out.Out,,,TRUE,Charity,
-AC0153,ED.Comparison1,Mismatch in field value between parent and child tables.,0PS,Data.Out,MT.Out,,,TRUE,Charity,comparison is an intercrop
-AC0154,Out.Code.Joined,Data location is missing,Nitrogen Factor Productivity..kg/kg N/Nitrogen Use Efficiency (ARE AGB)..kg/kg N,,,Data.Out,,TRUE,Charity,
-AC0157,ED.Product.Comp,Product component value used does not match master codes.,Biomass/Fodder - First Order Cladodes,Data.Out,,,prod_comp,TRUE,Charity,
-AC0167,R.Level.Name,Mismatch in field value between parent and child tables.,Lime/Lime + residue/No residue/Residue,Data.Out,Rot.Out,,,TRUE,Charity,
-AC0168,IN.Level.Name,Mismatch in field value between parent and child tables.,MC Cp F2..MC Cp F3..MC Cp F1..MC Cp F0__MC PM F1..MC PM F2..MC PM F3..MC PM F0,Data.Out,Int.Out,,,TRUE,Charity,
-AC0168,IN.Level.Name/T.Name,Compulsory Product field is blank.,MC Cp F2..MC Cp F3..MC Cp F1..MC Cp F0__MC PM F1..MC PM F2..MC PM F3..MC PM F0,Data.Out,,,,TRUE,Charity,Formating issue
-AC0168,T.Name,Missing value in compulsory field Site.ID.,CCF3,Data.Out,,,,FALSE,Charity,
-AC0169,Site.ID,A Site.ID used  does not match the Site tab.,Murehwa Chigama..Murehwa Garwe..Murehwa Hakata..Murehwa Chidawaya..Murehwa Chikwerekwere..Murehwa Mahwamba..Murehwa Dzingai..Murehwa Chimani,Data.Out,,,,TRUE,Charity,
-AC0171,Site.ID,A Site.ID used  does not match the Site tab.,Ejura..CRI Fumesua,Data.Out,,,,TRUE,Charity,
-AC0175,IN.Level.Name,Mismatch in field value between parent and child tables.,Banana__CTR/Banana__FYM/Banana__FYM + CR,Data.Out,Int.Out,,,TRUE,Charity,
-AC0175,IN.Level.Name/T.Name,Compulsory Product field is blank.,Banana__CTR/Banana__FYM/Banana__FYM + CR,Data.Out,,,,TRUE,Charity,
-AC0175,Site.ID,A Site.ID used  does not match the Site tab.,Kwemsoso..Mgambo..Misalai,Data.Out,,,,TRUE,Charity,
-CJ0001,IN.Level.Name,Crop yield is associated with a intercropping outcome, Cowpea _Intercrop maize,,,Data.Out,,TRUE,Charity,
-CJ0002,Site.ID,A Site.ID used  does not match the Site tab.,"Institute of Agricultural Research (IAR), Zaria..Institute of Agricultural Research (IAR), Zaria-A..Institute of Agricultural Research (IAR), Zaria-B",Data.Out,,,,TRUE,Charity,
-CJ0008,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg/kg,Data.Out,,,,TRUE,Charity,
-CJ0008,Site.ID,A Site.ID used  does not match the Site tab.,Bulindi..Kapchorwa..Kawanda ARS..Ngetta..Tororo..Abongomola..Bukanga..Kiziranfumbi..Kwera,Data.Out,,,,TRUE,Charity,
-CJ0009,Site.ID,A Site.ID used  does not match the Site tab.,"hunyani farm, Zvimba",Data.Out,,,,TRUE,Charity,
-CJ0010,Site.ID,A Site.ID used  does not match the Site tab.,fountainhill Estate farm,Data.Out,,,,TRUE,Charity,
-CJ0011,IN.Level.Name,Crop yield is associated with a intercropping outcome,Double common bean monoculture (Bn+Bn2)__Double common bean monoculture (Bn1+Bn)/Simultaneous common bean intercropping with maize (M+Bn1)__Simultaneous common bean intercropping with maize (M1+Bn)-maize,,,Data.Out,,TRUE,Charity,"Double bean experiment, needs discussion"
-CJ0011,Site.ID,A Site.ID used  does not match the Site tab.,"Boricha District site 1..Boricha District site 2..Loka Abaya District site 1..Loka Abaya District site 2..Hawassa University, Hawassa",Data.Out,,,,TRUE,Charity,
-CJ0013,Out.Code.Joined,Mismatch in field value between parent and child tables.,Crop Yield..Kg/ha,Data.Out,Out.Out,,,TRUE,Charity,
-CJ0021,ED.Product.Comp,Product component value used does not match master codes.,Green Ears,Data.Out,,,prod_comp,TRUE,Charity,
-CJ0021,R.Level.Name,Mismatch in field value between parent and child tables.,CT Beans/CT Peanuts/CT Pigeon Pea/CT Sunn Hemp/MT Beans/MT Peanuts/MT Pigeon Pea/MT Sunn Hemp/NT Beans/NT Peanuts/NT Pigeon Pea/NT Sunn Hemp,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0026,ED.Mean.T,Non-numeric value in numeric field.,_O.96,Data.Out,,,,TRUE,Charity,
-CJ0030,Site.ID,A Site.ID used  does not match the Site tab.,"Riroda, Babati District..Ariri, Babati Ditrict..Dareda, Babati District",Data.Out,,,,TRUE,Charity,
-CJ0037,IN.Level.Name,Mismatch in field value between parent and child tables.,Maize int__Yi-flat D1..Yi-R D1..Yi-flat-F D1..Yi-R-F D1..Yi-flat D2..Yi-R D2..Yi-flat-F D2..Yi-R-F D2..Yi-flat D3..Yi-R D3..Yi-flat-F D3..Yi-R-F D3..Yi-flat D4..Yi-R D4..Yi-flat-F D4..Yi-R-F D4..Yi-flat D5..Yi-R D5..Yi-flat-F D5..Yi-R-F D5..Yi-flat D6..Yi-R D6..Yi-flat-F D6..Yi-R-F D6,Data.Out,Int.Out,,,TRUE,Charity,
-CJ0041,Site.ID,A Site.ID used  does not match the Site tab.,Domboshava_Chawonza..Murehwa_Madziva/Domboshava_Kaviya..Murehwa_Faro..Murehwa_Marimo,Data.Out,,,,TRUE,Charity,
-CJ0044,ED.Comparison1,Mismatch in field value between parent and child tables.,potato intercrop__potato-lima-lima bean/potato intercrop__potato-lupin-lupin,Data.Out,MT.Out,,,TRUE,Charity,comparison is an intercrop
-CJ0045,R.Level.Name,Mismatch in field value between parent and child tables.,CA/CT,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0046,Out.Code.Joined,Mismatch in field value between parent and child tables.,Soil Total Nitrogen..Kg/ha,Data.Out,Out.Out,,,TRUE,Charity,
-CJ0046,R.Level.Name,Mismatch in field value between parent and child tables.,MD/R CT/MD/R NT/MS/S/R CT/MS/S/R NT,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0047,Site.ID,A Site.ID used  does not match the Site tab.,"Kandeu, Ntcheu District-BM..Kandeu, Ntcheu District-EP..Kandeu, Ntcheu District-LP.. Linthipe, Dedza District-CM.. Linthipe, Dedza District-LM.. Linthipe, Dedza District-FM",Data.Out,,,,TRUE,Charity,
-CJ0049,ED.Mean.T,Non-numeric value in numeric field.,6()6.6,Data.Out,,,,TRUE,Charity,
-CJ0049,Site.ID,A Site.ID used  does not match the Site tab.,Murewa 1LC..Murewa 3 LC..Bindura 1 LC..Mount Darwin  1 LC..Zaka 3 LC..Nyanga 1 LC/Murewa 1LC..Murewa 3 LC..Murewa 5 HC..Murewa 7 HC/Murewa 2 LC..Murewa 4 LC..Bindura 2 LC..Mount Darwin  2 LC..Zaka 4 LC..Nyanga 2 LC/Murewa 2 LC..Murewa 4 LC..Murewa 6 HC..Murewa 8 HC/Murewa 5 HC..Murewa 7 HC..Zaka 1 HC..Nyanga  3 HC..Chipinge 1 HC/Murewa 6 HC..Murewa 8 HC..Zaka 2 HC..Nyanga 4 HC..Chipinge 2 HC/Nyanga 1 LC..Nyanga  3 HC/Zaka 1 HC..Zaka 3 LC/Zaka 2 HC..Zaka 4 LC,Data.Out,,,,TRUE,Charity,
-CJ0062,R.Level.Name,Mismatch in field value between parent and child tables.,N0/N0_C40/N120/N120_C40/N160/N160_C40/N200/N200_C40/N40/N40_C40/N80/N80_C40,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0065,Site.ID,A Site.ID used  does not match the Site tab.,Santa Clara..Paraiso..Jiboia,Data.Out,,,,TRUE,Charity,
-CJ0071,Out.Code.Joined,Mismatch in field value between parent and child tables.,Nitrous Oxide Emissions..microg/ m2/ h,Data.Out,Out.Out,,,TRUE,Charity,
-CJ0075,Site.ID,A Site.ID used  does not match the Site tab.,Gimbichu District..Goshe Bado..Machakel..Adwa,Data.Out,,,,TRUE,Charity,
-CJ0077,Site.ID,A Site.ID used  does not match the Site tab.,Gara..Chembe..Chibanda..Mavhunga,Data.Out,,,,TRUE,Charity,
-CJ0078,R.Level.Name,Mismatch in field value between parent and child tables.,CT_CHEMICAL/CT_MECHANICAL/CT_MUCLHING/MT_CHEMICAL/MT_MECHANICAL/MT_MUCLHING/NT_CHEMICAL/NT_MECHANICAL/NT_MUCLHING,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0080,R.Level.Name,Mismatch in field value between parent and child tables.,R1_CT/R1_NT/R2_CT/R2_NT/R3_CT/R3_NT,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0081,R.Level.Name,Mismatch in field value between parent and child tables.,maize-potato 12 CF/maize-potato 16 CF/maize-potato 6 CF/maize-potato F/maize-potato control,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0082,IN.Level.Name,Mismatch in field value between parent and child tables.,Maize+SB+Biochar__SB intercrop/Maize+SB+NPK+Biochar__SB intercrop/Maize+SB+NPK__SB intercrop,Data.Out,Int.Out,,,TRUE,Charity,
-CJ0082,Out.Code.Joined,"Compulsory Treatment, Intercropping and Rotation fields are all blank (at least one value must be present).",NA,Data.Out,,,,TRUE,Charity,
-CJ0082,Out.Code.Joined,Data location is missing,NA,,,Data.Out,,TRUE,Charity,
-CJ0082,T.Name,Missing value in compulsory field ED.Mean.T.,NA,Data.Out,,,,FALSE,Charity,
-CJ0082,T.Name,Missing value in compulsory field Out.Code.Joined.,SB+NPK+Biochar/SB+NPK/SB+Biochar/Maize+SB+NPK+Biochar/Maize+SB+NPK/Maize+SB+Biochar/Maize+NPK+Biochar/Maize+NPK/Maize+Biochar/CW+NPK+Biochar/CW+NPK/CW+Biochar/NA,Data.Out,,,,FALSE,Charity,
-CJ0082,T.Name,Missing value in compulsory field Time.,NA,Data.Out,,,,TRUE,Charity,
-CJ0087,Site.ID,A Site.ID used  does not match the Site tab.,"Faculty of Engineering at UNESP, Selvíria, MS, Brazil",Data.Out,,,,TRUE,Charity,
-CJ0089,Site.ID,A Site.ID used  does not match the Site tab.,"CSIR, Nyankpala..Council for Scientific Research - Manga Station",Data.Out,,,,TRUE,Charity,
-CJ0090,R.Level.Name,Mismatch in field value between parent and child tables.,M-C-CT/M-C-NT/M-C-RT/MM-C-CT/MM-C-NT/MM-C-RT,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0092,R.Level.Name,Mismatch in field value between parent and child tables.,MAIZE BEAN CTS/MAIZE BEAN NTS/SORGHUM-MAIZE CTS/SORGHUM-MAIZE NTS,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0095,Site.ID,A Site.ID used  does not match the Site tab.,Bimbilia..Salaga..Walewale..Navrongo..Tumu..Jirapa,Data.Out,,,,TRUE,Charity,
-CJ0096,Out.Code.Joined,Error type is missing,Crop Yield..kg/ha/Nitrogen Agronomic Efficiency..kg grain/kg N applied,,,Data.Out,,TRUE,Charity,
-CJ0096,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg grain/kg N applied,Data.Out,,,,TRUE,Charity,
-CJ0108,Site.ID,A Site.ID used  does not match the Site tab.,Shewarobit..Ataye..Merhabete,Data.Out,,,,TRUE,Charity,
-CJ0111,Site.ID,A Site.ID used  does not match the Site tab.,"Tarakea secondary school.. Tanzania Coffee Research Institute farm, Lyamungo..Nelson Mandela African Institution of Science and Technology, Tengeru",Data.Out,,,,TRUE,Charity,
-CJ0112,Out.Code.Joined,Mismatch in field value between parent and child tables.,Soil Carbon Stocks..g/kg..0..10/Soil Carbon Stocks..g/kg..10..20/Soil Carbon Stocks..g/kg..20..40,Data.Out,Out.Out,,,TRUE,Charity,
-CJ0112,R.Level.Name,Mismatch in field value between parent and child tables.,Control/MF/PL2/PL2MF1/2/PL4/PL8,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0116,Out.Code.Joined,Data location is missing,Soil Organic Matter..g/kg,,,Data.Out,,TRUE,Charity,
-CJ0122,Site.ID,A Site.ID used  does not match the Site tab.,Osogbo Agricultural Farm Settlement-site 1..Osogbo Agricultural Farm Settlement -site 2,Data.Out,,,,TRUE,Charity,
-CJ0123,Site.ID,A Site.ID used  does not match the Site tab.,"Gambawa 2014..Gambawa 2015/IAR, Minjibir 2014..IAR, Minjibir 2015",Data.Out,,,,TRUE,Charity,
-CJ0126,Site.ID,A Site.ID used  does not match the Site tab.,B N1..B N2..B N3..B N4..B N5..B N6..B N7..B N8..B N9/BS W1..BS W2..BS W3..BS W4..BS W5..BS W6..BS W7..BS W8..BS W9/BS W1..BS W2..BS W3..BS W4..BS W5..BS W6..BS W7..BS W8..BS W9..B N1..B N2..B N3..B N4..B N5..B N6..B N7..B N8..B N9,Data.Out,,,,TRUE,Charity,
-CJ0131,Site.ID,A Site.ID used  does not match the Site tab.,Oyo State..Ogun State,Data.Out,,,,TRUE,Charity,
-CJ0138,Site.ID,A Site.ID used  does not match the Site tab.,"Faculty of Agronomy/University of Parakou..Agricultural Research Center of Northern Benin,Bembereke",Data.Out,,,,TRUE,Charity,
-CJ0141,R.Level.Name,Mismatch in field value between parent and child tables.,RO-CT/RO-MT,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0146,Site.ID,A Site.ID used  does not match the Site tab.,KARI Embu_1..KARI Embu_2..KARI Embu_3/KARI Embu_1..KARI Embu_3/Kwale_1..Kwale_2/Siaya_1..Siaya_2..Siaya_3,Data.Out,,,,TRUE,Charity,
-CJ0153,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg grain/kg N applied,Data.Out,,,,TRUE,Charity,
-CJ0158,R.Level.Name,Mismatch in field value between parent and child tables.,108N agg/108N_Giza-32/108N_Shandwe-1/108N_Sohag-1/144N agg/144N_Giza-32/144N_Shandwe-1/144N_Sohag-1/72N agg/72N_Giza-32/72N_Shandwe-1/72N_Sohag-1/Control_Giza-32/Control_Shandwe-1/Control_Sohag-1,Data.Out,Rot.Out,,,TRUE,Charity,
-CJ0168,Out.Code.Joined,Data location is missing,Biomass Yield..t/ha,,,Data.Out,,TRUE,Charity,
-CJ0169,Site.ID,A Site.ID used  does not match the Site tab.,Koutiala..Sirakélé..Zansoni,Data.Out,,,,TRUE,Charity,
-CJ0175,Site.ID,A Site.ID used  does not match the Site tab.,Ankazomiriotra_S1..Ankazomiriotra_S2,Data.Out,,,,TRUE,Charity,
-CJ0180,Site.ID,A Site.ID used  does not match the Site tab., Owo..Uso,Data.Out,,,,TRUE,Charity,
-CJ0182.1,Site.ID,A Site.ID used  does not match the Site tab.,Hayk S1..Hayk S2..Hayk S3..Sirinka ARC S1..Sirinka ARC S2..Sirinka ARC S3/Hayk S1..Sirinka ARC S1/Hayk S2..Sirinka ARC S2/Hayk S3..Sirinka ARC S3,Data.Out,,,,TRUE,Charity,
-CJ0182.2,Site.ID,A Site.ID used  does not match the Site tab.,Hayk S1..Hayk S2..Hayk S3..Sirinka ARC S1..Sirinka ARC S2..Sirinka ARC S3/Hayk S1..Sirinka ARC S1/Hayk S2..Sirinka ARC S2/Hayk S3..Sirinka ARC S3,Data.Out,,,,TRUE,Charity,
-CJ0185,ED.Mean.T,Non-numeric value in numeric field.,–33.91,Data.Out,,,,FALSE,Charity,
-CJ0187,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Phosphorus Agronomic Efficiency..kg grain/kg P applied,Data.Out,,,,TRUE,Charity,
-CJ0187,Site.ID,A Site.ID used  does not match the Site tab.,Nassoulou village D..Nassoulou village_M..Poa village..Ramongo village,Data.Out,,,,TRUE,Charity,
-CJ0188,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency (AGB)..kg grain/kg N applied..Mean,Data.Out,,,,TRUE,Charity,
-CJ0190,Site.ID,A Site.ID used  does not match the Site tab.,Robit..Dangishta,Data.Out,,,,TRUE,Charity,
-CJ0193,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg grain/kg N applied..Mean,Data.Out,,,,TRUE,Charity,
-CJ0198,Site.ID,A Site.ID used  does not match the Site tab.,Ada’a..Damot Gale..Gimbichu..Ginir/Agarfa..Farta..Sinana..Yilmana Densa/Bako Tibe..Boricha..Pawe..Tiroafeta/Bako Tibe..Dibatie..Halaba..Pawe..Shalla..Soddo Zuria,Data.Out,,,,TRUE,Charity,
-CJ0199,ED.Comparison1,Mismatch in field value between parent and child tables.,Mams H913_control-1..Meru H513_control-1..Meru H515_control-1..NATA H105_control-1..SC627_control-1__Pp int,Data.Out,MT.Out,,,TRUE,Charity,Marginal rat e of return has comparison value
-CJ0199,Site.ID,A Site.ID used  does not match the Site tab.,Hallu..Ayamango..orngadida,Data.Out,,,,TRUE,Charity,
-CJ0202,Site.ID,A Site.ID used  does not match the Site tab.,Gurumanchenyili..Zangbalun Fandu,Data.Out,,,,TRUE,Charity,
-DM0016,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio,Data.Out,,,,TRUE,Charity,
-DM0020,IN.Level.Name,Crop yield is associated with a intercropping outcome,Ayocote bean__Intercrop Maize /Black bean__Intercrop Maize /Climbing bean__Intercrop Maize /Crotalaria__Intercrop Maize /Intercrop Maize __Lablab,,,Data.Out,,TRUE,Charity,
-DM0021,R.Level.Name,Mismatch in field value between parent and child tables.,Control/Limestone/Slag,Data.Out,Rot.Out,,,TRUE,Charity,
-DM0023,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..g/kg..0..5/Nitrogen Agronomic Efficiency..g/kg..5..15/Nitrogen Agronomic Efficiency..g/kg..15..30,Data.Out,,,,TRUE,Charity,
-DM0026,Out.Code.Joined,Data location is missing,Crop Yield..kg/ha,,,Data.Out,,TRUE,Charity,
-HK0106,Out.Code.Joined,Mismatch in field value between parent and child tables.,Water Use Efficiency..kg/ha/ square cm,Data.Out,Out.Out,,,TRUE,Charity,
-HK0111,IN.Level.Name/T.Name,Compulsory Product field is blank.,(C) Maize + Cassava_mound__(M) Maize + Cassava_mound/(C) Maize + Cassava__(M) Maize + Cassava/(C) Maize + Cassava + 30_mound__(M) Maize + Cassava + 30_mound/(C) Maize + Cassava + 60_mound__(M) Maize + Cassava + 60_mound/(C) Maize + Cassava + 30__(M) Maize + Cassava + 30/(C) Maize + Cassava + 60__(M) Maize + Cassava + 60,Data.Out,,,,TRUE,Charity,Cant tell the issue
-HK0111,T.Name,Mismatch in field value between parent and child tables.,(M) Maize + cassava/(M) Maize + cassava_mound,Data.Out,MT.Out,,,TRUE,Charity,
-HK0161.2,IN.Level.Name,Crop yield is associated with a intercropping outcome,NA,,,Data.Out,,TRUE,Charity,
-JO0001,ED.Mean.T,Non-numeric value in numeric field.,3.636.ı,Data.Out,,,,TRUE,Charity,
-JO0005,ED.Comparison1,Mismatch in field value between parent and child tables.,MONO- NUA 45/MONO- SER83,Data.Out,MT.Out,,,TRUE,Charity,
-JO0005,Site.ID,A Site.ID used  does not match the Site tab.,Chitedze ARS (LT CA Trial)..Linthipe,Data.Out,,,,TRUE,Charity,
-JO0008,ED.Product.Comp,Product component value used does not match master codes.,Tap root,Data.Out,,,prod_comp,TRUE,Charity,
-JO0013,T.Name,Missing value in compulsory field Time.,Croton- 3/Croton-5/Croton-7/Cordia -3/Cordia-5/Cordia-7/Control,Data.Out,,,,TRUE,Charity,Time not provided
-JO0014,IN.Level.Name,Mismatch in field value between parent and child tables.,Intrarow Intercrop CB + WF__Intrarow intercrop CP + WF/Intrarow Intercrop CB +50 DWACE__Intrarow intercrop CP +50 DWACE,Data.Out,Int.Out,,,TRUE,Charity,
-JO0014,IN.Level.Name/T.Name,Compulsory Product field is blank.,Intrarow Intercrop CB +50 DWACE__Intrarow intercrop CP +50 DWACE/Intrarow Intercrop CB + WF__Intrarow intercrop CP + WF,Data.Out,,,,TRUE,Charity,Intercropping tab has a formatting issue
-JO0016.1,ED.Comparison1,Mismatch in field value between parent and child tables.,0N +Intercrop maize- Cargill 111/20 +Intercrop maize- Cargill 111/40 +Intercrop maize- Cargill 111,Data.Out,MT.Out,,,TRUE,Charity,
-JO0016.1,ED.Comparison2,Mismatch in field value between parent and child tables.,0N + Intercrop bean Rio Tibagi/0N +Intercrop bean Carioca/0N +Intercrop bean Carioca + R/0N +Intercrop bean Rio Tibagi + R/20 + Intercrop bean Rio Tibagi/20 +Intercrop bean Carioca/20 +Intercrop bean Carioca + R/20 +Intercrop bean Rio Tibagi + R/40 + Intercrop bean Rio Tibagi/40 +Intercrop bean Carioca/40 +Intercrop bean Carioca + R/40 +Intercrop bean Rio Tibagi + R,Data.Out,MT.Out,,,TRUE,Charity,
-JO0018,R.Level.Name,Mismatch in field value between parent and child tables.,Maize +Pigeon Pea Rot /Maize +Stylosanthes-80%+20% Rot/Maize +Sunn hemp Rot/Maize+ Natural or Bare Fallow Rot/Maize+Jack bean Rot,Data.Out,Rot.Out,,,TRUE,Charity,
-JO0021,ED.Product.Comp,Product component value used does not match master codes.,Hulled green bean,Data.Out,,,prod_comp,TRUE,Charity,
-JO0025,Out.Code.Joined,Mismatch in field value between parent and child tables.,Biomass Yield..Kg/ha,Data.Out,Out.Out,,,TRUE,Charity,
-JO0029,IN.Level.Name,Mismatch in field value between parent and child tables.,L Int__M Int,Data.Out,Int.Out,,,TRUE,Charity,
-JO0033,ED.Sample.End,Non-numeric value in numeric field.,30-2-2019/30/2/2019,Data.Out,,,,TRUE,Charity,
-JO0035,IN.Level.Name,Crop yield is associated with a intercropping outcome,NA,,,Data.Out,,TRUE,Charity,
-JO0036,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-JO0036,T.Name,Missing value in compulsory field Time.,HGAF-Coffee-0-30cm..HGAF-Khat-0-30cm..HGAF-Ensete-0-30cm..HGAF-Banana-0-30cm..HGAF-Avocado-0-30cm/CAFS-0-30cm/HGAF-Coffee-30-60cm..HGAF-Khat-30-60cm..HGAF-Ensete-30-60cm..HGAF-Banana-30-60cm..HGAF-Avocado-30-60cm/CAFS-30-60cm/HGAF-Coffee..HGAF-Khat..HGAF-Ensete..HGAF-Banana..HGAF-Avocado/CAFS,Data.Out,,,,TRUE,Charity,Time not provided
-JO0054,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-JO0054,Site.ID,A Site.ID used  does not match the Site tab.,Montecarlo-Bonilla..Quizarra-Helga..Quizarra-Rojas Sr..Santa Elena Gran Tico/Montecarlo-Monteverde/Bernina..Montecarlo-Loma..Quizarra-Pancho..Quizarra-Vasquez,Data.Out,,,,TRUE,Charity,
-JO0054,T.Name,Mismatch in field value between parent and child tables.,Caturra shadded..Catimor shadded..Catuai shadded/Caturra unshadded..Catimor unshadded..Catuai unshadded,Data.Out,MT.Out,,,TRUE,Charity,
-JO0059,IN.Level.Name,Mismatch in field value between parent and child tables.,Int-CP__Int-O-1m/Int-CP__Int-O-2m/Int-CP__Int-O-3m,Data.Out,Int.Out,,,TRUE,Charity,
-JO0059,R.Level.Name,Mismatch in field value between parent and child tables.,citrus/mz-cp/citrus/mz-cp 1m/citrus/mz-cp 2m/citrus/mz-cp 3m/mz-cp,Data.Out,Rot.Out,,,TRUE,Charity,
-JO0063,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,wrong aggregations tobe fixed during qc
-JO0063,Out.Code.Joined,Data location is missing,Carbon Dioxide Emissions..Mg/ha,,,Data.Out,,TRUE,Charity,
-JO0063,Out.Code.Joined,Mismatch in field value between parent and child tables.,Soil Organic Carbon..Mg/ha..0-20m,Data.Out,Out.Out,,,TRUE,Charity,
-JO0063,R.Level.Name,Mismatch in field value between parent and child tables.,BO-SB-W/SB-BO+VCH-M-OSR-W,Data.Out,Rot.Out,,,TRUE,Charity,
-JO0064,IN.Level.Name,Mismatch in field value between parent and child tables.,BANA_INT__NABE_12C_PRU/BANA_INT__NABE_12C_UNPRU/BANA_INT__NABE_8C_UNPRU,Data.Out,Int.Out,,,TRUE,Charity,
-JO0071,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg/kg..Mean,Data.Out,,,,TRUE,Charity,
-JO0074,R.Level.Name,Mismatch in field value between parent and child tables.,180N-NT-OM/CT-O-M/CT-V-M/NT-O-M/NT-V-M/ON-NT-OM/RES-V/M,Data.Out,Rot.Out,,,TRUE,Charity,
-JO0076,IN.Level.Name,Mismatch in field value between parent and child tables.,CP-CM-0_MONO..CP-CM-31_MONO..CP-CM-62_MONO__PM-CM-0_INT..PM-CM-31_INT..PM-CM-62_INT,Data.Out,Int.Out,,,TRUE,Charity,
-JO0077,Out.Code.Joined,Mismatch in field value between parent and child tables.,Biomass Yield..Mg/ha/Crop Yield..Mg/ha,Data.Out,Out.Out,,,TRUE,Charity,
-JO0082,ED.Mean.T,Non-numeric value in numeric field.,1A8/ı.50,Data.Out,,,,TRUE,Charity,
-JO0083,Site.ID,A Site.ID used  does not match the Site tab.,Botucatu..Botucatu_B..Botucatu_C,Data.Out,,,,TRUE,Charity,
-JO0084,Out.Code.Joined,"Compulsory Treatment, Intercropping and Rotation fields are all blank (at least one value must be present).",NA,Data.Out,,,,TRUE,Charity,
-JO0084,T.Name,Missing value in compulsory field ED.Mean.T.,NA,Data.Out,,,,FALSE,Charity,
-JO0084,T.Name,Missing value in compulsory field Out.Code.Joined.,NA,Data.Out,,,,FALSE,Charity,
-JO0084,T.Name,Missing value in compulsory field Time.,NA,Data.Out,,,,TRUE,Charity,
-JO0085,ED.Mean.T,Non-numeric value in numeric field.,73.19./134-61/203.20.,Data.Out,,,,TRUE,Charity,
-JO0086,R.Level.Name,Mismatch in field value between parent and child tables.,W-SB,Data.Out,Rot.Out,,,TRUE,Charity,
-JO0089,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Phosphorus Agronomic Efficiency..AEP,Data.Out,,,,TRUE,Charity,
-JO0093,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-JO0096,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg grain/kg N applied,Data.Out,,,,TRUE,Charity,
-JO0103,Site.ID,A Site.ID used  does not match the Site tab.,Mecha..South Achefere,Data.Out,,,,TRUE,Charity,
-JO0105,Out.Code.Joined,Error type is missing,Crop Yield..kg/ha..Pearl Millet-Grain/Biomass Yield..kg/ha..Pearl Millet/Soil Moisture..%..Sowing density-Soilmoisture..0..20/Soil Moisture..%..Sowing density-Soilmoisture..20..40/Soil Moisture..%..Sowing density-Soilmoisture..40..60/Soil Moisture..%..Sowing density-Soilmoisture..60..80,,,Data.Out,,TRUE,Charity,
-JO0105,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency (AGB)..kg/kg N..Grain yield-Varieties/Nitrogen Agronomic Efficiency (AGB)..kg/kg N..Biomass yield-Varieties/Nitrogen Agronomic Efficiency (AGB)..kg/kg N..Grain yield-Fertilizer/Nitrogen Agronomic Efficiency (AGB)..kg/kg N..Biomass yield-Fertilizer,Data.Out,,,,TRUE,Charity,
-JO0110,IN.Level.Name,Crop yield is associated with a intercropping outcome,Gli Res-INT-S+Without__Gliricidia/Leucaena__Lu Res-INT-S+Without/Gli Res-INT-S+Fert__Gliricidia/Leucaena__Lu Res-INT-S+Fert,,,Data.Out,,TRUE,Charity,
-JO0125,R.Level.Name,Mismatch in field value between parent and child tables.,AC_FODD/AC_TEF,Data.Out,Rot.Out,,,TRUE,Charity,
-JO0127,ED.Comparison2,Mismatch in field value between parent and child tables.,INT-PP-0NPK..INT-PP-NPK1..INT-PP-NPK2__INT-YAM-A-0NPK..INT-YAM-A-NPK1..INT-YAM-A-NPK2,Data.Out,MT.Out,,,TRUE,Charity,
-JO0128,IN.Level.Name,Crop yield is associated with a intercropping outcome,0P-INT-GN__0P-INT-SP/0P-INT-SB__0P-INT-SP/0P-INT-GN__0P-INT-SB__0P-INT-SP/20P-INT-GN__20P-INT-SP/20P-INT-SB__20P-INT-SP/20P-INT-GN__20P-INT-SB__20P-INT-SP/40P-INT-GN__40P-INT-SP/40P-INT-SB__40P-INT-SP/40P-INT-GN__40P-INT-SB__40P-INT-SP/20P-INT-GN..40P-INT-GN..0P-INT-GN__20P-INT-SP..40P-INT-SP..0P-INT-SP/20P-INT-SB..40P-INT-SB..0P-INT-SB__20P-INT-SP..40P-INT-SP..0P-INT-SP/20P-INT-GN..40P-INT-GN..0P-INT-GN__20P-INT-SB..40P-INT-SB..0P-INT-SB__20P-INT-SP..40P-INT-SP..0P-INT-SP,,,Data.Out,,TRUE,Charity,
-JO0131,R.Level.Name,Mismatch in field value between parent and child tables.,B_CL/MZ_B_CL/MZ_C,Data.Out,Rot.Out,,,TRUE,Charity,
-JO0137,T.Name,Missing value in compulsory field Time.,PS-4-20-0N..PS-6-20-ON..PS-8-20-0N..PS-10-20-0N/PS-4-20-50N..PS-6-20-50N..PS-8-20-50N..PS-10-20-50N/PS-4-20-100N..PS-6-20-100N..PS-8-20-100N..PS-10-20-100N/PS-4-20-150N..PS-6-20-150N..PS-8-20-150N..PS-10-20-150N/PS-10-20-0N/PS-8-20-0N/PS-6-20-ON/PS-4-20-0N/PS-10-20-50N/PS-8-20-50N/PS-6-20-50N/PS-4-20-50N/PS-10-20-100N/PS-8-20-100N/PS-6-20-100N/PS-4-20-100N/PS-10-20-150N/PS-8-20-150N/PS-6-20-150N/PS-4-20-150N,Data.Out,,,,TRUE,Charity,Time not provided
-JO0138,ED.Mean.T,Non-numeric value in numeric field.,2.289.61,Data.Out,,,,TRUE,Charity,
-JO0155,T.Name,Missing value in compulsory field Time.,ORG/CON,Data.Out,,,,TRUE,Charity,Time not provided
-JO0156,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-JO0156,T.Name,Mismatch in field value between parent and child tables.,Control-0Chem/Control-Bay-10/Control-Bay-15/Control-Rid-10/Control-Rid-15/Degage-0Chem/Degage-Bay-10/Degage-Bay-15/Degage-Rid-10/Degage-Rid-15/Gora-0Chem/Gora-Bay-10/Gora-Bay-15/Gora-Rid-10/Gora-Rid-15,Data.Out,MT.Out,,,TRUE,Charity,
-JO0157,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,"cant be fixed, they are just aggregates"
-JO0166,ED.Comparison1,Mismatch in field value between parent and child tables.,n-Control,Data.Out,MT.Out,,,FALSE,Charity,
-JO0166,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..g g/N,Data.Out,,,,TRUE,Charity,
-JO0169,IN.Level.Name,Crop yield is associated with a intercropping outcome,INT-CP__INT-PP/INT-MZ__INT-PP/INT-CP__INT-MZ,,,Data.Out,,FALSE,Charity,
-JO0169,Out.Code.Joined,Mismatch in field value between parent and child tables.,Biomass Yield..g/plant/Crop Yield..g/plant,Data.Out,Out.Out,,,FALSE,Charity,
-JO0170,T.Name,Missing value in compulsory field Time.,D-100/S-100/D-80/S-80/D-60/S-60,Data.Out,,,,TRUE,Charity,Time not provided
-JO0171,T.Name,Missing value in compulsory field Time.,F. A-OUT..F. A-IN/Z. S-OUT..Z. S-IN/A. S-OUT..A. S-IN/B. A-OUT..B. A-IN/C. A-OUT..C. A-IN/C. M-OUT..C. M-IN/F.A-1/3/F.A-2/3/F.A-EDGE/Z.S-1/3/Z.S-2/3/Z.S-EDGE/A.S-1/3/A.S-2/3/A.S-EDGE/B.A-1/3/B.A-2/3/B.A-EDGE/C.A-1/3/C.A-2/3/C.A-EDGE/C.M-1/3/C.M-2/3/C.M-EDGE/F. A-IN/F. A-OUT/Z. S-IN/Z. S-OUT/A. S-IN/A. S-OUT/B. A-IN/B. A-OUT/C. A-IN/C. A-OUT/C. M-IN/C. M-OUT,Data.Out,,,,TRUE,Charity,Time not provided
-JO0172,IN.Level.Name,Crop yield is associated with a intercropping outcome,INT-FB+AMF__INT-FG+AMF/INT-FB+Yeast__INT-FG+Yeast/INT-FB+Round Up__INT-FG+Round Up/INT-FB+ Rizolex__INT-FG+ Rizolex/INT-FB+ No chem__INT-FG+ No chem/INT-FB+AMF__INT-LP+AMF/INT-FB+Yeast__INT-LP+Yeast/INT-FB+Round Up__INT-LP+Round Up/INT-FB+ Rizolex__INT-LP+ Rizolex/INT-FB+ No chem__INT-LP+ No chem/INT-FB+AMF__INT-GLC+AMF/INT-FB+Yeast__INT-GLC+Yeast/INT-FB+Round Up__INT-GLC+Round Up/INT-FB+ Rizolex__INT-GLC+ Rizolex/INT-FB+ No chem__INT-GLC+ No chem,,,Data.Out,,TRUE,Charity,
-JO0175,Out.Code.Joined,Data location is missing,Crop Yield..kg/ha/Biomass Yield..kg/ha,,,Data.Out,,TRUE,Charity,
-JO0176,T.Name,Missing value in compulsory field Time.,90-MONO-DES/90-INT-DES/90-INT-Sativa/90-INT-Lana/90-INT-Gebisa/90-INT-Lalisa/120-MONO-DES/120-INT-DES/120-INT-Sativa/120-INT-Lana/120-INT-Lalisa/120-INT-Gebisa,Data.Out,,,,TRUE,Charity,Time not provided
-JO0180,T.Name,Missing value in compulsory field Time.,Odumase A/Banso B,Data.Out,,,,TRUE,Charity,Time not provided
-JO0185,Site.ID,A Site.ID used  does not match the Site tab.,University of Abomey-Calavi Experimental Research Site-2010..University of Abomey-Calavi Experimental Research Site-2011,Data.Out,,,,TRUE,Charity,
-JO0187,Site.ID,A Site.ID used  does not match the Site tab.,Anambra..Benue..Cross River ..Ogun..Oyo,Data.Out,,,,TRUE,Charity,
-JO0188,ED.Mean.T,Non-numeric value in numeric field.,12.53.22/12.274.8,Data.Out,,,,TRUE,Charity,
-JO0189,Site.ID,A Site.ID used  does not match the Site tab.,Karonga..Mzimba..Salima..Dedza..Ntcheu..Balaka..Machinga..Zomba...Mulanje..Chiradzulo..Thyolo,Data.Out,,,,TRUE,Charity,
-JO0197,Site.ID,A Site.ID used  does not match the Site tab.,Gory..Yaguine..Dougoubara..Foungou/Gory..Yaguine..Dougoubara..Foungou..Kemala..Tambacara..Fanga..Niogomera..Lambatara/Yaguine..Dougoubara..Foungou..Tambacara..Fanga..Niogomera..Lambatra,Data.Out,,,,TRUE,Charity,
-JO0202,Out.Code.Joined,Data location is missing,Crop Yield..t/ha,,,Data.Out,,TRUE,Charity,
-JO0202,Site.ID,A Site.ID used  does not match the Site tab.,Scientific Industrial Research and Development Centre in Harare,Data.Out,,,,TRUE,Charity,
-JO0204,Out.Code.Joined,Data location is missing,Crop Yield..kg/ha,,,Data.Out,,TRUE,Charity,
-JO0204,Site.ID,A Site.ID used  does not match the Site tab.,Nkwanta Agricultural Station of the Nkwanta South District,Data.Out,,,,TRUE,Charity,
-JO0208,T.Name,Missing value in compulsory field Time.,Control-4WKS/20Tm-4WKS/40Tm-4WKS/100NPKzn-4WKS/150NPKzn-4WKS/Control-5WKS/20Tm-5WKS/40Tm-5WKS/100NPKzn-5WKS/150NPKzn-5WKS/Control-6WKS/20Tm-6WKS/40Tm-6WKS/100NPKzn-6WKS/150NPKzn-6WKS,Data.Out,,,,TRUE,Charity,Time not provided
-JS0204,Out.Code.Joined,"Compulsory Treatment, Intercropping and Rotation fields are all blank (at least one value must be present).",Soil Organic Matter..%..0..30,Data.Out,,,,TRUE,Charity,
-JS0204,T.Name,Missing value in compulsory field Time.,INT-GRAV/INT-GL/INT-P/INT-CARD/MONO-GRAV/MONO-GL/MONO-P/MONO-CARD/NA,Data.Out,,,,TRUE,Charity,Time not provided
-JS0248,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-JS0248,T.Name,Mismatch in field value between parent and child tables.,Hanfets (barley)  - DER+__Hanfets (Wheat)  - DER+/Hanfets (barley)  - TER+__Hanfets (Wheat)  - TER+/Hanfets (barley) - Conventional__Hanfets (Wheat) - Conventional,Data.Out,MT.Out,,,TRUE,Charity,
-JS0334.2,ED.Sample.End,Date not between 1950-01-01 & 2023-12-01,2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25/2025-06-14/2025-06-21/2025-06-28/2025-07-05/2025-07-12/2025-07-19/2025-07-26/2025-08-02/2025-08-09/2025-08-16/2025-08-23/2025-08-30/2025-09-06/2025-09-13/2025-09-20/2025-09-27/2025-10-04/2025-10-11/2025-10-18/2025-10-25,Data.Out,,,,TRUE,Charity,
-JS0433,IN.Level.Name,Mismatch in field value between parent and child tables.,82-M-F1-A>>F__D-INT-4/82-M-F1-A>>F__G-INT4/82-M-F1-A>>F__L-INT-4/82-M-F2-A>>F__D-INT-4/82-M-F2-A>>F__G-INT4/82-M-F2-A>>F__L-INT-4/A-INT-4__CP-INT/A-INT-4__T-82-M-F1-A>>F-5/A-INT-4__T-82-M-F2-A>>F-5/A-INT-4__Till-CP-INT/CP-INT__D-INT-4/CP-INT__G-INT4/CP-INT__L-INT-4/D-INT-4__T-82-M-F1-A>>F-5/D-INT-4__T-82-M-F2-A>>F-5/D-INT-4__Till-CP-INT/G-INT4__T-82-M-F1-A>>F-5/G-INT4__T-82-M-F2-A>>F-5/G-INT4__Till-CP-INT/L-INT-4__T-82-M-F1-A>>F-5/L-INT-4__T-82-M-F2-A>>F-5/L-INT-4__Till-CP-INT,Data.Out,Int.Out,,,TRUE,Charity,
-JS0433,IN.Level.Name/T.Name,Compulsory Product field is blank.,A-INT-4__T-82-M-F1-A>>F-5/A-INT-4__T-82-M-F2-A>>F-5/D-INT-4__T-82-M-F1-A>>F-5/D-INT-4__T-82-M-F2-A>>F-5/G-INT4__T-82-M-F1-A>>F-5/G-INT4__T-82-M-F2-A>>F-5/L-INT-4__T-82-M-F1-A>>F-5/L-INT-4__T-82-M-F2-A>>F-5,Data.Out,,,,TRUE,Charity,
-LM0008,IN.Level.Name,Crop yield is associated with a intercropping outcome,NA,,,Data.Out,,TRUE,Charity,
-LM0187,IN.Level.Name,Crop yield is associated with a intercropping outcome,DES-INT__TN-PPT/CB-INT__TN-INT-M/DES-INT__SUB-PPT/CB-INT__SUB-INT-M/BU-PPT__DES-INT/BU-INT-M__CB-INT/DES-INT__SIA-PPT/CB-INT__SIA-INT-M/DES-INT__KS-PPT/CB-INT__KS-INT-M/DES-INT__VG-PPT/CB-INT__VG-INT-M,,,Data.Out,,TRUE,Charity,
-NM0004,IN.Level.Name,Mismatch in field value between parent and child tables.,Improved bean lyamungu 90 (Intercrop)..Local bean Mkanamna (Intercrop)__Maize (Intercrop),Data.Out,Int.Out,,,TRUE,Charity,
-NM0004,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio,Data.Out,,,,TRUE,Charity,
-NM0009,ED.Product.Comp,Product component value used does not match master codes.,Straw,Data.Out,,,prod_comp,TRUE,Charity,
-NM0013,Site.ID,A Site.ID used  does not match the Site tab.,Linthipe A..Linthipe B..Golomoti A..Golomoti B..Kandeu A..Kandeu B,Data.Out,,,,TRUE,Charity,
-NM0030,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio,Data.Out,,,,TRUE,Charity,Tripple intercrop
-NM0038,ED.Product.Comp,Product component value used does not match master codes.,Cobs,Data.Out,,,prod_comp,TRUE,Charity,
-NM0041,R.Level.Name,Mismatch in field value between parent and child tables.,0L/12NS/12S/3NS/3S/6NS/6S/9NS/9S,Data.Out,Rot.Out,,,TRUE,Charity,
-NM0046,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Phosphorus Agronomic Efficiency..%/Potassium Agronomic Efficiency..%,Data.Out,,,,TRUE,Charity,
-NM0075,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-NM0075,T.Name,Mismatch in field value between parent and child tables.,Black oats Int__Vetch  Int/Natural or Bare Fallow,Data.Out,MT.Out,,,TRUE,Charity,
-NM0080.1,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..Kg grain kg/N applied..Mean,Data.Out,,,,TRUE,Charity,
-NM0100,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg yield/kg/Phosphorus Agronomic Efficiency..kg yield/kg/Potassium Agronomic Efficiency..kg yield/kg,Data.Out,,,,TRUE,Charity,
-NM0117,Site.ID,A Site.ID used  does not match the Site tab.,Asankragua..Nkrakrom..Achichire,Data.Out,,,,TRUE,Charity,
-NM0131,Site.ID,A Site.ID used  does not match the Site tab.,Chepkanga..Embu ..Isinya..Kabuku..Kaguru..Kakamega   ..Kiboko  ..Kirinyaga..Kocholia..Mbeere..Mtwapa  ..Naivasha  ..Wambugu..Ilonga ..Mlangarini..Bulidi..Ngetta  /Embu ..Isinya..Kabuku..Kabula..Kaguru..Kakamega   ..Kiboko  ..Kirinyaga..Kitale  ..Kocholia..Mbeere..Mtwapa  ..Naivasha  ..Wambugu..Ilonga ..Bulidi..Ngetta  /Embu ..Kabula..Kirinyaga..Abii..Serere  /Embu ..Kiboko  ..Marima..Mlangarini..Abii..Serere  ,Data.Out,,,,TRUE,Charity,
-NN0003,Out.Code.Joined,Mismatch in field value between parent and child tables.,Soil Available Nitrogen..mg/kg..NO3-N..0..10,Data.Out,Out.Out,,,FALSE,Charity,
-NN0261,Site.ID,A Site.ID used  does not match the Site tab.,"ICRISAT, Sadore",Data.Out,,,,TRUE,Charity,
-NN0373,T.Name,Missing value in compulsory field Time.,PWL/MPL/PAF/TLCL,Data.Out,,,,TRUE,Charity,Time not provided
-NN0410,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg grain/kg N,Data.Out,,,,TRUE,Charity,
-NN0411,Site.ID,A Site.ID used  does not match the Site tab.,Mareko..Mito,Data.Out,,,,TRUE,Charity,
-NN0412,ED.Reps,Non-numeric value in numeric field.,SoleMaize,Data.Out,,,,TRUE,Charity,
-NN0412,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio..NA,Data.Out,,,,TRUE,Charity,
-NN0439,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency (AGB)..%,Data.Out,,,,TRUE,Charity,
-NN0479,IN.Level.Name,Mismatch in field value between parent and child tables.,(C) maize-calliandra-napier__(M) maize-calliandra-napier__(N) maize-calliandra-napier/(L) maize-Leucaena-napier__(M) maize-Leucaena-napier__(N) maize-Leucaena-napier,Data.Out,Int.Out,,,TRUE,Charity,
-NN0479,IN.Level.Name/T.Name,Compulsory Product field is blank.,(C) maize-calliandra-napier__(M) maize-calliandra-napier__(N) maize-calliandra-napier/(L) maize-Leucaena-napier__(M) maize-Leucaena-napier__(N) maize-Leucaena-napier,Data.Out,,,,TRUE,Charity,
-NN0482,Site.ID,A Site.ID used  does not match the Site tab.,Sognonnouhoue..Akouegbadja,Data.Out,,,,TRUE,Charity,
-NN0487,Out.Code.Joined,Mismatch in field value between parent and child tables.,Biomass Yield..g/m2,Data.Out,Out.Out,,,TRUE,Charity,
-NN0508,Site.ID,A Site.ID used  does not match the Site tab.,Dowa..Mchinji..Salima,Data.Out,,,,TRUE,Charity,
-NN0509,Site.ID,A Site.ID used  does not match the Site tab.,Ruzizi plain (Uvira town)- S1..Ruzizi plain (Uvira town)- S2..Ruzizi plain (Uvira town)- S3,Data.Out,,,,TRUE,Charity,
-NN0514.1,Site.ID,A Site.ID used  does not match the Site tab.,Fada N’Gourma..Banfora,Data.Out,,,,TRUE,Charity,
-NN0514.2,Site.ID,A Site.ID used  does not match the Site tab.,Fada N’Gourma..Banfora,Data.Out,,,,TRUE,Charity,
-NN0541,Site.ID,A Site.ID used  does not match the Site tab.,Western..Central..Greater Accra..Volta..Eastern..Ashanti..Brong Ahafo..Northern..Upper East..Upper West,Data.Out,,,,TRUE,Charity,
-NN0543,Site.ID,A Site.ID used  does not match the Site tab.,Oromia..Amhara..Tigray,Data.Out,,,,TRUE,Charity,
-NN0545,Site.ID,A Site.ID used  does not match the Site tab.,RB Matete..NSK Semunto..KBG Kisweeka,Data.Out,,,,TRUE,Charity,
-NN0556,Out.Code.Joined,Mismatch in field value between parent and child tables.,crop Yield..kg/ha..Mean,Data.Out,Out.Out,,,TRUE,Charity,
-NN0561,Out.Code.Joined,Mismatch in field value between parent and child tables.,Beneficial Organisms..Macrofauna group No...Araneae..15..30/Beneficial Organisms..Macrofauna group No...Blattoidea..15..30/Beneficial Organisms..Macrofauna group No...Hemiptera..15..30/Beneficial Organisms..Macrofauna group No...Isopoda..15..30/Beneficial Organisms..Macrofauna group No...Odonata..15..30/Beneficial Organisms..Macrofauna group No...Oligochaeta..15..30/Beneficial Organisms..Mesofauna group No...Acarina..0..15/Beneficial Organisms..Mesofauna group No...Acarina..15..30/Beneficial Organisms..Mesofauna group No...Arachnida..0..15/Beneficial Organisms..Mesofauna group No...Arachnida..15..30/Beneficial Organisms..Mesofauna group No...Collembola..0..15/Beneficial Organisms..Mesofauna group No...Collembola..15..30/Beneficial Organisms..Mesofauna group No...Diplura..0..15/Beneficial Organisms..Mesofauna group No...Diplura..15..30/Beneficial Organisms..Mesofauna group No...Enchytraeidae..0..15/Beneficial Organisms..Mesofauna group No...Enchytraeidae..15..30/Beneficial Organisms..Mesofauna group No...Protura..0..15/Beneficial Organisms..Mesofauna group No...Protura..15..30/Beneficial Organisms..Mesofauna group No...Symphyla..0..15/Beneficial Organisms..Mesofauna group No...Symphyla..15..30/Beneficial Organisms..S..Macrofauna..0..15/Beneficial Organisms..S..Macrofauna..15..30/Beneficial Organisms..S..Mesofauna..0..15/Beneficial Organisms..S..Mesofauna..15..30/Soil Organic Carbon..%..0..30/Soil Total Nitrogen..%..0..30,Data.Out,Out.Out,,,TRUE,Charity,FORMATING ISSUE
-SA0003,Site.ID,A Site.ID used  does not match the Site tab.,NWRP Bhairahawa,Data.Out,,,,TRUE,Charity,
-SA0056,IN.Level.Name,Crop yield is associated with a intercropping outcome,NA,,,Data.Out,,TRUE,Charity,Paper needs review
-SA0059.3,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-SA0059.3,T.Name,Mismatch in field value between parent and child tables.,R N0..R N50..R N100..R N150..R N200/R N0..R P22..R P44/R N100..R N100 P22..R N100 P44/R N150..R N150 P22..R N150 P44/R N200..R N200 P22..R N200 P44/R N50..R N50 P22..R N50 P44/R P22..R N50 P22..R N100 P22..R N150 P22..R N200 P22/R P44..R N50 P44..R N100 P44..R N150 P44..R N200 P44/W N0..W N50..W N100..W N150..W N200/W N0..W P22..W P44/W N100..W N100 P22..W N100 P44/W N150..W N150 P22..W N150 P44/W N200..W N200 P22..W N200 P44/W N50..W N50 P22..W N50 P44/W P22..W N50 P22..W N100 P22..W N150 P22..W N200 P22/W P44..W N50 P44..W N100 P44..W N150 P44..W N200 P44,Data.Out,MT.Out,,,TRUE,Charity,
-SP0004,IN.Level.Name,Crop yield is associated with a intercropping outcome,Intercrop Maize __Intercrop PP ,,,Data.Out,,TRUE,Charity,
-SP0010,Site.ID,A Site.ID used  does not match the Site tab.,Huamantla I (Tlaxcala)..Huamantla II (Tlaxcala),Data.Out,,,,FALSE,Charity,
-SP0016,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,Natural bare fallow has no product
-SP0016,T.Name,Mismatch in field value between parent and child tables.,Natural or Bare Fallow,Data.Out,MT.Out,,,TRUE,Charity,
-SP0020,Out.Code.Joined,Data location is missing,Variable Cost..USD/ha/Total Cost..USD/ha..Production/Gross Return..USD/ha..Total/Fixed Cost..USD/ha..Macadamia,,,Data.Out,,TRUE,Charity,
-SP0036,ED.Sample.End,Non-numeric value in numeric field.,1/31/2018,Data.Out,,,,TRUE,Charity,
-SP0037,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,TRUE,Charity,
-SP0037,T.Name,Mismatch in field value between parent and child tables.,0N-WAzo-LM/0N-WAzo-SI/100N-WAzo-LM/100N-WAzo-SI/150N-WAzo-LM/150N-WAzo-SI/200N-WAzo-LM/200N-WAzo-SI/50N-WAzo-LM/50N-WAzo-SI,Data.Out,MT.Out,,,TRUE,Charity,
-SP0048,IN.Level.Name,Mismatch in field value between parent and child tables.,IK18-C-IHM-F0__IK18-IC-HM-F0/IK18-C-ILM-F0__IK18-IC-LM-F0/IK18-C-ILM-FC__IK18-IC-LM-FC/IK18-C-ILM-FM__IK18-IC-LM-FM/OM18-C-IHM-FC__OM18-IC-HM-FC/OM18-C-IHM-FM__OM18-IC-HM-FM/OM18-C-ILM-FC__OM18-IC-LM-FC/OT18-C-IHM-FM__OT18-IC-HM-FM,Data.Out,Int.Out,,,TRUE,Charity,
+AC0002,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio..NA,Data.Out,,,,FALSE,"",""
+AC0108,R.Level.Name,Mismatch in field value between parent and child tables.,Ac 0P/Ac P+/Aj 0P/Aj P+/Al 0P/Al P+/BF 0P/BF N++/BF P+/Lp 0P/Lp N++/Lp P+/Ss 0P/Ss N++/Ss P+,Data.Out,Rot.Out,,,FALSE,"",""
+AC0114,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
+AC0114,T.Name,Mismatch in field value between parent and child tables.,DS-MC Maize,Data.Out,MT.Out,,,FALSE,"",""
+AC0134,ED.Comparison1,Mismatch in field value between parent and child tables.,D1__N0/D2__N0/D3__N0,Data.Out,MT.Out,,,FALSE,"",""
+AC0153,ED.Comparison1,Mismatch in field value between parent and child tables.,0PS,Data.Out,MT.Out,,,FALSE,"",""
+CJ0009,Site.ID,A Site.ID used  does not match the Site tab.,"hunyani farm, Zvimba",Data.Out,,,,FALSE,"",""
+CJ0010,Site.ID,A Site.ID used  does not match the Site tab.,fountainhill Estate farm,Data.Out,,,,FALSE,"",""
+CJ0037,IN.Level.Name,Mismatch in field value between parent and child tables.,Maize int__Yi-flat D1..Yi-R D1..Yi-flat-F D1..Yi-R-F D1..Yi-flat D2..Yi-R D2..Yi-flat-F D2..Yi-R-F D2..Yi-flat D3..Yi-R D3..Yi-flat-F D3..Yi-R-F D3..Yi-flat D4..Yi-R D4..Yi-flat-F D4..Yi-R-F D4..Yi-flat D5..Yi-R D5..Yi-flat-F D5..Yi-R-F D5..Yi-flat D6..Yi-R D6..Yi-flat-F D6..Yi-R-F D6,Data.Out,Int.Out,,,FALSE,"",""
+CJ0044,ED.Comparison1,Mismatch in field value between parent and child tables.,potato intercrop__potato-lima-lima bean/potato intercrop__potato-lupin-lupin,Data.Out,MT.Out,,,FALSE,"",""
+CJ0049,ED.Mean.T,Non-numeric value in numeric field.,6()6.6,Data.Out,,,,FALSE,"",""
+CJ0049,Site.ID,A Site.ID used  does not match the Site tab.,Murewa 1LC..Murewa 3 LC..Bindura 1 LC..Mount Darwin  1 LC..Zaka 3 LC..Nyanga 1 LC/Murewa 1LC..Murewa 3 LC..Murewa 5 HC..Murewa 7 HC/Murewa 2 LC..Murewa 4 LC..Bindura 2 LC..Mount Darwin  2 LC..Zaka 4 LC..Nyanga 2 LC/Murewa 2 LC..Murewa 4 LC..Murewa 6 HC..Murewa 8 HC/Murewa 5 HC..Murewa 7 HC..Zaka 1 HC..Nyanga  3 HC..Chipinge 1 HC/Murewa 6 HC..Murewa 8 HC..Zaka 2 HC..Nyanga 4 HC..Chipinge 2 HC/Nyanga 1 LC..Nyanga  3 HC/Zaka 1 HC..Zaka 3 LC/Zaka 2 HC..Zaka 4 LC,Data.Out,,,,FALSE,"",""
+CJ0087,Site.ID,A Site.ID used  does not match the Site tab.,"Faculty of Engineering at UNESP, Selvíria, MS, Brazil",Data.Out,,,,FALSE,"",""
+CJ0126,Site.ID,A Site.ID used  does not match the Site tab.,B N1..B N2..B N3..B N4..B N5..B N6..B N7..B N8..B N9/BS W1..BS W2..BS W3..BS W4..BS W5..BS W6..BS W7..BS W8..BS W9/BS W1..BS W2..BS W3..BS W4..BS W5..BS W6..BS W7..BS W8..BS W9..B N1..B N2..B N3..B N4..B N5..B N6..B N7..B N8..B N9,Data.Out,,,,FALSE,"",""
+CJ0146,Site.ID,A Site.ID used  does not match the Site tab.,KARI Embu_1..KARI Embu_2..KARI Embu_3/KARI Embu_1..KARI Embu_3/Kwale_1..Kwale_2/Siaya_1..Siaya_2..Siaya_3,Data.Out,,,,FALSE,"",""
+CJ0199,ED.Comparison1,Mismatch in field value between parent and child tables.,Mams H913_control-1..Meru H513_control-1..Meru H515_control-1..NATA H105_control-1..SC627_control-1__Pp int,Data.Out,MT.Out,,,FALSE,"",""
+HK0253,IN.Level.Name,Crop yield is associated with a intercropping outcome,NA,,,Data.Out,,FALSE,"",""
+JO0005,Site.ID,A Site.ID used  does not match the Site tab.,Chitedze ARS (LT CA Trial)..Linthipe,Data.Out,,,,FALSE,"",""
+JO0011,R.Level.Name,Mismatch in field value between parent and child tables.,Barley-INT-100-12.5%/Barley-INT-100-25%/Barley-INT-100-37.5%/Barley-INT-100-50%/Barley-INT-100-62.5%/Barley-MONO/Fava-MONO,Data.Out,Rot.Out,,,FALSE,"",""
+JO0036,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
+JO0036,T.Name,Missing value in compulsory field Time.,HGAF-Coffee-0-30cm..HGAF-Khat-0-30cm..HGAF-Ensete-0-30cm..HGAF-Banana-0-30cm..HGAF-Avocado-0-30cm/CAFS-0-30cm/HGAF-Coffee-30-60cm..HGAF-Khat-30-60cm..HGAF-Ensete-30-60cm..HGAF-Banana-30-60cm..HGAF-Avocado-30-60cm/CAFS-30-60cm/HGAF-Coffee..HGAF-Khat..HGAF-Ensete..HGAF-Banana..HGAF-Avocado/CAFS,Data.Out,,,,FALSE,"",""
+JO0054,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
+JO0054,T.Name,Mismatch in field value between parent and child tables.,Caturra shadded..Catimor shadded..Catuai shadded/Caturra unshadded..Catimor unshadded..Catuai unshadded,Data.Out,MT.Out,,,FALSE,"",""
+JO0063,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
+JO0064,IN.Level.Name,Mismatch in field value between parent and child tables.,BANA_INT__NABE_12C_PRU/BANA_INT__NABE_12C_UNPRU/BANA_INT__NABE_8C_UNPRU,Data.Out,Int.Out,,,FALSE,"",""
+JO0076,IN.Level.Name,Mismatch in field value between parent and child tables.,CP-CM-0_MONO..CP-CM-31_MONO..CP-CM-62_MONO__PM-CM-0_INT..PM-CM-31_INT..PM-CM-62_INT,Data.Out,Int.Out,,,FALSE,"",""
+JO0096,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg grain/kg N applied..Mean,Data.Out,,,,FALSE,"",""
+JO0128,IN.Level.Name,Crop yield is associated with a intercropping outcome,0P-INT-GN__0P-INT-SP/0P-INT-SB__0P-INT-SP/0P-INT-GN__0P-INT-SB__0P-INT-SP/20P-INT-GN__20P-INT-SP/20P-INT-SB__20P-INT-SP/20P-INT-GN__20P-INT-SB__20P-INT-SP/40P-INT-GN__40P-INT-SP/40P-INT-SB__40P-INT-SP/40P-INT-GN__40P-INT-SB__40P-INT-SP,,,Data.Out,,FALSE,"",""
+JO0157,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
+JO0169,IN.Level.Name,Crop yield is associated with a intercropping outcome,INT-CP__INT-PP/INT-MZ__INT-PP/INT-CP__INT-MZ,,,Data.Out,,FALSE,"",""
+JO0169,Out.Code.Joined,Mismatch in field value between parent and child tables.,Biomass Yield..g/plant/Crop Yield..g/plant,Data.Out,Out.Out,,,FALSE,"",""
+JO0175,Out.Code.Joined,Data location is missing,Crop Yield..kg/ha,,,Data.Out,,FALSE,"",""
+JS0248,IN.Level.Name,Crop yield is associated with a intercropping outcome,Hanfets (barley)  - DER+__Hanfets (Wheat)  - DER+/Hanfets (barley)  - TER+__Hanfets (Wheat)  - TER+/Hanfets (barley) - Conventional__Hanfets (Wheat) - Conventional,,,Data.Out,,FALSE,"",""
+JS0334.2,ED.Sample.End,Date not between 1950-01-01 & 2023-12-01,2025-06-21/2025-10-11/2025-10-18/2025-10-25,Data.Out,,,,FALSE,"",""
+JS0433,IN.Level.Name,Mismatch in field value between parent and child tables.,82-M-F1-A+Fert-85>>82-M-F1-A+Fert-85+T-86-92__A-INT-4/82-M-F1-A+Fert-85>>82-M-F1-A+Fert-85+T-86-92__D-INT-4/82-M-F1-A+Fert-85>>82-M-F1-A+Fert-85+T-86-92__G-INT4/82-M-F1-A+Fert-85>>82-M-F1-A+Fert-85+T-86-92__L-INT-4/82-M-F1-A>>82-M-F1-A+Fert__D-INT-4/82-M-F1-A>>82-M-F1-A+Fert__G-INT4/82-M-F1-A>>82-M-F1-A+Fert__L-INT-4/82-M-F2-A+Fert-85>>82-M-F2-A+Fert-85+T-86-92__A-INT-4/82-M-F2-A+Fert-85>>82-M-F2-A+Fert-85+T-86-92__D-INT-4/82-M-F2-A+Fert-85>>82-M-F2-A+Fert-85+T-86-92__G-INT4/82-M-F2-A+Fert-85>>82-M-F2-A+Fert-85+T-86-92__L-INT-4/82-M-F2-A>>82-M-F2-A+Fert__D-INT-4/82-M-F2-A>>82-M-F2-A+Fert__G-INT4/82-M-F2-A>>82-M-F2-A+Fert__L-INT-4/A-INT-4__CP-INT/A-INT-4__Till-CP-INT/CP-INT__D-INT-4/CP-INT__G-INT4/CP-INT__L-INT-4/D-INT-4__Till-CP-INT/G-INT4__Till-CP-INT/L-INT-4__Till-CP-INT,Data.Out,Int.Out,,,FALSE,"",""
+LM0187,IN.Level.Name,Crop yield is associated with a intercropping outcome,DES-INT__TN-PPT,,,Data.Out,,FALSE,"",""
+LM0188,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
+LM0188,T.Name,Mismatch in field value between parent and child tables.,Control,Data.Out,MT.Out,,,FALSE,"",""
+NM0004,IN.Level.Name,Mismatch in field value between parent and child tables.,Improved bean lyamungu 90 (Intercrop)..Local bean Mkanamna (Intercrop)__Maize (Intercrop),Data.Out,Int.Out,,,FALSE,"",""
+NM0030,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Land Equivalent Ratio,Data.Out,,,,FALSE,"",""
+NM0046,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Phosphorus Agronomic Efficiency..%/Potassium Agronomic Efficiency..%,Data.Out,,,,FALSE,"",""
+NM0100,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg yield/kg/Phosphorus Agronomic Efficiency..kg yield/kg/Potassium Agronomic Efficiency..kg yield/kg,Data.Out,,,,FALSE,"",""
+NN0261,Site.ID,A Site.ID used  does not match the Site tab.,"ICRISAT, Sadore",Data.Out,,,,FALSE,"",""
+NN0411,Site.ID,A Site.ID used  does not match the Site tab.,Mareko..Mito,Data.Out,,,,FALSE,"",""
+NN0479,IN.Level.Name,Mismatch in field value between parent and child tables.,(C) maize-calliandra-napier__(M) maize-calliandra-napier__(N) maize-calliandra-napier/(L) maize-Leucaena-napier__(M) maize-Leucaena-napier__(N) maize-Leucaena-napier,Data.Out,Int.Out,,,FALSE,"",""
+NN0479,IN.Level.Name/T.Name,Compulsory Product field is blank.,(C) maize-calliandra-napier__(M) maize-calliandra-napier__(N) maize-calliandra-napier/(L) maize-Leucaena-napier__(M) maize-Leucaena-napier__(N) maize-Leucaena-napier,Data.Out,,,,FALSE,"",""
+NN0561,Out.Code.Joined,Mismatch in field value between parent and child tables.,Beneficial Organisms..Macrofauna group No...Araneae..15..30/Beneficial Organisms..Macrofauna group No...Blattoidea..15..30/Beneficial Organisms..Macrofauna group No...Hemiptera..15..30/Beneficial Organisms..Macrofauna group No...Isopoda..15..30/Beneficial Organisms..Macrofauna group No...Odonata..15..30/Beneficial Organisms..Macrofauna group No...Oligochaeta..15..30/Beneficial Organisms..Mesofauna group No...Acarina..0..15/Beneficial Organisms..Mesofauna group No...Acarina..15..30/Beneficial Organisms..Mesofauna group No...Arachnida..0..15/Beneficial Organisms..Mesofauna group No...Arachnida..15..30/Beneficial Organisms..Mesofauna group No...Collembola..0..15/Beneficial Organisms..Mesofauna group No...Collembola..15..30/Beneficial Organisms..Mesofauna group No...Diplura..0..15/Beneficial Organisms..Mesofauna group No...Diplura..15..30/Beneficial Organisms..Mesofauna group No...Enchytraeidae..0..15/Beneficial Organisms..Mesofauna group No...Enchytraeidae..15..30/Beneficial Organisms..Mesofauna group No...Protura..0..15/Beneficial Organisms..Mesofauna group No...Protura..15..30/Beneficial Organisms..Mesofauna group No...Symphyla..0..15/Beneficial Organisms..Mesofauna group No...Symphyla..15..30/Beneficial Organisms..S..Macrofauna..0..15/Beneficial Organisms..S..Macrofauna..15..30/Beneficial Organisms..S..Mesofauna..0..15/Beneficial Organisms..S..Mesofauna..15..30/Soil Organic Carbon..%..0..30/Soil Total Nitrogen..%..0..30,Data.Out,Out.Out,,,FALSE,"",""
+SA0056,IN.Level.Name,Crop yield is associated with a intercropping outcome,NA,,,Data.Out,,FALSE,"",""
+SA0059.3,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
+SA0059.3,T.Name,Mismatch in field value between parent and child tables.,R N0..R N50..R N100..R N150..R N200/R N0..R P22..R P44/R N100..R N100 P22..R N100 P44/R N150..R N150 P22..R N150 P44/R N200..R N200 P22..R N200 P44/R N50..R N50 P22..R N50 P44/R P22..R N50 P22..R N100 P22..R N150 P22..R N200 P22/R P44..R N50 P44..R N100 P44..R N150 P44..R N200 P44/W N0..W N50..W N100..W N150..W N200/W N0..W P22..W P44/W N100..W N100 P22..W N100 P44/W N150..W N150 P22..W N150 P44/W N200..W N200 P22..W N200 P44/W N50..W N50 P22..W N50 P44/W P22..W N50 P22..W N100 P22..W N150 P22..W N200 P22/W P44..W N50 P44..W N100 P44..W N150 P44..W N200 P44,Data.Out,MT.Out,,,FALSE,"",""
+SP0048,IN.Level.Name,Mismatch in field value between parent and child tables.,IK18-C-IHM-F0__IK18-IC-HM-F0/IK18-C-ILM-F0__IK18-IC-LM-F0/IK18-C-ILM-FC__IK18-IC-LM-FC/IK18-C-ILM-FM__IK18-IC-LM-FM/OM18-C-IHM-FC__OM18-IC-HM-FC/OM18-C-IHM-FM__OM18-IC-HM-FM/OM18-C-ILM-FC__OM18-IC-LM-FC/OT18-C-IHM-FM__OT18-IC-HM-FM,Data.Out,Int.Out,,,FALSE,"",""

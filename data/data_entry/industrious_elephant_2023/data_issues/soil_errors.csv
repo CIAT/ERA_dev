@@ -1,6 +1,5 @@
 B.Code,table,field,value,issue,variable,Site.ID,filename,issue_addressed,addressed_by_whom,notes
 AC0168,Soil.Out,Site.ID,"ICRISAT Sahelian Centre, Sadore",Check for multiple instance of same depth for same site,,,,FALSE,"",""
-CJ0002,Soil.Out,Site.ID,"Institute of Agricultural Research (IAR), Zaria",A Site.ID used  does not match the Site tab.,,,,FALSE,"",""
 CJ0093,Soil.Out,Site.ID,Sasiga district,Check for multiple instance of same depth for same site,,,,FALSE,"",""
 CJ0125,Soil.Out,Site.ID,"Agricultural Research Farm of the Faculty of Science and Technique, Niamey",Check for multiple instance of same depth for same site,,,,FALSE,"",""
 CJ0168,Soil.Out,Site.ID,"Authority Irrigation Site, Wushishi",Check for multiple instance of same depth for same site,,,,FALSE,"",""

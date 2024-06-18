@@ -1,44 +1,6 @@
 B.Code,value,table,field,issue,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
-AC0011,Calliandra calothyrsus/Tithonia diversifolia/Tephrosia vogelii,Res.Comp,M.Tree,"Amount is present, but unit is missing M.TN.",,,,TRUE,Jabesh,
-AC0011,Calliandra calothyrsus/Tithonia diversifolia/Tephrosia vogelii,Res.Comp,M.Tree,"Amount is present, but unit is missing M.TP.",,,,TRUE,Jabesh,
-CJ0076,Common bean haulms,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,accept term request
-CJ0124,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,Jabesh,
-CJ0124,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-HK0258.1,Misamfu ARS,Res.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,TRUE,Jabesh,
-HK0258.2,Misamfu ARS,Res.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,TRUE,Jabesh,
-HK0258.3,Misamfu ARS,Res.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,TRUE,Jabesh,
-JO0038,Mulch retention,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-JO0070,coconut fiber,Res.Comp,M.Material,"Amount is present, but unit is missing M.K.",,,,TRUE,Jabesh,New term requested
-JO0071,CC_R+,Res.Method,M.Level.Name,Compulsory field is NA M.Tree and M.Material,,,,TRUE,Jabesh,
 JO0071,CC_R+/MZ_R+,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,New term requested
-JO0075,0,Res.Method,M.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
+JO0075,0,Res.Method,M.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,""
 JO0075,0/0/0,Res.Method,M.Level.Name,Compulsory field is NA M.Tree and M.Material,,,,TRUE,Jabesh,New term requested
-JO0094,Croton macrostachyus/Erythrina brucei,Res.Comp,M.Tree,"Amount is present, but unit is missing M.K.",,,,TRUE,Jabesh,
-JO0094,Croton macrostachyus/Erythrina brucei,Res.Comp,M.Tree,"Amount is present, but unit is missing M.OC.",,,,TRUE,Jabesh,
-JO0094,Croton macrostachyus/Erythrina brucei,Res.Comp,M.Tree,"Amount is present, but unit is missing M.P.",,,,TRUE,Jabesh,
-JO0094,Croton macrostachyus/Erythrina brucei,Res.Comp,M.Tree,"Amount is present, but unit is missing M.TN.",,,,TRUE,Jabesh,
-JO0094,Leaves/Leaves,Res.Comp,M.Material,"Amount is present, but unit is missing M.K.",,,,TRUE,Jabesh,
-JO0094,Leaves/Leaves,Res.Comp,M.Material,"Amount is present, but unit is missing M.OC.",,,,TRUE,Jabesh,
-JO0094,Leaves/Leaves,Res.Comp,M.Material,"Amount is present, but unit is missing M.P.",,,,TRUE,Jabesh,
-JO0094,Leaves/Leaves,Res.Comp,M.Material,"Amount is present, but unit is missing M.TN.",,,,TRUE,Jabesh,
-JO0133,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,Jabesh,
-JO0133,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-JO0144,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,Jabesh,
-JO0145,Leucaena leucocephala,Res.Comp,M.Tree,"Amount is present, but unit is missing M.K.",,,,TRUE,Jabesh,
+JO0094,Erythrina brucei,Res.Method,M.Tree,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 JS0248,barley mulch/wheat  + barley mulch,Res.Method,M.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Accept new term request
-LM0176.3,Calliandra Leaves/High Embu Stover/Low Embu Stover/Tithonia Residue,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-LM0189,High Machanga Maize residues/Low Embu Maize residues/Low Machanga Maize residues/Maize residues,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-LM0346,Calliandra calothyrsus/Crotalaria juncea,Res.Comp,M.Tree,"Amount is present, but unit is missing M.OC.",,,,TRUE,Jabesh,
-LM0346,Maize Stover,Res.Comp,M.Material,"Amount is present, but unit is missing M.OC.",,,,TRUE,Jabesh,
-NM0081,Tithonia diversifolia/Lantana Camara,Res.Comp,M.Material,"Amount is present, but unit is missing M.P.",,,,TRUE,Jabesh,
-NM0081,Tithonia diversifolia/Lantana Camara/Mucuna Residue,Res.Comp,M.Material,"Amount is present, but unit is missing M.K.",,,,TRUE,Jabesh,
-NM0081,Tithonia diversifolia/Lantana Camara/Mucuna Residue,Res.Comp,M.Material,"Amount is present, but unit is missing M.N.",,,,TRUE,Jabesh,
-NN0164,mulched,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NN0417,Natural fallow mulch/Natural fallow till/crotalaria mulch/crotalaria till/tephrosia mulch/tephrosia till,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NN0421,Bambara Nut/Black Gram/Cowpea/Groundnut/Mung Bean,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NN0474,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,TRUE,Jabesh,
-NN0474,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-NN0527,straw 1/straw 2,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-SA0005,Sesbania cannabina,Res.Comp,M.Tree,"Amount is present, but unit is missing M.K.",,,,TRUE,Jabesh,
-SA0006,Green gram residue/Rice residue/Wheat residue,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,
-SA0051,Sesbania cannabina,Res.Comp,M.Tree,"Amount is present, but unit is missing M.K.",,,,TRUE,Jabesh,

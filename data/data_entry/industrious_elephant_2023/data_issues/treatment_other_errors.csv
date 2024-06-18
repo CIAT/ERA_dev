@@ -1,80 +1,35 @@
 B.Code,value,table,field,issue,parent_table,issue_addressed,addressed_by_whom,notes
-AC0033,Vachellia Xanthophloea,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-AC0042,Previous +P/Previous -P,MT.Out,O.Level.Name,Non-match for name in O.Level.Name column.,Other.Out,TRUE,Jabesh,
-AC0043,Chore,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-AC0052,Unspecified Hybrid,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-AC0075,SeedCo 633,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,Requested variety
-AC0077.3,Maize,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-AC0108,Acacia crassicarpa/Acacia leptocarpa/Benth/Leucaena pallida/SM/Senna siamea,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-AC0147,Maize NT/Soybean NT,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-AC0153,20BB 2003/20BB 2006/20BO 2003/20BO 2006/20BO 2007/20BO 2007.2/20BOCV 2004/20BOCV 2005/20M 2004/20M 2005/20M 2007/20PM/20SH/40BB 2003/40BB 2006/40BO 2003/40BO 2006/40BO 2007/40BO 2007.2/40BOCV 2004/40BOCV 2005/40M 2004/40M 2005/40M 2007/40PM/40SH/80BB 2003/80BB 2006/80BO 2003/80BO 2006/80BO 2007/80BO 2007.2/80BOCV 2004/80BOCV 2005/80M 2004/80M 2005/80M 2007/80PM/80SH/BO 2001 20/BO 2001 40/BO 2001 80/BO 2002 20/BO 2002 40/BO 2002 80/PM 2001 20/PM 2001 40/PM 2001 80/PM 2002 20/PM 2002 40/PM 2002 80/Radish 2001 20/Radish 2001 40/Radish 2001 80/Radish 2002 20/Radish 2002 40/Radish 2002 80,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-AF0007.2,DS/TP/TP-2,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-CJ0003,Intercrop lab lab/intercrop maize/sole lab lab/sole maize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-CJ0007,Teff- bako,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-CJ0010,border King,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-CJ0037,maize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-CJ0046,HW,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-CJ0052,mori,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-CJ0078,Maize CT and MT/Maize NT,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-CJ0082,Soung-pungun,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-CJ0090,Cabbage/Velvet Bean,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,
-CJ0118,Wheat,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,
-CJ0120,Wheat,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,
-CJ0133,136.2,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-CJ0134,0078-ppl,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-CJ0159,potato,MT.Out,M.Level.Name,Non-match for name in M.Level.Name column.,Res.Out,TRUE,Jabesh,
-CJ0159,potato,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-CJ0163,Pigeon Pea,MT.Out,C.Level.Name,Non-match for name in C.Level.Name column.,Chems.Code,TRUE,Jabesh,
-CJ0178,HB-1307,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-CJ0182.1,N138P69_K40S0/N138P69_K40S20/N138P69_K40S40/N138P69_K80S0/N138P69_K80S20/N138P69_K80S40/N138P69_KOS20/N138P69_KOS40/N138P69_KOSO/N46P23_K40S0/N46P23_K40S20/N46P23_K40S40/N46P23_K80S0/N46P23_K80S20/N46P23_K80S40/N46P23_KOS20/N46P23_KOS40/N46P23_KOSO/N92P46_K40S0/N92P46_K40S20/N92P46_K40S40/N92P46_K80S0/N92P46_K80S20/N92P46_K80S40/N92P46_KOS20/N92P46_KOS40/N92P46_KOSO/NOPO_K40S0/NOPO_K40S20/NOPO_K40S40/NOPO_K80S0/NOPO_K80S20/NOPO_K80S40/NOPO_KOS20/NOPO_KOS40,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-CJ0185,PABLO/SOUMBA,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-HK0258.2,Lime,MT.Out,pH.Level.Name,Non-match for name in pH.Level.Name column.,pH.Out,TRUE,Jabesh,
-JO0002,25% Above rec Amber-2Cal/25% Above rec Amber-2Dol/25% Below rec Amber-2Cal/25% Below rec Amber-2Dol/Recommen. Rate Amber-2Cal/Recommen. Rate Amber-2Dol/Without lime Amber-2Cal/Without lime Amber-2Dol,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-JO0003,3_0WD,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-JO0014,50 DWACE/NWC/WF,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-JO0020,100NPK+150NPK,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-JO0031,Maize NPK+Lime,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-JO0036,HGAF-Coffee-0-30cm..HGAF-Khat-0-30cm..HGAF-Ensete-0-30cm..HGAF-Banana-0-30cm..HGAF-Avocado-0-30cm/HGAF-Coffee-30-60cm..HGAF-Khat-30-60cm..HGAF-Ensete-30-60cm..HGAF-Banana-30-60cm..HGAF-Avocado-30-60cm/HGAF-Coffee..HGAF-Khat..HGAF-Ensete..HGAF-Banana..HGAF-Avocado,MT.Out,T.Name,Missing value in compulsory field P.Product.,,TRUE,Jabesh,Rejected
-JO0051,2100-BAND/4200-BAND,MT.Out,pH.Level.Name,Non-match for name in pH.Level.Name column.,pH.Out,TRUE,Jabesh,
-JO0063,CT-Mono W..CT-Mono-SB/NT-Mono W..NT-Mono-SB,MT.Out,T.Name,Missing value in compulsory field P.Product.,,TRUE,Jabesh,Products aggragated
-JO0070,BRS pujante,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-JO0082,LHF-14/LHF-7,MT.Out,H.Level.Name,Non-match for name in H.Level.Name column.,Har.Out,TRUE,Jabesh,
-JO0093,511-Control..612-Control..614-Control/511-Fert 120N..612-Fert 120N..614-Fert 120N/511-Fert 120N0+10P..612-Fert 120N0+10P..614-Fert 120N0+10P/511-Fert 120N+25P..612-Fert 120N+25P..614-Fert 120N+25P/511-Fert 120N+50P..612-Fert 120N+50P..614-Fert 120N+50P/511-Fert 120N+150P..612-Fert 120N+150P..614-Fert 120N+150P/511-Calliandra..612-Calliandra..614-Calliandra/511-Senna..612-Senna..614-Senna/511-Croton..612-Croton..614-Croton/511-Lantana..612-Lantana..614-Lantana/511-Sesbania..612-Sesbania..614-Sesbania/511-Tithonia..612-Tithonia..614-Tithonia,MT.Out,T.Name,Missing value in compulsory field P.Product.,,TRUE,Jabesh,
-JO0099,Cowpea rot/Sorghum cont/Sorghum rot,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,
-JO0122,GEB-Br/GEB-Rp/HUL-Br/HUL-Rp,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-JO0157,SB M..SB T..SB B..SB FM..SB O..SB P/SBSM..SBS T..SBS B..SBS FM..SBS O..SBS P/StnBM..StnB T..StnB B..StnB FM..StnB O..StnB P/Control M..Control T..Control B..Control FM..Control O..Control P,MT.Out,T.Name,Missing value in compulsory field P.Product.,,TRUE,Jabesh,Aggragated products
-JO0179,JAYA,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-JO0191,CL-D,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,
-JO0191,CL/CTN/MZ/WH,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-JO0212,Common bean/Maize/Maize int/U. ruziziensis Int,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-JO0213,Maize/Wheat,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-JO0213,Weeding,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-JO0214,Maize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-JO0215,Maize/Vetiver,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,Rejected
-JO0216,CB/PP/RICE,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-JS0102,JAYA,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-JS0104,JAYA,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-JS0248,barley mulch/wheat  + barley mulch,MT.Out,M.Level.Name,Non-match for name in M.Level.Name column.,Res.Out,TRUE,Jabesh,
-LM0318,10mVGA/5mVGA,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-LM0318,Maize/Okra/Sweet Potato/Vetiver Grass/Yam,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,
-NM0006,SST015,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-NM0022,Common bean,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,
-NM0062,Perola,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-NN0069,AT-C/AT-C-int/AT-M/AT-M-int/HC-C-int/HC-M/HC-M-int/TC-int/TM-int,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-NN0069,Traditional,MT.Out,Till.Level.Name,Non-match for name in Till.Level.Name column.,Till.Codes,TRUE,Jabesh,
-NN0412,Lablab planting (intercrop)/Lablab sole/Maize planting (intercrop)/Maize sole/Vetch planting (intercrop)/Vetch sole,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-NN0427,Maize fert,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-NN0485.1,Cowpea/Maize,MT.Out,C.Level.Name,Non-match for name in C.Level.Name column.,Chems.Code,TRUE,Jabesh,
-NN0485.2,Cowpea/Maize,MT.Out,C.Level.Name,Non-match for name in C.Level.Name column.,Chems.Code,TRUE,Jabesh,
-NN0529,Longe 5,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-NN0546,L100/L106/L107/L109/L11/L110/L112/L113/L115/L116/L118/L120/L123/L127/L128/L132/L140/L141/L148/L158/L162/L168/L17/L170/L173/L174/L176/L177/L182/L185/L19/L190/L192/L2/L200/L202/L207/L210/L211/L215/L219/L224/L227/L23/L232/L233/L234/L236/L244/L246/L248/L249/L250/L257/L258/L263/L268/L271/L277/L281/L41/L43/L47/L49/L5/L52/L54/L55/L59/L60/L64/L68/L72/L75/L84/L86/L88/L89/Unspecified Local,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
-NN0555,Acacia angustissima/Crotalaria pawlonia/Gliricida sepium/Leucaena leucocephala/Senna spectabilis/Sesbania sesban/Tephrosia candida/Tephrosia vogelii,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-SA0003,2R/2W/3R/3W/4R/4W/5R/6&5W/6R/7R/7W/8R/8W/9R&W,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,Rejected
-SA0003,Rice /Wheat,MT.Out,PD.Level.Name,Non-match for name in PD.Level.Name column.,PD.Codes,TRUE,Jabesh,Rejected
-SA0019,CT/MB/RT,MT.Out,Till.Level.Name,Non-match for name in Till.Level.Name column.,Till.Codes,TRUE,Jabesh,
-SA0037,D9+NK+FYM,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,
-SP0003,1,MT.Out,AF.Level.Name,Non-match for name in AF.Level.Name column.,AF.Out,TRUE,Jabesh,
-SP0006,Cons,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-SP0035,PB,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,
-SP0047,InterCowpea/InterMaize/MonoCowpea/MonoMaize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,
-SP0060,AGRA,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,
+AC0033,Vachellia Xanthophloea,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+AC0077.3,Maize,MT.Out,W.Level.Name,Non-match for name in W.Level.Name column.,Weed.Code,TRUE,Jabesh,""
+AC0108,Acacia crassicarpa/Acacia leptocarpa/Benth/Leucaena pallida/SM/Senna siamea,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+AC0147,Maize NT/Soybean NT,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+AC0153,20BB 2003/20BB 2006/20BO 2003/20BO 2006/20BO 2007/20BO 2007.2/20BOCV 2004/20BOCV 2005/20M 2004/20M 2005/20M 2007/20PM/20SH/40BB 2003/40BB 2006/40BO 2003/40BO 2006/40BO 2007/40BO 2007.2/40BOCV 2004/40BOCV 2005/40M 2004/40M 2005/40M 2007/40PM/40SH/80BB 2003/80BB 2006/80BO 2003/80BO 2006/80BO 2007/80BO 2007.2/80BOCV 2004/80BOCV 2005/80M 2004/80M 2005/80M 2007/80PM/80SH/BO 2001 20/BO 2001 40/BO 2001 80/BO 2002 20/BO 2002 40/BO 2002 80/PM 2001 20/PM 2001 40/PM 2001 80/PM 2002 20/PM 2002 40/PM 2002 80/Radish 2001 20/Radish 2001 40/Radish 2001 80/Radish 2002 20/Radish 2002 40/Radish 2002 80,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,""
+AF0007.2,DS/TP/TP-2,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+CJ0003,Intercrop lab lab/intercrop maize/sole lab lab/sole maize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+CJ0037,maize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+CJ0077,Chembe and Gara/Chibanda and Mavhunga,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
+CJ0082,Soung-pungun,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,""
+CJ0182.1,N138P69_K40S0/N138P69_K40S20/N138P69_K40S40/N138P69_K80S0/N138P69_K80S20/N138P69_K80S40/N138P69_KOS20/N138P69_KOS40/N138P69_KOSO/N46P23_K40S0/N46P23_K40S20/N46P23_K40S40/N46P23_K80S0/N46P23_K80S20/N46P23_K80S40/N46P23_KOS20/N46P23_KOS40/N46P23_KOSO/N92P46_K40S0/N92P46_K40S20/N92P46_K40S40/N92P46_K80S0/N92P46_K80S20/N92P46_K80S40/N92P46_KOS20/N92P46_KOS40/N92P46_KOSO/NOPO_K40S0/NOPO_K40S20/NOPO_K40S40/NOPO_K80S0/NOPO_K80S20/NOPO_K80S40/NOPO_KOS20/NOPO_KOS40,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,""
+JO0002,CAL_2_49/CAL_3_49/CAL_4_49/DOL_2_49/DOL_3_49/DOL_4_49,MT.Out,pH.Level.Name,Non-match for name in pH.Level.Name column.,pH.Out,FALSE,"",""
+JO0036,HGAF-Coffee-0-30cm..HGAF-Khat-0-30cm..HGAF-Ensete-0-30cm..HGAF-Banana-0-30cm..HGAF-Avocado-0-30cm/HGAF-Coffee-30-60cm..HGAF-Khat-30-60cm..HGAF-Ensete-30-60cm..HGAF-Banana-30-60cm..HGAF-Avocado-30-60cm/HGAF-Coffee..HGAF-Khat..HGAF-Ensete..HGAF-Banana..HGAF-Avocado,MT.Out,T.Name,Missing value in compulsory field P.Product.,,FALSE,"",""
+JO0063,CT-Mono W..CT-Mono-SB/NT-Mono W..NT-Mono-SB,MT.Out,T.Name,Missing value in compulsory field P.Product.,,FALSE,"",""
+JO0071,CC_R+/MZ_R+,MT.Out,M.Level.Name,Non-match for name in M.Level.Name column.,Res.Out,FALSE,"",""
+JO0105,E1-PLANTING/E2-PLANTING,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
+JO0111,N-Fert-40/N-Fert-80N,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,FALSE,"",""
+JO0122,GEB-Br/GEB-Rp/HUL-Br/HUL-Rp,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+JO0157,SB M..SB T..SB B..SB FM..SB O..SB P/SBSM..SBS T..SBS B..SBS FM..SBS O..SBS P/StnBM..StnB T..StnB B..StnB FM..StnB O..StnB P/Control M..Control T..Control B..Control FM..Control O..Control P,MT.Out,T.Name,Missing value in compulsory field P.Product.,,FALSE,"",""
+JO0212,Common bean/Maize/Maize int/U. ruziziensis Int,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+JO0213,Maize/Wheat,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+JO0214,Grass/Maize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
+JO0216,CB/PP/RICE,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+JS0248,barley mulch/wheat  + barley mulch,MT.Out,M.Level.Name,Non-match for name in M.Level.Name column.,Res.Out,TRUE,Jabesh,""
+LM0318,10mVGA/5mVGA,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+NN0069,AT-C/AT-C-int/AT-M/AT-M-int/HC-C-int/HC-M/HC-M-int/TC-int/TM-int,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+NN0069,Traditional,MT.Out,Till.Level.Name,Non-match for name in Till.Level.Name column.,Till.Codes,TRUE,Jabesh,""
+NN0412,Lablab planting (intercrop)/Lablab sole/Maize planting (intercrop)/Maize sole/Vetch planting (intercrop)/Vetch sole,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+NN0427,Maize fert,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,TRUE,Jabesh,""
+NN0546,L100/L106/L107/L109/L11/L110/L112/L113/L115/L116/L118/L120/L123/L127/L128/L132/L140/L141/L148/L158/L162/L168/L17/L170/L173/L174/L176/L177/L182/L185/L19/L190/L192/L2/L200/L202/L207/L210/L211/L215/L219/L224/L227/L23/L232/L233/L234/L236/L244/L246/L248/L249/L250/L257/L258/L263/L268/L271/L277/L281/L41/L43/L47/L49/L5/L52/L54/L55/L59/L60/L64/L68/L72/L75/L84/L86/L88/L89/Unspecified Local,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,TRUE,Jabesh,""
+NN0555,Acacia angustissima/Crotalaria pawlonia/Gliricida sepium/Leucaena leucocephala/Senna spectabilis/Sesbania sesban/Tephrosia candida/Tephrosia vogelii,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+SA0051,R/W,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
+SP0047,InterCowpea/InterMaize/MonoCowpea/MonoMaize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,TRUE,Jabesh,""
+SP0066,ACC-211490/ACC-215-762/ACC-215-821/ACC-216-747/CP-EXTERETIS/DASS 001/NLLP-CPC-07-03-B/NLLP-CPC-07-10/NLLP-CPC-07-139/NLLP-CPC-07-140/NLLP-CPC-07-143/NLLP-CPC-07-145-21/NLLP-CPC-07-156/NLLP-CPC-07-157/NLLP-CPC-07-166/NLLP-CPC-07-167/NLLP-CPC-07-169/NLLP-CPC-07-19/NLLP-CPC-07-28/NLLP-CPC-07-36/NLLP-CPC-07-54/NLLP-CPC-07-57/NLLP-CPC-130-B,MT.Out,V.Level.Name,Non-match for name in V.Level.Name column.,Var.Out,FALSE,"",""

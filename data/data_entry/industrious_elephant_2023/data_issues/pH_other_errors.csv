@@ -1,0 +1,2 @@
+B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
+JO0002,CAL_2_49/CAL_3_49/CAL_4_49/DOL_2_49/DOL_3_49/DOL_4_49,pH.Method,pH.Level.Name,Mismatch in field value between parent and child tables.,FALSE,"",""
