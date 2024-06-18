@@ -18,6 +18,7 @@ if(!require(ERAgON)){
   library(ERAgON)
 }
 
+source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
 
 s3_folder_chmod <- function(folder_key, permission = 'public-read') {
   files <-  s3fs::s3_dir_info(folder_key, recurse = TRUE)[, c('type', 'uri')]
@@ -121,6 +122,10 @@ get_s3_object_permission <- function(bucket, key) {
   era_dirs$power_S3<-file.path(era_dirs$ancillary_s3,"power_download")
   era_dirs$power_S3_file<-file.path(era_dirs$power_S3,"power_download.zip")
   
+  era_dirs$chirps_dir<-file.path(era_dirs$ancillary_dir,"chirps_download")
+  era_dirs$chirps_S3<-file.path(era_dirs$ancillary_s3,"chirps_download")
+  era_dirs$chirps_S3_file<-file.path(era_dirs$chirps_S3,"chirps_download.zip")
+  
   # create folders if they do not exist
   for(i in grep("_dir",names(era_dirs))){
     dir_focus<-era_dirs[[i]]
@@ -133,7 +138,7 @@ get_s3_object_permission <- function(bucket, key) {
   # 2.1) ERA master datasets #####
   update<-F
     # List files in the specified S3 bucket and prefix
-    files_s3<-s3fs::s3_dir_ls(era_dirs$era_masterdata_s3)
+    files_s3<-s3$dir_ls(era_dirs$era_masterdata_s3)
     files_local<-gsub(era_dirs$era_masterdata_s3,era_dirs$era_masterdata_dir,files_s3)
     
     for(i in 1:length(files_local)){
@@ -146,7 +151,7 @@ get_s3_object_permission <- function(bucket, key) {
   # 2.2) ERA geodata #####
     update<-F
     # List files in the specified S3 bucket and prefix
-    files_s3<-s3fs::s3_dir_ls(era_dirs$era_geodata_s3)
+    files_s3<-s3$dir_ls(era_dirs$era_geodata_s3)
     files_s3<-files_s3[!grepl(".csv|ESA-CCI",files_s3)]
     files_local<-gsub(era_dirs$era_geodata_s3,era_dirs$era_geodata_dir,files_s3)
     
@@ -198,15 +203,7 @@ get_s3_object_permission <- function(bucket, key) {
     era_locations[,N:=NULL]
     
     # 3.1) Create spatvect of site buffers #####
-    
-    # CRS of Site co-ordinates (lat/long) - geographic
-    CRS.old<- "+init=epsg:4326"
-    # Buffer CRS (WGS 1984 World Mercator) - projected
-    CRS.new<-"+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-    
-    # Buffer points - projected 
-    #era_locations_vect_p<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=T)
-    
+
     # Buffer points - projected - geographic
     era_locations_vect_g<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=F)
 
@@ -227,4 +224,5 @@ get_s3_object_permission <- function(bucket, key) {
     
 # 4) Set time origin ####
     time_origin<-as.Date("1900-01-01")
+    
     

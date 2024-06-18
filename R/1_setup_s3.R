@@ -9,8 +9,93 @@ p_load(s3fs,zip,arrow,miceadds)
 
 
 # 0.2) Create function to upload files S3 bucket #####
-upload_files_to_s3 <- function(files,s3_file_names=NULL, folder=NULL, selected_bucket, new_only=F, max_attempts = 3, overwrite=F,mode="private") {
+
+library(paws)
+library(jsonlite)
+
+make_s3_public <- function(s3_bucket) {
+  s3 <- s3()
+  bucket_name <- unlist(strsplit(s3_bucket, "/"))[3]
+  folder_path <- gsub(paste0("s3://", bucket_name, "/"), "", s3_bucket)
   
+  # Retrieve the current bucket policy
+  current_policy <- tryCatch(
+    {
+      s3$get_bucket_policy(Bucket = bucket_name)$Policy
+    },
+    error = function(e) {
+      # Return an empty policy if no policy exists
+      return('{"Version": "2012-10-17", "Statement": []}')
+    }
+  )
+  
+  # Parse the current policy as JSON
+  current_policy <- jsonlite::fromJSON(current_policy, simplifyVector = FALSE)
+  
+  # Define the new statements for the folder to be made public
+  new_statements <- list(
+    list(
+      Sid = paste0("PublicReadListBucket-", gsub("[^A-Za-z0-9]", "", folder_path)),
+      Effect = "Allow",
+      Principal = list(AWS = "*"),
+      Action = "s3:ListBucket",
+      Resource = paste0("arn:aws:s3:::", bucket_name),
+      Condition = list(
+        StringLike = list(
+          `s3:prefix` = paste0(folder_path, "/*")
+        )
+      )
+    ),
+    list(
+      Sid = paste0("PublicReadGetObject-", gsub("[^A-Za-z0-9]", "", folder_path)),
+      Effect = "Allow",
+      Principal = list(AWS = "*"),
+      Action = "s3:GetObject",
+      Resource = paste0("arn:aws:s3:::", bucket_name, "/", folder_path, "/*")
+    )
+  )
+  
+  # Remove any existing statements for the given s3_bucket
+  current_policy$Statement <- lapply(current_policy$Statement, function(statement) {
+    if (!is.null(statement$Condition) &&
+        !is.null(statement$Condition$StringLike) &&
+        !is.null(statement$Condition$StringLike$`s3:prefix`) &&
+        grepl(folder_path, statement$Condition$StringLike$`s3:prefix`)) {
+      return(NULL)
+    } else if (!is.null(statement$Resource) &&
+               grepl(paste0("arn:aws:s3:::", bucket_name, "/", folder_path), statement$Resource)) {
+      return(NULL)
+    } else {
+      return(statement)
+    }
+  })
+  
+  # Filter out NULLs from the list
+  current_policy$Statement <- Filter(Negate(is.null), current_policy$Statement)
+  
+  # Append the new statements to the current policy
+  current_policy$Statement <- append(current_policy$Statement, new_statements)
+  
+  # Convert the updated policy back to JSON
+  updated_policy <- jsonlite::toJSON(current_policy, auto_unbox = TRUE, pretty = TRUE)
+  
+  # Set the updated bucket policy
+  s3$put_bucket_policy(
+    Bucket = bucket_name,
+    Policy = updated_policy
+  )
+  
+  message("Bucket policy updated successfully.")
+}
+
+upload_files_to_s3 <- function(files,
+                               s3_file_names=NULL, 
+                               folder=NULL, 
+                               selected_bucket, 
+                               new_only=F, 
+                               max_attempts = 3, 
+                               overwrite=F,
+                               mode="private") {
   # Create the s3 directory if it does not already exist
   if(!s3_dir_exists(selected_bucket)){
     s3_dir_create(selected_bucket)
@@ -60,6 +145,10 @@ upload_files_to_s3 <- function(files,s3_file_names=NULL, folder=NULL, selected_b
     }, error = function(e) {
       cat("Error during file upload:", e$message, "\n")
     })
+  }
+  
+  if(mode=="public-read"){
+    make_s3_public(selected_bucket)
   }
 }
 
