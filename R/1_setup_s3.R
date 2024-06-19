@@ -10,7 +10,7 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
 
 # 1.1) Upload era master files to s3 #####
 s3_bucket<-era_dirs$era_masterdata_s3
-
+local_dir<-era_dirs$era_masterdata_dir
 # Inital set-up from old file system:
 if(F){
   folder<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Compendium Master Database"
@@ -52,7 +52,7 @@ if(F){
 }
 
 # List files in new data structure
-files<-list.files(era_dirs$era_masterdata_dir,full.names = T)
+files<-list.files(local_dir,full.names = T)
 files <- files[!file.info(files)$isdir]
 
 upload_files_to_s3(files = files,
