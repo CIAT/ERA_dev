@@ -22,7 +22,7 @@ CJ0188,B,WH.Out,WH.Level.Name,"Number of practice codes do not match number of p
 DM0004,Grass Strips,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
 DM0025,Ridge & Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
 HK0161.1,Zaria,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
-HK0161.2,Ridge & Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
+HK0161.2,Ridge & Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,""
 HK0209,Ridge & Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
 HK0253,old/new ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
 HK0261,Ridge & Furrow,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
