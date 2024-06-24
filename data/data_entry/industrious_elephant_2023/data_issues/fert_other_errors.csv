@@ -9,7 +9,7 @@ CJ0151,1/4 W+ 1/4C+1/4P+1/4B/½ C+ ½B/½ C+ ½P/½ P+½B/½ W+ ½C/½ W+½B/½ 
 CJ0182.1,N138P69_K40S0/N138P69_K40S20/N138P69_K40S40/N138P69_K80S0/N138P69_K80S20/N138P69_K80S40/N138P69_KOS20/N138P69_KOS40/N138P69_KOSO/N46P23_K40S0/N46P23_K40S20/N46P23_K40S40/N46P23_K80S0/N46P23_K80S20/N46P23_K80S40/N46P23_KOS20/N46P23_KOS40/N46P23_KOSO/N92P46_K40S0/N92P46_K40S20/N92P46_K40S40/N92P46_K80S0/N92P46_K80S20/N92P46_K80S40/N92P46_KOS20/N92P46_KOS40/N92P46_KOSO/NOPO_K40S0/NOPO_K40S20/NOPO_K40S40/NOPO_K80S0/NOPO_K80S20/NOPO_K80S40/NOPO_KOS20/NOPO_KOS40,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 JO0008,Cattle Manure,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
 JO0012,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
-JO0033,Goat Manure (GM),Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
+JO0033,Goat Manure (GM),Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,""
 JO0102,Vermicast,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 JO0147,AL-B_2015/AL-B_2016/Gateway_2015/Gateway_2016/Organo-F_2015/Organo-F_2016,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 LM0165,Biochar,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
