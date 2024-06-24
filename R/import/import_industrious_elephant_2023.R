@@ -657,6 +657,138 @@ if(file_status){
   }
 }
 
+# 2) Load data ####
+  # 2.1) Load era vocab #####
+  vocab_file<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
+  
+  update<-F
+  if(update){
+    file_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
+    download.file(file_url, vocab_file, mode = "wb")  # Download and write in binary mode
+  }  
+  
+  # Get names of all sheets in the workbook
+  sheet_names <- readxl::excel_sheets(vocab_file)
+  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
+  
+  # Read each sheet into a list
+  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(vocab_file, sheet = x))},USE.NAMES=T)
+  
+  # 2.2) Load excel data entry template #####
+  Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
+  
+  # List sheet names that we need to extract
+  SheetNames<-excel_sheets(Master)
+  SheetNames<-grep(".Out",SheetNames,fixed = T,value=T)
+  
+  # List column names for the sheets to be extracted
+  XL.M<-sapply(SheetNames,FUN=function(SName){
+    cat('\r                                                                                                                                          ')
+    cat('\r',paste0("Importing Sheet = ",SName))
+    flush.console()
+    colnames(data.table(suppressWarnings(suppressMessages(readxl::read_excel(Master,sheet = SName)))))
+  },USE.NAMES = T)
+  
+  # Subset Cols
+  XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
+  
+  # 2.3) List extraction excel files #####
+  Files<-list.files(data_dir,".xlsm$",full.names=T)
+  
+  # 2.4) Check for duplicate files #####
+  FNames<-unlist(tail(tstrsplit(Files,"/"),1))
+  FNames<-gsub(" ","",FNames)
+  FNames<-unlist(tstrsplit(FNames,"-",keep=2))
+  FNames<-gsub("[(]1[])]|[(]2[])]","",FNames)
+  FNames<-gsub("_1|_2|_3|_4",".1|.2|.3|.4",FNames,fixed=T)
+  FNames<-gsub("..",".",FNames,fixed=T)
+  
+  excel_files<-data.table(filename=Files,era_code=FNames)
+  excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
+  
+  # Flag any naming issues
+  excel_files[grepl("_",era_code)]
+  excel_files<-excel_files[!grepl("_",era_code)]
+  
+  # Look for duplicate files
+  excel_files[,N:=.N,by=era_code]
+  excel_files[N>1][order(era_code)]
+  
+  # Remove not qced duplicates
+  excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
+  excel_files[N>1][order(era_code)]
+  
+  excel_files<-excel_files[!N>1][,N:=NULL]
+  excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
+  
+  # 2.5) Read in data from excel files #####
+  
+  # If files have already been imported and converted to list form should the important process be run again?
+  overwrite<-F
+  
+  # Delete existing files if overwrite =T
+  if(overwrite){
+    unlink(extracted_dir,recursive = T)
+    dir.create(extracted_dir)
+  }
+  
+  # Set up parallel back-end
+  if (.Platform$OS.type == "windows") {
+    plan(multisession, workers = workers)
+  } else {
+    plan(multicore, workers = workers)
+  }
+  
+  # Run future apply loop to read in data from each excel file in parallel
+  XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
+    File <- excel_files$filename[i]
+    era_code <- excel_files$era_code2[i]
+    save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+    
+    if (overwrite == TRUE || !file.exists(save_name)) {
+      X <- tryCatch({
+        lapply(SheetNames, FUN=function(SName){
+          cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
+          flush.console()
+          data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
+        })
+      }, error=function(e){
+        cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+        return(NULL)  # Return NULL if there was an error
+      })
+      
+      if (!is.null(X)) {
+        names(X) <- SheetNames
+        X$file.info<-file.info(File)
+        save(X, file=save_name)
+      }
+    } else {
+      miceadds::load.Rdata(filename=save_name, objname="X")
+    }
+    
+    X
+  })
+  
+  # Reset plan to default setting
+  future::plan(sequential)
+  
+  # Add names
+  names(XL)<-excel_files$filename
+  
+  # Filter out any missing data
+  XL <- Filter(Negate(is.null), XL)
+  
+  rm(Files,SheetNames,XL.M,Master)
+  
+  # List any files that did not load
+  
+  errors<-excel_files[!filename %in% names(XL)
+  ][,c("status","era_code"):=NULL
+  ][,issue:="Excel import failed"]
+  setnames(errors,"era_code2","B.Code")
+  error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
+  
+  
 # 3) Process imported data ####
 # 3.1) Publication (Pub.Out) #####
 data<-lapply(XL,"[[","Pub.Out")
