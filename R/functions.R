@@ -225,22 +225,22 @@ download_power <- function(vect_data, date_start, date_end, altitude, save_dir, 
 #' @examples
 #' \dontrun{
 #' make_s3_public("s3://your-bucket-name/your-folder-path", "your-bucket-name")
-#' make_s3_public(c("your-folder-path1", "your-folder-path2"), "your-bucket-name")
+#' make_s3_public(c("your-bucket-name/your-folder-path1", "your-bucket-name/your-folder-path2"), "your-bucket-name")
 #' }
 #' @export
-make_s3_public <- function(s3_uri, bucket = "digital-atlas") {
+makeObjectPublic <- function(s3_uri, bucket = "digital-atlas") {
   s3_inst <- paws.storage::s3()
   policy <- s3_inst$get_bucket_policy(Bucket = bucket)$Policy
   policy_ls <- jsonlite::parse_json(policy)
-  tmp_dir <- tempdir()
-  tmp <- dir.create(file.path(tmp_dir, "s3_policy"))
-  on.exit(unlink(tmp))
-  on.exit(unlink(tmp))
-  jsonlite::write_json(policy_ls, file.path(tmp, 'previous_policy.json'),
+  tmp <- tempdir()
+  tmp_dir <- file.path(tmp, "s3_policy")
+  if (!dir.exists(tmp_dir)) dir.create(tmp_dir, recursive = T)
+  on.exit(unlink(tmp_dir, recursive = T))
+  jsonlite::write_json(policy_ls, file.path(tmp_dir, 'previous_policy.json'),
                        pretty = T, auto_unbox = T)
   s3_inst$put_object(Bucket = bucket, 
                      Key = '.bucket_policy/previous_policy.json',
-                     Body = file.path(tmp, 'previous_policy.json'))
+                     Body = file.path(tmp_dir, 'previous_policy.json'))
   s3_uri_clean <- gsub("s3://", "", s3_uri)
   s3_arn <- paste0("arn:aws:s3:::", s3_uri_clean)
   s3_path <- gsub(paste0(bucket, "/"), "", s3_uri_clean)
@@ -259,11 +259,11 @@ make_s3_public <- function(s3_uri, bucket = "digital-atlas") {
   })
   new_policy <- jsonlite::toJSON(policy_ls, pretty = T, auto_unbox = T)
   s3_inst$put_bucket_policy(Bucket = bucket, Policy = new_policy)
-  jsonlite::write_json(policy_ls, file.path(tmp, 'current_policy.json'), 
+  jsonlite::write_json(policy_ls, file.path(tmp_dir, 'current_policy.json'), 
                        pretty = T, auto_unbox = T)
   s3_inst$put_object(Bucket = bucket, 
                      Key = '.bucket_policy/current_policy.json',
-                     Body = file.path(tmp, 'current_policy.json'))
+                     Body = file.path(tmp_dir, 'current_policy.json'))
   return(new_policy)
 }
 #' Upload Files to S3
@@ -350,7 +350,7 @@ upload_files_to_s3 <- function(files,
   }
   
   if (mode == "public-read") {
-    make_s3_public(selected_bucket)
+    makeObjectPublic(selected_bucket)
   }
 }
 #' Wait If Not
