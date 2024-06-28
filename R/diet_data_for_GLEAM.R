@@ -14,33 +14,39 @@ sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
 master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
 
 
-# 3) Subset to cattle, sheep and goats ####
-livestock.papers<-data$Prod.Out[grepl("Cattle|Sheep|Goat",P.Product),unique(B.Code)]
+# 3) ***TO DO!!!*** Update animal diet item harmonization ####
 
-Animals.Diet.Comp_ss<-data$Animals.Diet.Comp[B.Code %in% livestock.papers,]
-Animals.Out_ss<-data$Animals.Out[B.Code %in% Animals.Diet.Comp_ss[,unique(B.Code)]]
-Animals.Diet.Digest_ss<-data$Animals.Diet.Digest[B.Code %in% livestock.papers,list(B.Code,D.Item)]
-Site.Out_ss<-data$Site.Out[B.Code %in% Animals.Diet.Comp_ss[,unique(B.Code)]]
-Pub.Out_ss<-data$Pub.Out[B.Code %in% Animals.Diet.Comp_ss[,unique(B.Code)]]
+# 4) Subset Intake and Weight data ####
+weight_gain<-unique(data$Out.Out[,list(B.Code,Out.WG.Start,Out.WG.Unit,Out.WG.Days,Out.Code.Joined)])
+data_ss<-unique(data$Data.Out[ED.Outcome %in% weight_gain$Out.Code.Joined,list(B.Code, ED.Treatment,ED.Outcome,ED.Product.Simple)])
+data_ss<-merge(data_ss,unique(data$MT.Out[,list(B.Code,T.Name,T.Comp,V.Level.Name,A.Level.Name)]),
+      by.x=c("B.Code","ED.Treatment","ED.Product.Simple"),
+      by.y=c("B.Code","T.Name","T.Comp"),all.x=T)
+weight_gain<-merge(data_ss,weight_gain,by.x=c("B.Code","ED.Outcome"),by.y=c("B.Code","Out.Code.Joined"))
+weight_gain<-unique(weight_gain[!is.na(Out.WG.Start)][,ED.Outcome:=NULL])
 
+feed_intake<-data$Data.Out[grepl("Feed Intake",ED.Outcome),
+                           list(B.Code,ED.Site.ID,ED.Treatment,ED.Product.Simple,ED.Product.Comp,ED.M.Year,ED.Outcome,ED.Intake.Item,ED.Mean.T,ED.Error,ED.Error.Type)]
+feed_intake<-merge(feed_intake,unique(data$MT.Out[,list(B.Code,T.Name,T.Comp,V.Level.Name,A.Level.Name)]),
+               by.x=c("B.Code","ED.Treatment","ED.Product.Simple"),
+               by.y=c("B.Code","T.Name","T.Comp"),all.x=T)
 
-# 4) ***TO DO!!!*** Update animal diet item harmonization ####
-
-
-# 5) Subset meta.data ####
-era_fields<-master_codes$era_fields[Table %in% c("Pub.Out","Site.Out","Animals.Diet.Comp","Animals.Out", "Animals.Diet","Animals.Diet.Digest") & Display_Name!="FIELD NOT REQUIRED"]
-era_fields<-era_fields[,list(Field,Calculated,Display_Name,Data_Type,Field_Description,Values,Ref_Source,Ref_Name,Ref_Link,Ref_Match,Ref_Notes)]
-
-data_colnames<-unique(unlist(lapply(list(Animals.Diet.Comp_ss,Animals.Out_ss,Animals.Diet.Digest_ss,Site.Out_ss,Pub.Out_ss),colnames)))
-era_fields<-era_fields[Field %in% data_colnames]
-
-# 6) Combine datasets into excel ####
+# 5) Combine datasets into excel ####
 dt_list<-list(field_descriptions=era_fields,
-              diet_names=Animals.Out_ss,
-             diet_composition=Animals.Diet.Comp_ss,
-             diet_digestibility=Animals.Diet.Digest_ss,
-             location=Site.Out_ss,
-             source=Pub.Out_ss)
+              source=data$Pub.Out,
+              location=data$Site.Out,
+              exp_design=data$ExpD.Out,
+              focal_species=data$Prod.Out,
+              breed=data$Var.Out,
+              veterinary=data$Chems.Out,
+              diet_names=-data$Animals.Diet.Comp,
+              diet_composition=data$Animals.Diet.Comp,
+              diet_digestibility=data$Animals.Diet.Digest_ss,
+              treatments=data$MT.Out,
+              outcomes=data$Out.Out,
+              values=data$Data.Out,
+              era_vocab=master_codes$AOM
+         )
 
 # Create a new workbook
 wb <- createWorkbook()
