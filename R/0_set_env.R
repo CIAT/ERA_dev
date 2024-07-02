@@ -144,7 +144,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     
     update<-T
     if(update){
-      download.file(era_master_url, era_vocab_local, mode = "wb")  # Download and write in binary mode
+      download.file(era_vocab_url, era_vocab_local, mode = "wb")  # Download and write in binary mode
     }  
     
 # 3) Create table of unique locations (for use with geodata functions) ####
@@ -166,7 +166,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     
     era_locations[[2]]<-data
     
-    data<-miceadds::load.Rdata2(path=era_dirs$era_masterdata_dir,filename= list.files(era_dirs$era_masterdata_dir,"industrious_elephant"))
+    data<-miceadds::load.Rdata2(path=era_dirs$era_masterdata_dir,filename= tail(list.files(era_dirs$era_masterdata_dir,"industrious_elephant"),1))
     data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
     setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
     data<-data[!(is.na(Latitude)|is.na(Longitude))]
