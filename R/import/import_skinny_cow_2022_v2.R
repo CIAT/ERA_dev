@@ -26,7 +26,7 @@ valid_end <- as.Date("2023-12-01")
 workers<-parallel::detectCores()-2
 
 # Set the project name, this should usually refer to the ERA extraction template used
-project<-era_projects$industrious_elephant_2023
+project<-era_projects$skinny_cow_2022
 
 # Where extraction excel files are stored
 excel_dir<-file.path(era_dirs$era_dataentry_dir,project,"excel_files")
