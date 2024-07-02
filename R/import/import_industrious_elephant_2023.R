@@ -60,6 +60,7 @@ pacman::p_load(data.table,
   data_dir<-era_dirs$era_masterdata_dir
 
 # 1) Download  or update excel data ####
+# If working locally from the "old" one-drive directory then you will to run 1_setup_s3.R section 1.2.1.
 download<-F
 update<-T
 
@@ -97,7 +98,7 @@ if(file_status){
   sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
   
   # Read each sheet into a list
-  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(vocab_file, sheet = x))},USE.NAMES=T)
+  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
   
   # 2.2) Load excel data entry template #####
   Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
@@ -118,7 +119,7 @@ if(file_status){
   XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
   
   # 2.3) List extraction excel files #####
-  Files<-list.files(data_dir,".xlsm$",full.names=T)
+  Files<-list.files(excel_dir,".xlsm$",full.names=T)
   
   # 2.4) Check for duplicate files #####
   FNames<-unlist(tail(tstrsplit(Files,"/"),1))
@@ -944,102 +945,102 @@ harmonization_list<-error_tracker(errors=errors3,filename = "var_varieties_harmo
 data<-lapply(XL,"[[","AF.Out")
 col_names<-colnames(data[[800]])
 
-# 3.8.1) AF.Out ######
-col_names2<-col_names[1:8]
-
-AF.Out<-pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
-  Filename<-basename(names(XL)[i])
+  # 3.8.1) AF.Out ######
+  col_names2<-col_names[1:8]
   
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(errors2=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure"))
-  }else{
-    X<-X[,..col_names2]
-    colnames(X)[1]<-"AF.Level.Name"
-    X<-X[!is.na(AF.Level.Name)]
+  AF.Out<-pblapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    Filename<-basename(names(XL)[i])
     
-    # Remove any all NA rows
-    na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
-    rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
-    errors<-X[!is.na(AF.Level.Name) & AF.Level.Name!="Base" & rows_with_na==T][,B.Code:=B.Code]
-    X <- X[!rows_with_na]
-    
-    if(nrow(X)>0){
-      X$B.Code<-B.Code
-      if(nrow(errors)>0){
-        list(data=X,errors=errors)
+    if(!all(col_names2 %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(errors2=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure"))
+    }else{
+      X<-X[,..col_names2]
+      colnames(X)[1]<-"AF.Level.Name"
+      X<-X[!is.na(AF.Level.Name)]
+      
+      # Remove any all NA rows
+      na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
+      rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
+      errors<-X[!is.na(AF.Level.Name) & AF.Level.Name!="Base" & rows_with_na==T][,B.Code:=B.Code]
+      X <- X[!rows_with_na]
+      
+      if(nrow(X)>0){
+        X$B.Code<-B.Code
+        if(nrow(errors)>0){
+          list(data=X,errors=errors)
+        }else{
+          list(data=X)
+        }
       }else{
-        list(data=X)
-      }
-    }else{
-      if(nrow(errors)>0){
-        list(errors=errors)
+        if(nrow(errors)>0){
+          list(errors=errors)
+        }
       }
     }
-  }
-  })
-
-errors_a<-rbindlist(lapply(AF.Out,"[[","errors2"))
-errors1<-rbindlist(lapply(AF.Out,"[[","errors"))
-AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
-
-# 3.8.1) AF.Trees ######
-col_names2<-col_names[10:13]
-AF.Trees<-pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
-  Filename<-basename(names(XL)[i])
+    })
   
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure - trees"))
-  }else{
-    X<-X[,..col_names2]
-    colnames(X)[1]<-"AF.Level.Name"
-    X<-X[!is.na(AF.Level.Name)]
-    # Remove any all NA rows
-    na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
-    rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
-    X <- X[!rows_with_na]
+  errors_a<-rbindlist(lapply(AF.Out,"[[","errors2"))
+  errors1<-rbindlist(lapply(AF.Out,"[[","errors"))
+  AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
+  
+  # 3.8.2) AF.Trees ######
+  col_names2<-col_names[10:13]
+  AF.Trees<-pblapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    Filename<-basename(names(XL)[i])
     
-    if(nrow(X)>0){
-      X$B.Code<-B.Code
-      list(data=X)
-
+    if(!all(col_names2 %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure - trees"))
     }else{
-      NULL
+      X<-X[,..col_names2]
+      colnames(X)[1]<-"AF.Level.Name"
+      X<-X[!is.na(AF.Level.Name)]
+      # Remove any all NA rows
+      na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
+      rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
+      X <- X[!rows_with_na]
+      
+      if(nrow(X)>0){
+        X$B.Code<-B.Code
+        list(data=X)
+  
+      }else{
+        NULL
+        }
       }
-    }
-})
-errors_b<-rbindlist(lapply(AF.Trees,"[[","errors2"))
-AF.Trees<-rbindlist(lapply(AF.Trees,"[[","data"))
-
-results<-validator(data=AF.Trees,
-                   numeric_cols=c("AF.Tree.N"),
-                   tabname="AF.Trees")
-
-AF.Trees<-results$data
-errors2<-results$errors
-
-# Key field matches
-errors3<-check_key(parent=AF.Out,child=AF.Trees,tabname="AF.Trees",keyfield="AF.Level.Name")
-
-# Check for missing units
-errors4<-AF.Trees[!is.na(AF.Tree.N) & is.na(AF.Tree.Unit)
-                ][,list(value=paste0(unique(AF.Level.Name))),by=B.Code
-                  ][,table:="AF.Tree"
-                    ][,field:="AF.Level.Name"
-                      ][,issue:="Trees number is present without unit."]
-
-# combine and save errors
-errors<-rbindlist(list(errors2,errors3,errors1,errors4),fill=T)
-error_list<-error_tracker(errors=errors,filename = "af_errors",error_dir=error_dir,error_list = error_list)
-error_list<-error_tracker(errors=rbind(errors_a,errors_b),filename = "af_structure_errors",error_dir=error_dir,error_list = error_list)
-
-
-  # 3.8.1) Harmonization - TO DO !!! ######
+  })
+  errors_b<-rbindlist(lapply(AF.Trees,"[[","errors2"))
+  AF.Trees<-rbindlist(lapply(AF.Trees,"[[","data"))
+  
+  results<-validator(data=AF.Trees,
+                     numeric_cols=c("AF.Tree.N"),
+                     tabname="AF.Trees")
+  
+  AF.Trees<-results$data
+  errors2<-results$errors
+  
+  # Key field matches
+  errors3<-check_key(parent=AF.Out,child=AF.Trees,tabname="AF.Trees",keyfield="AF.Level.Name")
+  
+  # Check for missing units
+  errors4<-AF.Trees[!is.na(AF.Tree.N) & is.na(AF.Tree.Unit)
+                  ][,list(value=paste0(unique(AF.Level.Name))),by=B.Code
+                    ][,table:="AF.Tree"
+                      ][,field:="AF.Level.Name"
+                        ][,issue:="Trees number is present without unit."]
+  
+  # combine and save errors
+  errors<-rbindlist(list(errors2,errors3,errors1,errors4),fill=T)
+  error_list<-error_tracker(errors=errors,filename = "af_errors",error_dir=error_dir,error_list = error_list)
+  error_list<-error_tracker(errors=rbind(errors_a,errors_b),filename = "af_structure_errors",error_dir=error_dir,error_list = error_list)
+  
+  
+  # 3.8.x) Harmonization - TO DO !!! ######
   # AF.Tree and AF.Tree.Unit
 
 # 3.9) Tillage (Till.Out) #####
@@ -1508,7 +1509,7 @@ error_list<-error_tracker(errors=errors,filename = "fert_other_errors",error_dir
 h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3),fill=T)
 harmonization_list<-error_tracker(errors=h_tasks,filename = "fert_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
 
-  # 3.11.5) ***!!!TO DO!!!*** Update Fertilizer codes   #######
+  # 3.11.x) ***!!!TO DO!!!*** Update Fertilizer codes   #######
     if(F){
       # Old Code
       
@@ -1755,7 +1756,7 @@ harmonization_list<-error_tracker(errors=h_tasks,filename = "fert_harmonization"
       
     }
 
-  # 3.11.6) ***!!!TO DO!!!*** Add in h10 code where there are fertilizer treatments, but fertilizer column is blank #######
+  # 3.11.x) ***!!!TO DO!!!*** Add in h10 code where there are fertilizer treatments, but fertilizer column is blank #######
 if(F){
   # Old Code
 MT.Out[,Count.F.NA:=sum(is.na(F.Level.Name)),by="B.Code"][,Count.F:=sum(!is.na(F.Level.Name)),by="B.Code"]
@@ -2304,6 +2305,7 @@ errors1<-validator(data=pH.Out,
                    unique_cols = "pH.Level.Name",
                    tabname="pH.Out")$errors
 
+
   # 3.15.2) pH.Method ######
 col_names2<-col_names[6:13]
 
@@ -2340,10 +2342,17 @@ pH.Method<-results$data
 
 errors3<-check_key(parent = pH.Out,child = pH.Method,tabname="pH.Method",keyfield="pH.Level.Name")
 
+# Check junk data issue (where Liming or Calcium Addition was accidently left in the Master Excel Template)
+# These files have a pH practice present with no notes (notes would indicate it is not junk data)
+check_codes<-pH.Out[pH.Level.Name=="Base" & pH.Prac=="Liming or Calcium Addition" & is.na(pH.Notes),B.Code]
+# Subset to codes that have no corresponding entry in the pH.Method table (i.e. they are not described so probably junk data)
+check_codes<-check_codes[!check_codes %in% pH.Method$B.Code]
+errors4<-data.table(B.Code=check_codes,value="Liming or Calcium Addition",table="pH.Method",field="pH.Prac",issue="Junk data value accidently left in master template?")
+
 errors<-rbindlist(list(errors_a,errors_b))
 error_list<-error_tracker(errors=errors,filename = "pH_structure_errors",error_dir=error_dir,error_list = error_list)
 
-errors<-rbindlist(list(errors1,errors2,errors3))
+errors<-rbindlist(list(errors1,errors2,errors3,errors4))
 error_list<-error_tracker(errors=errors,filename = "pH_other_errors",error_dir=error_dir,error_list = error_list)
 
     # 3.15.2.1) Harmonization ########
