@@ -109,6 +109,8 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     }
   }
 
+  # 1.3) Set urls #####
+  era_vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
 # 2) Download core datasets ####
   # 2.1) ERA master datasets #####
   update<-F
@@ -137,6 +139,14 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
       }
     }
 
+  # 2.3) ERA master_codes #####
+    era_vocab_local<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
+    
+    update<-T
+    if(update){
+      download.file(era_master_url, era_vocab_local, mode = "wb")  # Download and write in binary mode
+    }  
+    
 # 3) Create table of unique locations (for use with geodata functions) ####
     data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
