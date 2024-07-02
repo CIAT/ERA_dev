@@ -226,8 +226,9 @@ Pub.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
 }))
 
 # Replace zeros with NAs
-Zero.Cols<-c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4")
-Pub.Out<-Pub.Out[,(Zero.Cols):=lapply(.SD, replace_zero_with_NA),.SDcols=Zero.Cols]
+Pub.Out<-validator(data=Pub.Out,
+                   zero_cols=c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4"))$data
+                   
 
 # Pub.Out: Validation: Duplicate or mismatched B.Codes
 Pub.Out<-merge(Pub.Out,excel_files[,list(filename,era_code2)],all.x=T)
@@ -282,7 +283,7 @@ error_list<-error_tracker(errors=errors_a,filename = "site_structure_errors",err
 
 # Read in data excluding files with non-match structure
 results<-validator(data=Site.Out,
-                   zero_cols<-colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
+                   zero_cols=colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
                    numeric_cols=c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2"),
                    compulsory_cols = c(Site.ID="Site.Type",Site.ID="Country",Site.ID="Site.LatD",Site.ID="Site.LonD"),
                    extreme_cols=list(Site.MAT=c(10,34),
@@ -647,13 +648,6 @@ results<-validator(data=Soil.Out,
 
 Soil.Out<-results$data
 errors<-results$errors
-
-results<-validator(data=Soil.Out[variable!="Soil.pH"],
-                   compulsory_cols = c(variable="Unit"),
-                   do_site = F,
-                   tabname="Soil.Out",
-                   site_data=Site.Out)
-
 
 # Check for "..." in column names
 errors3<-unique(Soil.Out[grep("[.][.][.]",variable),list(variable,B.Code)])
