@@ -955,6 +955,11 @@ validator <- function(data,
     data <- convert_NA_strings_SD(data)
   }
   
+  # zero cols
+  if (!is.null(zero_cols)) {
+    data <- data[, (zero_cols) := lapply(.SD, replace_zero_with_NA), .SDcols = zero_cols]
+  }
+  
   if (!is.null(unique_cols)) {
     errors1 <- rbindlist(lapply(1:length(unique_cols), FUN = function(i) {
       field <- unique_cols[i]
@@ -996,11 +1001,6 @@ validator <- function(data,
   
   if (!is.null(date_cols)) {
     numeric_cols <- unique(c(numeric_cols, date_cols))
-  }
-  
-  # zero cols
-  if (!is.null(zero_cols)) {
-    data <- data[, (zero_cols) := lapply(.SD, replace_zero_with_NA), .SDcols = zero_cols]
   }
   
   # Substitute , for . in numeric columns
