@@ -62,67 +62,67 @@ upload_files_to_s3(files = files,
                    mode="public-read")
 
 # 1.2) Upload 2023 extraction files to s3 #####
-# 1.2.1) 2023 industrious elephant ######
-# where is the working folder for the ERA data extractions (internal team directory)
-folder_local<-"G:/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
-project<-era_projects$industrious_elephant_2023
-folder<-file.path(era_dirs$era_dataentry_dir,
-                  project,
-                  "excel_files")
-
-if(!dir.exists(folder)){
-  dir.create(folder,recursive = T)
-}
-
-# this is the target folder on the S3 bucket and generalized structured file system
-s3_bucket<-file.path(era_dirs$era_dataentry_s3,
-                     project,
-                     "excel_files")
-
-# List excel files to be zipped
-files<-list.files(folder_local,full.names = T,recursive=T)
-files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
-files<- grep("xlsm$",files,value=T)
-files<-files[!grepl("~",files)]
-files<- grep("/QCed/|/Extracted/",files,value=T)
-
-# zip all the excels and upload to the s3
-output_zip_file <- file.path(folder,paste0(project,".zip"))
-
-zip::zipr(zipfile = output_zip_file, files =files)
-
-upload_files_to_s3(files = output_zip_file,
-                   selected_bucket=s3_bucket,
-                   max_attempts = 3,
-                   overwrite=T,
-                   mode="public-read")
-
-# 1.2.1) 2022 skinny cow ######
-folder_local<-file.path("C:/Users/PSteward/OneDrive - CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
-project<-era_projects$skinny_cow_2022
-folder<-file.path(era_dirs$era_dataentry_dir,
-                  project,
-                  "excel_files")
-
-if(!dir.exists(folder)){
-  dir.create(folder,recursive = T)
-}
-
-# this is the target folder on the S3 bucket and generalized structured file system
-s3_bucket<-file.path(era_dirs$era_dataentry_s3,
-                     project,
-                     "excel_files")
-
-# List excel files to be zipped
-files<-list.files(folder_local,full.names = T,recursive=T)
-files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
-files<- grep("xlsm$",files,value=T)
-files<-files[!grepl("~",files)]
-
-# zip all the excels and upload to the s3
-output_zip_file <- file.path(folder,paste0(project,".zip"))
-zip::zipr(zipfile = output_zip_file, files =files)
-
+  # 1.2.1) 2023 industrious elephant ######
+  # where is the working folder for the ERA data extractions (internal team directory)
+  folder_local<-"G:/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
+  project<-era_projects$industrious_elephant_2023
+  folder<-file.path(era_dirs$era_dataentry_dir,
+                    project,
+                    "excel_files")
+  
+  if(!dir.exists(folder)){
+    dir.create(folder,recursive = T)
+  }
+  
+  # this is the target folder on the S3 bucket and generalized structured file system
+  s3_bucket<-file.path(era_dirs$era_dataentry_s3,
+                       project,
+                       "excel_files")
+  
+  # List excel files to be zipped
+  files<-list.files(folder_local,full.names = T,recursive=T)
+  files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
+  files<- grep("xlsm$",files,value=T)
+  files<-files[!grepl("~",files)]
+  files<- grep("/QCed/|/Extracted/",files,value=T)
+  
+  # zip all the excels and upload to the s3
+  output_zip_file <- file.path(folder,paste0(project,".zip"))
+  
+  zip::zipr(zipfile = output_zip_file, files =files)
+  
+  upload_files_to_s3(files = output_zip_file,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=T,
+                     mode="public-read")
+  
+  # 1.2.1) 2022 skinny cow ######
+  folder_local<-file.path("C:/Users/PSteward/OneDrive - CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
+  project<-era_projects$skinny_cow_2022
+  folder<-file.path(era_dirs$era_dataentry_dir,
+                    project,
+                    "excel_files")
+  
+  if(!dir.exists(folder)){
+    dir.create(folder,recursive = T)
+  }
+  
+  # this is the target folder on the S3 bucket and generalized structured file system
+  s3_bucket<-file.path(era_dirs$era_dataentry_s3,
+                       project,
+                       "excel_files")
+  
+  # List excel files to be zipped
+  files<-list.files(folder_local,full.names = T,recursive=T)
+  files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
+  files<- grep("xlsm$",files,value=T)
+  files<-files[!grepl("~",files)]
+  
+  # zip all the excels and upload to the s3
+  output_zip_file <- file.path(folder,paste0(project,".zip"))
+  zip::zipr(zipfile = output_zip_file, files =files)
+  
 # 1.3) Upload livestock 2024 search to s3 #####
 folder<-"data_entry/data_entry_2024/search_history/livestock_2024"
 
