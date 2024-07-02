@@ -1,0 +1,8 @@
+B.Code,table,field,value,issue,issue_addressed,addressed_by_whom,notes
+NN0109.1,ExpD.Out,EX.Plot.Size,16outdoorconceteponds(5mx3mx1.5m),Non-numeric value in numeric field.,FALSE,"",""
+NN0109.2,ExpD.Out,EX.Plot.Size,16outdoorconceteponds(5mx3mx1.5m),Non-numeric value in numeric field.,FALSE,"",""
+JS0243,ExpD.Out,EX.Plot.Size,RandomizedcompleteblockdesignforfeedintakeandBWparametersandcompleterandomizeddesignfordigestibilityandcarcassparameterswereused.,Non-numeric value in numeric field.,FALSE,"",""
+JS0316,ExpD.Out,EX.Plot.Size,fivetreatmentsandfiveblocks,Non-numeric value in numeric field.,FALSE,"",""
+LM0127,ExpD.Out,EX.Plot.Size,Allcowsweredriedup60daysbeforetheexpectedcalvingdate.,Non-numeric value in numeric field.,FALSE,"",""
+NN0352,ExpD.Out,EX.Plot.Size,30x50m,Non-numeric value in numeric field.,FALSE,"",""
+NN0380,ExpD.Out,EX.Plot.Size,120m2(eachpond),Non-numeric value in numeric field.,FALSE,"",""
