@@ -1,4 +1,4 @@
 B.Code,value,table,master_table,field,issue,issue_addressed,addressed_by_whom,notes
 HK0253,Soil Carbon Stocks..Mg/ha..0..30,Out.Out,,Out.Code.Joined,Duplicate value in unique field.,FALSE,"",""
-JO0021,Operation/activity,Out.Econ,,Site.ID,A Site.ID used  does not match the Site tab.,FALSE,"",""
+JO0021,Operation/activity,Out.Econ,,Site.ID,A Site.ID used does not match the Site tab.,FALSE,"",""
 NN0561,NA,Out.Out,,Out.Code.Joined,Duplicate value in unique field.,FALSE,"",""

@@ -26,6 +26,7 @@ JO0064,PRUNING,Other.Out,O.Level.Name,"One other practice exists, please check t
 JO0110,Trees,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 JO0124,Prunnings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 JO0138,ZERO_P/2_P/3_P,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
+JO0151,Low Fe Seed/High Fe Seeds,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 JO0160,TDS/TPS,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
 JO0214,Mowing,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Charity,"This is correct,mowing was done on grass phase of a rotation"
 JS0234,Pruning,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine

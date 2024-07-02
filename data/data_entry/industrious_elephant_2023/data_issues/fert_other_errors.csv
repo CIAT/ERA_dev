@@ -17,6 +17,3 @@ NM0073,PM10/PM5/PM5+SM5/SM10/SM5,Fert.Comp,F.Type,Mismatch in field value betwee
 NM0073,PM5+SM5,Fert.Comp,F.Type,Duplicate value in unique field.,,,,FALSE,"",""
 NM0084,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
 NN0423,M manure/S manure/T manure/V manure,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
-NN0427,2002,Fert.Method,Time,A Time used does not match the Time tab.,,,,FALSE,"",""
-NN0427,"Escola Superior de Agricultura Luiz de Queiroz, University of Sao Paulo 
-",Fert.Method,Site.ID,A Site.ID used  does not match the Site tab.,,,,FALSE,"",""

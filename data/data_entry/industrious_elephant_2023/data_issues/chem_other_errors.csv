@@ -7,5 +7,8 @@ CJ0173,Vesicular arbuscular mycorrhizal (VAM),Chems.AI,C.Name,Mismatch in Produc
 CJ0174,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
 JO0098,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
 JO0186,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0217,Nematicide,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0217,Nematicide,Chems.AI,C.Type,"C.Type may be incorrect, or simply missing from Master Sheet.",C.Name.2020,chems,FALSE,"",""
+JO0217,Yam/Yam/Yam/Yam/Yam/Yam/Yam/Yam/Yam/Yam,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,FALSE,"",""
 NN0440,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
 NN0520,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""

@@ -5,7 +5,7 @@ Instituto Federal do Paraná (IFPR) - Campus Palmas",CJ0120,Site.Out,Site.ID,,,s
 (Center for Agricultural Sciences) of the Universidade Federal deRoraima,JO0062,Site.Out,Site.ID,,,site_list,FALSE,"",""
 "ARC,  Al Sharqia Governorate. Site A",NN0511,Site.Out,Site.ID,,,site_list,FALSE,"",""
 "ARC,  Al Sharqia Governorate. Site B",NN0511,Site.Out,Site.ID,,,site_list,FALSE,"",""
-"AREX Training Centre farm, Domboshava",CJ0001/HK0306.1/HK0306.2,Site.Out,Site.ID,,,site_list,FALSE,"",""
+"AREX Training Centre farm, Domboshava",HK0306.1/HK0306.2/CJ0001,Site.Out,Site.ID,,,site_list,FALSE,"",""
 "ATVET College, Agarfa",CJ0183,Site.Out,Site.ID,,,site_list,FALSE,"",""
 "AVTC farm, Otobi",NN0430,Site.Out,Site.ID,,,site_list,FALSE,"",""
 Abii,NM0131,Site.Out,Site.ID,,,site_list,FALSE,"",""

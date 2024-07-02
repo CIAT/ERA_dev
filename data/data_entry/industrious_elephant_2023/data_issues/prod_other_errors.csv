@@ -38,6 +38,8 @@ Legumes/Tropical Kudzu or Puero,JO0139,Prod.Out,prod,P.Product.Subtype/P.Product
 Oilseeds and Oils/Ethiopian Mustard ,NN0424,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Oilseeds and Oils/Radish,CJ0102,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Starchy Staples/Plantain,JO0163,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
+Starchy Staples/Water yam,JO0217,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
+Starchy Staples/White yam,JO0217,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Tree/Benth,AC0108,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Rejected
 Tree/Crotalaria pawlonia,NN0555,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,The name is not correct
 Tree/Dhaincha,SA0017/SA0059.1/SA0060,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
