@@ -123,6 +123,12 @@ upload_files_to_s3(files = files,
   output_zip_file <- file.path(folder,paste0(project,".zip"))
   zip::zipr(zipfile = output_zip_file, files =files)
   
+  upload_files_to_s3(files = output_zip_file,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=T,
+                     mode="public-read")
+  
 # 1.3) Upload livestock 2024 search to s3 #####
 folder<-"data_entry/data_entry_2024/search_history/livestock_2024"
 
