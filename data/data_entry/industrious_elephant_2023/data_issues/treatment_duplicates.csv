@@ -1,184 +1,196 @@
 B.Code,value,n_dups,issue_addressed,addressed_by_whom,notes
-AC0003,"Fallow rot, E2/Cont maize no fert, E3",2,FALSE,"",""
+AC0003,"Fallow rot, E2/Cont maize no fert, E3",2,FALSE,,
+AC0004,Velvet 40N/Velvet 40N 30P/Velvet 80N 30P/Pigeon pea 40N/Pigeon pea 40N 30P/Pigeon pea 80N 30P,6,TRUE,Jabesh,
+AC0005,Plough +M 20N/Plough +M 40N/Plough +M Manure/Plough +M Manure +20N/Ripping +M 20N/Ripping +M 40N/Ripping +M Manure/Ripping +M Manure +20N/Plough +M 0N/Ripping +M 0N,10,TRUE,Jabesh,
+AC0013,Burkina Faso 0FYM Sorghum/Burkina Faso 0FYM Pearl Millet/Burkina Faso 0FYM Cowpea/Burkina Faso 0FYM Groundnut,4,TRUE,Jabesh,
 AC0016,Maize intercrop Abontem/Maize intercrop Omankwa/Maize intercrop Obatanpa,3,FALSE,Jabesh,This is correct
-AC0020,LM-F0 An/HM-F0 An/HM-FM An/HM-FC An/LM-F0 2cycle An/LM-FM 2cycle An/LM-FC 2cycle An/HM-F0 2cycle An/HM-FM 2cycle An/HM-FC 2cycle An,10,FALSE,"",""
-AC0030.2,PAN4M21 Sole S.s/PAN67 Sole S.s/SC403 Sole S.s/SC513 Sole S.s/ISARM081 Sole S.s/ISARM101 Sole S.s/Pool32 Sole S.s/ZM607 Sole S.s,8,FALSE,"",""
+AC0018,TI,1,TRUE,Jabesh,
+AC0020,LC-F0 Ben/HC-F0 Ben/HC-FM Ben/HC-FC Ben/HC-F0 2cycle Ben/HC-FM 2cycle Ben/HC-FC 2cycle Ben/LM-F0 An/HM-F0 An/HM-FM An/HM-FC An/LM-F0 2cycle An/LM-FM 2cycle An/LM-FC 2cycle An/LC-F0 Ben2/HC-F0 Ben2/HC-FM Ben2/HC-FC Ben2/HC-F0 2cycle Ben2/HC-FM 2cycle Ben2/HC-FC 2cycle Ben2/HM-F0 2cycle An/HM-FM 2cycle An/HM-FC 2cycle An,24,TRUE,Jabesh,
+AC0030.2,PAN4M21 Under G.r/PAN67 Under G.r/SC403 Under G.r/SC513 Under G.r/ISARM081 Under G.r/ISARM101 Under G.r/Pool32 Under G.r/ZM607 Under G.r/PAN4M21 Under S.s/PAN67 Under S.s/SC403 Under S.s/SC513 Under S.s/ISARM081 Under S.s/ISARM101 Under S.s/Pool32 Under S.s/ZM607 Under S.s,16,TRUE,Jabesh,
 AC0032,Maize rot,1,FALSE,Jabesh,This is correct
+AC0054,Cotton RR STAM 279A/Cotton RR1.5 STAM 279A,2,TRUE,Jabesh,
+AC0076,HDO Coffee/HDO Ep/HDC Coffee/HDC Ep,4,TRUE,Jabesh,
 AC0077.3,Maize weedy,1,FALSE,Jabesh,This is correct
-AC0079,CT + 60CM,1,FALSE,"",""
-AC0080,Maize DSIMC,1,FALSE,"",""
-AC0132,Sole Maize 0N NT B/Sole Maize 145N NT B/Maize Fallow 0N/Maize Fallow 145N,4,FALSE,"",""
-AC0144,AMFRP-P_SB/AMFV-P_SB/AMFRP-P_MZ/AMFV-P_MZ,4,FALSE,"",""
+AC0079,Control ZP/CT + 60CM,2,TRUE,Jabesh,
+AC0080,Maize DSIMC/Maize DSIMM,2,TRUE,Jabesh,
+AC0097,Maize int,1,TRUE,Jabesh,
+AC0111,Soybean Regular Single,1,TRUE,Jabesh,
+AC0114,DS-MC Maize,1,TRUE,Jabesh,
+AC0132,Sole Maize 0N NT B/Sole Maize 145N NT B/Maize Fallow 0N/Maize Fallow 145N/Maize int 0N/Maize int 145N,6,FALSE,,
+AC0144,AMFRP-P_SB/AMFV-P_SB/AMFRP-P_MZ/AMFV-P_MZ,4,FALSE,,
 AC0168,MC Cp F0,1,FALSE,Jabesh,This is correct
-AF0003,(Tyger)-wheat .conv,1,FALSE,"",""
-CJ0001,Pigeonpea + fertilizer /Bean + fertilizer /Bambara + fertilizer /Groundnut + fertilizer ,4,FALSE,"",""
-CJ0003,intercropped -lab lab-DP/intercropped maize DP,2,FALSE,"",""
-CJ0004,M2_FERT/A2_FERT,2,FALSE,"",""
-CJ0013,CA Maize int/CA Maize + Manure/CA Maize int + Manure,3,FALSE,"",""
-CJ0014,Control-LF_Kibungu/NTR-LF_Kibungu/CTM-LF_Kibungu/NTRM-LF_Kibungu/Control-LF_Machanga/NTR-LF_Machanga/CTM-LF_Machanga/NTRM-LF_Machanga,8,FALSE,"",""
-CJ0017,ICA V10-Maize-intercrop 2:1-OF/ICA V10-Maize-intercrop 2:1-IF,2,FALSE,"",""
-CJ0021,Peanuts-MT/Beans-MT/Sunn Hemp-MT/Pigeon Pea-MT,4,FALSE,"",""
-CJ0026,Maize_Rip line_CRF/Maize_Direct seeder_CRF,2,FALSE,"",""
-CJ0027,CA_MBR-Bean/CP_MBR-Bean/CA_MBR-Bean_B/CP_MBR-Bean_B,4,FALSE,"",""
-CJ0033,Cassava int+fert/Cassava int+lime/Sole Cassava+lime+ fert/Cassava int+lime+ fert,4,FALSE,"",""
-CJ0038,SMr/Mr/SMr20k/Mr20k/SMr40k/Mr40k/SMr26P/Mr26P/SMr52P/Mr52P/SMr26P20K/Mr26P20K/SMr52P40K/Mr52P40K,14,FALSE,"",""
-CJ0039,Control_N Machanga/Control_N,2,FALSE,"",""
-CJ0042,T2: 15 days after FS_bean/T3: 30 days after FS-bean/Sole maize T2/Sole maize T3,4,FALSE,"",""
-CJ0045,CT_Cyanazine + Alachlor  Maize,1,FALSE,"",""
-CJ0046,CT_maize,1,FALSE,"",""
-CJ0059,DP+IAC-12/MZ+IAC-12/IAC-12+CB/Sole IAC-12 unweeded/sole maize/sole beans,6,FALSE,"",""
-CJ0064,Lab_D0,1,FALSE,"",""
-CJ0074,intercrop 90  bean_middle/intercrop 90  bean_upper,2,FALSE,"",""
-CJ0080,NT-Black oats_R2/NT-Soybean_R2/NT-Lupin_R2/NT-Wheat_R2/CT-Wheat_R2/CT-Black oats_R2/CT-Soybean_R2/CT-Lupin_R2/NT-Black oats_R3/NT-Soybean_R3/NT-Lupin_R3/NT-Wheat_R3/CT-Wheat_R3/CT-Black oats_R3/CT-Soybean_R3/CT-Lupin_R3,16,FALSE,"",""
-CJ0087,No Super N no inoculation,1,FALSE,"",""
-CJ0088,NF+ps_+FB_MZ/N F+PS+TR_MZ/RFR+ps+FB_MZ/RFR+ps+TR_MZ/MD+ps+FB_MZ/MD+PS+TR_MZ/M D+Ă+TR+IHB_MZ/NF+ps_+FB_PM/N F+PS+TR_PM/RFR+ps+FB_PM/RFR+ps+TR_PM/MD+ps+FB_PM/MD+PS+TR_PM/M D+Ă+TR+IHB_PM/NF+ps_+FB_SG/N F+PS+TR_SG/RFR+ps+FB_SG/RFR+ps+TR_SG/MD+ps+FB_SG/MD+PS+TR+IMB_SG/M D+Ă+TR+IHB_SG,21,FALSE,"",""
-CJ0091,sole maize_ms/Intercrop maize_ms,2,FALSE,"",""
-CJ0093,L + S + T/ C + S + T,2,FALSE,"",""
-CJ0095,Farmer practice,1,FALSE,"",""
-CJ0099,Finger millet intercrop,1,FALSE,"",""
-CJ0104,ARC 25,1,FALSE,"",""
-CJ0106,IS+N2/IS+N2_2016,2,FALSE,"",""
-CJ0111,T8-52N-BH_bean,1,FALSE,"",""
-CJ0114,"Spont veg, no melon plastic.mulch/Soil without vegetation_CT/Spont veg, no melon plastic.mulch_CT/Corn +Bracharia spont veg_CT/melon CT/melon CT mulch",6,FALSE,"",""
-CJ0123,CONTROL_L,1,FALSE,"",""
-CJ0125,Tiligre/millet-W/fert-mil/Tiligre/millet-fert-mil,2,FALSE,"",""
-CJ0132,Control-OF,1,FALSE,"",""
-CJ0162,CPD_4_EJIGBO_P/CPD_6_EJIGBO_P/CPD_8_EJIGBO_P/CPD_10_EJIGBO_P/RB_4_EJIGBO_P/RB_6_EJIGBO_P/RB_8_EJIGBO_P/RB_10_EJIGBO_P/BCH_4_EJIGBO_P/BCH_6_EJIGBO_P/BCH_8_EJIGBO_P/BCH_10_EJIGBO_P/MF_100_EJIGBO_P/MF_200_EJIGBO_P/MF_300_EJIGBO_P/CPD_4_EJIGBO_R/CPD_6_EJIGBO_R/CPD_8_EJIGBO_R/CPD_10_EJIGBO_R/RB_4_EJIGBO_R/RB_6_EJIGBO_R/RB_8_EJIGBO_R/RB_10_EJIGBO_R/BCH_4_EJIGBO_R/BCH_6_EJIGBO_R/BCH_8_EJIGBO_R/BCH_10_EJIGBO_R/MF_100_EJIGBO_R/MF_200_EJIGBO_R/MF_300_EJIGBO_R/CONTROL_FUTO_P/CONTROL_FUTO_R,32,FALSE,"",""
-CJ0177,F25+Vicia villosa/F50+Vicia villosa/F75+Vicia villosa/F25+atropurpurea/F50+atropurpurea/F75+atropurpurea,6,FALSE,"",""
-CJ0188,FP_MIDDLE/B_MIDDLE/60N_MIDDLE/120N_60PK_MIDDLE/FP_CENTRE/B_CENTRE/60N_CENTRE/120N_60PK_CENTRE,8,FALSE,"",""
-DM0004,P + IF + GB - M +,1,FALSE,"",""
-DM0006,T2 (NPSZn-130-20-21-0-0)/T3 (NPSZn-130-20-21-15-0)/T4 (NPSZn-130-20-21-15-0),3,FALSE,"",""
-DM0018,30 * 20 MB + Allanblackia,1,FALSE,"",""
-DM0024,Coffee intercropping,1,FALSE,"",""
-HK0157,(M)Le-NPK/(M)Se-NPK/(C )NT+NPK/(C )Le-NPK/(C )Le+NPK/(C )Se-NPK/(C )Se+NPK,7,FALSE,"",""
-HK0161.2,(Ibadan)- Maize_2000+ no-N/(Ibadan)- Maize_2002+ no-N/(Ibadan)- Maize_2004+ no-N/(Zaria)- Maize_2000+ no-N/(Zaria)- Maize_2002+ no-N/(Zaria)- Maize_2004+ no-N/(Ibadan)- Maize + P.phaseoloides_2000+ no-N/(Ibadan)- Maize + Aeschynomene histrix_2000+ no-N/(Ibadan)- Maize + Stylosanthes guianensis_2000+ no-N/(Ibadan)- Maize + P.phaseoloides_2002+ no-N/(Ibadan)- Maize + Aeschynomene histrix_2002+ no-N/(Ibadan)- Maize + Stylosanthes guianensis_2002+ no-N/(Ibadan)- Maize + P.phaseoloides_2004+ no-N/(Ibadan)- Maize + Aeschynomene histrix_2004+ no-N/(Ibadan)- Maize + Stylosanthes guianensis_2004+ no-N/(Zaria)- Maize + P.phaseoloides_2000+ no-N/(Zaria)- Maize + Aeschynomene histrix_2000+ no-N/(Zaria)- Maize + Stylosanthes guianensis_2000+ no-N/(Zaria)- Maize + P.phaseoloides_2002+ no-N/(Zaria)- Maize + Aeschynomene histrix_2002+ no-N/(Zaria)- Maize + Stylosanthes guianensis_2002+ no-N/(Zaria)- Maize + P.phaseoloides_2004+ no-N/(Zaria)- Maize + Aeschynomene histrix_2004+ no-N/(Zaria)- Maize + Stylosanthes guianensis_2004+ no-N,24,FALSE,"",""
-HK0166,C_UA/C_AS/C_CAN,3,FALSE,"",""
-HK0227,CB inter + SS No Manure/CB inter + LL No Manure/Maize inter + CC No Manure/Maize inter + LL No Manure/Sorghum + SS No Manure/Sorghum + LL No Manure/Maize inter w SP + CC No Manure/Maize inter w SP+ LL No Manure/SP inter + SS No Manure/SP inter + LL No Manure/CB sole + CC No Manure/CB sole + LL No Manure/CB inter + SS Manure/CB inter + LL Manure/Maize inter + CC Manure/Maize inter + LL Manure/Sorghum + SS Manure/Sorghum + LL Manure/Maize inter w SP + CC Manure/Maize inter w SP+ LL Manure/SP inter + SS Manure/SP inter + LL Manure/CB sole + CC Manure/CB sole + LL Manure,24,FALSE,"",""
-HK0240,Maize inter/Maize rot,2,FALSE,"",""
-HK0261,Gliricidia 50% fert,1,FALSE,"",""
-JO0002,No lime Min Til Cal-2/No lime Trad Til Cal-2/No lime Min Til Cal-49/No lime Trad Til Cal-49,4,FALSE,"",""
-JO0008,Carrot-2016-TA-+MANURE/Carrot-2016-TT+MANURE/Onion-2016-TA-+MANURE/Onion-2016-TT+MANURE,4,FALSE,"",""
-JO0011,Barley-INT-100-25%/Barley-INT-100-37.5%/Barley-INT-100-50%/Barley-INT-100-62.5%,4,FALSE,"",""
-JO0012,PVASYN13 (Check)+ WW,1,FALSE,"",""
-JO0013,Croton-5/Croton-7/Cordia-5/Cordia-7,4,FALSE,"",""
-JO0024,DO_MZ_NTM/DO_MZ_CAR/DO_MZ_CTR/DO_PP_CAR_INT/DO_CB_CAR,5,FALSE,"",""
-JO0026,M Rot,1,FALSE,"",""
-JO0027,PRU_50%_1/PRU_50%_2/PRU_50%_3/PRU_50%_CON/PRU_100%_1/PRU_100%_2/PRU_100%_3/PRU_100%_CON,8,FALSE,"",""
-JO0028,Maize CA-F/Maize CT-F/Maizi Int CA-F/Maizi Int CT-F/CowP Int CA-F/CowP Int CT-F/PigeonP Int CA-F/PigeonP Int CT-F/Ground N Int CA-F/Ground N Int CT-F/CowP  CA-F/CowP  CT-F/PigeonP  CA-F/PigeonP  CT-F/Ground N  CA-F/Ground N  CT-F/Maize CA/Cowpea/Groundnut/Pigeon pea,20,FALSE,"",""
-JO0034,Rwanda-0/Tanzania-0/Uganda-0,3,FALSE,"",""
-JO0035,cCM-CP/CM-DSm/cCM-DS/mCM-DS/cSCM-DS/mSCM-DS/mmSCM-DS/ccSCM-DS/hhSCM-DS,9,FALSE,"",""
-JO0036,HGAF-Coffee-0-30cm/HGAF-Khat-0-30cm/HGAF-Ensete-0-30cm/HGAF-Banana-0-30cm/HGAF-Avocado-0-30cm/CAFS-0-30cm/HGAF-Coffee-30-60cm/HGAF-Khat-30-60cm/HGAF-Ensete-30-60cm/HGAF-Banana-30-60cm/HGAF-Avocado-30-60cm/CAFS-30-60cm,12,FALSE,"",""
-JO0038,CTR-Maize UZF/NTR- Maize UZF/NTMR-Maize UZF/CTR-Maize DTC/NTR- Maize DTC/NTMR-Maize DTC,6,FALSE,"",""
-JO0052,60N-F/100N-F,2,FALSE,"",""
-JO0057,CHI-OUT-15YRS/KASI-OUT-22YRS,2,FALSE,"",""
-JO0059,Int-O-1m/Int-O-2m/Int-O-3m,3,FALSE,"",""
-JO0063,CT-R1-W rot/CT-R1-SB rot/CT-BO-INT/NT-R1-W rot/NT-R1-SB rot/NT-BO-INT/NT-OSR-INT,7,FALSE,"",""
-JO0066,9-A/9-B/9-C/9-D,4,FALSE,"",""
-JO0077,P-0/K-0,2,FALSE,"",""
-JO0079,0INC-0N-(Faepe)/1INC-(Faepe)/20N-S-(Faepe)/1INC+20N-S-(Faepe)/1INC+20N-S+20TD-(Faepe)/1INC+20N-S+40TD-(Faepe)/1INC+20N-S+60TD-(Faepe)/0INC-0N-(Epamig)/1INC-(Epamig)/20N-S-(Epamig)/1INC+20N-S-(Epamig)/1INC+20N-S+20TD-(Epamig)/1INC+20N-S+40TD-(Epamig)/1INC+20N-S+60TD-(Epamig),14,FALSE,"",""
-JO0080,R3-Trop-0N/R3-SUB--0N,2,FALSE,"",""
-JO0082,MONO-CP-NONE/INT-CP-NONE/INT-MZ-LHI-2/INT-MZ-LHI-3/INT-MZ-LHI-4/INT-MZ-NONE/INT-MZ-LHF-7/INT-MZ-LHF-14,8,FALSE,"",""
-JO0086,CT-W-0N/NT-SB-0N/CT-SB-0N,3,FALSE,"",""
-JO0090,M-MM-PP-H Fz/M-INT-PP-H Fz/M-INT-PP-0 Fz/M-P53-INT-MZ-0 Fz/M-P67-INT-MZ-0 Fz,5,FALSE,"",""
-JO0092,2010-Control (0N),1,FALSE,"",""
-JO0105,Si-V1-CON-E1/Si-V1-D2-E1/Si-V1-D3-E1/Si-V1-D4-E1/Si-V1-D5-E1/Si-V1-D6-E1/Si-V1-D7-E1/Si-V1-D8-E1/Si-V2-CON-E1/Si-V2-D2-E1/Si-V2-D3-E1/Si-V2-D4-E1/Si-V2-D5-E1/Si-V2-D6-E1/Si-V2-D7-E1/Si-V2-D8-E1/Si-V3-CON-E1/Si-V3-D2-E1/Si-V3-D3-E1/Si-V3-D4-E1/Si-V3-D5-E1/Si-V3-D6-E1/Si-V3-D7-E1/Si-V3-D8-E1/Si-V4-CON-E1/Si-V4-D2-E1/Si-V4-D3-E1/Si-V4-D4-E1/Si-V4-D5-E1/Si-V4-D6-E1/Si-V4-D7-E1/Si-V4-D8-E1/Ba-V1-CON-E1/Ba-V2-CON-E1/Ba-V3-CON-E1/Ni-V1-CON-E1/Ni-V2-CON-E1/Ni-V3-CON-E1/Ni-V4-CON-E1/Si-V1-CON-E2/Si-V1-D2-E2/Si-V1-D3-E2/Si-V1-D4-E2/Si-V1-D5-E2/Si-V1-D6-E2/Si-V1-D7-E2/Si-V1-D8-E2/Si-V2-CON-E2/Si-V2-D2-E2/Si-V2-D3-E2/Si-V2-D4-E2/Si-V2-D5-E2/Si-V2-D6-E2/Si-V2-D7-E2/Si-V2-D8-E2/Si-V3-CON-E2/Si-V3-D2-E2/Si-V3-D3-E2/Si-V3-D4-E2/Si-V3-D5-E2/Si-V3-D6-E2/Si-V3-D7-E2/Si-V3-D8-E2/Si-V4-CON-E2/Si-V4-D2-E2/Si-V4-D3-E2/Si-V4-D4-E2/Si-V4-D5-E2/Si-V4-D6-E2/Si-V4-D7-E2/Si-V4-D8-E2/Ba-V1-CON-E2/Ba-V2-CON-E2/Ba-V3-CON-E2/Ni-V1-CON-E2/Ni-V2-CON-E2/Ni-V3-CON-E2/Ni-V4-CON-E2,78,FALSE,"",""
-JO0114,0P/0K/0S,3,FALSE,"",""
-JO0119,Con-2/Con-3/Con-4/Con-5,4,FALSE,"",""
-JO0120,2_CT_M0_2W/2_CT_M0_4W/2_CT_M0_FW,3,FALSE,"",""
-JO0121,50%-0_UF,1,FALSE,"",""
-JO0122,GEB-R+F0+W2/GEB-R+F0+W1/GEB-B+F0+W1/HUL-R+F0+W2/HUL-R+F0+W1/HUL-B+F0+W2/HUL-B+F0+W1,7,FALSE,"",""
-JO0132,CA-LG+AGG/CA-BG+AGG/CA-BWG+AGG/CT-CG+AGG/CT-LG+AGG/CT-BG+AGG/CT-BWG+AGG,7,FALSE,"",""
-JO0139,BU_MZ-ROT,1,FALSE,"",""
-JO0147,TGx 1448-2E-AL-B_2015,1,FALSE,"",""
-JO0148,B-1_P-0,1,FALSE,"",""
-JO0167,F-0,1,FALSE,"",""
-JO0169,MZ+92N,1,FALSE,"",""
-JO0171,F.A-2/3/F.A-EDGE/Z.S-2/3/Z.S-EDGE/A.S-2/3/A.S-EDGE/B.A-2/3/B.A-EDGE/C.A-2/3/C.A-EDGE/C.M-2/3/C.M-EDGE/F. A-OUT/Z. S-OUT/A. S-OUT/B. A-OUT/C. A-OUT/C. M-OUT/F. A-IN/Z. S-IN/A. S-IN/B. A-IN/C. A-IN/C. M-IN,24,FALSE,"",""
-JO0172,INT-FG+Yeast/INT-LP+Yeast/INT-GLC+Yeast/MONO-FB+Yeast/INT-FB+Yeast/MONO-FG+Yeast/MONO-LP+Yeast/MONO-GLC+Yeast,8,FALSE,"",""
-JO0177,INT-MZ-1/2 D of tree crown/INT-MZ-Crown Edge/INT-MZ-Out of edge,3,FALSE,"",""
-JO0183,Fallow-5-10/Fallow-10-15/Teak-5-10/Teak-10-15/Gmelina-5-10/Gmelina-10-15,6,FALSE,"",""
-JO0187,HM-F2-v1/LM-F2-v1/HM-F2-v2/LM-F2-v2/HM-F2-v3/LM-F2-v3,6,FALSE,"",""
-JO0190,2-TDr2484-YF0/2-TDr1499-YF0/2-TDr2484-YF/2-TDr1499-YF,4,FALSE,"",""
-JO0193,EDTA+T1 BN/EDTA+T2 BN/EDTA+T3 BN/EDTA+T4 BN/EDTA+T5 BN/EDTA+T1 AA/EDTA+T2 AA/EDTA+T3 AA/EDTA+T4 AA/EDTA+T5 AA/EDTA+T1 CL/EDTA+T2 CL/EDTA+T3 CL/EDTA+T4 CL/EDTA+T5 CL,15,FALSE,"",""
-JO0195,KY-0P/KY-0K/TZ-0P/TZ-0K/GN-0P/GN-0K/GN2-0P/GN2-0K/GN2-0P-GN2-0N/GN2-0P-GN2-20N/GN2-0P-GN2-40N/GN2-0P-GN2-60N/GN2-0P-GN2-80N/GN2-15P-GN2-0N/GN2-15P-GN2-20N/GN2-15P-GN2-40N/GN2-15P-GN2-60N/GN2-15P-GN2-80N/GN-0P-GN-0N/GN-0P-GN-20N/GN-0P-GN-40N/GN-0P-GN-60N/GN-0P-GN-80N/GN-15P-GN-0N/GN-15P-GN-20N/GN-15P-GN-40N/GN-15P-GN-60N/GN-15P-GN-80N/TZ-0P-TZ-0N/TZ-0P-TZ-20N/TZ-0P-TZ-40N/TZ-0P-TZ-60N/TZ-0P-TZ-80N/TZ-15P-TZ-0N/TZ-15P-TZ-20N/TZ-15P-TZ-40N/TZ-15P-TZ-60N/TZ-15P-TZ-80N/GN-0K-GN-60N-GN-15P/GN-10K-GN-60N-GN-15P/GN-20K-GN-60N-GN-15P/GN-30K-GN-60N-GN-15P/GN2-0K-GN2-60N-GN2-15P/GN2-10K-GN2-60N-GN2-15P/GN2-20K-GN2-60N-GN2-15P/GN2-30K-GN2-60N-GN2-15P/TZ-0K-TZ-60N-TZ-15P/TZ-10K-TZ-60N-TZ-15P/TZ-20K-TZ-60N-TZ-15P/TZ-30K-TZ-60N-TZ-15P/KY-0K-KY-60N-KY-15P/KY-10K-KY-60N-KY-15P/KY-20K-KY-60N-KY-15P/KY-30K-KY-60N-KY-15P,54,FALSE,"",""
-JO0201,R-S-Mutica+0F/R-S-Mulato II+0F/R-S-Mulatto I+0F/R-S-Marandu+0F/R-S-La liberated+0F/R-S-Mutica+F/R-S-Mulato II+F/R-S-Mulatto I+F/R-S-Marandu+F/R-S-La liberated+F,10,FALSE,"",""
-JO0205,Control-4/Control-8/Y-8,3,FALSE,"",""
-JS0035,Gnut + ControlGnut +  NPKGnut +  NPK + CRGnut +  NPK + DGnut +  PKGnut +  PK + CPGnut +  PK + CRGnut +  PK + ME/Sorghum + ControlSorghum +  NPKSorghum +  NPK + CRSorghum +  NPK + DSorghum +  PKSorghum +  PK + CPSorghum +  PK + CRSorghum +  PK + ME/Maize + ControlMaize +  NPKMaize +  NPK + CRMaize +  NPK + DMaize +  PKMaize +  PK + CPMaize +  PK + CRMaize +  PK + ME,3,FALSE,"",""
-JS0070,02S/03S/04S/05S/06S/02M/03M/04M/05M/06M/02F/03F/04F/05F/06F/02S7/03S7/04S7/05S7/06S7/02M7/03M7/04M7/05M7/06M7/02F7/03F7/04F7/05F7/06F7,30,FALSE,"",""
-JS0260,B-FBP 0F/B-OTR-ORP 0F/B-OTR-IFP 0F/B-CTR-ORP 0F/B-OTR-ORP +R/B-OTR-IFP +R/B-CTR-ORP +R/B-CTR-IFP +R,8,FALSE,"",""
-JS0278,B-FBP 0F/B-OTR-ORP 0F/B-OTR-IFP 0F/B-CTR-ORP 0F/B-OTR-ORP +R/B-OTR-IFP +R/B-CTR-ORP +R/B-CTR-IFP +R,8,FALSE,"",""
-JS0279,P-Cr,1,FALSE,"",""
-JS0389,Control>>-CR/Control>>-CR+P/CR>>2t mulch/CR>>2t inc/CR>>2t ash/CR>>2t mulch +P/CR>>2t inc +P/CR>>2t ash +P/CR>>6t mulch +P/CR>>6t inc +P/Control>>ExpII mulch/Control>>ExpII inc/Control>>ExpII ash/CR>>ExpII mulch/CR>>ExpII inc/CR>>ExpII ash/CR>>ExpII mulch +K/CR>>ExpII inc +K/CR>>ExpII ash +K/Control>>-CR+K,20,FALSE,"",""
-JS0411,(Hav) Havea + Cacao/(Hav) Havea + Lemon/(Hav) Havea + Cola/sole havea double,4,FALSE,"",""
-JS0433,82-M-F1-A>>82-M-F1-A+Fert/82-M-F2-A>>82-M-F2-A+Fert/82-M-F1-A>>82-M-F1-A+Fert-85/82-M-F2-A>>82-M-F2-A+Fert-85/CP-INT/82-M-F1-A+Fert-85>>82-M-F1-A+Fert-85+T-86-92/82-M-F2-A+Fert-85>>82-M-F2-A+Fert-85+T-86-92/Till-CP-INT,8,FALSE,"",""
-LM0008,NG-NF-B/EV-NF-B/AN-NF-B,3,FALSE,"",""
-LM0061,CP No till + Pruning/CP Till + Pruning,2,FALSE,"",""
-LM0108,(cowpea) Tillage + residue removed + fertilizer 120N + 26P + 30K/(cowpea) No-tillage + residue removed + fertilizer 120N + 26P + 30K/(cowpea) No-tillage + residue returned + fertilizer 120N + 26P + 30K,3,FALSE,"",""
-LM0165,Biochar_sandy/sawdust_sandy/Manure_sandy/Tithonia_sandy/Control_sandy,5,FALSE,"",""
-LM0168,INT-MZ/INT-BN,2,FALSE,"",""
-LM0187,SIA-PPT/SIA-INT-M/SIA-MONO-M/KS-PPT/KS-INT-M/KS-MONO-M/VG-PPT/VG-INT-M/VG-MONO-M,9,FALSE,"",""
-LM0194,FP.30+Res/FP.60+Res/(Mz) CTMSr+CR.NY+P/(Mz) CTMSr+CR.NY+0N+P/(Mz) CTMSr-CR.NY+0N/FP.60-Res,6,FALSE,"",""
-LM0321,(M)Le-NPK/(M)Se-NPK/(C )NT+NPK/(C )Le-NPK/(C )Le+NPK/(C )Se-NPK/(C )Se+NPK,7,FALSE,"",""
-NM0001,T3 (common bean + ridges),1,FALSE,"",""
-NM0012,"Rot,Maize, ZT, K/Rot,Maize, ZT, R/Rot,Maize, CT, K/Rot,Maize, CT, R/Rot,Wheat, ZT, K/Rot,Wheat, ZT, R/Rot,Wheat, CT, K/Rot,Wheat, CT, R",8,FALSE,"",""
-NM0014,Pp int Mz,1,FALSE,"",""
-NM0030,Sorghum Int ,1,FALSE,"",""
-NM0032,SM MF (TR)/SP MF (TR)/M int MF (TR)/P int MF (TR)/SM RF (TR)/SP RF (TR)/M int RF (TR)/P int RF (TR)/SM MF (OR)/SP MF (OR)/M int MF (OR)/P int MF (OR)/SM RF (OR)/SP RF (OR)/M int RF (OR)/P int RF (OR)/SM MF  (F)/SP MF  (F)/M int MF  (F)/P int MF  (F)/SM RF  (F)/SP RF  (F)/M int RF  (F)/P int RF  (F),24,FALSE,"",""
-NM0033,VsZT/AsZT,2,FALSE,"",""
-NM0042,CF-NO-RES S,1,FALSE,"",""
-NM0045,O int NT/O int (180) NT/O int CT/O int (180) CT,4,FALSE,"",""
-NM0047,GM1 N0 I0 M/GM1 N0 I1 M/GM1 N1 I0 M/GM1 N1 I1 M,4,FALSE,"",""
-NM0057,Soybean 3/4,1,FALSE,"",""
-NM0065,Maize/Cassava  ,2,FALSE,"",""
-NM0069,(2007) Sy 2,1,FALSE,"",""
-NM0093,T0_OMS2cont,1,FALSE,"",""
-NM0101,R,1,FALSE,"",""
-NM0110,R-2/R-3/I-2/I-3,4,FALSE,"",""
-NM0123,M-int_(CR0)_(N1)/M-int_(CR1)_(N0)/M-int_(CR1)_(N1)/M-int_(CR0)_(N0)/C_(CR0)_(N0)/C_(CR0)_(N1)/C_(CR1)_(N0)/C_(CR1)_(N1),8,FALSE,"",""
-NN0041,0P,1,FALSE,"",""
-NN0049,Plastic-M>>NT stover/Plastic-M>>Till stover/CONTROL>>NT stover/CONTROL>>Till stover/Plastic-M>>NT no mulch/Plastic-M>>Till no mulch/CONTROL>>NT no mulch/CONTROL>>Till no mulch/Plastic-M>>NT org/Plastic-M>>Till org/CONTROL>>NT org/CONTROL>>Till org,12,FALSE,"",""
-NN0187,NF-FYM+NPK,1,FALSE,"",""
-NN0232,Mz sole_W1/Mz in MB_W1/Mz in MBB_W1/Bn sole_W1/Bn in MB_W1/Bn in MBB_W1/Mz sole_W2/Mz in MB_W2/Mz in MBB_W2/Bn sole_W2/Bn in MB_W2/Bn in MBB_W2,12,FALSE,"",""
-NN0240,P-Cont,1,FALSE,"",""
-NN0241,Gliricidia 50% fert/Gliricidia 25% fert,2,FALSE,"",""
-NN0410,Lab Lab before after maize organic high,1,FALSE,"",""
-NN0416,(Maize) maize +  roselle A2 intercrop/(Maize) maize +  roselle A3 intercrop,2,FALSE,"",""
-NN0428, Maize-soybean/ Maize-cowpea,2,FALSE,"",""
-NN0430,intercrop TGX-medium/intercrop samsoy-medium/intercrop TGX-high/intercrop samsoy-high,4,FALSE,"",""
-NN0432,Corn+ GG_yr1/Corn+ GG_yr2/PG in Corn + PG_yr2/GG in Corn+ GG_yr2,4,FALSE,"",""
-NN0433,S2-AG 9025  at  0 ET/S2-AG 9025  at  50 ET/S2-AG 9025  at  75 ET/S2-AG 9025  at  100 ET/S2-AG 9025  at  125 ET,5,FALSE,"",""
-NN0434,GG in maize + GG 50N/GG in maize + GG 100N/GG in maize + GG 150N/maize in maize + CG 0N/maize in maize + CG 50N/maize in maize + CG 100N/maize in maize + CG 150N/soybean in  soybean + CG/GG in soybean + GG,9,FALSE,"",""
-NN0435,(M)maize + GG-A B/(M)maize + GG-A  V4,2,FALSE,"",""
-NN0436,R2A ZT—Soybean/R2A ZT—Wheat/R2B ZT—Soybean/R2B ZT—Vetch/R2A CT—Soybean/R2A CT—Wheat/R2B CT—Wheat/R2B CT—Soybean/R2B CT—Vetch,9,FALSE,"",""
-NN0437,(B) bean + eugra I/(B) bean + eugra II/(S) soybean + eugra I/(S) soybean + eugra II,4,FALSE,"",""
-NN0441,(M)Cass-High maize-FC/(M)Cass-High maize-FM/(M)Cass-Low maize-FC/(M)Cass-Low maize-FM/(C)Cass-High maize-FC/(C)Cass-High maize-FM/(C)Cass-Low maize-FC/(C)Cass-Low maize-FM/(M)Cass-High maize-FC (otukpo)/(M)Cass-High maize-FM (otukpo)/(M)Cass-Low maize-FC (otukpo)/(M)Cass-Low maize-FM (otukpo)/(C)Cass-High maize-FC (otukpo)/(C)Cass-High maize-FM (otukpo)/(C)Cass-Low maize-FC (otukpo)/(C)Cass-Low maize-FM (otukpo)/cassava sole  (Igba)/(M)Cass-High maize-F0 (Igba)/(M)Cass-High maize-FC (Igba)/(M)Cass-High maize-FM (Igba)/(M)Cass-Low maize-F0 (Igba)/(M)Cass-Low maize-FC (Igba)/(M)Cass-Low maize-FM (Igba)/(C)Cass-High maize-F0 (Igba)/(C)Cass-High maize-FC (Igba)/(C)Cass-High maize-FM (Igba)/(C)Cass-Low maize-F0 (Igba)/(C)Cass-Low maize-FC (Igba)/(C)Cass-Low maize-FM (Igba)/sole low maize (Igba)/sole High maize (Igba)/cassava sole  (otukpo)-FM/cassava sole-FM,33,FALSE,"",""
-NN0452,CACR-maize/CAMR-maize/CAMR-cowpea,3,FALSE,"",""
-NN0456,NT+HR (Weed1)/NT+MR (Weed2)/NT+MR (weed3),3,FALSE,"",""
-NN0463,sole ldP+P/sole mdP+P/Sole LB+P/(ldP)MZ- ldP intercrop+NP/(M)MZ- mdP intercrop/(M)MZ- mdP intercrop+P/(M)MZ- mdP intercrop+NP/(mdP)MZ- mdP intercrop+NP/(LB)MZ- LB intercrop+P/(LB)MZ- LB intercrop+NP,10,FALSE,"",""
-NN0468,(Cowpea) CP–MZ relay (R2)_SGS/(Cowpea) CP–MZ relay (R4)_SGS/(Maize) MZ–CP relay (R6)_SGS/(Cowpea) CP–MZ relay (R2)_NGS/(Cowpea) CP–MZ relay (R4)_NGS/(Maize) MZ–CP relay (R6)_NGS,6,FALSE,"",""
-NN0510,Drip 100%/Bubbler irrigation 100%,2,FALSE,"",""
-NN0515,Moderate - Maize - G/Mod- Spinach- CW - G/Mod- Spinach- WW -G ,3,FALSE,"",""
-NN0524,CA NT + residue + Rot Maize,1,FALSE,"",""
-NN0525,Landrace 2/Landrace 3/Landrace 4/Landrace 5/Landrace 6/Landrace 7/Landrace 8/Landrace 9/Landrace 10/Landrace 11,10,FALSE,"",""
-NN0536,hybid drought tolerant,1,FALSE,"",""
-NN0537,CIAT 22759 - Sole/DL1001 - Sole/DL1002 - Sole/Echo Cream - Sole/Highworth - Sole/ILRI 13700 - Sole/ILRI 14437 - Sole/ILRI 6930 - Sole/Karamoja Red - Sole/PI 195851 - Sole/Q 6880B - Sole/Rongai - Sole/SARI Nyeupe - Sole/SARI Rongai - Sole,14,FALSE,"",""
-NN0555,Maize rot - fert/97-3 Maize rot,2,FALSE,"",""
-NN0558,HRS CP Cont M>>HRS CP Rot M/HRS RI Cont M>>HRS RI Rot M/HRS DiS Cont M>>HRS DiS Rot M/HRS BACont M>>HRS BA Rot M/MFTC DS - MCtS C/MFTC DS S /DTC DiS M,7,FALSE,"",""
-NN0559.1,45-0-45,1,FALSE,"",""
-NN427,MP2 (Maize)/MB 1 (Maize)/MB 2 (Maize)/MP1 (PP) 2009,4,FALSE,"",""
-SA0001,1_Con-R2 Chandina/2_N-R2 Chandina/3_NP-R2 Chandina/4_NK-R2 Chandina/5_NPK-R2 Chandina/6_FYM-R2 Chandina/1_Con Laxmi/2_N Laxmi/3_NP Laxmi/4_NK Laxmi/5_NPK Laxmi/6_FYM Laxmi/1_Con-R2 CH45/2_N-R2 CH45/3_NP-R2 CH45/4_NK-R2 CH45/5_NPK-R2 CH45/6_FYM-R2 CH45,18,FALSE,"",""
-SA0005,3-50%NPK/3-50%NPK>>P6.55,2,FALSE,"",""
-SA0006,NPK + FYM W/NPK + SPM W,2,FALSE,"",""
-SA0028,L-T2/L-T3/L-T4/L-T5/L-T6/L-T7,6,FALSE,"",""
-SA0032,4_CA/3_CA_W/5_CA_W,3,FALSE,"",""
-SA0036,M-C-Rt/M-FYM-Rt/M-FYM+0.5NPK-Rt/M-FYM+1NPK-Rt/M 1NPK-Rt,5,FALSE,"",""
-SA0041,2_L/3_L/4_L/5_L/6_L/7_L,6,FALSE,"",""
-SA0043,2_L/3_L/4_L/5_L/6_L,5,FALSE,"",""
-SA0048,1-LGPr/2-LGPr/3-LGPr/4-LGPr/5-LGPr/6-LGPr/1-LGPw/2-LGPw/3-LGPw/4-LGPw/5-LGPw/6-LGPw/1-MGP-pantr/2-MGP-pantr/3-MGP-pantr/4-MGP-pantr/5-MGP-pantr/6-MGP-pantr/1-MGP-pantw/2-MGP-pantw/3-MGP-pantw/4-MGP-pantw/5-MGP-pantw/6-MGP-pantw/1-MGP-faizr/2-MGP-faizr/3-MGP-faizr/4-MGP-faizr/5-MGP-faizr/6-MGP-faizr/1-MGP-faizw/2-MGP-faizw/3-MGP-faizw/4-MGP-faizw/5-MGP-faizw/6-MGP-faizw,36,FALSE,"",""
-SA0051,3-NPKw/4-NPKw/5-NPKw/6-NPKw/7-NPKw,5,FALSE,"",""
-SA0054.1,3_TGPw/4_TGPw/5_TGPw/3_UGPw/4_UGPw/5_UGPw,6,FALSE,"",""
-SA0054.2,3_MGPw/4_MGPw/5_MGPw/3_LGPw/4_LGPw/5_LGPw,6,FALSE,"",""
-SP0005,IntBanana-Mul-NT/IntBanana-Nmul-RT/IntBanana-Comp-RT/IntMaize-Mul-NT/IntMaize-Nmul-RT/IntMaize-Comp-RT/IntBeans-Mul-NT/IntBeans-Nmul-RT/IntBeans-Comp-RT,9,FALSE,"",""
-SP0021,Wheat-Zn2-AzoBra/Wheat-Zn2-WOAzoBra/Wheat-Zn4-AzoBra/Wheat-Zn4-WOAzoBra/Wheat-Zn6-AzoBra/Wheat-Zn6-WOAzoBra/Wheat-Zn8-AzoBra/Wheat-Zn8-WOAzoBra,8,FALSE,"",""
-SP0046,"Serekpere-0-FS-0-RR/Serekpere-0-FS-50-RR/Serekpere-0-FS-100-RR/Serekpere-2,5-FS-0-RR/Serekpere-2,5-FS-50-RR/Serekpere-2,5-FS-100-RR/Serekpere-5-FS-0-RR/Serekpere-5-FS-50-RR/Serekpere-5-FS-100-RR/Daffiama-Sapaare-0-FS-0-RR/Daffiama-Sapaare-0-FS-50-RR/Daffiama-Sapaare-0-FS-100-RR/Daffiama-Sapaare-2,5-FS-0-RR/Daffiama-Sapaare-2,5-FS-50-RR/Daffiama-Sapaare-2,5-FS-100-RR/Daffiama-Sapaare-5-FS-0-RR/Daffiama-Sapaare-5-FS-50-RR/Daffiama-Sapaare-5-FS-100-RR/Naaga-0-FS-0-RR/Naaga-0-FS-50-RR/Naaga-0-FS-100-RR/Naaga-2,5-FS-0-RR/Naaga-2,5-FS-50-RR/Naaga-2,5-FS-100-RR/Naaga-5-FS-0-RR/Naaga-5-FS-50-RR/Naaga-5-FS-100-RR",27,FALSE,"",""
-SP0048,IG17-IC-HM-F0/IG17-IC-HM-FM/IG17-IC-HM-FC/OM17-IC-HM-F0/OM17-IC-HM-FM/OM17-IC-HM-FC/IK17-IC-HM-F0/IK17-IC-HM-FM/IK17-IC-HM-FC/OT17-IC-HM-F0/OT17-IC-HM-FM/OT17-IC-HM-FC/IG18-IC-HM-F0/IG18-IC-HM-FM/IG18-IC-HM-FC/OM18-IC-HM-F0/OM18-IC-HM-FM/OM18-IC-HM-FC/IK18-IC-HM-F0/IK18-IC-HM-FM/IK18-IC-HM-FC/OT18-IC-HM-F0/OT18-IC-HM-FM/OT18-IC-HM-FC,24,FALSE,"",""
+AF0003,(Tyger)-wheat .conv,1,FALSE,Jabesh,This is correct
+CJ0001,Pigeonpea + fertilizer /Bean + fertilizer /Bambara + fertilizer /Groundnut + fertilizer ,4,FALSE,Jabesh,Changed the excel to v28 seamed corrupted at enter data
+CJ0003,intercropped -lab lab-DP/intercropped maize DP,2,FALSE,Jabesh,This is correct
+CJ0004,M2_FERT/A2_FERT,2,FALSE,Jabesh,This is correct
+CJ0013,CA Maize int/CA Maize + Manure/CA Maize int + Manure,3,FALSE,Jabesh,This is correct
+CJ0014,Control-LF_Kibungu/NTR-LF_Kibungu/CTM-LF_Kibungu/NTRM-LF_Kibungu/Control-LF_Machanga/NTR-LF_Machanga/CTM-LF_Machanga/NTRM-LF_Machanga,8,FALSE,Jabesh,This is correct
+CJ0017,ICA V10-Maize-intercrop 2:1-OF/ICA V10-Maize-intercrop 2:1-IF,2,FALSE,Jabesh,This is correct
+CJ0021,Peanuts-MT/Beans-MT/Sunn Hemp-MT/Pigeon Pea-MT,4,TRUE,Jabesh,
+CJ0026,Maize_Rip line_CRF/Maize_Direct seeder_CRF,2,TRUE,Jabesh,
+CJ0027,CA_MBR-Bean/CP_MBR-Bean/CA_MBR-Bean_B/CP_MBR-Bean_B,4,TRUE,Jabesh,
+CJ0033,Cassava int+fert/Cassava int+lime/Sole Cassava+lime+ fert/Cassava int+lime+ fert,4,FALSE,Jabesh,This is correct
+CJ0038,SMr/Mr/SMr20k/Mr20k/SMr40k/Mr40k/SMr26P/Mr26P/SMr52P/Mr52P/SMr26P20K/Mr26P20K/SMr52P40K/Mr52P40K,14,FALSE,Jabesh,This is correct
+CJ0039,Control_N Machanga/Control_N,2,FALSE,Jabesh,This is correct
+CJ0042,T2: 15 days after FS_bean/T3: 30 days after FS-bean/Sole maize T2/Sole maize T3,4,TRUE,Jabesh,
+CJ0045,CT_Cyanazine + Alachlor  Maize,1,FALSE,,
+CJ0046,CT_maize,1,FALSE,,
+CJ0059,DP+IAC-12/MZ+IAC-12/IAC-12+CB/Sole IAC-12 unweeded/sole maize/sole beans,6,FALSE,,
+CJ0064,Lab_D0,1,FALSE,,
+CJ0074,intercrop 90  bean_middle/intercrop 90  bean_upper,2,FALSE,,
+CJ0080,NT-Black oats_R2/NT-Soybean_R2/NT-Lupin_R2/NT-Wheat_R2/CT-Wheat_R2/CT-Black oats_R2/CT-Soybean_R2/CT-Lupin_R2/NT-Black oats_R3/NT-Soybean_R3/NT-Lupin_R3/NT-Wheat_R3/CT-Wheat_R3/CT-Black oats_R3/CT-Soybean_R3/CT-Lupin_R3,16,FALSE,,
+CJ0087,No Super N no inoculation,1,FALSE,,
+CJ0088,NF+ps_+FB_MZ/N F+PS+TR_MZ/RFR+ps+FB_MZ/RFR+ps+TR_MZ/MD+ps+FB_MZ/MD+PS+TR_MZ/M D+Ă+TR+IHB_MZ/NF+ps_+FB_PM/N F+PS+TR_PM/RFR+ps+FB_PM/RFR+ps+TR_PM/MD+ps+FB_PM/MD+PS+TR_PM/M D+Ă+TR+IHB_PM/NF+ps_+FB_SG/N F+PS+TR_SG/RFR+ps+FB_SG/RFR+ps+TR_SG/MD+ps+FB_SG/MD+PS+TR+IMB_SG/M D+Ă+TR+IHB_SG,21,FALSE,,
+CJ0091,sole maize_ms/Intercrop maize_ms,2,FALSE,,
+CJ0093,L + S + T/ C + S + T,2,FALSE,,
+CJ0095,Farmer practice,1,FALSE,,
+CJ0099,Finger millet intercrop,1,FALSE,,
+CJ0104,ARC 25,1,FALSE,,
+CJ0106,IS+N2/IS+N2_2016,2,FALSE,,
+CJ0111,T8-52N-BH_bean,1,FALSE,,
+CJ0114,"Spont veg, no melon plastic.mulch/Soil without vegetation_CT/Spont veg, no melon plastic.mulch_CT/Corn +Bracharia spont veg_CT/melon CT/melon CT mulch",6,FALSE,,
+CJ0123,CONTROL_L,1,FALSE,,
+CJ0125,Tiligre/millet-W/fert-mil/Tiligre/millet-fert-mil,2,FALSE,,
+CJ0132,Control-OF,1,FALSE,,
+CJ0162,CPD_4_EJIGBO_P/CPD_6_EJIGBO_P/CPD_8_EJIGBO_P/CPD_10_EJIGBO_P/RB_4_EJIGBO_P/RB_6_EJIGBO_P/RB_8_EJIGBO_P/RB_10_EJIGBO_P/BCH_4_EJIGBO_P/BCH_6_EJIGBO_P/BCH_8_EJIGBO_P/BCH_10_EJIGBO_P/MF_100_EJIGBO_P/MF_200_EJIGBO_P/MF_300_EJIGBO_P/CPD_4_EJIGBO_R/CPD_6_EJIGBO_R/CPD_8_EJIGBO_R/CPD_10_EJIGBO_R/RB_4_EJIGBO_R/RB_6_EJIGBO_R/RB_8_EJIGBO_R/RB_10_EJIGBO_R/BCH_4_EJIGBO_R/BCH_6_EJIGBO_R/BCH_8_EJIGBO_R/BCH_10_EJIGBO_R/MF_100_EJIGBO_R/MF_200_EJIGBO_R/MF_300_EJIGBO_R/CONTROL_FUTO_P/CONTROL_FUTO_R,32,FALSE,,
+CJ0177,F25+Vicia villosa/F50+Vicia villosa/F75+Vicia villosa/F25+atropurpurea/F50+atropurpurea/F75+atropurpurea,6,FALSE,,
+CJ0188,FP_MIDDLE/B_MIDDLE/60N_MIDDLE/120N_60PK_MIDDLE/FP_CENTRE/B_CENTRE/60N_CENTRE/120N_60PK_CENTRE,8,FALSE,,
+DM0004,P + IF + GB - M +,1,FALSE,,
+DM0006,T2 (NPSZn-130-20-21-0-0)/T3 (NPSZn-130-20-21-15-0)/T4 (NPSZn-130-20-21-15-0),3,FALSE,,
+DM0018,30 * 20 MB + Allanblackia,1,FALSE,,
+DM0024,Coffee intercropping,1,FALSE,,
+HK0157,(M)Le-NPK/(M)Se-NPK/(C )NT+NPK/(C )Le-NPK/(C )Le+NPK/(C )Se-NPK/(C )Se+NPK,7,FALSE,,
+HK0161.2,(Ibadan)- Maize_2000+ no-N/(Ibadan)- Maize_2002+ no-N/(Ibadan)- Maize_2004+ no-N/(Zaria)- Maize_2000+ no-N/(Zaria)- Maize_2002+ no-N/(Zaria)- Maize_2004+ no-N/(Ibadan)- Maize + P.phaseoloides_2000+ no-N/(Ibadan)- Maize + Aeschynomene histrix_2000+ no-N/(Ibadan)- Maize + Stylosanthes guianensis_2000+ no-N/(Ibadan)- Maize + P.phaseoloides_2002+ no-N/(Ibadan)- Maize + Aeschynomene histrix_2002+ no-N/(Ibadan)- Maize + Stylosanthes guianensis_2002+ no-N/(Ibadan)- Maize + P.phaseoloides_2004+ no-N/(Ibadan)- Maize + Aeschynomene histrix_2004+ no-N/(Ibadan)- Maize + Stylosanthes guianensis_2004+ no-N/(Zaria)- Maize + P.phaseoloides_2000+ no-N/(Zaria)- Maize + Aeschynomene histrix_2000+ no-N/(Zaria)- Maize + Stylosanthes guianensis_2000+ no-N/(Zaria)- Maize + P.phaseoloides_2002+ no-N/(Zaria)- Maize + Aeschynomene histrix_2002+ no-N/(Zaria)- Maize + Stylosanthes guianensis_2002+ no-N/(Zaria)- Maize + P.phaseoloides_2004+ no-N/(Zaria)- Maize + Aeschynomene histrix_2004+ no-N/(Zaria)- Maize + Stylosanthes guianensis_2004+ no-N,24,FALSE,,
+HK0166,C_UA/C_AS/C_CAN,3,FALSE,,
+HK0227,CB inter + SS No Manure/CB inter + LL No Manure/Maize inter + CC No Manure/Maize inter + LL No Manure/Sorghum + SS No Manure/Sorghum + LL No Manure/Maize inter w SP + CC No Manure/Maize inter w SP+ LL No Manure/SP inter + SS No Manure/SP inter + LL No Manure/CB sole + CC No Manure/CB sole + LL No Manure/CB inter + SS Manure/CB inter + LL Manure/Maize inter + CC Manure/Maize inter + LL Manure/Sorghum + SS Manure/Sorghum + LL Manure/Maize inter w SP + CC Manure/Maize inter w SP+ LL Manure/SP inter + SS Manure/SP inter + LL Manure/CB sole + CC Manure/CB sole + LL Manure,24,FALSE,,
+HK0240,Maize inter/Maize rot,2,FALSE,,
+HK0261,Gliricidia 50% fert,1,FALSE,,
+JO0008,Carrot-2016-TA-+MANURE/Carrot-2016-TT+MANURE/Onion-2016-TA-+MANURE/Onion-2016-TT+MANURE,4,FALSE,Jabesh,This is correct
+JO0011,Barley-INT-100-25%/Barley-INT-100-37.5%/Barley-INT-100-50%/Barley-INT-100-62.5%,4,TRUE,Jabesh,
+JO0012,PVASYN13 (Check)+ WW,1,FALSE,Jabesh,Rejected
+JO0013,Croton-5/Croton-7/Cordia-5/Cordia-7,4,TRUE,Jabesh,
+JO0024,DO_MZ_NTM/DO_MZ_CAR/DO_MZ_CTR/DO_PP_CAR_INT/DO_CB_CAR,5,FALSE,Jabesh,This is correct
+JO0026,M Rot,1,FALSE,,
+JO0027,PRU_50%_1/PRU_50%_2/PRU_50%_3/PRU_50%_CON/PRU_100%_1/PRU_100%_2/PRU_100%_3/PRU_100%_CON,8,TRUE,Jabesh,
+JO0028,Maize CA-F/Maize CT-F/Maizi Int CA-F/Maizi Int CT-F/CowP Int CA-F/CowP Int CT-F/PigeonP Int CA-F/PigeonP Int CT-F/Ground N Int CA-F/Ground N Int CT-F/CowP  CA-F/CowP  CT-F/PigeonP  CA-F/PigeonP  CT-F/Ground N  CA-F/Ground N  CT-F/Maize CA/Cowpea/Groundnut/Pigeon pea,20,TRUE,Jabesh,
+JO0034,Rwanda-0/Tanzania-0/Uganda-0,3,TRUE,Jabesh,
+JO0035,cCM-CP/CM-DSm/cCM-DS/mCM-DS/cSCM-DS/mSCM-DS/mmSCM-DS/ccSCM-DS/hhSCM-DS,9,FALSE,,
+JO0036,HGAF-Coffee-0-30cm/HGAF-Khat-0-30cm/HGAF-Ensete-0-30cm/HGAF-Banana-0-30cm/HGAF-Avocado-0-30cm/CAFS-0-30cm/HGAF-Coffee-30-60cm/HGAF-Khat-30-60cm/HGAF-Ensete-30-60cm/HGAF-Banana-30-60cm/HGAF-Avocado-30-60cm/CAFS-30-60cm,12,FALSE,Jabesh,Rejected
+JO0038,CTR-Maize UZF/NTR- Maize UZF/NTMR-Maize UZF/CTR-Maize DTC/NTR- Maize DTC/NTMR-Maize DTC,6,FALSE,,
+JO0052,60N-F/100N-F,2,TRUE,Jabesh,
+JO0057,CHI-OUT-15YRS/KASI-OUT-22YRS,2,TRUE,Jabesh,
+JO0059,Int-O-1m/Int-O-2m/Int-O-3m,3,TRUE,Jabesh,
+JO0063,CT-R1-W rot/CT-R1-SB rot/CT-BO-INT/NT-R1-W rot/NT-R1-SB rot/NT-BO-INT/NT-OSR-INT,7,TRUE,Jabesh,
+JO0066,9-A/9-B/9-C/9-D,4,TRUE,Jabesh,
+JO0071,S2_RT_R+_0N/S3_RT_R+_0N/S4_RT_R+_0N/S2_RT_R-_0N/S3_RT_R-_0N/S4_RT_R-_0N/S2_RT_R+_45N/S3_RT_R+_45N/S4_RT_R+_45N/S2_RT_R-_45N/S3_RT_R-_45N/S4_RT_R-_45N/S2_CRT_R+_0N/S3_CRT_R+_0N/S4_CRT_R+_0N/S2_CRT_R-_0N/S3_CRT_R-_0N/S4_CRT_R-_0N/S2_CRT_R+_45N/S3_CRT_R+_45N/S4_CRT_R+_45N/S2_CRT_R-_45N/S3_CRT_R-_45N/S4_CRT_R-_45N/S2_RT_R+_60N/S3_RT_R+_60N/S4_RT_R+_60N/S2_RT_R-_60N/S3_RT_R-_60N/S4_RT_R-_60N/S2_CRT_R+_60N/S3_CRT_R+_60N/S4_CRT_R+_60N/S2_CRT_R-_60N/S3_CRT_R-_60N/S4_CRT_R-_60N/S2_RT_R+_00N/S3_RT_R+_00N/S4_RT_R+_00N/S2_RT_R-_00N/S3_RT_R-_00N/S4_RT_R-_00N,42,FALSE,Jabesh,Rejected
+JO0077,P-0/K-0,2,TRUE,Jabesh,
+JO0079,0INC-0N-(Faepe)/1INC-(Faepe)/20N-S-(Faepe)/1INC+20N-S-(Faepe)/1INC+20N-S+20TD-(Faepe)/1INC+20N-S+40TD-(Faepe)/1INC+20N-S+60TD-(Faepe)/0INC-0N-(Epamig)/1INC-(Epamig)/20N-S-(Epamig)/1INC+20N-S-(Epamig)/1INC+20N-S+20TD-(Epamig)/1INC+20N-S+40TD-(Epamig)/1INC+20N-S+60TD-(Epamig),14,TRUE,Jabesh,
+JO0080,R3-Trop-0N/R3-SUB--0N,2,TRUE,Jabesh,
+JO0082,MONO-CP-NONE/INT-CP-NONE/INT-MZ-LHI-2/INT-MZ-LHI-3/INT-MZ-LHI-4/INT-MZ-NONE/INT-MZ-LHF-7/INT-MZ-LHF-14,8,TRUE,Jabesh,
+JO0086,CT-W-0N/NT-SB-0N/CT-SB-0N,3,TRUE,Jabesh,
+JO0090,M-MM-PP-H Fz/M-INT-PP-H Fz/M-INT-PP-0 Fz/M-P53-INT-MZ-0 Fz/M-P67-INT-MZ-0 Fz,5,FALSE,Jabesh,This is correct
+JO0092,2010-Control (0N),1,TRUE,Jabesh,
+JO0114,0P/0K/0S,3,FALSE,,
+JO0119,Con-2/Con-3/Con-4/Con-5,4,TRUE,Jabesh,
+JO0120,2_CT_M0_2W/2_CT_M0_4W/2_CT_M0_FW,3,FALSE,Jabesh,This is correct
+JO0121,50%-0_UF,1,TRUE,Jabesh,
+JO0122,GEB-R+F0+W2/GEB-R+F0+W1/GEB-B+F0+W1/HUL-R+F0+W2/HUL-R+F0+W1/HUL-B+F0+W2/HUL-B+F0+W1,7,FALSE,Jabesh,This is correct
+JO0132,CA-LG+AGG/CA-BG+AGG/CA-BWG+AGG/CT-CG+AGG/CT-LG+AGG/CT-BG+AGG/CT-BWG+AGG,7,TRUE,Jabesh,
+JO0139,BU_MZ-ROT,1,TRUE,Jabesh,
+JO0147,TGx 1448-2E-AL-B_2015,1,TRUE,Jabesh,
+JO0148,B-1_P-0,1,TRUE,Jabesh,
+JO0167,F-0,1,TRUE,Jabesh,
+JO0169,MZ+92N,1,TRUE,Jabesh,
+JO0171,F.A-2/3/F.A-EDGE/Z.S-2/3/Z.S-EDGE/A.S-2/3/A.S-EDGE/B.A-2/3/B.A-EDGE/C.A-2/3/C.A-EDGE/C.M-2/3/C.M-EDGE/F. A-OUT/Z. S-OUT/A. S-OUT/B. A-OUT/C. A-OUT/C. M-OUT/F. A-IN/Z. S-IN/A. S-IN/B. A-IN/C. A-IN/C. M-IN,24,TRUE,Jabesh,This is agroforestry with many trees and crops planted in given distances
+JO0172,INT-FG+Yeast/INT-LP+Yeast/INT-GLC+Yeast/MONO-FB+Yeast/INT-FB+Yeast/MONO-FG+Yeast/MONO-LP+Yeast/MONO-GLC+Yeast,8,FALSE,Jabesh,This is correct
+JO0177,INT-MZ-1/2 D of tree crown/INT-MZ-Crown Edge/INT-MZ-Out of edge,3,TRUE,Jabesh,
+JO0183,Fallow-5-10/Fallow-10-15/Teak-5-10/Teak-10-15/Gmelina-5-10/Gmelina-10-15,6,TRUE,Jabesh,
+JO0187,HM-F2-v1/LM-F2-v1/HM-F2-v2/LM-F2-v2/HM-F2-v3/LM-F2-v3,6,FALSE,Jabesh,This is correct
+JO0190,2-TDr2484-YF0/2-TDr1499-YF0/2-TDr2484-YF/2-TDr1499-YF,4,FALSE,Jabesh,This is correct
+JO0193,CONTROL-FERTILIZER,1,FALSE,Jabesh,This is correct
+JO0195,KY-0P/KY-0K/TZ-0P/TZ-0K/GN-0P/GN-0K/GN2-0P/GN2-0K/GN2-0P-GN2-0N/GN2-0P-GN2-20N/GN2-0P-GN2-40N/GN2-0P-GN2-60N/GN2-0P-GN2-80N/GN2-15P-GN2-0N/GN2-15P-GN2-20N/GN2-15P-GN2-40N/GN2-15P-GN2-60N/GN2-15P-GN2-80N/GN-0P-GN-0N/GN-0P-GN-20N/GN-0P-GN-40N/GN-0P-GN-60N/GN-0P-GN-80N/GN-15P-GN-0N/GN-15P-GN-20N/GN-15P-GN-40N/GN-15P-GN-60N/GN-15P-GN-80N/TZ-0P-TZ-0N/TZ-0P-TZ-20N/TZ-0P-TZ-40N/TZ-0P-TZ-60N/TZ-0P-TZ-80N/TZ-15P-TZ-0N/TZ-15P-TZ-20N/TZ-15P-TZ-40N/TZ-15P-TZ-60N/TZ-15P-TZ-80N/GN-0K-GN-60N-GN-15P/GN-10K-GN-60N-GN-15P/GN-20K-GN-60N-GN-15P/GN-30K-GN-60N-GN-15P/GN2-0K-GN2-60N-GN2-15P/GN2-10K-GN2-60N-GN2-15P/GN2-20K-GN2-60N-GN2-15P/GN2-30K-GN2-60N-GN2-15P/TZ-0K-TZ-60N-TZ-15P/TZ-10K-TZ-60N-TZ-15P/TZ-20K-TZ-60N-TZ-15P/TZ-30K-TZ-60N-TZ-15P/KY-0K-KY-60N-KY-15P/KY-10K-KY-60N-KY-15P/KY-20K-KY-60N-KY-15P/KY-30K-KY-60N-KY-15P,54,FALSE,Jabesh,This is correct
+JO0201,R-S-Mutica+0F/R-S-Mulato II+0F/R-S-Mulatto I+0F/R-S-Marandu+0F/R-S-La liberated+0F/R-S-Mutica+F/R-S-Mulato II+F/R-S-Mulatto I+F/R-S-Marandu+F/R-S-La liberated+F,10,TRUE,Jabesh,
+JO0205,Control-4/Control-8/Y-8,3,FALSE,Jabesh,Rejected
+JO0208,Control-5WKS/20Tm-5WKS/40Tm-5WKS/100NPKzn-5WKS/150NPKzn-5WKS/Control-6WKS/20Tm-6WKS/40Tm-6WKS/100NPKzn-6WKS/150NPKzn-6WKS,10,FALSE,Jabesh,Rejected
+JO0215,R2-INT/R3-INT/R4-INT/R5-INT/R6-INT/R7-INT/R8-INT/R1/R2/R3/R4/R5/R6/R7/R8,15,FALSE,Jabesh,Rejected
+JS0035,Gnut + ControlGnut +  NPKGnut +  NPK + CRGnut +  NPK + DGnut +  PKGnut +  PK + CPGnut +  PK + CRGnut +  PK + ME/Sorghum + ControlSorghum +  NPKSorghum +  NPK + CRSorghum +  NPK + DSorghum +  PKSorghum +  PK + CPSorghum +  PK + CRSorghum +  PK + ME/Maize + ControlMaize +  NPKMaize +  NPK + CRMaize +  NPK + DMaize +  PKMaize +  PK + CPMaize +  PK + CRMaize +  PK + ME,3,FALSE,,Aggragated
+JS0070,02S/03S/04S/05S/06S/02M/03M/04M/05M/06M/02F/03F/04F/05F/06F/02S7/03S7/04S7/05S7/06S7/02M7/03M7/04M7/05M7/06M7/02F7/03F7/04F7/05F7/06F7,30,FALSE,,Multiple treatment
+JS0260,B-FBP 0F/B-OTR-ORP 0F/B-OTR-IFP 0F/B-CTR-ORP 0F/B-OTR-ORP +R/B-OTR-IFP +R/B-CTR-ORP +R/B-CTR-IFP +R,8,TRUE,Jabesh,
+JS0278,B-FBP 0F/B-OTR-ORP 0F/B-OTR-IFP 0F/B-CTR-ORP 0F/B-OTR-ORP +R/B-OTR-IFP +R/B-CTR-ORP +R/B-CTR-IFP +R,8,TRUE,Jabesh,
+JS0279,P-Cr,1,TRUE,Jabesh,
+JS0389,Control>>-CR/Control>>-CR+P/CR>>2t mulch/CR>>2t inc/CR>>2t ash/CR>>2t mulch +P/CR>>2t inc +P/CR>>2t ash +P/CR>>6t mulch +P/CR>>6t inc +P/Control>>ExpII mulch/Control>>ExpII inc/Control>>ExpII ash/CR>>ExpII mulch/CR>>ExpII inc/CR>>ExpII ash/CR>>ExpII mulch +K/CR>>ExpII inc +K/CR>>ExpII ash +K/Control>>-CR+K,20,FALSE,Jabesh,Delimitter issue
+JS0411,(Hav) Havea + Cacao/(Hav) Havea + Lemon/(Hav) Havea + Cola/sole havea double,4,TRUE,Jabesh,
+JS0433,82-M-F1-A>>F/82-M-F2-A>>F/82-M-F1-A>>F-5/82-M-F2-A>>F-5/CP-INT/T-82-M-F1-A>>F-5/T-82-M-F2-A>>F-5/Till-CP-INT,8,FALSE,Jabesh,Delimitter issue
+LM0008,NG-NF-B/EV-NF-B/AN-NF-B,3,FALSE,Jabesh,This is correct
+LM0061,CP No till + Pruning/CP Till + Pruning,2,FALSE,Jabesh,This is correct
+LM0108,(cowpea) Tillage + residue removed + fertilizer 120N + 26P + 30K/(cowpea) No-tillage + residue removed + fertilizer 120N + 26P + 30K/(cowpea) No-tillage + residue returned + fertilizer 120N + 26P + 30K,3,FALSE,Jabesh,This is correct
+LM0165,Biochar_sandy/sawdust_sandy/Manure_sandy/Tithonia_sandy/Control_sandy,5,FALSE,Jabesh,This is correct
+LM0168,INT-MZ/INT-BN,2,FALSE,Jabesh,This is correct
+LM0187,SIA-PPT/SIA-INT-M/SIA-MONO-M/KS-PPT/KS-INT-M/KS-MONO-M/VG-PPT/VG-INT-M/VG-MONO-M,9,FALSE,Jabesh,
+LM0189,(M)  (low) CON+N/(M)  (low) CON-N,2,FALSE,Jabesh,Rejected
+LM0194,FP.30+Res/FP.60+Res/(Mz) CTMSr+CR.NY+P/(Mz) CTMSr+CR.NY+0N+P/(Mz) CTMSr-CR.NY+0N/FP.60-Res,6,FALSE,Jabesh,This is correct
+LM0321,(M)Le-NPK/(M)Se-NPK/(C )NT+NPK/(C )Le-NPK/(C )Le+NPK/(C )Se-NPK/(C )Se+NPK,7,FALSE,,
+NM0001,T3 (common bean + ridges),1,TRUE,Jabesh,
+NM0012,"Rot,Maize, ZT, K/Rot,Maize, ZT, R/Rot,Maize, CT, K/Rot,Maize, CT, R/Rot,Wheat, ZT, K/Rot,Wheat, ZT, R/Rot,Wheat, CT, K/Rot,Wheat, CT, R",8,FALSE,Jabesh,This is correct
+NM0014,Pp int Mz,1,TRUE,Jabesh,
+NM0030,Sorghum Int ,1,TRUE,Jabesh,
+NM0032,SM MF (TR)/SP MF (TR)/M int MF (TR)/P int MF (TR)/SM RF (TR)/SP RF (TR)/M int RF (TR)/P int RF (TR)/SM MF (OR)/SP MF (OR)/M int MF (OR)/P int MF (OR)/SM RF (OR)/SP RF (OR)/M int RF (OR)/P int RF (OR)/SM MF  (F)/SP MF  (F)/M int MF  (F)/P int MF  (F)/SM RF  (F)/SP RF  (F)/M int RF  (F)/P int RF  (F),24,TRUE,Jabesh,
+NM0033,VsZT/AsZT,2,TRUE,Jabesh,
+NM0042,CF-NO-RES S,1,TRUE,Jabesh,
+NM0045,O int NT/O int (180) NT/O int CT/O int (180) CT,4,TRUE,Jabesh,
+NM0047,GM1 N0 I0 M/GM1 N0 I1 M/GM1 N1 I0 M/GM1 N1 I1 M,4,TRUE,Jabesh,
+NM0057,Soybean 3/4,1,FALSE,,
+NM0065,Maize/Cassava  ,2,TRUE,Jabesh,
+NM0069,(2007) Sy 2,1,TRUE,Jabesh,
+NM0093,T0_OMS2cont,1,FALSE,Jabesh,This is correct
+NM0101,R,1,FALSE,Jabesh,This is correct
+NM0110,R-2/R-3/I-2/I-3,4,TRUE,Jabesh,
+NM0123,M-int_(CR0)_(N1)/M-int_(CR1)_(N0)/M-int_(CR1)_(N1)/M-int_(CR0)_(N0)/C_(CR0)_(N0)/C_(CR0)_(N1)/C_(CR1)_(N0)/C_(CR1)_(N1),8,TRUE,Jabesh,
+NN0041,0P,1,TRUE,Jabesh,
+NN0049,Plastic-M>>NT stover/Plastic-M>>Till stover/CONTROL>>NT stover/CONTROL>>Till stover/Plastic-M>>NT no mulch/Plastic-M>>Till no mulch/CONTROL>>NT no mulch/CONTROL>>Till no mulch/Plastic-M>>NT org/Plastic-M>>Till org/CONTROL>>NT org/CONTROL>>Till org,12,FALSE,Jabesh,Delimitter issue
+NN0187,NF-FYM+NPK,1,TRUE,Jabesh,
+NN0232,Mz sole_W1/Mz in MB_W1/Mz in MBB_W1/Bn sole_W1/Bn in MB_W1/Bn in MBB_W1/Mz sole_W2/Mz in MB_W2/Mz in MBB_W2/Bn sole_W2/Bn in MB_W2/Bn in MBB_W2,12,TRUE,Jabesh,
+NN0240,P-Cont,1,TRUE,Jabesh,
+NN0241,Gliricidia 50% fert/Gliricidia 25% fert,2,TRUE,Jabesh,
+NN0410,Lab Lab before after maize organic high,1,TRUE,Jabesh,
+NN0416,(Maize) maize +  roselle A2 intercrop/(Maize) maize +  roselle A3 intercrop,2,TRUE,Jabesh,
+NN0427,MP2 (Maize)/MB 1 (Maize)/MB 2 (Maize)/MP1 (PP) 2009,4,FALSE,Jabesh,In Junk
+NN0428, Maize-soybean/ Maize-cowpea,2,TRUE,Jabesh,
+NN0430,intercrop TGX-low/intercrop samsoy-low/intercrop TGX-medium/intercrop samsoy-medium/intercrop TGX-high/intercrop samsoy-high,6,TRUE,Jabesh,
+NN0432,Corn+ GG_yr1/Corn+ GG_yr2/PG in Corn + PG_yr2/GG in Corn+ GG_yr2,4,FALSE,Jabesh,This is correct
+NN0433,S2-AG 9025  at  0 ET/S2-AG 9025  at  50 ET/S2-AG 9025  at  75 ET/S2-AG 9025  at  100 ET/S2-AG 9025  at  125 ET,5,FALSE,Jabesh,This is correct
+NN0434,GG in maize + GG 50N/GG in maize + GG 100N/GG in maize + GG 150N/maize in maize + CG 0N/maize in maize + CG 50N/maize in maize + CG 100N/maize in maize + CG 150N/soybean in  soybean + CG/GG in soybean + GG,9,TRUE,Jabesh,
+NN0435,(M)maize + GG-A B/(M)maize + GG-A  V4,2,FALSE,Jabesh,This is correct
+NN0436,R2A ZT—Soybean/R2A ZT—Wheat/R2B ZT—Soybean/R2B ZT—Vetch/R2A CT—Soybean/R2A CT—Wheat/R2B CT—Wheat/R2B CT—Soybean/R2B CT—Vetch,9,FALSE,Jabesh,This is correct
+NN0437,(B) bean + eugra I/(B) bean + eugra II/(S) soybean + eugra I/(S) soybean + eugra II,4,TRUE,Jabesh,
+NN0441,(M)Cass-High maize-FC/(M)Cass-High maize-FM/(M)Cass-Low maize-FC/(M)Cass-Low maize-FM/(C)Cass-High maize-FC/(C)Cass-High maize-FM/(C)Cass-Low maize-FC/(C)Cass-Low maize-FM/(M)Cass-High maize-FC (otukpo)/(M)Cass-High maize-FM (otukpo)/(M)Cass-Low maize-FC (otukpo)/(M)Cass-Low maize-FM (otukpo)/(C)Cass-High maize-FC (otukpo)/(C)Cass-High maize-FM (otukpo)/(C)Cass-Low maize-FC (otukpo)/(C)Cass-Low maize-FM (otukpo)/cassava sole  (Igba)/(M)Cass-High maize-F0 (Igba)/(M)Cass-High maize-FC (Igba)/(M)Cass-High maize-FM (Igba)/(M)Cass-Low maize-F0 (Igba)/(M)Cass-Low maize-FC (Igba)/(M)Cass-Low maize-FM (Igba)/(C)Cass-High maize-F0 (Igba)/(C)Cass-High maize-FC (Igba)/(C)Cass-High maize-FM (Igba)/(C)Cass-Low maize-F0 (Igba)/(C)Cass-Low maize-FC (Igba)/(C)Cass-Low maize-FM (Igba)/sole low maize (Igba)/sole High maize (Igba)/cassava sole  (otukpo)-FM/cassava sole-FM,33,FALSE,,
+NN0452,CACR-maize/CAMR-maize/CAMR-cowpea,3,TRUE,Jabesh,
+NN0456,NT+HR (Weed1)/NT+MR (Weed2)/NT+MR (weed3),3,TRUE,Jabesh,
+NN0463,sole ldP+P/sole mdP+P/Sole LB+P/(ldP)MZ- ldP intercrop+NP/(M)MZ- mdP intercrop/(M)MZ- mdP intercrop+P/(M)MZ- mdP intercrop+NP/(mdP)MZ- mdP intercrop+NP/(LB)MZ- LB intercrop+P/(LB)MZ- LB intercrop+NP,10,TRUE,Jabesh,
+NN0468,(Cowpea) CP–MZ relay (R2)_SGS/(Cowpea) CP–MZ relay (R4)_SGS/(Maize) MZ–CP relay (R6)_SGS/(Cowpea) CP–MZ relay (R2)_NGS/(Cowpea) CP–MZ relay (R4)_NGS/(Maize) MZ–CP relay (R6)_NGS,6,FALSE,,
+NN0510,Drip 100%/Bubbler irrigation 100%,2,TRUE,Jabesh,
+NN0515,Moderate - Maize - G/Mod- Spinach- CW - G/Mod- Spinach- WW -G ,3,TRUE,Jabesh,
+NN0524,CA NT + residue + Rot Maize,1,TRUE,Jabesh,
+NN0525,Landrace 2/Landrace 3/Landrace 4/Landrace 5/Landrace 6/Landrace 7/Landrace 8/Landrace 9/Landrace 10/Landrace 11,10,TRUE,Jabesh,
+NN0536,hybid drought tolerant,1,TRUE,Jabesh,
+NN0537,CIAT 22759 - Sole/DL1001 - Sole/DL1002 - Sole/Echo Cream - Sole/Highworth - Sole/ILRI 13700 - Sole/ILRI 14437 - Sole/ILRI 6930 - Sole/Karamoja Red - Sole/PI 195851 - Sole/Q 6880B - Sole/Rongai - Sole/SARI Nyeupe - Sole/SARI Rongai - Sole,14,TRUE,Jabesh,
+NN0555,Maize rot - fert/97-3 Maize rot,2,FALSE,Jabesh,This is correct
+NN0558,HRS CP Cont M>>HRS CP Rot M/HRS RI Cont M>>HRS RI Rot M/HRS DiS Cont M>>HRS DiS Rot M/HRS BACont M>>HRS BA Rot M/MFTC DS - MCtS C/MFTC DS S /DTC DiS M,7,TRUE,Jabesh,
+NN0559.1,45-0-45,1,TRUE,Jabesh,
+SA0001,1_Con-R2 Chandina/2_N-R2 Chandina/3_NP-R2 Chandina/4_NK-R2 Chandina/5_NPK-R2 Chandina/6_FYM-R2 Chandina/1_Con Laxmi/2_N Laxmi/3_NP Laxmi/4_NK Laxmi/5_NPK Laxmi/6_FYM Laxmi/1_Con-R2 CH45/2_N-R2 CH45/3_NP-R2 CH45/4_NK-R2 CH45/5_NPK-R2 CH45/6_FYM-R2 CH45,18,TRUE,Jabesh,
+SA0003,W-T6,1,FALSE,Jabesh,Rejected
+SA0005,3-50%NPK/3-50%NPK>>P6.55,2,TRUE,Jabesh,
+SA0006,NPK + FYM W/NPK + SPM W,2,TRUE,Jabesh,
+SA0028,L-T2/L-T3/L-T4/L-T5/L-T6/L-T7,6,TRUE,Jabesh,
+SA0032,4_CA/3_CA_W/5_CA_W,3,TRUE,Jabesh,
+SA0036,M-C-Rt/M-FYM-Rt/M-FYM+0.5NPK-Rt/M-FYM+1NPK-Rt/M 1NPK-Rt,5,FALSE,Jabesh,This is correct
+SA0041,2_L/3_L/4_L/5_L/6_L/7_L,6,TRUE,Jabesh,
+SA0043,2_L/3_L/4_L/5_L/6_L,5,TRUE,Jabesh,
+SA0048,1-LGPr/2-LGPr/3-LGPr/4-LGPr/5-LGPr/6-LGPr/1-LGPw/2-LGPw/3-LGPw/4-LGPw/5-LGPw/6-LGPw/1-MGP-pantr/2-MGP-pantr/3-MGP-pantr/4-MGP-pantr/5-MGP-pantr/6-MGP-pantr/1-MGP-pantw/2-MGP-pantw/3-MGP-pantw/4-MGP-pantw/5-MGP-pantw/6-MGP-pantw/1-MGP-faizr/2-MGP-faizr/3-MGP-faizr/4-MGP-faizr/5-MGP-faizr/6-MGP-faizr/1-MGP-faizw/2-MGP-faizw/3-MGP-faizw/4-MGP-faizw/5-MGP-faizw/6-MGP-faizw,36,FALSE,Jabesh,"Fertilizer in different places, in different years"
+SA0051,3-NPKw/4-NPKw/5-NPKw/6-NPKw/7-NPKw,5,TRUE,Jabesh,
+SA0054.1,3_TGPw/4_TGPw/5_TGPw/3_UGPw/4_UGPw/5_UGPw,6,TRUE,Jabesh,
+SA0054.2,3_MGPw/4_MGPw/5_MGPw/3_LGPw/4_LGPw/5_LGPw,6,TRUE,Jabesh,
+SP0005,IntBanana-Mul-NT/IntBanana-Nmul-RT/IntBanana-Comp-RT/IntMaize-Mul-NT/IntMaize-Nmul-RT/IntMaize-Comp-RT/IntBeans-Mul-NT/IntBeans-Nmul-RT/IntBeans-Comp-RT,9,TRUE,Jabesh,
+SP0021,Wheat-Zn2-AzoBra/Wheat-Zn2-WOAzoBra/Wheat-Zn4-AzoBra/Wheat-Zn4-WOAzoBra/Wheat-Zn6-AzoBra/Wheat-Zn6-WOAzoBra/Wheat-Zn8-AzoBra/Wheat-Zn8-WOAzoBra,8,TRUE,Jabesh,
+SP0046,"Serekpere-0-FS-0-RR/Serekpere-0-FS-50-RR/Serekpere-0-FS-100-RR/Serekpere-2,5-FS-0-RR/Serekpere-2,5-FS-50-RR/Serekpere-2,5-FS-100-RR/Serekpere-5-FS-0-RR/Serekpere-5-FS-50-RR/Serekpere-5-FS-100-RR/Daffiama-Sapaare-0-FS-0-RR/Daffiama-Sapaare-0-FS-50-RR/Daffiama-Sapaare-0-FS-100-RR/Daffiama-Sapaare-2,5-FS-0-RR/Daffiama-Sapaare-2,5-FS-50-RR/Daffiama-Sapaare-2,5-FS-100-RR/Daffiama-Sapaare-5-FS-0-RR/Daffiama-Sapaare-5-FS-50-RR/Daffiama-Sapaare-5-FS-100-RR/Naaga-0-FS-0-RR/Naaga-0-FS-50-RR/Naaga-0-FS-100-RR/Naaga-2,5-FS-0-RR/Naaga-2,5-FS-50-RR/Naaga-2,5-FS-100-RR/Naaga-5-FS-0-RR/Naaga-5-FS-50-RR/Naaga-5-FS-100-RR",27,TRUE,Jabesh,
+SP0048,IG17-IC-HM-F0/IG17-IC-HM-FM/IG17-IC-HM-FC/OM17-IC-HM-F0/OM17-IC-HM-FM/OM17-IC-HM-FC/IK17-IC-HM-F0/IK17-IC-HM-FM/IK17-IC-HM-FC/OT17-IC-HM-F0/OT17-IC-HM-FM/OT17-IC-HM-FC/IG18-IC-HM-F0/IG18-IC-HM-FM/IG18-IC-HM-FC/OM18-IC-HM-F0/OM18-IC-HM-FM/OM18-IC-HM-FC/IK18-IC-HM-F0/IK18-IC-HM-FM/IK18-IC-HM-FC/OT18-IC-HM-F0/OT18-IC-HM-FM/OT18-IC-HM-FC,24,FALSE,,
