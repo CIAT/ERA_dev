@@ -55,6 +55,13 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     era_dir<-"C:/rprojects/common_data/era"
   }
   
+  Aflabs<-F
+  if(project_dir=="/home/psteward/rprojects/ERA_dev"){
+    Aflabs<-T
+    working_dir<-"/cluster01/workspace/common/era"
+  }
+  
+  
   if(!dir.exists(era_dir)){
     dir.create(era_dir,recursive=T)
   }
@@ -120,8 +127,13 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   # 1.3) Set urls #####
   era_vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
   # 1.4) Set directories of external datasets (e.g. chirps)
-  if(CGlabs==T){
+  if(CGlabs){
     chirps_dir<-"/home/jovyan/common_data/chirps_wrld"
+    chirts_dir<-"/home/jovyan/common_data/chirts"
+  }
+  
+  if(Aflabs){
+    chirps_dir<-"/cluster01/workspace/common/climate/chirps/global_daily/tifs/p05"
     chirts_dir<-"/home/jovyan/common_data/chirts"
   }
 # 2) Download core datasets ####
