@@ -1,32 +1,14 @@
 # First run R/0_set_env.R
 # 0) Load packages ####
-if(!require(ERAg)){
-  devtools::install_github("EiA2030/ERAg")
-  require(ERAg)
-}
-
-if(!require(ERAgON)){
-  devtools::install_github("EiA2030/ERAgON")
-  require(ERAgON)
-}
-
-if (!require("pacman")) {
-  install.packages("pacman")
-  require(pacman)
-}
-
-# Use p_load to install if not present and load the packages
-p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix,data.table,openalexR,pbapply)
-
+pacman::p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix,data.table,openalexR,pbapply)
 
 # 1) Set-up workspace ####
 # 1.1) Set directories #####
-search_data_dir<-paste0(era_dir,"/data_entry/data_entry_2024/search_history/livestock_2024")
-if(!dir.exists(search_data_dir)){
-  dir.create(search_data_dir,recursive = T)
-}
+project<-era_projects$livestock_2024
+search_data_dir<-file.path(era_dirs$era_search_dir,project)
+search_data_dir_prj<-file.path(era_dirs$era_search_prj,project)
 
-# 2) Download era data from s3 ####
+# 2) Download era data from s3 - THIS NEEDS TO BE UPDATED THE PATHS ARE NO LONGER CORRECT ####
 update<-F
 
 s3_file<-"https://digital-atlas.s3.amazonaws.com/era/data_entry/data_entry_2024/search_history/livestock_2024/livestock_2024.zip"
@@ -39,8 +21,8 @@ if(length(list.files(search_data_dir))<1|update==T){
   unlink(local_file)
 }
 
-# Initial searches ####
-search_history<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_history.csv"))[,-1]
+# 3) Load search history ####
+search_history<-fread(file.path(search_data_dir_prj,"search_history.csv"))[,-1]
 search_history[,search_date:=as.Date(trimws(search_date), format = "%d-%b-%y")]
 
 search_history_oa<-fread(file.path(search_data_dir,"searches.csv"))[,list(terms,search_name,search_date)]
@@ -52,14 +34,15 @@ search_history_oa[,citation_db:="openalex"
 
 search_history<-rbindlist(list(search_history,search_history_oa),use.names = T)
 
-# Load titles that should be included
-search_manual<-fread(file.path(project_dir,"data/search_history/livestock_2024/search_manual.csv"))
+# 4) Load validation data ####
+# 4.1) Load titles that should be included #####
+search_manual<-fread(file.path(search_data_dir_prj,"search_manual.csv"))
 search_manual<-search_manual[,year:=as.numeric(year)
                              ][year>=2018
                                ][,doi:=trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi))
                                  ][,title:=trimws(tolower(title))]
 
-# Check which dois are 
+# 4.2) Check which dois are in openalex #####
 oa_dois<-data.table(oa_fetch(
   entity = "works",
   doi = search_manual[!is.na(doi),doi],
@@ -79,8 +62,7 @@ oa_titles<-rbindlist(lapply(1:nrow(search_manual),FUN=function(i){
   data
 }))
 
-
-
+# Merge oa results with the the validation data
 search_manual<-merge(search_manual,oa_dois,all.x=T)
 search_manual[is.na(indexed_oa),indexed_oa:="no"]
 
@@ -94,10 +76,10 @@ search_manual[,list(total_dois=sum(!is.na(doi)),
                                    any=sum(indexed_wos=="yes"|indexed_scopus=="yes"|indexed_oa=="yes"),
                                    scopus_openalex=sum(indexed_scopus=="yes"|indexed_oa=="yes"))]
 
-# Load search results ####
+# 5) Load search results ####
 search_files<-list.files(search_data_dir,full.names = T)
 
-# wos #####
+# 5.1) wos #####
 search_files_wos<-grep("wos_",search_files,value = T)
 
 wos_searches<-rbindlist(pblapply(1:length(search_files_wos),FUN=function(i){
@@ -111,7 +93,7 @@ wos_searches<-rbindlist(pblapply(1:length(search_files_wos),FUN=function(i){
         ][grepl("Article",`Document Type`)# Keep only articles
           ][,relevance_score:=NA] 
 
-# scopus #####
+# 5.2) scopus #####
 search_files_scopus<-grep("scopus_",search_files,value = T)
 
 scopus_searches<-rbindlist(pblapply(1:length(search_files_scopus),FUN=function(i){
@@ -124,7 +106,7 @@ scopus_searches<-rbindlist(pblapply(1:length(search_files_scopus),FUN=function(i
         ][grepl("Article",`Document Type`)
           ][,relevance_score:=NA]
 
-# openalex #####
+# 5.3) openalex #####
 search_files_oa<-grep("openalex_ta-only",search_files,value = T)
 oa_searches<-rbindlist(pblapply(1:length(search_files_oa),FUN=function(i){
   file<-search_files_oa[i]
@@ -140,13 +122,13 @@ oa_searches<-rbindlist(pblapply(1:length(search_files_oa),FUN=function(i){
               ][,relevance_score:=NA
                 ][,year:=NA]
 
-# Harmonization fields between scopus and wos
+# 5.4) Harmonize fields between citation databases #####
 terms<-c("authors","title","year","doi","abstract","keywords","search","citation_db","citation_db_id","relevance_score")
 wos<-c("Authors","Article Title","Publication Year","DOI","Abstract","Author Keywords","search","citation_db","UT (Unique WOS ID)","relevance_score")
 scopus<-c("Authors","Title","Year","DOI","Abstract","Author Keywords","search","citation_db","EID","relevance_score")
 oa<-c("authors","title","year","doi","ab","keywords","search","citation_db","id","relevance_score")
 
-# Merge data
+# 5.5) Merge data #####
 wos_searches<-wos_searches[,..wos]
 setnames(wos_searches,wos,terms)
 
@@ -169,7 +151,7 @@ searches[,search:=gsub("ta-only_","",search)]
 remove_phrases<-c("correction to:","corrigendum to:","erratum","editor's evaluation")
 searches<-searches[!grepl(paste0(remove_phrases,collapse = "|"),title,ignore.case = T)]
 
-# Cross reference manual search
+# 5.6) Cross reference to manual search #####
 # remove manual targets that did not appear to be in citation dbs?
 rm_no_citation_db<-F
 search_manual[,doi:=tolower(trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi)))]
@@ -193,7 +175,7 @@ searches[,list(performance=round(sum(target_title)/nrow(search_manual),2)),by=li
 # Combine doi and title matches
 searches[,target_any:=F][target_title|target_doi,target_any:=T]
 
-# Different approach to matching that gives different results, this will need investigation
+# 5.7) Assess search performance #####
 search_perf<-searches[,list(search,citation_db,doi,title,target_doi,target_title,target_any)][,hits:=.N,by=search]
 
 search_perf[,list(performance=round(sum(target_any)/nrow(search_manual),2)),by=list(search,citation_db,hits)][order(performance,decreasing = T)]
@@ -204,16 +186,12 @@ search_perf[,list(performance=round(sum(target_any)/nrow(search_manual),2)),by=l
 
 best_search<-perf_search_db[performance==max(performance)][hits==min(hits),search]
 
-
-# What papers are in what databases?
+# 5.7.1) What papers are in what databases? ######
 search_perf[citation_db=="openalex" & target_any==T,sort(unique(title))]
 search_perf[citation_db=="scopus" & target_any==T,sort(unique(title))]
 search_perf[citation_db=="wos" & target_any==T,sort(unique(title))]
 
-# What papers are not found in open alex
-hits_other<-dcast(unique(search_perf[citation_db!="openalex" & target_any==T,list(citation_db,title)]),title~citation_db, fun.aggregate=length)
-hits_other[,openalex:=0][title %in% hits_oa,openalex:=1]
-
+# 5.7.2) Append search results to validation table #####
 search_manual[,ID:=1:.N]
 hits<-search_manual[,list(ID,title,doi,indexed_wos,indexed_scopus,indexed_oa)
                     ][,title:=trimws(tolower(title))
@@ -246,7 +224,7 @@ search_manual[ID %in% hits[hit_wos & ! hit_oa,ID]]
 # Scopus result not in OA
 search_manual[ID %in% hits[hit_scopus & ! hit_oa,ID]]
 
-# What hits are in other openalex searches but not in the top search?
+# 5.7.3) What hits are in other openalex searches but not in the top search? #####
 oa_best<-search_perf[citation_db=="openalex" & search==best_search & target_any,list(doi,title)][,best:=T]
 oa_other<-unique(search_perf[citation_db=="openalex" & search!=best_search & target_any,list(search,doi,title)])
 oa_other<-merge(oa_other,oa_best[,list(doi,title,best)],all.x=T)
@@ -255,10 +233,19 @@ n<-nrow(unique(oa_other[is.na(best),list(doi,title)]))
 oa_second<-perf_search_db[search %in% oa_other[is.na(best),list(N=.N),by=search][N==n,search]][hits==min(hits),search]
 
 # Final search
+nrow(oa_best) # Papers found by best search
+nrow(oa_best)== hits[,sum(hit_any)] # Does it account for all search hits?
+
+# Papers found by top 2 searchs
 final_search<-unique(searches[search %in% c(best_search,oa_second) & citation_db=="openalex",list(doi,title,target_any)])
 final_search[,sum(target_any)]
+# Do these search contain all the hits from all searches?
+final_search[,sum(target_any)] == hits[,sum(hit_any)]
 
-# Explore ERA data for keywords to include ####
+# 5.7.4) Summarize final search ####
+search_perf[search==best_search]
+
+# 6) UNDER DEVELOPMENT- Explore ERA data for keywords to include ####
 # Simple ####
 ERA_papers<-ERA.Compiled[Product.Type=="Animal" & grepl("Feed",PrName),unique(Code)]
 data<-ERA_Bibliography[ERACODE %in% ERA_papers]
