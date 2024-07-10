@@ -9,9 +9,7 @@ Cover Crop/Crotalaria ochroleuca,CJ0067,Prod.Out,prod,P.Product.Subtype/P.Produc
 Cover Crop/Grazing Vetch,NM0045,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Cover Crop/Grazing vetch,NM0020/NM0075,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Cover Crop/Jack bean,JO0018,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,""
-Cover Crop/Medicago scutellata,LM0148/NN0184.2,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Cover Crop/Pinto Peanut,NM0076,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
-Cover Crop/Trifolium subterraneum,LM0148/NN0184.2,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Cover Crop/Winter Vetch,NN0184.1/NN0184.3,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Fodders/Acacia saligna,CJ0007,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,""
 Fodders/Common vetch,AC0118/AC0126/AC0132/AC0147/AC0153/CJ0105,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
@@ -37,7 +35,6 @@ Legumes/Pigeon pea,AC0004/AC0008,Prod.Out,prod,P.Product.Subtype/P.Product,No ma
 Legumes/Tropical Kudzu or Puero,JO0139,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
 Oilseeds and Oils/Ethiopian Mustard ,NN0424,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Oilseeds and Oils/Radish,CJ0102,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
-Starchy Staples/Plantain,JO0163,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested
 Starchy Staples/Water yam,JO0217,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Starchy Staples/White yam,JO0217,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Tree/Benth,AC0108,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Rejected
@@ -46,7 +43,6 @@ Tree/Dhaincha,SA0017/SA0059.1/SA0060,Prod.Out,trees,P.Product,No match for tree 
 Tree/Inga,AC0076,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
 Tree/Inga edulis..Cordia alliodora..Juglans steyermarkii..Quercus constaricensis,SP0022,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,""
 Tree/Macauba,JO0020,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
-Tree/Teak,JO0183,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,TRUE,Jabesh,Product requested
 Tree/Unspecified,AC0039,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,Unspecified tree
 Vegetables/African Nightshade,JO0140,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Vegetables/Yacon,JO0067,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,TRUE,Jabesh,Product requested

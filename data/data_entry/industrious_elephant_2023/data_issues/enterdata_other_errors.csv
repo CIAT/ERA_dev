@@ -27,7 +27,6 @@ JO0064,IN.Level.Name,Mismatch in field value between parent and child tables.,BA
 JO0076,IN.Level.Name,Mismatch in field value between parent and child tables.,CP-CM-0_MONO..CP-CM-31_MONO..CP-CM-62_MONO__PM-CM-0_INT..PM-CM-31_INT..PM-CM-62_INT,Data.Out,Int.Out,,,FALSE,"",""
 JO0096,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,Nitrogen Agronomic Efficiency..kg grain/kg N applied..Mean,Data.Out,,,,FALSE,"",""
 JO0128,IN.Level.Name,Crop yield is associated with a intercropping outcome,0P-INT-GN__0P-INT-SP/0P-INT-SB__0P-INT-SP/0P-INT-GN__0P-INT-SB__0P-INT-SP/20P-INT-GN__20P-INT-SP/20P-INT-SB__20P-INT-SP/20P-INT-GN__20P-INT-SB__20P-INT-SP/40P-INT-GN__40P-INT-SP/40P-INT-SB__40P-INT-SP/40P-INT-GN__40P-INT-SB__40P-INT-SP,,,Data.Out,,FALSE,"",""
-JO0157,IN.Level.Name/T.Name,Compulsory Product field is blank.,NA,Data.Out,,,,FALSE,"",""
 JO0169,IN.Level.Name,Crop yield is associated with a intercropping outcome,INT-CP__INT-PP/INT-MZ__INT-PP/INT-CP__INT-MZ,,,Data.Out,,FALSE,"",""
 JO0169,Out.Code.Joined,Mismatch in field value between parent and child tables.,Biomass Yield..g/plant/Crop Yield..g/plant,Data.Out,Out.Out,,,FALSE,"",""
 JO0175,Out.Code.Joined,Data location is missing,Crop Yield..kg/ha,,,Data.Out,,FALSE,"",""

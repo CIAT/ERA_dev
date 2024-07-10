@@ -18,6 +18,11 @@ if(!require(ERAgON)){
   library(ERAgON)
 }
 
+if(!require(openalexR)){
+  devtools::install_github("https://github.com/ropensci/openalexR")
+  library(openalexR)
+}
+
 source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
 
 # 1) Set directories ####
@@ -39,8 +44,10 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   s3<-s3fs::S3FileSystem$new(anonymous = T)
   
   # CGlabs server
+  CGlabs<-F
   if(project_dir=="/home/jovyan/rstudio/ERA_dev"){
     era_dir<-"/home/jovyan/common_data/era"
+    CGlabs<-T
   }
   
   # Working locally
@@ -60,7 +67,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
                      industrious_elephant_2023="industrious_elephant_2023",
                      livestock_2024="livestock_2024")
   
-  # 1.2) Set directories #####
+  # 1.2) Create ERA output dirs #####
   era_dirs<-list()
   
   # era master datasets
@@ -72,6 +79,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   
   # search history
   era_dirs$era_search_prj<-file.path(project_dir,"data/search_history")
+  era_dirs$era_search_dir<-file.path(era_dir,"search_history")
   era_dirs$era_search_s3<-file.path(era_s3,"search_history")
   
   # data entry folders
@@ -111,6 +119,11 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
 
   # 1.3) Set urls #####
   era_vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
+  # 1.4) Set directories of external datasets (e.g. chirps)
+  if(CGlabs==T){
+    chirps_dir<-"/home/jovyan/common_data/chirps_wrld"
+    chirts_dir<-"/home/jovyan/common_data/chirts"
+  }
 # 2) Download core datasets ####
   # 2.1) ERA master datasets #####
   update<-F
