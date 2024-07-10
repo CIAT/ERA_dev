@@ -1,18 +1,8 @@
 # ERA livestock update search terms
 # 0) Set up workspace ####
 # 0.1) Load packages #####
-if (!require("pacman")) {
-  install.packages("pacman")
-  require(pacman)
-}
-
 # Use p_load to install if not present and load the packages
-p_load(data.table)
-
-if(!require(openalexR)){
-  devtools::install_github("https://github.com/ropensci/openalexR")
-  library(openalexR)
-}
+pacman::p_load(data.table,openalexR)
 
 # 0.2) Create functions #####
 add_quotes <- function(vector) {
@@ -24,12 +14,13 @@ add_quotes <- function(vector) {
     }
   }, USE.NAMES = FALSE)
 }
-# 0.3) Set directories ######
-search_data_dir<-paste0(era_dir,"/data_entry/data_entry_2024/search_history/livestock_2024")
+# 0.3) Set directories & project ######
+project<-era_projects$livestock_2024
+
+search_data_dir<-file.path(era_dirs$era_search_dir,project)
 if(!dir.exists(search_data_dir)){
   dir.create(search_data_dir,recursive = T)
 }
-
 
 # 1) Create terms ####
 # Read in additional animal breed terms provided by Claudia Arndt's team
@@ -390,7 +381,6 @@ to_year <- "2024-05-23"
 overwrite<-T
 full<-F
 
-
 if(full){
   prefix<-"openalex"
 }else{
@@ -574,7 +564,7 @@ if(file.exists(openalex_dates_file)){
   search_dates<-data.table(search_name=as.character(NULL),search_date=as.Date(NULL))
 }
 
-overwrite<-T
+overwrite<-F
 full<-F
 
 if(full){
@@ -655,11 +645,11 @@ for(i in 1:nrow(searches)){
       
       # Update dates
       search_dates<-unique(rbind(search_dates,data.table(search_name=paste0(prefix,"_",search_code),search_date=Sys.Date())))
+      fwrite(search_dates,file=openalex_dates_file)
     }else{
       n_hits_tab
     }
   }
-  fwrite(search_dates,file=openalex_dates_file)
 }
 
 searches_all<-rbind(searches_all,searches)
