@@ -1,5 +1,5 @@
 # First run R/0_set_env.R and R/add_geodata/download_chirps_chirts.R
-
+# Updated script was lost by SCiO in CGlabs, but needs updating to an exactextractR based approach
 # 0) Set-up workspace ####
   # 0.1) Load packages and create functions #####
   packages<-c("terra","data.table","arrow","pbapply","future","future.apply","chirps")
