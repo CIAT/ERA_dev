@@ -1,4 +1,4 @@
-# Make sure you have set the era working directory using the 0_set_env.R script ####
+# First run R/0_set_env.R
 # 0.0) Install and load packages ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
 pacman::p_load(data.table, 
