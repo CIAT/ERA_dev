@@ -1,3 +1,5 @@
+# First run R/0_set_env.R
+
 # 0) Set-up workspace ####
 # 0.1) Load packages and create functions #####
 packages<-c("data.table","pbapply","future","future.apply")
