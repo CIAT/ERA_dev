@@ -227,7 +227,8 @@ Pub.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
 
 # Replace zeros with NAs
 Pub.Out<-validator(data=Pub.Out,
-                   zero_cols=c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4"))$data
+                   zero_cols=c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4"),
+                   tabname="Pub.Out")$data
                    
 
 # Pub.Out: Validation: Duplicate or mismatched B.Codes
@@ -252,7 +253,7 @@ Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue","...7"):=
   
   Pub.Out<-results$data
   
-  harmonization_list<-error_tracker(errors=results$h_task[order(value)],filename = "pub_harmonization",error_dir=error_dir,error_list = NULL)
+  harmonization_list<-error_tracker(errors=results$h_task[order(value)],filename = "pub_harmonization",error_dir=harmonization_dir,error_list = NULL)
 
 # 3.2) Site.Out #####
 data<-lapply(XL,"[[","Site.Out")
@@ -4775,6 +4776,72 @@ errors2<-rbind(errors3.1,errors3.2)[value!="Natural or Bare Fallow"
                        h_table_alt="Data.Out", 
                        h_field_alt="Error.Type")$h_tasks[,issue:="Non-standard error value used."]
   
+# 9) Save tables as a list  ####
+
+Tables<-list(
+  Pub.Out=Pub.Out, 
+  Site.Out=Site.Out, 
+  Soil.Out=Soil.Out,
+  ExpD.Out=ExpD.Out,
+  Times.Out=Times.Out,
+  Times.Clim=Times.Clim,
+  Prod.Out=Prod.Out,
+  Var.Out=Var.Out,
+  Till.Out=Till.Out,
+  Plant.Out=Plant.Out,
+  PD.Codes=PD.Codes,
+  PD.Out=PD.Out,
+  Fert.Out=Fert.Out,
+  Fert.Method=Fert.Method,
+  Chems.Code=Chems.Code,
+  Chems.AI=Chems.AI,
+  Chems.Out=Chems.Out,
+  Weed.Out=Weed.Out,
+  Res.Out=Res.Out,
+  Res.Method=Res.Method,
+  Res.Comp=Res.Comp,
+  Har.Out=Har.Out,
+  pH.Out=pH.Out,
+  pH.Method=pH.Method,
+  Irrig.Codes=Irrig.Codes,
+  Irrig.Method=Irrig.Method,
+  WH.Out=WH.Out,
+  AF.Out=AF.Out,
+  AF.Trees=AF.Trees,
+  Other.Out=Other.Out,
+  #Base.Out=Base.Out,
+  MT.Out=MT.Out,
+  Int.Out=Int.Out,
+  Rot.Out=Rot.Out,
+  Rot.Seq=Rot.Seq,
+  #Rot.Seq.Summ=Rot.Seq.Summ,
+  #Rot.Levels=Rot.Levels,
+  Out.Out=Out.Out,
+  Out.Econ=Out.Econ,
+  Data.Out=Data.Out
+)
+
+save(Tables,file=file.path(data_dir,paste0(project,"-",Sys.Date(),".RData")))
+  
+# 10) Summarize error tracking
+tracking_files<-list.files(error_dir,".csv$",full.names = T)
+tracking_files<-tracking_files[!grepl("1. QC tasks|harmonization|error_summary",tracking_files)]
+
+tracking_summary<-rbindlist(lapply(i:length(tracking_files),FUN=function(i){
+  data<-fread(tracking_files[i])
+  data.table(tracking_file=basename(tracking_files[i]),
+             n_B.Codes=length(unique(data$B.Code)),
+             n_B.Codes_pending=length(unique(data$B.Code[!data$issue_addressed])),
+             n_rows=nrow(data),
+             nrow_pending=sum(!data$issue_addressed))
+}))[order(n_B.Codes_pending,decreasing = T)]
+
+fwrite(tracking_summary,file.path(error_dir,"error_summary.csv"))
+
+
+tracking_files2<-tracking_files[grepl("_other_errors",tracking_files)]
+rbindlist(lapply(tracking_files2,fread),use.names = T,fill = T)
+
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #### 
 # ***Values (Data.Out) - Reconstruct Data Table From Components (Rather than relying on Excel) ####
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #### 
@@ -5600,49 +5667,3 @@ rm(XPracs,Add.Code,T.Match)
 Data.Out[,V.Animal.Practice:=paste(unique(unlist(strsplit(V.Animal.Practice,"[.][.][.]"))),collapse = "..."),by=N]
 Data.Out[V.Animal.Practice=="NA",V.Animal.Practice:=NA]
 
-# Save tables as a list  ####
-
-Tables<-list(
-  Pub.Out=Pub.Out, 
-  Site.Out=Site.Out, 
-  Soil.Out=Soil.Out,
-  ExpD.Out=ExpD.Out,
-  Times.Out=Times.Out,
-  Times.Clim=Times.Clim,
-  Prod.Out=Prod.Out,
-  Var.Out=Var.Out,
-  Till.Out=Till.Out,
-  Plant.Out=Plant.Out,
-  PD.Codes=PD.Codes,
-  PD.Out=PD.Out,
-  Fert.Out=Fert.Out,
-  Fert.Method=Fert.Method,
-  Chems.Code=Chems.Code,
-  Chems.AI=Chems.AI,
-  Chems.Out=Chems.Out,
-  Weed.Out=Weed.Out,
-  Res.Out=Res.Out,
-  Res.Method=Res.Method,
-  Res.Comp=Res.Comp,
-  Har.Out=Har.Out,
-  pH.Out=pH.Out,
-  pH.Method=pH.Method,
-  Irrig.Codes=Irrig.Codes,
-  Irrig.Method=Irrig.Method,
-  WH.Out=WH.Out,
-  AF.Out=AF.Out,
-  AF.Trees=AF.Trees,
-  Other.Out=Other.Out,
-  #Base.Out=Base.Out,
-  MT.Out=MT.Out,
-  Int.Out=Int.Out,
-  Rot.Out=Rot.Out,
-  Rot.Seq=Rot.Seq,
-  #Rot.Seq.Summ=Rot.Seq.Summ,
-  #Rot.Levels=Rot.Levels,
-  Out.Out=Out.Out,
-  Out.Econ=Out.Econ,
-  Data.Out=Data.Out
-)
-
-save(Tables,file=file.path(data_dir,paste0(project,"-",Sys.Date(),".RData")))
