@@ -23,6 +23,12 @@ if(!require(openalexR)){
   library(openalexR)
 }
 
+# Use the isciences version and not the CRAN version of exactextractr
+if(!require("exactextractr")){
+  remotes::install_github("isciences/exactextractr")
+}
+
+
 source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
 
 # 1) Set directories ####
@@ -58,7 +64,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   Aflabs<-F
   if(project_dir=="/home/psteward/rprojects/ERA_dev"){
     Aflabs<-T
-    working_dir<-"/cluster01/workspace/common/era"
+    era_dir<-"/cluster01/workspace/era"
   }
   
   
@@ -134,7 +140,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   
   if(Aflabs){
     chirps_dir<-"/cluster01/workspace/common/climate/chirps/global_daily/tifs/p05"
-    chirts_dir<-"/home/jovyan/common_data/chirts"
+    chirts_dir<-NA
   }
 # 2) Download core datasets ####
   # 2.1) ERA master datasets #####
