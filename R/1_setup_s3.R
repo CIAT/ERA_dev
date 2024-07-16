@@ -81,10 +81,9 @@ upload_files_to_s3(files = files,
   
   # List excel files to be zipped
   files<-list.files(folder_local,full.names = T,recursive=T)
-  files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
   files<- grep("xlsm$",files,value=T)
   files<-files[!grepl("~",files)]
-  files<- grep("/QCed/|/Extracted/",files,value=T)
+  files<- grep("/Quality Controlled/|/Extracted/",files,value=T)
   
   # zip all the excels and upload to the s3
   output_zip_file <- file.path(folder,paste0(project,".zip"))
