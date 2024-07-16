@@ -32,16 +32,17 @@ feed_intake<-merge(feed_intake,unique(data$MT.Out[,list(B.Code,T.Name,T.Comp,V.L
                by.y=c("B.Code","T.Name","T.Comp"),all.x=T)
 
 # 5) Combine datasets into excel ####
-dt_list<-list(field_descriptions=era_fields,
+dt_list<-list(field_descriptions=master_codes$era_fields,
               source=data$Pub.Out,
               location=data$Site.Out,
               exp_design=data$ExpD.Out,
               focal_species=data$Prod.Out,
               breed=data$Var.Out,
               veterinary=data$Chems.Out,
-              diet_names=-data$Animals.Diet.Comp,
-              diet_composition=data$Animals.Diet.Comp,
-              diet_digestibility=data$Animals.Diet.Digest_ss,
+              diet_names=data$Animals.Out,
+              diet_ingredients=data$Animals.Diet,
+              diet_nutrition=data$Animals.Diet.Comp,
+              diet_digestibility=data$Animals.Diet.Digest,
               treatments=data$MT.Out,
               outcomes=data$Out.Out,
               values=data$Data.Out,
@@ -57,5 +58,18 @@ for (sheet_name in names(dt_list)) {
   writeData(wb, sheet = sheet_name, dt_list[[sheet_name]])
 }
 
-save_loc<-choose.dir()
-saveWorkbook(wb, file.path(save_loc,"era_diet_data.xlsx"), overwrite = TRUE)
+save_dir<-file.path(getwd(),"era2gleam")
+if(!file.exists(save_dir)){
+  dir.create(save_dir)
+}
+
+saveWorkbook(wb, file.path(save_dir,"era_diet_data.xlsx"), overwrite = TRUE)
+
+# 6) Wrangle to GLEAM format ####
+# 6.1) Merge diet_composition, diet_digestibility and study location
+diet_names<-data$Animals.Out[,code:=paste0(A.Level.Name,"-",B.Code)]
+diet_composition<-data$Animals.Diet.Comp[,code:=paste0(D.Item,"-",B.Code)]
+diet_digestibility<-data$Animals.Diet.Digest[,code:=paste0(D.Item,"-",B.Code)]
+# Remove "compound" diets from composition and digestibility
+diet_composition[!code %in% diet_names$code]
+
