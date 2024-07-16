@@ -1,5 +1,0 @@
-B.Code,value,table,field,issue,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
-JO0075,0,Res.Method,M.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,""
-JO0075,0/0/0,Res.Method,M.Level.Name,Compulsory field is NA M.Tree and M.Material,,,,TRUE,Jabesh,New term requested
-JO0094,Erythrina brucei,Res.Method,M.Tree,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
-JS0248,barley mulch/wheat  + barley mulch,Res.Method,M.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Accept new term request

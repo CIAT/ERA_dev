@@ -1,0 +1,8 @@
+B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
+HK0346,HM Bundle3/FM Bundle3/FHM Bundle3,Animals.Out,A.Level.Name,"Possible error, there is more than 1 control present feed addition practice.",FALSE,"",""
+JS0201,NMMB/NMMB,Animals.Out,A.Level.Name,"Possible error, there is more than 1 control present feed addition practice.",FALSE,"",""
+JS0215,Bundle 1 MB + FM/Bundle 1 MO + FM,Animals.Out,A.Level.Name,"Possible error, there is more than 1 control present feed addition practice.",FALSE,"",""
+LM0117,Group 4 Feed Addition,Animals.Out,A.Level.Name,"Possible error, there is more than 1 control present feed addition practice.",FALSE,"",""
+LM0151,Gliricidia1/Gliricidia2/Gliricidia1/Gliricidia2,Animals.Out,A.Level.Name,"Possible error, there is more than 1 control present feed addition practice.",FALSE,"",""
+NN0156,Whole-grain ,Animals.Out,A.Level.Name,"Possible error, an animal diet has no associated practices.",FALSE,"",""
+NN0204,Untreated low/Untreated med/Untreated high,Animals.Out,A.Level.Name,"Possible error, an animal diet has no associated practices.",FALSE,"",""

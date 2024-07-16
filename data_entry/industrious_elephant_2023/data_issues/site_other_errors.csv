@@ -1,0 +1,3 @@
+B.Code,value,table,field,issue,tabname,issue_addressed,addressed_by_whom,notes
+AC0039,75,Site.Out,Site.Slope.Perc,Extreme values detected in field (outside range: 0-50),,TRUE,Charity,The paper presents that slope value
+NN0559.3,34.3,Site.Out,Site.MAT,Extreme values detected in field (outside range: 10-34),,TRUE,Jabesh,""

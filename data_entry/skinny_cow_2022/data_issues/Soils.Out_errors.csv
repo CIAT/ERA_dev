@@ -1,0 +1,4 @@
+B.Code,table,field,value,issue,Site.ID,issue_addressed,addressed_by_whom,notes
+HK0288,Data.Out,Soil.CEC,5.9meq/100g,Non-numeric value in numeric field.,,FALSE,"",""
+NN0399,Data.Out,Soil.TC,1.2±0.5%,Non-numeric value in numeric field.,,FALSE,"",""
+NN0399,Data.Out,Soil.TN,0.2±0.4%,Non-numeric value in numeric field.,,FALSE,"",""

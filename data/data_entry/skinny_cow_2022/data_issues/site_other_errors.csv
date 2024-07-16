@@ -1,4 +1,0 @@
-B.Code,value,table,field,issue,tabname,issue_addressed,addressed_by_whom,notes
-NN0361,22,Site.Out,Site.MAP,Extreme values detected in field (outside range: 40-4000),,FALSE,"",""
-NN0362,22,Site.Out,Site.MAP,Extreme values detected in field (outside range: 40-4000),,FALSE,"",""
-NN0366,33,Site.Out,Site.MAP,Extreme values detected in field (outside range: 40-4000),,FALSE,"",""

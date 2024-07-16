@@ -1,0 +1,26 @@
+B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
+AC0045,Maize/Sorghum,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,Needs no comparison
+CJ0001,Groundnut/Common Bean/Pigeon Pea/Cowpea/Bambara Nut/sole Maize/maize intercrop,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+CJ0033,Cassava/Legume cowpea/Legume Common Bean/Legume Soybean/Cassava int,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+CJ0036,Sorghum MBP,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+CJ0052,Maize/Sorghum,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,Needs no comparison
+CJ0056,Maize,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+CJ0098,Wheat/Maize/Soybean/Common Bean,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,Needs no comparison
+CJ0190,Cabbage/Garlic/Onion/Pepper,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+DM0021,Planting SB/Planting CG/Planting Maize,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+HK0253,DS/Cotton rot/BA/CP/RIML/Kayowozi-CP/Kayowozi-direct sole/Kayowozi-maize intercrop/Kayowozi-cowpea-intercrop,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+JO0019,Sole maize/Intercrop Maize/Intercrop Common Bean/Intercrop Squash,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+JO0053,NT,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+JO0054,Unshadded,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,Needs no comparison
+JO0084,INT-GLC/MONO-MZ/INT-MZ,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+JO0137,PS-4-20/PS-6-20/PS-8-20/PS-10-20,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+JO0176,MONO-DES/INT-DES/INT-VECHT,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+NM0017,Cowpea/Soybean/Maize,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+NN0428,Soybean/Cowpea/mucuna/cajanus/maize,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+NN0429,Oats/Maize/Soybean/Wheat,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+NN0430,Soybean intercrop,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+SA0004,W,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
+SP0019,Maize/Vetch,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+SP0020,MonoCoffee/MonoMacadamia/InterCoffee/InterMacadamia1/InterMacadamia2/InterMacadamia3/InterCoffee2/InterCoffee3/InterCoffee1/MonoMacadamia2/MonoMacadamia3,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+SP0021,Maize/Wheat,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
+SP0024,InterMaize/Oats/Groundnut/InterPalisade,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK

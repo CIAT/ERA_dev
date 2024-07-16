@@ -1,0 +1,14 @@
+B.Code,value,table,field,issue,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
+AC0145,Inoculation - Leaf,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,Charity,Kindly add Inoculation - Leaf in the master sheet
+CJ0106,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+CJ0159,Bonsoin,Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,"",""
+CJ0173,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+CJ0173,Vesicular arbuscular mycorrhizal (VAM),Chems.AI,C.Name,Mismatch in Product Name (C.Brand or C.Name) between description and AI table.,,,FALSE,"",""
+CJ0174,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0098,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0186,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0217,Nematicide,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+JO0217,Nematicide,Chems.AI,C.Type,"C.Type may be incorrect, or simply missing from Master Sheet.",C.Name.2020,chems,FALSE,"",""
+JO0217,Yam/Yam/Yam/Yam/Yam/Yam/Yam/Yam/Yam/Yam,Chems.Out,C.Level.Name,"Amount is present, but unit is missing.",,,FALSE,"",""
+NN0440,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""
+NN0520,Inoculation - Soil ,Chem.Out,C.Type,C.Type may be incorrect or simply missing from chem tab in master sheet.,C.Name.2020,chem,FALSE,"",""

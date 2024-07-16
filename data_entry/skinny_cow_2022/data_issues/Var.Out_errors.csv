@@ -1,0 +1,11 @@
+B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
+EO0078,Local Variety,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+JS0393,Dorper,Var.Out,V.Var,"V.Type is hybrid/crossbreed, but V.Animal.Practice is not Hybridization or Cross Breeding",FALSE,"",""
+NJ0013,Local Variety,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+NN0101,Unspecified,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+NN0191,Unspecified,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+NN0204,Local Variety,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+NN0224,Unspecified,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+NN0272.1,Unspecified,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+NN0321,Ross 308,Var.Out,V.Var,"V.Type is hybrid/crossbreed, but V.Animal.Practice is not Hybridization or Cross Breeding",FALSE,"",""
+NN0374,Arsi-Bale,Var.Out,V.Var,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
