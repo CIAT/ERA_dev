@@ -96,8 +96,8 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   era_dirs$era_search_s3<-file.path(era_s3,"search_history")
   
   # data entry folders
-  era_dirs$era_dataentry_prj<-file.path(project_dir,"data/data_entry")
-  era_dirs$era_dataentry_dir<-file.path(era_dir,"data/data_entry")
+  era_dirs$era_dataentry_prj<-file.path(project_dir,"data_entry")
+  era_dirs$era_dataentry_dir<-file.path(era_dir,"data_entry")
   era_dirs$era_dataentry_s3<-file.path(era_s3,"data_entry")
   
   # extracted geodata folders
