@@ -85,4 +85,4 @@ data_ex_melt[,mean:=round(mean,1)
                    ][,variable:=NULL]
 
 # 3.1.1) Save chirps ######
-arrow::write_parquet(data_ex_melt,file.path(era_dirs$era_geodata_dir,paste0("era_chirps_",Sys.Date(),".parquet")))
+arrow::write_parquet(data_ex_melt,file.path(era_dirs$era_geodata_dir,paste0("CHIRPS_",Sys.Date(),".parquet")))
