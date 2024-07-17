@@ -5,8 +5,7 @@ if (!require("pacman", character.only = TRUE)) {
   library(pacman)
 }
 
-packages<-c("s3fs","paws.storage","rnaturalearth","terra","remotes","data.table")
-pacman::p_load(char=packages)
+pacman::p_load(s3fs,paws.storage,rnaturalearth,terra,remotes,data.table)
 
 if(!require(ERAg)){
   remotes::install_github(repo="https://github.com/EiA2030/ERAg")
@@ -36,7 +35,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     project_dir<-getwd()
   }
 
-  # Set era s3 dir
+  # 1.1) Set era s3 dir #####
   era_s3<-"s3://digital-atlas/era"
   era_s3_http<-"https://digital-atlas.s3.amazonaws.com/era"
   
@@ -49,6 +48,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   
   s3<-s3fs::S3FileSystem$new(anonymous = T)
   
+  # 1.2) Set local working directory #####
   # CGlabs server
   CGlabs<-F
   if(project_dir=="/home/jovyan/rstudio/ERA_dev"){
@@ -73,14 +73,14 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   }
   setwd(era_dir)
   
-  # 1.1) ERA projects #####
+  # 1.3) ERA projects #####
   era_projects<-list(v1.0_2018="v1.0_2018",
                      v1.1_2020="v1.1_2020",
                      skinny_cow_2022="skinny_cow_2022",
                      industrious_elephant_2023="industrious_elephant_2023",
                      livestock_2024="livestock_2024")
   
-  # 1.2) Create ERA output dirs #####
+  # 1.4) Create ERA output dirs #####
   era_dirs<-list()
   
   # era master datasets
@@ -130,7 +130,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     }
   }
 
-  # 1.3) Set urls #####
+  # 1.5) Set urls #####
   era_vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
   # 1.4) Set directories of external datasets (e.g. chirps)
   if(CGlabs){
@@ -237,5 +237,6 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     
 # 4) Set time origin ####
     time_origin<-as.Date("1900-01-01")
+    
     
     
