@@ -338,3 +338,19 @@ upload_files_to_s3(files = files,
                        mode="public-read") 
     
 
+
+  # 1.4.7) CHIRPS
+    s3_bucket<-era_dirs$era_geodata_s3
+    files<-list.files(era_dirs$era_geodata_dir,"chirps_",full.names = T)
+    
+  # 1.4.7) CHIRPS #####
+    s3_bucket<-era_dirs$era_geodata_s3
+    
+    files<-list.files(era_dirs$era_geodata_dir,"CHIRPS_",full.names = T)
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
