@@ -68,8 +68,44 @@ saveWorkbook(wb, file.path(save_dir,"era_diet_data.xlsx"), overwrite = TRUE)
 # 6) Wrangle to GLEAM format ####
 # 6.1) Merge diet_composition, diet_digestibility and study location
 diet_names<-data$Animals.Out[,code:=paste0(A.Level.Name,"-",B.Code)]
-diet_composition<-data$Animals.Diet.Comp[,code:=paste0(D.Item,"-",B.Code)]
+diet_ingredients<-data$Animals.Diet[,code:=paste0(D.Item,"-",B.Code)]
+diet_nutrition<-data$Animals.Diet.Comp[,code:=paste0(D.Item,"-",B.Code)]
 diet_digestibility<-data$Animals.Diet.Digest[,code:=paste0(D.Item,"-",B.Code)]
+
 # Remove "compound" diets from composition and digestibility
-diet_composition[!code %in% diet_names$code]
+diet_ingredients<-diet_ingredients[D.Type!="Entire Diet" & !is.na(D.Item)]
+diet_nutrition<-diet_nutrition[D.Item %in% diet_ingredients$D.Item | D.Item %in% diet_ingredients$D.Item.Group]
+diet_digestibility<-diet_digestibility[D.Item %in% diet_ingredients$D.Item | D.Item %in% diet_ingredients$D.Item.Group]
+
+# Add group to diet_nutrition & diet_digestibility
+diet_groups<-unique(diet_ingredients[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
+setnames(diet_groups,"D.Item.Group","D.Item")
+
+diet_nutrition<-merge(diet_nutrition,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
+diet_digestibility<-merge(diet_digestibility,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
+
+# Subset to relevant fields
+n_names<-c("B.Code","D.Item","is_group")
+# Dry Matter Content (%)
+n_names<-c(n_names,"DC.DM","DC.DM.Unit","DC.DM.Method")
+# Gross Energy (Mj/kg DM)
+n_names<-c(n_names,"DC.GE","DC.GE.Unit","DC.GE.Method")
+# Digestible Energy (Mj/kg DM)
+n_names<-c(n_names,"DC.DE","DC.DE.Unit","DC.DE.Method")
+# Metabolizable Energy (Mj/kg DM)
+n_names<-c(n_names,"DC.ME","DC.ME.Unit","DC.ME.Method")
+# Crude Protein (% DM)
+n_names<-c(n_names,"DC.CP","DC.CP.Unit","DC.CP.Method")
+# N_content (kg N / kg DM)
+n_names<-c(n_names,"DC.N","DC.N.Unit","DC.N.Method")
+
+diet_nutrition<-diet_nutrition[,..n_names]
+
+# Nitrogen Digestibility (%)
+d_names<-c("B.Code","D.Item","is_group")
+d_names<-c(d_names,"DD.Protein","DD.Protein.Unit","DD.Protein.DorV","DD.Protein.Method")
+d_names<-c(d_names,"DD.Nitro","DD.Nitro.Unit","DD.Nitro.DorV","DD.Nitro.Method")
+
+# Merge nutrition and digestibility
+merge(diet_nutrition,diet_digestibility,all=T,by=c())
 
