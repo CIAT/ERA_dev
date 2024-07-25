@@ -510,40 +510,71 @@ harmonizer <- function(data, master_codes, master_tab="lookup_levels",h_table, h
   # Selecting relevant columns for output
   h_cols <- c("B.Code", h_field)
   
-  # Harmonize old names to new names
-  if (is.na(h_field_alt)) {
-    # Retrieve mappings for primary fields if no alternate field is provided
-    h_tab <- m_codes[Table == h_table & Field == h_field, list(Values_New, Values_Old)]
-  } else {
-    if (is.na(h_table_alt)) {
-      # Warning if alternate field is provided without an alternate table
-      warning("If h_field_alt is provided, h_table_alt should also be provided, currently using h_table which may result in non-matches.")
-      h_table_alt <- h_table
-    }
-    # Retrieve mappings for alternate fields
-    h_tab <- m_codes[Table == h_table_alt & Field == h_field_alt, list(Values_New, Values_Old)]
-
-    # Split Values_Old by ";" and unnest the list into separate rows
-    h_tab<-rbindlist(lapply(1:nrow(h_tab),FUN=function(i){
-      data.table(Values_New=h_tab$Values_New[i],Values_Old=unlist(strsplit(h_tab$Values_Old[i],";")))
-    }))
-    
-  }
-  
-  # Matching old values to new values and updating data
-  N <- match(unlist(data[, ..h_field]), h_tab[, Values_Old])
-  data <- data[!is.na(N), (h_field) := h_tab[N[!is.na(N)], Values_New]]
-  
-  # Check for any non-matches after harmonization
-  N <- match(unlist(data[, ..h_field]), h_tab[, Values_New])
-  if(!is.null(ignore_vals)){
-    if(!is.na(ignore_vals)){
-      h_tasks <- unique(data[is.na(N) & !grepl(paste(ignore_vals,collapse="|"),unlist(data[, ..h_field]),ignore.case = T), ..h_cols])
+  if(master_tab!="lookup_levels") {
+    if(is.na(h_field_alt)) {
+        stop("h_field_alt must be provided when master_table is not lookup_levels")
     }else{
-      h_tasks <- unique(data[is.na(N), ..h_cols])
+      c_names<-c(h_field,h_field_alt)
+      h_tab<-unique(m_codes[,..c_names])
+      colnames(h_tab)<-c("Values_Old","Values_New")
+      h_tab<-h_tab[!is.na(Values_New)]
+      h_table_alt<-as.character(h_table_alt)
     }
   }else{
-    h_tasks <- unique(data[is.na(N), ..h_cols])
+    
+    if (is.na(h_field_alt)) {
+      # Retrieve mappings for primary fields if no alternate field is provided
+      h_tab <- m_codes[Table == h_table & Field == h_field, list(Values_New, Values_Old)]
+    } else {
+      if (is.na(h_table_alt)) {
+        # Warning if alternate field is provided without an alternate table
+        warning("If h_field_alt is provided, h_table_alt should also be provided, currently using h_table which may result in non-matches.")
+        h_table_alt <- h_table
+      }
+      
+      # Retrieve mappings for alternate fields
+      h_tab <- m_codes[Table == h_table_alt & Field == h_field_alt, list(Values_New, Values_Old)]
+    }
+  }
+  
+  # Split Values_Old by ";" and unnest the list into separate rows
+  h_tab<-rbindlist(lapply(1:nrow(h_tab),FUN=function(i){
+    data.table(Values_New=h_tab$Values_New[i],Values_Old=unlist(strsplit(h_tab$Values_Old[i],";")))
+  }))
+  
+  # Matching old values to new values and updating data
+  class<-data[, .(class=lapply(.SD,class)), .SDcols = h_field]
+  
+  if(class=="list"){
+  data_focal<-data[,..h_field]
+  data_focal<-lapply(1:nrow(data_focal),FUN=function(i){
+    old<-unlist(data_focal[i])
+    new<-h_tab[match(old,h_tab$Values_Old),Values_New]
+    old[!is.na(new)]<-new[!is.na(new)]
+    return(old)
+  })
+  
+  data[,(h_field):=data_focal]
+  
+  data_focal<-data[,list(vals=unique(unlist(.SD))),by=B.Code,.SDcols = h_field]
+  setnames(data_focal,"vals",h_field)
+  
+  }else{
+    N <- match(unlist(data[, ..h_field]), h_tab[, Values_Old])
+    data <- data[!is.na(N), (h_field) := h_tab[N[!is.na(N)], Values_New]]
+    data_focal<-data[,..h_cols]
+  }
+  
+  # Check for any non-matches after harmonization
+  N <- match(unlist(data_focal[, ..h_field]), h_tab[, Values_New])
+  if(!is.null(ignore_vals)){
+    if(!is.na(ignore_vals)){
+      h_tasks <- unique(data_focal[is.na(N) & !grepl(paste(ignore_vals,collapse="|"),unlist(data[, ..h_field]),ignore.case = T)])
+    }else{
+      h_tasks <- unique(data_focal[is.na(N)])
+    }
+  }else{
+    h_tasks <- unique(data_focal[is.na(N)])
   }
   colnames(h_tasks)[2] <- "value"
   h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
