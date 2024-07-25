@@ -710,6 +710,7 @@ zero_cols<-c(p_names,"A.Notes","A.Grazing","A.Hay")
 
 results<-validator(data=Animals.Out,
                    zero_cols =zero_cols,
+                   unique_cols = "A.Level.Name",
                    tabname=table_name)
 
 errors<-results$errors
@@ -742,12 +743,104 @@ errors3<-errors3[,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
           ][,field:="A.Level.Name"
             ][,issue:="Possible error, an animal diet has no associated practices."]
 
-error_list<-error_tracker(errors=rbind(errors_a,errors1,errors2,errors3),
+error_list<-error_tracker(errors=rbind(errors_a,errors,errors1,errors2,errors3),
                           filename = paste0(table_name,"_errors"),
                           error_dir=error_dir,
                           error_list = error_list)
 
 # 3.7.2) Animal.Diet ####
+table_name<-"Animals.Diet"
+col_names<-colnames(data[[1]][,21:34])
+
+Animals.Diet<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
+  }else{
+    X<-X[,..col_names]
+    setnames(X,c("A.Level.Name...21","D.Item...23"),c("A.Level.Name","D.Item"),skip_absent = T)
+    X<-X[!is.na(A.Level.Name)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }
+  }})
+
+errors_a<-rbindlist(lapply(Animals.Diet,"[[","error"))
+
+Animals.Diet<-rbindlist(lapply(Animals.Diet,"[[","data"))
+
+zero_cols<-c("D.Item","D.Item.Group","D.Source","D.Process","D.Amount","D.Ad.lib","D.Unit.Amount","D.Unit.Time","D.Unit.Animals","D.Day.Start","D.Day.End","DC.Is.Dry")
+
+results<-validator(data=Animals.Diet,
+                   zero_cols =zero_cols,
+                   numeric_cols=c("D.Amount"),
+                   unit_pairs = data.table(unit="D.Unit.Amount",var="D.Amount",name_field="A.Level.Name"),
+                   compulsory_cols = c(A.Level.Name="D.Type"),
+                   tabname=table_name)
+
+errors<-results$errors
+Animals.Diet<-results$data
+
+# Tidy diet process field
+Animals.Diet[,D.Process:=trimws(D.Process)][,D.Process:=gsub(" /","/",D.Process)][,D.Process:=gsub("/ ","/",D.Process)][D.Process=="",D.Process:=NA]
+
+# Error where not entire diet and is.na(Diet.Item)
+errors1<-Animals.Diet[D.Type!="Entire Diet" & is.na(D.Item),
+                      ][,list(value=paste0(unique(A.Level.Name),collapse="/")),by=B.Code
+                           ][,table:=table_name
+                             ][,field:="A.Level.Name"
+                               ][,issue:="Rows in have no diet item selected and diet type is no Entire Diet."]
+
+errors2<-check_key(parent = Animals.Out,child = Animals.Diet,tabname=table_name,keyfield="A.Level.Name")
+
+error_list<-error_tracker(errors=rbind(errors_a,errors1,errors2),
+                          filename = paste0(table_name,"_errors"),
+                          error_dir=error_dir,
+                          error_list = error_list)
+
+# 3.7.3) Animals.Diet.Comp ####
+table_name<-"Animals.Diet.Comp"
+col_names<-colnames(data[[1]][,36:124])
+
+Animals.Diet.Comp<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
+  }else{
+    X<-X[,..col_names]
+    setnames(X,c("D.Item...36"),c("D.Item"),skip_absent = T)
+    X[,c("...66","...95"):=NULL]
+    X<-X[!is.na(D.Item)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }
+  }})
+
+errors_a<-rbindlist(lapply(Animals.Diet.Comp,"[[","error"))
+
+Animals.Diet<-rbindlist(lapply(Animals.Diet.Comp,"[[","data"))
+
+# Add columns to indicate if A.Level.Name, Diet.Group or D.Item
+
+(numeric_cols<-col_names[2:30])
+
+unit_pairs<-data.table(unit=paste0(numeric_cols,".Unit"),var=numeric_cols,name_field="D.Item")
+
+results<-validator(data=Animals.Diet,
+                   zero_cols =colnames(Animals.Diet.Comp),
+                   numeric_cols=numeric_cols,
+                   unit_pairs = data.table(unit="D.Unit.Amount",var="D.Amount",name_field="A.Level.Name"),
+                   compulsory_cols = c(A.Level.Name="D.Type"),
+                   tabname=table_name)
+
 
 # 3.8) Agroforestry #####
 data<-lapply(XL,"[[","AF.Out")
