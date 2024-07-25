@@ -522,6 +522,12 @@ harmonizer <- function(data, master_codes, master_tab="lookup_levels",h_table, h
     }
     # Retrieve mappings for alternate fields
     h_tab <- m_codes[Table == h_table_alt & Field == h_field_alt, list(Values_New, Values_Old)]
+
+    # Split Values_Old by ";" and unnest the list into separate rows
+    h_tab<-rbindlist(lapply(1:nrow(h_tab),FUN=function(i){
+      data.table(Values_New=h_tab$Values_New[i],Values_Old=unlist(strsplit(h_tab$Values_Old[i],";")))
+    }))
+    
   }
   
   # Matching old values to new values and updating data
