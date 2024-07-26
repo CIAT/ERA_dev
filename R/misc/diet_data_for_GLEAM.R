@@ -67,10 +67,10 @@ saveWorkbook(wb, file.path(save_dir,"era_diet_data.xlsx"), overwrite = TRUE)
 
 # 6) Wrangle to GLEAM format ####
 # 6.1) Merge diet_composition, diet_digestibility and study location
-diet_names<-data$Animals.Out[,code:=paste0(A.Level.Name,"-",B.Code)]
-diet_ingredients<-data$Animals.Diet[,code:=paste0(D.Item,"-",B.Code)]
-diet_nutrition<-data$Animals.Diet.Comp[,code:=paste0(D.Item,"-",B.Code)]
-diet_digestibility<-data$Animals.Diet.Digest[,code:=paste0(D.Item,"-",B.Code)]
+diet_names<-data$Animals.Out
+diet_ingredients<-data$Animals.Diet
+diet_nutrition<-data$Animals.Diet.Comp
+diet_digestibility<-data$Animals.Diet.Digest
 
 # Remove "compound" diets from composition and digestibility
 diet_ingredients<-diet_ingredients[D.Type!="Entire Diet" & !is.na(D.Item)]
@@ -106,6 +106,8 @@ d_names<-c("B.Code","D.Item","is_group")
 d_names<-c(d_names,"DD.Protein","DD.Protein.Unit","DD.Protein.DorV","DD.Protein.Method")
 d_names<-c(d_names,"DD.Nitro","DD.Nitro.Unit","DD.Nitro.DorV","DD.Nitro.Method")
 
+diet_digestibility<-diet_digestibility[,..d_names]
+
 # Merge nutrition and digestibility
-merge(diet_nutrition,diet_digestibility,all=T,by=c())
+diet_merge<-merge(diet_nutrition,diet_digestibility,all=T,by=c("B.Code","D.Item","is_group"))
 
