@@ -354,7 +354,7 @@ upload_files_to_s3 <- function(files,
         attempt <- attempt + 1
       }
     }, error = function(e) {
-      cat("Error during file upload:", e$message, "\n")
+      cat("\nError during file upload:", e$message, "\n")
     })
   }
   
