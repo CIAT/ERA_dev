@@ -75,7 +75,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   
   # 1.3) ERA projects #####
   era_projects<-list(v1.0_2018="v1.0_2018",
-                     v1.1_2020="v1.1_2020",
+                     majestic_hippo_2020="majestic_hippo_2020",
                      skinny_cow_2022="skinny_cow_2022",
                      industrious_elephant_2023="industrious_elephant_2023",
                      livestock_2024="livestock_2024")
