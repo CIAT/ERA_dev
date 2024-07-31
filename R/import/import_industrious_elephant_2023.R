@@ -1,221 +1,222 @@
-# Make sure you have set the era working directory using the 0_set_env.R script ####
-# 0.0) Install and load packages ####
-if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
-pacman::p_load(data.table, 
-               readxl,
-               future, 
-               future.apply,
-               parallel,
-               miceadds,
-               pbapply,
-               soiltexture,
-               httr,
-               stringr,
-               rnaturalearth,
-               rnaturalearthhires,
-               sf,
-               dplyr,
-               progressr)
-  # 0.1) Define the valid range for date checking #####
-  valid_start <- as.Date("1950-01-01")
-  valid_end <- as.Date("2023-12-01")
-  
-  # 0.2) Set directories and parallel cores ####
-  
-  # Set cores for parallel processing
-  workers<-parallel::detectCores()-2
-  
-  # Set the project name, this should usually refer to the ERA extraction template used
-  project<-era_projects$industrious_elephant_2023
-  
-  # Where extraction excel files are stored
-  excel_dir<-file.path(era_dirs$era_dataentry_dir,project,"excel_files")
-  if(!dir.exists(excel_dir)){
-    dir.create(excel_dir,recursive=T)
-  }
-  
-  # Where processed extraction files are stored
-  extracted_dir<-file.path(era_dirs$era_dataentry_dir,project,"extracted")
-  if(!dir.exists(extracted_dir)){
-    dir.create(extracted_dir,recursive=T)
-  }
-  
-  # Set directory for error and harmonization tasks
-  error_dir<-file.path(era_dirs$era_dataentry_prj,project,"data_issues")
-  if(!dir.exists(error_dir)){
-    dir.create(error_dir,recursive=T)
-  }
-  
-  error_dir_master<-file.path(error_dir,"master_codes")
-  if(!dir.exists(error_dir_master)){
-    dir.create(error_dir_master)
-  }
-  
-  harmonization_dir<-file.path(error_dir,"harmonization")
-  if(!dir.exists(harmonization_dir)){
-    dir.create(harmonization_dir)
-  }
-  
-  # Where compiled data is to be stored
-  data_dir<-era_dirs$era_masterdata_dir
-
-# 1) Download  or update excel data ####
-# If working locally from the "old" one-drive directory then you will to run 1_setup_s3.R section 1.2.1.
-download<-F
-update<-T
-
-s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
-
-# Check if the file exists
-if (grepl("success",httr::http_status(httr::HEAD(s3_file))$category,ignore.case = T)) {
-  print("The file exists.")
-  file_status<-T
-} else {
-  print("The file does not exist.")
-  file_status<-F
-}
-
-local_file<-file.path(excel_dir,basename(s3_file))
-
-if(file_status){
-  if(length(list.files(excel_dir))<1|update==T){
-    rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
-    unlink(rm_files)
-    options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
-    if(download){
-      download.file(s3_file, destfile = local_file)
-    }
-    unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
-    unlink(local_file)
-  }
-}
-
-# 2) Load data ####
-  # 2.1) Load era vocab #####
-
-  # Get names of all sheets in the workbook
-  sheet_names <- readxl::excel_sheets(era_vocab_local)
-  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
-  
-  # Read each sheet into a list
-  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
-  
-  # 2.2) Load excel data entry template #####
-  Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
-  
-  # List sheet names that we need to extract
-  SheetNames<-excel_sheets(Master)
-  SheetNames<-grep(".Out",SheetNames,fixed = T,value=T)
-  
-  # List column names for the sheets to be extracted
-  XL.M<-sapply(SheetNames,FUN=function(SName){
-    cat('\r                                                                                                                                          ')
-    cat('\r',paste0("Importing Sheet = ",SName))
-    flush.console()
-    colnames(data.table(suppressWarnings(suppressMessages(readxl::read_excel(Master,sheet = SName)))))
-  },USE.NAMES = T)
-  
-  # Subset Cols
-  XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
-  
-  # 2.3) List extraction excel files #####
-  Files<-list.files(excel_dir,".xlsm$",full.names=T)
-  
-  # 2.4) Check for duplicate files #####
-  FNames<-unlist(tail(tstrsplit(Files,"/"),1))
-  FNames<-gsub(" ","",FNames)
-  FNames<-unlist(tstrsplit(FNames,"-",keep=2))
-  FNames<-gsub("[(]1[])]|[(]2[])]","",FNames)
-  FNames<-gsub("_1|_2|_3|_4",".1|.2|.3|.4",FNames,fixed=T)
-  FNames<-gsub("..",".",FNames,fixed=T)
-  
-  excel_files<-data.table(filename=Files,era_code=FNames)
-  excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
-  
-  # Flag any naming issues
-  excel_files[grepl("_",era_code)]
-  excel_files<-excel_files[!grepl("_",era_code)]
-  
-  # Look for duplicate files
-  excel_files[,N:=.N,by=era_code]
-  excel_files[N>1][order(era_code)]
-  
-  # Remove not qced duplicates
-  excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
-  excel_files[N>1][order(era_code)]
-  
-  excel_files<-excel_files[!N>1][,N:=NULL]
-  excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
-  
-  # 2.5) Read in data from excel files #####
-  
-  # If files have already been imported and converted to list form should the important process be run again?
-  overwrite<-F
-  
-  # Delete existing files if overwrite =T
-  if(overwrite){
-    unlink(extracted_dir,recursive = T)
-    dir.create(extracted_dir)
-  }
-  
-  # Set up parallel back-end
-  if (.Platform$OS.type == "windows") {
-    plan(multisession, workers = workers)
-  } else {
-    plan(multicore, workers = workers)
-  }
-  
-  # Run future apply loop to read in data from each excel file in parallel
-  XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
-    File <- excel_files$filename[i]
-    era_code <- excel_files$era_code2[i]
-    save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+  # Make sure you have set the era working directory using the 0_set_env.R script ####
+  # 0.0) Install and load packages ####
+  pacman::p_load(data.table, 
+                 readxl,
+                 future, 
+                 future.apply,
+                 parallel,
+                 miceadds,
+                 pbapply,
+                 soiltexture,
+                 httr,
+                 stringr,
+                 rnaturalearth,
+                 rnaturalearthhires,
+                 sf,
+                 dplyr,
+                 progressr)
+    # 0.1) Define the valid range for date checking #####
+    valid_start <- as.Date("1950-01-01")
+    valid_end <- as.Date("2023-12-01")
     
-    if (overwrite == TRUE || !file.exists(save_name)) {
-      X <- tryCatch({
-        lapply(SheetNames, FUN=function(SName){
-          cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
-          flush.console()
-          data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
-        })
-      }, error=function(e){
-        cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
-        return(NULL)  # Return NULL if there was an error
-      })
-      
-      if (!is.null(X)) {
-        names(X) <- SheetNames
-        X$file.info<-file.info(File)
-        save(X, file=save_name)
-      }
+    # 0.2) Set directories and parallel cores ####
+    
+    # Set cores for parallel processing
+    workers<-parallel::detectCores()-2
+    
+    # Set the project name, this should usually refer to the ERA extraction template used
+    project<-era_projects$industrious_elephant_2023
+    
+    # Where extraction excel files are stored
+    excel_dir<-file.path(era_dirs$era_dataentry_dir,project,"excel_files")
+    if(!dir.exists(excel_dir)){
+      dir.create(excel_dir,recursive=T)
+    }
+    
+    # Where processed extraction files are stored
+    extracted_dir<-file.path(era_dirs$era_dataentry_dir,project,"extracted")
+    if(!dir.exists(extracted_dir)){
+      dir.create(extracted_dir,recursive=T)
+    }
+    
+    # Set directory for error and harmonization tasks
+    error_dir<-file.path(era_dirs$era_dataentry_prj,project,"data_issues")
+    if(!dir.exists(error_dir)){
+      dir.create(error_dir,recursive=T)
+    }
+    
+    error_dir_master<-file.path(error_dir,"master_codes")
+    if(!dir.exists(error_dir_master)){
+      dir.create(error_dir_master)
+    }
+    
+    harmonization_dir<-file.path(error_dir,"harmonization")
+    if(!dir.exists(harmonization_dir)){
+      dir.create(harmonization_dir)
+    }
+    
+    # Where compiled data is to be stored
+    data_dir<-era_dirs$era_masterdata_dir
+  
+  # 1) Download  or update excel data ####
+  # If working locally from the "old" one-drive directory then you will to run 1_setup_s3.R section 1.2.1.
+  download<-F
+  update<-F
+  
+  s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
+  
+  # Check if the file exist
+  if(update){
+    if (grepl("success",httr::http_status(httr::HEAD(s3_file))$category,ignore.case = T)) {
+      print("The file exists.")
+      file_status<-T
     } else {
-      miceadds::load.Rdata(filename=save_name, objname="X")
+      print("The file does not exist.")
+      file_status<-F
+    }
+  }
+  
+  local_file<-file.path(excel_dir,basename(s3_file))
+  
+  if(file_status){
+    if(length(list.files(excel_dir))<1|update==T){
+      rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
+      unlink(rm_files)
+      options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
+      if(download){
+        download.file(s3_file, destfile = local_file)
+      }
+      unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
+      unlink(local_file)
+    }
+  }
+  
+  # 2) Load data ####
+    # 2.1) Load era vocab #####
+  
+    # Get names of all sheets in the workbook
+    sheet_names <- readxl::excel_sheets(era_vocab_local)
+    sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
+    
+    # Read each sheet into a list
+    master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
+    
+    # 2.2) Load excel data entry template #####
+    Master<-list.files(paste0(project_dir,"/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
+    
+    # List sheet names that we need to extract
+    SheetNames<-excel_sheets(Master)
+    SheetNames<-grep(".Out",SheetNames,fixed = T,value=T)
+    
+    # List column names for the sheets to be extracted
+    XL.M<-sapply(SheetNames,FUN=function(SName){
+      cat('\r                                                                                                                                          ')
+      cat('\r',paste0("Importing Sheet = ",SName))
+      flush.console()
+      colnames(data.table(suppressWarnings(suppressMessages(readxl::read_excel(Master,sheet = SName)))))
+    },USE.NAMES = T)
+    
+    # Subset Cols
+    XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
+    
+    # 2.3) List extraction excel files #####
+    Files<-list.files(excel_dir,".xlsm$",full.names=T)
+    
+    # 2.4) Check for duplicate files #####
+    FNames<-unlist(tail(tstrsplit(Files,"/"),1))
+    FNames<-gsub(" ","",FNames)
+    FNames<-unlist(tstrsplit(FNames,"-",keep=2))
+    FNames<-gsub("[(]1[])]|[(]2[])]","",FNames)
+    FNames<-gsub("_1|_2|_3|_4",".1|.2|.3|.4",FNames,fixed=T)
+    FNames<-gsub("..",".",FNames,fixed=T)
+    
+    excel_files<-data.table(filename=Files,era_code=FNames)
+    excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
+    
+    # Flag any naming issues
+    excel_files[grepl("_",era_code)]
+    excel_files<-excel_files[!grepl("_",era_code)]
+    
+    # Look for duplicate files
+    excel_files[,N:=.N,by=era_code]
+    excel_files[N>1][order(era_code)]
+    
+    # Remove not qced duplicates
+    excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
+    excel_files[N>1][order(era_code)]
+    
+    excel_files<-excel_files[!N>1][,N:=NULL]
+    excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
+    
+    # 2.5) Read in data from excel files #####
+    
+    # If files have already been imported and converted to list form should the important process be run again?
+    overwrite<-F
+    
+    # Delete existing files if overwrite =T
+    if(overwrite){
+      unlink(extracted_dir,recursive = T)
+      dir.create(extracted_dir)
     }
     
-    X
-  })
-  
-  # Reset plan to default setting
-  future::plan(sequential)
-  
-  # Add names
-  names(XL)<-excel_files$filename
-  
-  # Filter out any missing data
-  XL <- Filter(Negate(is.null), XL)
-  
-  rm(Files,SheetNames,XL.M,Master)
-  
-  # List any files that did not load
-  
-  errors<-excel_files[!filename %in% names(XL)
-  ][,c("status","era_code"):=NULL
-  ][,issue:="Excel import failed"]
-  setnames(errors,"era_code2","B.Code")
-  error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
-  
-  
-# 3) Process imported data ####
+    # Set up parallel back-end
+    if (.Platform$OS.type == "windows") {
+      plan(multisession, workers = workers)
+    } else {
+      plan(multicore, workers = workers)
+    }
+    
+    # Run future apply loop to read in data from each excel file in parallel
+    XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
+      File <- excel_files$filename[i]
+      era_code <- excel_files$era_code2[i]
+      save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+      
+      if (overwrite == TRUE || !file.exists(save_name)) {
+        X <- tryCatch({
+          lapply(SheetNames, FUN=function(SName){
+            cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
+            flush.console()
+            data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
+          })
+        }, error=function(e){
+          cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+          return(NULL)  # Return NULL if there was an error
+        })
+        
+        if (!is.null(X)) {
+          names(X) <- SheetNames
+          X$file.info<-file.info(File)
+          save(X, file=save_name)
+        }
+      } else {
+        miceadds::load.Rdata(filename=save_name, objname="X")
+      }
+      
+      X
+    })
+    
+    # Reset plan to default setting
+    future::plan(sequential)
+    
+    # Add names
+    names(XL)<-excel_files$filename
+    
+    # Filter out any missing data
+    XL <- Filter(Negate(is.null), XL)
+    
+    rm(Files,SheetNames,XL.M,Master)
+    
+    # List any files that did not load
+    
+    errors<-excel_files[!filename %in% names(XL)
+    ][,c("status","era_code"):=NULL
+    ][,issue:="Excel import failed"]
+    setnames(errors,"era_code2","B.Code")
+    error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
+    
+    
+  # 3) Process imported data ####
 # 3.1) Publication (Pub.Out) #####
 data<-lapply(XL,"[[","Pub.Out")
 
@@ -539,6 +540,8 @@ errors2<-rbindlist(lapply(1:length(data),FUN=function(i){
 }))
 
 # Combine soil data into a table
+fun1<-function(x){x[1]}
+
 Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
 
@@ -547,10 +550,12 @@ Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
     NULL
   }else{
     X<-X[!is.na(Site.ID)]
-    
+  
     if(nrow(X)>0){
     # Filter out columns that are all NA
     X <- X[, .SD, .SDcols = colSums(is.na(X)) != nrow(X)]
+    copy_down_cols<-grep("Unit|Method",colnames(X),value=T)
+    X <- X[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
     
     # Make table long with cols for value, variable, unit and method
     Xcols<-colnames(X)
@@ -569,8 +574,8 @@ Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
     
     fixed.cols<-Xcols[1:(start.pos-1)]
     var.cols<-c(fixed.cols,Xcols[start.pos:(grep("Unit",Xcols)[1]-1)])
-    unit.cols<-c(fixed.cols[1],grep("Unit",Xcols,value=T))
-    method.cols<-c(fixed.cols[1],grep("Method",Xcols,value=T))
+    unit.cols<-c(grep("Unit",Xcols,value=T))
+    method.cols<-c(grep("Method",Xcols,value=T))
     
     # Deal with instances where more than one pH method is present
     N<-grep("Soil.pH",var.cols,value=T)
@@ -600,7 +605,8 @@ Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
     
     # Melt values and units into long form
     var_tab<-melt(X[,..var.cols],id.vars = fixed.cols)
-    unit_tab<-melt(X[1,..unit.cols],id.vars =fixed.cols[1],value.name = "Unit")[,variable:=gsub("[.]Unit","",variable)][Unit!="NA"]
+    unit_tab<-data.table(variable=row.names(t(X[1,..unit.cols])),Unit=unlist(X[1,..unit.cols]))
+    unit_tab<-unit_tab[,variable:=gsub("[.]Unit","",variable)][Unit!="NA"]
     
     if(var_tab[,any(grepl("[.][.][.]",variable))]){
       cat("... present in variables",i,Pub.Out$B.Code[i],"\n")
@@ -616,7 +622,8 @@ Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
     
     # If methods are present melt into long form and merge with values and units
     if(length(method.cols)>1){
-      method_tab<-melt(X[1,..method.cols],id.vars =fixed.cols[1],value.name = "Method")[,variable:=gsub("[.]Method","",variable)][Method!="NA"]
+      method_tab<-data.table(variable=row.names(t(X[1,..method.cols])),Method=unlist(X[1,..method.cols]))
+      method_tab<-method_tab[,variable:=gsub("[.]Method","",variable)][Method!="NA"]
       if(method_tab[,any(grepl("[.][.][.]",variable))]){
         cat("... present in methods",i,Pub.Out$B.Code[i],"\n")
       }
@@ -644,6 +651,7 @@ Soil.Out[variable %in% c("CLY","SND","SLT"),Unit:="%"]
 
 results<-validator(data=Soil.Out,
                     numeric_cols=c("Soil.Upper","Soil.Lower","value"),
+                    compulsory_cols=c(Site.ID="value"),
                     tabname="Soil.Out",
                     site_data=Site.Out)
 
@@ -670,6 +678,9 @@ if(nrow(errors5)>0){
   setnames(errors5,"variable","value")
   errors5[,table:="Soil.Out"][,field:="variable"][,issue:="Upper depth value is greater than lower depth value"]
 }
+
+errors7<-Soil.Out[variable!="Soil.pH" & is.na(Unit) & !is.na(value),list(value=paste0(unique(variable),collapse="/")),by=B.Code]
+errors7[,table:="Soil.Out"][,field:="variable"][,issue:="Amount is present, but unit is missing for value."]
 
   # 3.4.1) Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
   Soil.Out.Texture<-Soil.Out[variable %in% c("SND","SLT","CLY"),list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable,value)]
@@ -719,10 +730,10 @@ if(nrow(errors5)>0){
   Soil.Out.Texture<-rbind(Soil.Out.Texture,X[is.na(check)][,check:=NULL])
   
   # Combine & save errors
-  errors<-rbindlist(list(errors,errors1,errors2,errors3,errors4,errors5,errors6),fill = T)[order(B.Code)]
+  errors<-rbindlist(list(errors,errors1,errors2,errors3,errors4,errors5,errors6,errors7),fill = T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "soil_errors",error_dir=error_dir,error_list = error_list)
 
-  # ***!!!TO DO!!!***  harmonize methods, units and variables ####
+  # 3.4.1) ***!!!TO DO!!!***  harmonize methods, units and variables ####
   Soil.Out[,filename:=NULL]
 # 3.5) Experimental Design (ExpD.Out) ####
 data<-lapply(XL,"[[","ExpD.Out")
@@ -1401,6 +1412,7 @@ results<-validator(data=Fert.Method,
                    site_data=Site.Out,
                    time_data=Times.Out,
                    tabname="Fert.Method",
+                   trim_ws = T,
                    ignore_values = c("All Times","Unspecified","Not specified","All Sites"))
 
 errors6<-results$errors
@@ -1422,6 +1434,16 @@ results<-harmonizer_wrap(data=Fert.Method,
 h_tasks1<-results$h_tasks
 
 Fert.Method<-results$data
+
+# Update fertilizer names using fert tab of master_codes
+fert_master<-unique(master_codes$fert[,list(F.Category,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3)][,match:=T])
+
+
+h_params<-data.table(h_table="Fert.Method",
+                     h_field=,
+                     h_table_alt=c("Fert.Out",NA,NA,"Fert.Out","F.Method","Res.Method"),
+                     h_field_alt=c("F.Unit",NA,NA,"F.Mechanization","M.Source","M.Fate"))
+
 
 # Check if fertilizers already exist or not
 mdat<-unique(master_codes$fert[,list(F.Category,F.Type)])[,check:=T]
@@ -1504,21 +1526,22 @@ error_list<-error_tracker(errors=errors,filename = "fert_other_errors",error_dir
 h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3),fill=T)
 harmonization_list<-error_tracker(errors=h_tasks,filename = "fert_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
 
-  # 3.11.x) ***!!!TO DO!!!*** Update Fertilizer codes   #######
+  # 3.11.x) ***!!!TO DO!!!*** Add Fertilizer codes   #######
     if(F){
       # Old Code
       
-  # Update F.Codes
-     Fert.Out$F.Codes<-apply(data.frame(Fert.Out[,c("F.NI.Code","F.PI.Code","F.KI.Code","F.Urea","F.Compost","F.Manure","F.Biosolid","F.MicroN","F.Biochar")]),1,FUN=function(X){
-      X<-as.character(X[!is.na(X)])
-      paste(X[order(X)],collapse="-")
-    })
-     Fert.Out[F.Codes=="",F.Codes:=NA]
+     # Fert_Out: Create F.Codes columns
+     Fert.Out[,c("F.NI.Code","F.PI.Code","F.KI.Code","F.Urea","F.Compost","F.Manure","F.Biosolid","F.MicroN","F.Biochar","F.Codes"):=as.character(NA)]
     
-      # Fert.Method: Update Codes in  Fert.Methods From MasterCodes FERT Tab ####
+     # Fert.Method: Update Codes in  Fert.Methods From MasterCodes FERT Tab ####
       
       # Validation - Check for non-matches
-      Fert.Method[,F.Lab:=paste0(F.Category,"-",F.Type)]
+      fert_master<-unique(master_codes$fert[,list(F.Category,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3)][,match:=T])
+      setnames(fert_master,"F.Type_New","F.Type")
+      
+      Fert.Method<-merge(Fert.Method,fert_master[,list(F.Category,F.Type, Fert.Code1,Fert.Code2,Fert.Code3,match)],all.x=T)[is.na(match),match:=F]
+      
+      Fert.Method[match==F]
       
       # Table should be blank if there are no issues
       FERT.Master.NonMatches<-unique(Fert.Method[is.na(match(F.Lab,FertCodes[,F.Lab])),c("B.Code","F.Category","F.Type")])
