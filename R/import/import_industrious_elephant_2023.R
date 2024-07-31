@@ -1424,7 +1424,7 @@ errors7<-check_key(parent = Fert.Out,child = Fert.Method,tabname="Fert.Method",k
     # 3.11.2.1) Harmonization #######
 h_params<-data.table(h_table="Fert.Method",
                      h_field=c("F.Unit","F.Method","F.Physical","F.Mechanization","F.Source","F.Fate"),
-                     h_table_alt=c("Fert.Out",NA,NA,"Fert.Out","F.Method","Res.Method"),
+                     h_table_alt=c("Fert.Out",NA,NA,"Fert.Out","Fert.Method","Res.Method"),
                      h_field_alt=c("F.Unit",NA,NA,"F.Mechanization","M.Source","M.Fate"))
 
 results<-harmonizer_wrap(data=Fert.Method,
@@ -1435,17 +1435,33 @@ h_tasks1<-results$h_tasks
 
 Fert.Method<-results$data
 
-# Update fertilizer names using fert tab of master_codes
-fert_master<-unique(master_codes$fert[,list(F.Category,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3)][,match:=T])
+# Update fertilizer names using fert tab of master_codes and merge associated f.codes
+fert_master<-unique(master_codes$fert[,list(F.Category,F.Type,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3)][,match:=T])
 
+Fert.Method[,F.Type.Code:=tolower(paste(c(F.Category[1],F.Type[1]),collapse = "-")),by=.(F.Category,F.Type)]
+fert_master[,F.Type.Code:=tolower(paste(c(F.Category[1],F.Type[1]),collapse = "-")),by=.(F.Category,F.Type)
+            ][,F.Type.Code2:=paste(c(F.Category[1],F.Type[1]),collapse = "-"),by=.(F.Category,F.Type_New)
+            ][,F.Codes:=paste0(sort(c(Fert.Code1,Fert.Code2,Fert.Code3)),collapse = "-"),by=F.Type.Code
+              ][,F.Codes:=gsub("-NA","",F.Codes)]
 
-h_params<-data.table(h_table="Fert.Method",
-                     h_field=,
-                     h_table_alt=c("Fert.Out",NA,NA,"Fert.Out","F.Method","Res.Method"),
-                     h_field_alt=c("F.Unit",NA,NA,"F.Mechanization","M.Source","M.Fate"))
+Fert.Method<-merge(Fert.Method,fert_master[,list(F.Type.Code,F.Type.Code2,F.Codes)],all.x=T,by="F.Type.Code")
+Fert.Method[,F.Type.Code:=paste(c(F.Category[1],F.Type[1]),collapse = "-"),by=.(F.Category,F.Type)]
 
+h_tasks4<-Fert.Method[is.na(F.Type.Code2),list(B.Code=paste(unique(B.Code),collapse="/")),by=F.Type.Code
+                      ][,table:="Fert.Method"
+                        ][,field:="F.Category-F.Type"
+                          ][,table_alt:=NA
+                            ][,field_alt:="F.Type_New"
+                              ][,master_tab:="fert"]
+setnames(h_tasks4,"F.Type.Code","value")
 
-# Check if fertilizers already exist or not
+write.table(h_tasks4,"clipboard-256000",row.names = F,sep="\t")
+
+Fert.Method[!is.na(F.Type.Code2),F.Type:=unlist(tstrsplit(F.Type.Code2,"-",keep=2))]
+
+Fert.Method[,c("F.Type.Code2","F.Type.Code"):=NULL]
+
+  # Check if fertilizers already exist or not
 mdat<-unique(master_codes$fert[,list(F.Category,F.Type)])[,check:=T]
 
 h_tasks2<-unique(merge(Fert.Method[,list(B.Code,F.Category,F.Type)],mdat,all.x=T)[is.na(check)][!is.na(F.Category)][,check:=NULL])
@@ -1523,256 +1539,31 @@ error_list<-error_tracker(errors=errors,filename = "fert_structure_errors",error
 errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors6,errors7,errors8,errors9),fill=T)[order(B.Code)]
 error_list<-error_tracker(errors=errors,filename = "fert_other_errors",error_dir=error_dir,error_list = error_list)
 
-h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3),fill=T)
+h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4),fill=T)
 harmonization_list<-error_tracker(errors=h_tasks,filename = "fert_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
 
-  # 3.11.x) ***!!!TO DO!!!*** Add Fertilizer codes   #######
-    if(F){
-      # Old Code
+  # 3.11.5) Fert.Out: Update Fertilizer codes   #######
+     # Fert.Method: Combine F.Codes across ingredients and merge with Fert.Out
+      Fert.Method[,F.Codes.Level:=paste(sort(unique(unlist(strsplit(F.Codes,"-")))),collapse = "-"),by=.(B.Code,F.Level.Name)
+                  ][,F.Codes.Level:=gsub("-NA","",F.Codes.Level)]
       
-     # Fert_Out: Create F.Codes columns
-     Fert.Out[,c("F.NI.Code","F.PI.Code","F.KI.Code","F.Urea","F.Compost","F.Manure","F.Biosolid","F.MicroN","F.Biochar","F.Codes"):=as.character(NA)]
-    
-     # Fert.Method: Update Codes in  Fert.Methods From MasterCodes FERT Tab ####
+      Fert.Out<-merge(Fert.Out,unique(Fert.Method[,.(B.Code,F.Level.Name,F.Codes.Level)]),all.x=T,by=c("B.Code","F.Level.Name")) 
       
-      # Validation - Check for non-matches
-      fert_master<-unique(master_codes$fert[,list(F.Category,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3)][,match:=T])
-      setnames(fert_master,"F.Type_New","F.Type")
+      # Fert_Out: Add Fertilizer Codes from NPK rating
+      Fert.Out[(!is.na(F.NI) & F.NI!=0) & !grepl("b17|b23",F.Codes.Level),F.NI.Code:="b17",by=.(B.Code,F.Level.Name)
+               ][((!is.na(F.PI) & F.PI!=0)|(!is.na(F.P2O5) & F.P2O5!=0)) & !grepl("b21",F.Codes.Level),F.PI.Code:="b21",by=.(B.Code,F.Level.Name)
+                 ][((!is.na(F.KI) & F.KI!=0)|(!is.na(F.K2O) & F.K2O!=0)) & !grepl("b16",F.Codes.Level),F.KI.Code:="b16",by=.(B.Code,F.Level.Name)]
       
-      Fert.Method<-merge(Fert.Method,fert_master[,list(F.Category,F.Type, Fert.Code1,Fert.Code2,Fert.Code3,match)],all.x=T)[is.na(match),match:=F]
-      
-      Fert.Method[match==F]
-      
-      # Table should be blank if there are no issues
-      FERT.Master.NonMatches<-unique(Fert.Method[is.na(match(F.Lab,FertCodes[,F.Lab])),c("B.Code","F.Category","F.Type")])
-      
-      if(nrow(FERT.Master.NonMatches)>0){
-        View(FERT.Master.NonMatches)
-      }
-      rm(FERT.Master.NonMatches)
-      
-      # Add Codes
-      Fert.Method$F.Lab<-apply(Fert.Method[,c("F.Category","F.Type")],1,paste,collapse="-")
-      Fert.Method<-cbind(Fert.Method,FertCodes[match(Fert.Method$F.Lab,FertCodes$F.Lab),c("Fert.Code1","Fert.Code2","Fert.Code3")])
-      Fert.Method[,F.Lab:=NULL]
-      
-      # Fert.Method: Update Fields From Harmonization Sheet ####
-      N<-match(Fert.Method$F.Method,OtherHarmonization$Fert.Method)
-      Fert.Method[,F.Method:=OtherHarmonization[N,Fert.Method.Correct]]
-      rm(N)
-      # Fert.Out: Add Fertilizer Codes from NPK rating ####
-      
-      # Fert.Out - Validation: Check codes for errors
-      # View(unique(Fert.Method[!is.na(F.NPK),c("F.NPK","B.Code")][order(F.NPK)]))
-      
-      NPKrows<-Fert.Method[!is.na(F.NPK),c("B.Code","F.NPK")]
-      
-      if(nrow(NPKrows)>0){
-        N<-which(!is.na(Fert.Method$F.NPK))
-        X<-data.table(do.call("rbind",strsplit(Fert.Method[N,F.NPK],"-")))
-        colnames(X)<-c("N","P","K")
-        
-        X[,Fert.Code1:=NA]
-        X<-cbind(X,do.call("rbind",pblapply(1:nrow(X),FUN=function(i){
-          Y<-as.numeric(t(X[i,1:3])[,1])
-          Z<-c("b17","b21","b16")[!Y==0][order(Y[!Y==0],decreasing = T)]
-          
-          if((3-length(Z))>0){
-            Z<-c(Z,rep(NA,3-length(Z)))
-          }
-          Z
-        })))
-        
-        Fert.Method[N,Fert.Code1:=X$V1][N,Fert.Code2:=X$V2][N,Fert.Code3:=X$V3]
-      }
-      
-      # Fert.Out: Add the codes above derived from Fert.Method tab to Fert.Out ####
-      
-      Fert.Out[,F.Codes2:=unlist(pblapply(1:nrow(Fert.Out),FUN=function(i){
-        X<-Fert.Out[i,c("F.Level.Name","B.Code")]
-        X<-unlist(Fert.Method[B.Code==X$B.Code & F.Name==X$F.Level.Name,c("Fert.Code1","Fert.Code2","Fert.Code3")])
-        if(length(X)>0){
-          X<-X[X!="NA"]
-          X<-X[!is.na(X)]
-          paste(unique(X[order(X)]),collapse = "-")
-        }else{
-          NA
-        }
-      }))]
-      
-      # Fert Out: Deal with Urea ####
-      # If Urea is present in F.Codes2 without a b17 code, then b17 code should be removed from F.Codes
-      
-      X1<-grep("b23",Fert.Out$F.Codes)
-      X2<-grep("b17",Fert.Out$F.Codes)
-      X<-X1[X1 %in% X2]
-      
-      Y1<-grep("b23",Fert.Out$F.Codes2)
-      Y2<-grep("b17",Fert.Out$F.Codes2)
-      Y<-Y1[Y1 %in% Y2]
-      
-      X<-X[!X %in% Y]
-      
-      # Check for any instance where an NPK code has been associated with a Urea entry
-      #X.Issue<-X[!X %in% Y1]
-      #Fert.Out[X.Issue]
-      
-      # Remove "b17-" codes where required
-      Fert.Out[X,F.Codes:=gsub("b17-","",F.Codes)]
-      
-      # List N-P-K 
-      #write.table(unique(Fert.Method[!is.na(F.NPK),c("B.Code","F.NPK")][order(F.NPK)]),"clipboard",row.names = F,col.names=F,sep="\t")
-      
-      # List Aggregated Practices to see if we can disagg all of them - this was set as a task and should now be completed.
-      #write.table(unique(Fert.Out[grep("[.][.]",F.Level.Name),"B.Code"]),"clipboard",row.names = F,col.names=F,sep="\t")
-      
-      # Rename F.Name col in Fert.Method
-      setnames(Fert.Method, "F.Name", "F.Level.Name")
-      
-      # Fert.Out: Validation   ####
-      
-      # Validation: Check Codes from Fert.Methods vs. Codes from Fert.Out
-      F.CodesvsF.Codes2<-unique(Fert.Out[F.Codes != F.Codes2,c("B.Code","F.Codes","F.Codes2","F.Level.Name")])
-      
-      if(nrow(F.CodesvsF.Codes2)>0){
-        View(F.CodesvsF.Codes2)
-      }
-      rm(F.CodesvsF.Codes2)
-      
-      # Find any missing F.Codes
-      # might indicate aggregation is still being used, missing NPK values or error in excel formulae in Fert.Out tab
-      NoFCodes<-unique(Fert.Out[F.Level.Name!="Base" & is.na(F.Codes),c("B.Code","F.Level.Name","F.Codes")])
-      
-      if(nrow(NoFCodes)>0){
-        View(NoFCodes)
-      }
-      rm(NoFCodes)
+      Fert.Out[,F.Codes:=paste(sort(unique(c(F.NI.Code,F.NI.Code,F.KI.Code,unlist(strsplit(F.Codes.Level,"-"))))),collapse = "-"),by=.(B.Code,F.Level.Name)
+               ][,F.Codes:=gsub("-NA|NA","",F.Codes)
+                 ][F.Codes=="",F.Codes:=NA
+                   ][,c("F.Codes.Level","F.NI.Code","F.KI.Code","F.PI.Code"):=NULL]
+
       # Fert.Out: Add in h10.1 Codes for no Fertilizer use ####
-      Fert.Out[is.na(F.Codes) & !F.Level.Name=="Base",F.Codes:="h10.1"
-      ][is.na(F.Codes2) & !F.Level.Name=="Base",F.Codes2:="h10.1"]
+      Fert.Out[is.na(F.Codes) & !F.Level.Name=="Base",F.Codes:="h10.1"]
       
-      # Fert.Out: To deal with new Ash & Organic (Other) Codes overwrite F.Codes with F.Codes2 ####
-      Fert.Out[,F.Codes:=F.Codes2]
-      
-      # Fert.Out/Method: Update Naming Fields ####
-      # Names could do with index or short name
-      
-      # Make sure amount is a numeric field
-      Fert.Method[,F.Amount:=as.numeric(as.character(F.Amount))]
-      
-      ReName.Fun<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O){
-        NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
-        N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
-        
-        
-        F.Level<-Fert.Method[F.Level.Name==X & B.Code ==Y,list(F.Type,F.Amount)]
-        
-        F.Level<-rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=F.Type])
-        
-        # Deal with rounding issues   
-        F.Level[,F.Amount:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10)))]
-        F.Level<-F.Level[,paste(F.Type,F.Amount)]
-        
-        F.Level<-paste(F.Level[order(F.Level)],collapse = "|")
-        
-        
-        if(length(F.Level)==0 | F.Level==""){
-          F.Level<-"No Fert Control"
-        }else{
-          if(length(N)>0){
-            NPK<-NPK[,..N]
-            NPK<-paste(paste(colnames(NPK),unlist(NPK),sep="-"),collapse=" ")
-            F.Level<-paste(NPK,F.Level,sep = "||")
-          }
-        }
-        return(F.Level)
-      }
-      
-      Fert.Out[,N:=1:.N]
-      Fert.Out[,F.Level.Name2:=ReName.Fun(F.Level.Name,B.Code,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O),by="N"]
-      Fert.Out[,N:=NULL]
-      rm(ReName.Fun)
-      
-      Fert.Method[,F.Level.Name2:=Fert.Out[match(Fert.Method[,F.Level.Name],Fert.Out[,F.Level.Name]),F.Level.Name2]]
-      
-      # Fert.Out: Translate Fert Codes in Cols ####
-      F.Master.Codes<-PracticeCodes[Theme=="Nutrient Management" | Subpractice =="Biochar",Code]
-      F.Master.Codes<-F.Master.Codes[!grepl("h",F.Master.Codes)]
-      Fert.Method[,Code:=paste(B.Code,F.Level.Name)]
-      
-      
-      Fert.Levels<-rbindlist(pblapply(1:nrow(Fert.Out),FUN=function(i){
-        
-        F.Master<-data.frame(matrix(nrow=1,ncol = length(F.Master.Codes)))
-        colnames(F.Master)<-F.Master.Codes
-        F.Master2<-F.Master
-        
-        Z<-unlist(strsplit(Fert.Out[i,F.Codes2],"-"))
-        Z<-Z[!grepl("h",Z)]
-        
-        if(!is.na(Z[1]) & length(Z)>0){
-          Fert.Outx<-Fert.Out[i,]
-          FO.Code<-Fert.Outx[,paste(B.Code,F.Level.Name)]
-          Y<-Fert.Method[Code==FO.Code]
-          
-          for(Zn in Z){
-            # print(paste(i,"-",Zn))
-            W<-Y[grepl(Zn,unlist(Y[,paste(Fert.Code1,Fert.Code2,Fert.Code3)])),list(F.Type,F.Amount)]
-            # Deal with rounding issues
-            W<-rbind(W[is.na(F.Amount)],W[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=F.Type])
-            W[,F.Amount:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10)))]
-            W<-W[,paste(F.Type,F.Amount)]
-            
-            W<-paste(W[order(W)],collapse = "|")
-            
-            if(Zn %in% c("b17","b23")){
-              V<-Fert.Outx[i,F.NI]
-              if(!is.na(V)){
-                W<-paste(V,W)
-              }
-            }
-            if(Zn == "b21"){
-              V<-unlist(Fert.Outx[i,c("F.PI","F.P2O5")])
-              V<-V[!is.na(V)]
-              if(length(V[!is.na(V)])>0){
-                W<-paste(V,W)
-              }
-            }
-            if(Zn == "b16"){
-              V<-unlist(Fert.Outx[i,c("F.KI","F.K2O")])
-              V<-V[!is.na(V)]
-              if(length(V[!is.na(V)])>0){
-                W<-paste(V,W)
-              }
-            }
-            
-            if(Zn %in% c("b29","b30")){
-              V<-unlist(Fert.Outx[i,c("F.NO","F.PO","F.KO")])
-              if(length(V[!is.na(V)])>0){
-                V<-paste(V,collapse="-")
-                W<-paste(V,W)
-              }
-            }
-            
-            
-            F.Master[,Zn]<-W
-          }
-          
-        }
-        
-        N<-which(!is.na(as.vector(F.Master)))
-        if(length(N)>0){
-          F.Master2[,N]<-colnames(F.Master)[N]
-        }
-        colnames(F.Master2)<-paste(colnames(F.Master2),"Code",sep=".")
-        data.table(Fert.Out[i,c("B.Code","F.Level.Name")],F.Master,F.Master2)
-        
-        
-      }))
-      
-      Fert.Method[,Code:=NULL]
-      
-    }
+      # TO DO: Add check in case organic nutrients are listed in Fert.Out, but nothing corresponding in Fert.Method tab.
+  
 
   # 3.11.x) ***!!!TO DO!!!*** Add in h10 code where there are fertilizer treatments, but fertilizer column is blank #######
 if(F){
