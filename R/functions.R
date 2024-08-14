@@ -543,13 +543,14 @@ harmonizer <- function(data, master_codes, master_tab="lookup_levels",h_table, h
   }))
   
   # Matching old values to new values and updating data
-  class<-data[, .(class=lapply(.SD,class)), .SDcols = h_field]
+  class<-unlist(data[, .(class=lapply(.SD,base::class)), .SDcols = h_field])
   
   if(class=="list"){
   data_focal<-data[,..h_field]
   data_focal<-lapply(1:nrow(data_focal),FUN=function(i){
     old<-unlist(data_focal[i])
     new<-h_tab[match(old,h_tab$Values_Old),Values_New]
+    new[is.na(old)]<-NA
     old[!is.na(new)]<-new[!is.na(new)]
     return(old)
   })
@@ -561,6 +562,7 @@ harmonizer <- function(data, master_codes, master_tab="lookup_levels",h_table, h
   
   }else{
     N <- match(unlist(data[, ..h_field]), h_tab[, Values_Old])
+    N[is.na(unlist(data[, ..h_field]))]<-NA
     data <- data[!is.na(N), (h_field) := h_tab[N[!is.na(N)], Values_New]]
     data_focal<-data[,..h_cols]
   }
@@ -960,6 +962,10 @@ check_hilow <- function(data, hilo_pairs, tabname) {
 #' @param do_site A logical value indicating whether to check `Site.ID`. Defaults to `TRUE`.
 #' @param do_time A logical value indicating whether to check `Time`. Defaults to `TRUE`.
 #' @param convert_NA_strings A logical value indicating whether to convert "NA" strings to actual `NA` values. Defaults to `FALSE`.
+#' @param duplicate_field A character value indicating the name of the field that should be used to label duplicate rows (e.g. `V.Level.Name`). Defaults to `NULL`.
+#' @param duplicate_ignore_fields A vector of column names indicating any columns that should be excluded when checking for duplicate rows. Defaults to `NULL`.
+#' @param find_duplicates A logical value indicating whether to check the data for exact duplicate rows. Defaults to `TRUE`. Only applies if `duplicate_field` is not set to `NULL.`
+#' @param rm_duplicates A logical value indicating whether to remove exact duplicate rows/ Defaults to `TRUE`. Only applies if `duplicate_field` is not set to `NULL.`
 #'
 #' @return A list with two elements:
 #' \describe{
@@ -992,7 +998,11 @@ validator <- function(data,
                       trim_ws = FALSE,
                       do_site = TRUE,
                       do_time = TRUE,
-                      convert_NA_strings = FALSE) {
+                      convert_NA_strings = FALSE,
+                      duplicate_field=NULL,
+                      duplicate_ignore_fields=NULL,
+                      find_duplicates=TRUE,
+                      rm_duplicates=TRUE) {
   
   errors <- list()
   n <- 1
@@ -1130,8 +1140,32 @@ validator <- function(data,
     if (length(errors1) > 0) {
       errors1 <- errors1[, list(value = paste0(value, collapse = "/")), by = list(B.Code, table, field, issue)]
       errors[[n]] <- errors1
+      n<-n+1
     }
   }
+  
+  if(find_duplicates & !is.null(duplicate_field)){
+    if(!is.null(duplicate_ignore_fields)){
+      keep_cols<-colnames(data)[!colnames(data) %in% duplicate_ignore_fields]
+      errors1<-data[duplicated(data[,..keep_cols])]
+      }else{
+      errors1<-data[duplicated(data)]
+    }
+
+    if(nrow(errors1)>0){
+      setnames(errors1,duplicate_field,"value")
+      errors1<-errors1[,list(value=paste0(unique(value),collapse = "/")),by=B.Code
+                         ][, table := tabname
+                         ][, field := duplicate_field
+                         ][, issue := "Exact Duplicate rows in table"]
+      errors[[n]] <- errors1
+      n<-n+1
+      }
+      
+      if(rm_duplicates){
+        data<-data[!duplicated(data)]
+      }
+    }
   
   errors <- rbindlist(errors, use.names = TRUE)
   
