@@ -3056,11 +3056,11 @@ harmonization_list<-error_tracker(errors=results$h_tasks,filename = "treatment_h
   # 4.4) Combine aggregated treatments #####
   N<-grep("[.][.]",MT.Out$T.Name)
   
-  Fields<-data.table(Levels=c("T.Residue.Prev",names(code_cols),"P.Level.Name","O.Level.Name"),
-                     Codes =c("T.Residue.Code",code_cols,NA,NA))
+  Fields<-data.table(Levels=c("T.Residue.Prev",names(code_cols),"P.Level.Name","O.Level.Name","PD.Level.Name"),
+                     Codes =c("T.Residue.Code",code_cols,NA,NA,NA))
   Fields[Levels %in% c("W.Level.Name","C.Level.Name"),Codes:=NA]
   
-  results<-pblapply(N,FUN=function(i){
+    results<-pblapply(N,FUN=function(i){
     if(F){
       # Display progress
       cat('\r', strrep(' ', 150), '\r')
@@ -3399,7 +3399,10 @@ errors2<-rbindlist(lapply(1:length(keyfields),FUN=function(i){
   result
 }))[order(B.Code)]
 
-  # 5.1)Update Aggregated Treatment Delimiters #####
+# Check papers with 38 Int treatments
+Int.Out[,list(N=.N),by=B.Code][N>=35]
+
+  # 5.1) Update Aggregated Treatment Delimiters #####
 
   # Agg Treat delim = "..." 
   
@@ -3708,8 +3711,7 @@ errors2<-rbindlist(lapply(1:length(keyfields),FUN=function(i){
   
   # 5.6) Update Intercropping Delimiters ####
     Int.Out$IN.Level.Name2<-apply(Int.Out[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")],1,FUN=function(X){
-      X<-X[!is.na(X)]
-      X<-paste0(X[order(X)],collapse = "***")
+      X<-paste0(sort(X[!is.na(X)]),collapse = "***")
     })
   
   # 5.7) Structure ####
@@ -3835,118 +3837,119 @@ data<-lapply(XL,"[[","Rot.Out")
 col_names<-colnames(data[[1]])
   
   # 6.1) Rot.Seq #####
-col_names2<-col_names[15:18]
-
-Rot.Seq<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  col_names2<-col_names[15:18]
   
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with rotation tab structure"))
-  }else{
-    X<-X[,..col_names2]
-    colnames(X)[1]<-"R.Level.Name"
-    X<-X[!is.na( R.Level.Name)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
+  Rot.Seq<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    
+    if(!all(col_names2 %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with rotation tab structure"))
     }else{
-      NULL
-    }
-  }})
-
-errors_b<-rbindlist(lapply(Rot.Seq,"[[","error"))
-
-Rot.Seq<-rbindlist(lapply(Rot.Seq,"[[","data"))  
-setnames(Rot.Seq,c("Time Period","Treatment","Fate Crop Residues The Previous Season"),c("Time","R.Treatment","R.Resid.Fate"),skip_absent = T)
-
-results<-validator(data=Rot.Seq,
-                   tabname="Rot.Seq",
-                   zero_cols = "R.Resid.Fate",
-                   trim_ws = T,
-                   time_data=Times.Out,
-                   duplicate_field="R.Level.Name")
-
-errors1<-results$errors
-Rot.Seq<-results$data
-
-Rot.Seq[R.Resid.Fate=="Retained (Unknown if mulched/incorp.)",R.Resid.Fate:="Retained (unknown if mulched/incorp.)"]
-
+      X<-X[,..col_names2]
+      colnames(X)[1]<-"R.Level.Name"
+      X<-X[!is.na( R.Level.Name)]
+      if(nrow(X)>0){
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }else{
+        NULL
+      }
+    }})
+  
+  errors_b<-rbindlist(lapply(Rot.Seq,"[[","error"))
+  
+  Rot.Seq<-rbindlist(lapply(Rot.Seq,"[[","data"))  
+  setnames(Rot.Seq,c("Time Period","Treatment","Fate Crop Residues The Previous Season"),c("Time","R.Treatment","R.Resid.Fate"),skip_absent = T)
+  
+  results<-validator(data=Rot.Seq,
+                     tabname="Rot.Seq",
+                     zero_cols = "R.Resid.Fate",
+                     trim_ws = T,
+                     time_data=Times.Out,
+                     duplicate_field="R.Level.Name")
+  
+  errors1<-results$errors
+  Rot.Seq<-results$data
+  
+  # Update/correct R.Resid.Fate values used
+  Rot.Seq[R.Resid.Fate=="Retained (Unknown if mulched/incorp.)",R.Resid.Fate:="Retained (unknown if mulched/incorp.)"]
+  Rot.Seq[R.Resid.Fate=="Grazed/Mulched",R.Resid.Fate:="Mulched (left on surface)"]
 
   # 6.2) Rot.Out #####
-col_names2<-col_names[1:13]
-
-Rot.Out<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  col_names2<-col_names[1:13]
   
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with rotation tab structure"))
-  }else{
-    X<-X[,..col_names2]
-    X<-X[!(is.na( R.Level.Name)|R.Level.Name %in% c("#N/A","NA"))]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
+  Rot.Out<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    
+    if(!all(col_names2 %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with rotation tab structure"))
     }else{
-      NULL
-    }
-  }})
-
-errors_a<-rbindlist(lapply(Rot.Out,"[[","error"))
-Rot.Out<-rbindlist(lapply(Rot.Out,"[[","data"))  
-
-setnames(Rot.Out,"R.User.Code","R.Practice")
-
-results<-validator(data=Rot.Out,
-                   tabname="Rot.Out",
-                   unique_cols = "R.Level.Name",
-                   compulsory_cols = c(R.Level.Name="R.Practice"),
-                   trim_ws = T,
-                   time_data=Times.Out,
-                   duplicate_field="R.Level.Name"
-                   )
-errors3<-results$errors
-Rot.Out<-results$data
+      X<-X[,..col_names2]
+      X<-X[!(is.na( R.Level.Name)|R.Level.Name %in% c("#N/A","NA"))]
+      if(nrow(X)>0){
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }else{
+        NULL
+      }
+    }})
+  
+  errors_a<-rbindlist(lapply(Rot.Out,"[[","error"))
+  Rot.Out<-rbindlist(lapply(Rot.Out,"[[","data"))  
+  
+  setnames(Rot.Out,"R.User.Code","R.Practice")
+  
+  results<-validator(data=Rot.Out,
+                     tabname="Rot.Out",
+                     unique_cols = "R.Level.Name",
+                     compulsory_cols = c(R.Level.Name="R.Practice"),
+                     trim_ws = T,
+                     time_data=Times.Out,
+                     duplicate_field="R.Level.Name"
+                     )
+  errors2<-results$errors
+  Rot.Out<-results$data
 
 # Remove duplicated rows
 Rot.Out<-Rot.Out[!duplicated(Rot.Out[,.(B.Code,R.Level.Name)])]
 
   # 6.3) Rot.Seq Processing #####
     # 6.3.1) Update delimiters #####
-Rot.Seq[,R.Treatment:=gsub("[.][.]","...",R.Treatment)]
-Rot.Seq[,R.Treatment:=gsub("__","***",R.Treatment)]
+    Rot.Seq[,R.Treatment:=gsub("[.][.]","...",R.Treatment)]
+    Rot.Seq[,R.Treatment:=gsub("__","***",R.Treatment)]
+    
+    # Check treatments are in make.trt tab or intercropping tab
+    
+    # Check rotation names against MT.Out
+    dat<-Rot.Seq[!grepl("***",R.Treatment,fixed=T) & R.Treatment!="Natural or Bare Fallow",list(B.Code,R.Treatment)]
+    colnames(dat)[2]<-"T.Name"
+    errors3.1<-check_key(parent=MT.Out,child=dat,tabname="Rot.Seq",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code = F)
+    errors3.1<-errors3.1[,list(value=paste(value,collapse = "/")),by=.(B.Code,table,field,issue,parent_table)]
+    
+    # Check rotation names against Int.Out
+    dat<-Rot.Seq[grepl("***",R.Treatment,fixed=T),list(B.Code,R.Treatment)]
+    colnames(dat)[2]<-"IN.Level.Name2"
+    errors3.2<-check_key(parent=Int.Out,child=dat,tabname="Rot.Seq",tabname_parent="Int.Out",keyfield="IN.Level.Name2",collapse_on_code = F)
+    errors3.2<-errors3.2[,list(value=paste(value,collapse = "/")),by=.(B.Code,table,field,issue,parent_table)]
+    
+    # Value must be missing in both treatments and intercrops
+    errors3<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
+                                        ][,issue:="Treatname name used in time sequence does not match in treatment or intercrop tabs. "
+                                          ][,value:=gsub("[.][.][.]","..",value)][,value:=gsub("[*][*][*]","___",value)]
 
-# Check treatments are in make.trt tab or intercropping tab
-
-# Check rotation names against MT.Out
-dat<-Rot.Seq[!grepl("***",R.Treatment,fixed=T) & R.Treatment!="Natural or Bare Fallow",list(B.Code,R.Treatment)]
-colnames(dat)[2]<-"T.Name"
-errors3.1<-check_key(parent=MT.Out,child=dat,tabname="Rot.Seq",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code = F)
-errors3.1<-errors3.1[,list(value=paste(value,collapse = "/")),by=.(B.Code,table,field,issue,parent_table)]
-
-# Check rotation names against Int.Out
-dat<-Rot.Seq[grepl("***",R.Treatment,fixed=T),list(B.Code,R.Treatment)]
-colnames(dat)[2]<-"IN.Level.Name2"
-errors3.2<-check_key(parent=Int.Out,child=dat,tabname="Rot.Seq",tabname_parent="Int.Out",keyfield="IN.Level.Name2",collapse_on_code = F)
-errors3.2<-errors3.2[,list(value=paste(value,collapse = "/")),by=.(B.Code,table,field,issue,parent_table)]
-
-# Value must be missing in both treatments and intercrops
-errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
-                                    ][,issue:="Treatname name used in time sequence does not match in treatment or intercrop tabs. "
-                                      ][,value:=gsub("[.][.][.]","..",value)][,value:=gsub("[*][*][*]","___",value)]
-
-    # 6.3.2) Add in products ######
+    # 6.3.2) Add in products & structure ######
       # Merge in products
       # Treatments tab
-      mergedat<-MT.Out[,.(B.Code,T.Name,P.Product)]
-      Rot.Seq<-merge(Rot.Seq,mergedat,by.x=c("B.Code","R.Treatment"),by.y=c("B.Code","T.Name"),all.x=T)
+      mergedat<-MT.Out[,.(B.Code,T.Name,P.Product,Structure.Comb)]
+      Rot.Seq<-merge(Rot.Seq,mergedat,by.x=c("B.Code","R.Treatment"),by.y=c("B.Code","T.Name"),all.x=T,sort=F)
       
       # Intercrop treatments
-      mergedat<-Int.Out[,.(B.Code,IN.Level.Name2,IN.Prod1,IN.Prod2,IN.Prod3,IN.Prod4)]
-      Rot.Seq<-merge(Rot.Seq,mergedat,by.x=c("B.Code","R.Treatment"),by.y=c("B.Code","IN.Level.Name2"),all.x=T)
+      mergedat<-Int.Out[,.(B.Code,IN.Level.Name2,IN.Prod1,IN.Prod2,IN.Prod3,IN.Prod4,IN.Structure)]
+      Rot.Seq<-merge(Rot.Seq,mergedat,by.x=c("B.Code","R.Treatment"),by.y=c("B.Code","IN.Level.Name2"),all.x=T,sort=F)
       
       Rot.Seq<-setnames(Rot.Seq,c("IN.Prod1","IN.Prod2","IN.Prod3","IN.Prod4"),c("R.Prod1","R.Prod2","R.Prod3","R.Prod4"))
       Rot.Seq[is.na(R.Prod1),R.Prod1:=P.Product][,P.Product:=NULL]
@@ -3954,14 +3957,16 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
       #  Add in Fallow
       Rot.Seq[R.Treatment=="Natural or Bare Fallow",R.Prod1:="Fallow"]
 
-      
       # Combine Product codes
       Rot.Seq[,R.Prod:=apply(Rot.Seq[,c("R.Prod1","R.Prod2","R.Prod3","R.Prod4")],1,FUN=function(X){
         X<-unlist(X[!is.na(X)])
         paste(X[order(X)],collapse="***") # Intercropping delim
       })]
-
-    
+      Rot.Seq[R.Prod=="",R.Prod:=NA]
+      
+      # Are there any residual mismatches not highlighted in errors3?
+      Rot.Seq[is.na(R.Prod) & !B.Code %in% errors3$B.Code]
+      
     # 6.3.3) Add in treatment codes ######
 
     # Merge in products
@@ -3980,9 +3985,8 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
     # Add in fallow codes
     Rot.Seq[R.Treatment == "Natural or Bare Fallow",R.T.Codes:="h24"]
     
-    # 6.3.x) ***!!!TO DO!!!*** Update Residue codes based on previous season ######
-    if(F){
-      
+    # 6.3.4) Update Residue codes based on previous season ######
+
     # Merge in info from Rot.Out
     Rot.Seq<-merge(Rot.Seq,
                    Rot.Out[,.(B.Code,R.Level.Name,R.Start.Year,R.Start.Season)],
@@ -4016,6 +4020,9 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
     
     seq_ids<-unique(Rot.Seq$ID)
     
+      # Q: Can we assume if fallow and start of sequence assume previous state was also fallow (rather than NA)? #####
+    # Does the above matter as fallows at beginning of a time seq will not be receiving any residues?
+    
     Rot.Seq<-rbindlist(pblapply(1:length(seq_ids),FUN=function(i){
       
       seq_id<-seq_ids[i]
@@ -4044,82 +4051,56 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
       data
     }))
     
-    # Rot.Seq: Update residue codes cross-referencing to MASTERCODES sheets
-    
-    # Set Grazed/Mulched to be Mulched (as this value indicates at least some mulching took place) - only applies to Majestic Hippo
-    Rot.Seq[R.Resid.Fate=="Grazed/Mulched",R.Resid.Fate:="Mulched (left on surface)"]
-    
-    # ISSUE - ONLY DEALS WITH UP TO FOUR AGGREGATED PRODUCTS IN A ROTATION COMPONENT - MORE EXIST
+    # Rot.Seq: Update residue codes cross-referencing to master_codes
     
     # Split into columns to deal with aggregated products or intercropped treatments
     X<- strsplit(gsub("[.][.][.]","***",Rot.Seq$R.Prod.Prev),"[*][*][*]")
-    
-    
     N<-max(unlist(lapply(X,length)))
     
-    for(i in 1:N){
-      col<-paste0("R.Prod.Prev",i)
-      Rot.Seq[,(col):=unlist(lapply(X,"[",i))]
-    }
-
-
-    # Add codes for residues that are from Tree List
-    
-    tree_master<-master_codes$trees[,.(Tree.Latin.Name, Mulched,Incorp,Unknown.Fate)]
-
-    X1<-data.table(do.call("cbind",pblapply(1:N,FUN=function(i){
-      col<-c(paste0("R.Prod.Prev",i),"R.Resid.Fate")
-      Z<-Rot.Seq[,..col]
-      setnames(Z,col[1],"value")
-      Z[value %in% tree_master$Tree.Latin.Name &  !((R.Resid.Fate %in% c("Removed","Incorporated","Grazed","Burned","Unspecified","NA") | is.na(R.Resid.Fate))),N:=T]
-      X<-tree_master[match(unlist(Z[N==T,value]), tree_master$Tree.Latin.Name)]
-      
-      Z[N==T & R.Resid.Fate=="Mulched (left on surface)", R.Residues.Codes:=X$Mulched[which(unlist(Z[N==T,R.Resid.Fate])=="Mulched (left on surface)")]]
-      Z[N==T & R.Resid.Fate=="Incorporated", R.Residues.Codes:=X$Incorp[which(unlist(Z[N==T,R.Resid.Fate])=="Incorp")]]
-      Z[N==T & R.Resid.Fate=="Retained (unknown if mulched/incorp.)", R.Residues.Codes:=X$Unknown.Fate[which(unlist(Z[N==T,R.Resid.Fate])=="Retained (unknown if mulched/incorp.)")]]
-      Z$R.Residues.Codes
-    })))
-    colnames(X1)<-paste0("Trees",1:N)
-    
-    # Add codes for residues that are from EU List
-    prod_master<-master_codes$prod[,.(Product.Simple, Mulched,Incorp,Unknown.Fate)]
-    
-    # Add fallow to deal with "Unimproved Fallow" product
+    # Add codes for residues that are from tree and product vocab
+    tree_master<-unique(master_codes$trees[,.(Tree.Latin.Name, Mulched,Incorp,Unknown.Fate)])
+    colnames(tree_master)[2:4]<-paste0("T.",colnames(tree_master)[2:4])
+    colnames(tree_master)[1]<-"product"
+    prod_master<-unique(master_codes$prod[!is.na(Mulched),.(Product.Simple, Mulched,Incorp,Unknown.Fate)])
+    colnames(prod_master)[2:4]<-paste0("P.",colnames(prod_master)[2:4])
+    colnames(prod_master)[1]<-"product"
     prod_master<-rbind(prod_master,data.table("Fallow","b27","b41","b40"),use.names=F)
 
-    X2<-data.table(do.call("cbind",pblapply(1:N,FUN=function(i){
-      col<-c(paste0("R.Prod.Prev",i),"R.Resid.Fate")
-      Z<-Rot.Seq[,..col]
-      setnames(Z,col[1],"value")
+    for(i in 1:N){
+      col<-paste0("R.Prod.Prev",i)
+      res_col<-paste0("R.Res.Prev.Code",i)
       
-      Z[value %in% EUCodes$Product.Simple & (!(R.Resid.Fate %in% c("Removed","Incorporated","Grazed","Burned","Unspecified","NA") | is.na(R.Resid.Fate))),N:=T]
-      X<-prod_master[match(unlist(Z[N==T,value]), EUCodes$Product.Simple)]
+      prods<-unlist(lapply(X,"[",i))
+      Rot.Seq[,(col):=prods]
       
-      Z[N==T & R.Resid.Fate=="Mulched (left on surface)", R.Residues.Codes:=X$Mulched[which(unlist(Z[N==T,R.Resid.Fate])=="Mulched (left on surface)")]]
-      Z[N==T & R.Resid.Fate=="Incorporated", R.Residues.Codes:=X$Incorp[which(unlist(Z[N==T,R.Resid.Fate])=="Incorp")]]
-      Z[N==T & R.Resid.Fate=="Retained (unknown if mulched/incorp.)", R.Residues.Codes:=X$Unknown.Fate[which(unlist(Z[N==T,R.Resid.Fate])=="Retained (unknown if mulched/incorp.)")]]
-      Z$R.Residues.Codes
-    })))
-    colnames(X2)<-paste0("EUs",1:N)
-    
-    # 1) Combine cols in X1 and X2 
-    
-    X1<-data.table(do.call("cbind",lapply(1:N,FUN=function(i){
-      tree_col<-paste0("Trees",i)
-      eu_col<-paste0("EUs",i)
+      res_dat<-data.table(product=prods,res_fate=Rot.Seq[,R.Resid.Fate.Prev])
+      res_dat<-merge(res_dat,tree_master,by="product",all.x=T,sort=F)
+      res_dat<-merge(res_dat,prod_master,by="product",all.x=T,sort=F)
       
-      A<-unlist(X1[,..tree_col])
-      B<-unlist(X2[,..eu_col])
+      res_dat[res_fate=="Mulched (left on surface)",res_code:=if(!is.na(T.Mulched[1])){T.Mulched[1]}else{P.Mulched[1]},by=product]
+      res_dat[res_fate=="Incorporated",res_code:=if(!is.na(T.Incorp[1])){T.Incorp[1]}else{P.Incorp[1]},by=product]
+      res_dat[res_fate=="Retained (unknown if mulched/incorp.)",res_code:=if(!is.na(T.Unknown.Fate[1])){T.Unknown.Fate[1]}else{P.Unknown.Fate[1]},by=product]
       
-      A[is.na(A)]<-B[is.na(A)]
-      A
-    })))
-    
-    names(X1)<-paste0("R.Res.Prev",1:N)
-    
-    Rot.Seq<-cbind(Rot.Seq,X1)
 
-    # 2) Join using appropriate delimeter & update Rot.Seq - R.Residues.Codes
+      
+      if(i==1){
+        # Update Non ERA residue codes (control codes)
+        # Is product is NA (usually 1st time in seq and we do not know previous crop) but a residue fate is present add a code for an unspecified plant
+        res_dat[res_fate == "Removed",res_code:="h35"
+                ][res_fate == "Grazed",res_code:="h39"
+                  ][res_fate == "Burned",res_code:="h36"
+                    ][is.na(product) & res_fate=="Mulched (left on surface)",res_code:="b27"
+                      ][is.na(product) & res_fate=="Incorporated",res_code:="b41"
+                        ][is.na(product) & res_fate=="Retained (unknown if mulched/incorp.)",res_code:="b40"]
+        }
+                
+      Rot.Seq[,(res_col):=res_dat$res_code]
+    }
+    
+    res_cols<-paste0("R.Res.Prev.Code",1:N)
+
+
+    # 2) Join using appropriate delimiter & update Rot.Seq - R.Residues.Codes
     Res.Fun<-function(cols,delim){
       X<-paste0(c(A,B,C,D)[!is.na(c(A,B,C,D))],collapse = delim)
       if(length(X)==0 | X==""){
@@ -4129,8 +4110,8 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
       }
     }
     
-    X1int<-apply(X1,1,FUN=function(x,delim="***"){
-      x<-x[!is.na(x) & x!=""]
+    X1int<-apply(Rot.Seq[,..res_cols],1,FUN=function(x,delim="***"){
+      x<-unique(x[!is.na(x) & x!=""])
       if(length(x)==0){
         return(as.character(NA))
       }else{
@@ -4138,8 +4119,8 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
       }
     })
     
-    X1agg<-apply(X1,1,FUN=function(x,delim="..."){
-      x<-x[!is.na(x) & x!=""]
+    X1agg<-apply(Rot.Seq[,..res_cols],1,FUN=function(x,delim="..."){
+      x<-unique(x[!is.na(x) & x!=""])
       if(length(x)==0){
         return(as.character(NA))
       }else{
@@ -4147,37 +4128,17 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
       }
     })
     
-    
-    Rot.Seq[,R.Residues.Codes:=R.Res.Prev1]
+    Rot.Seq[,R.Residues.Codes:=R.Res.Prev.Code1]
     Rot.Seq[grep("[*][*][*]",R.Treatment),R.Residues.Codes:=X1int[grep("[*][*][*]",Rot.Seq$R.Treatment)]]
     Rot.Seq[grep("[.][.][.]",R.Treatment),R.Residues.Codes:=X1agg[grep("[.][.][.]",Rot.Seq$R.Treatment)]]
   
     
-    # 3) Update Non ERA residue codes (control codes)
-    Rot.Seq[R.Resid.Fate == "Removed",R.Residues.Codes:="h35"]
-    Rot.Seq[R.Resid.Fate == "Grazed",R.Residues.Codes:="h39"]
-    Rot.Seq[R.Resid.Fate == "Burned",R.Residues.Codes:="h36"]
+    # 6.3.5) Add Rotation Codes ######
+
+    Rot.Seq<-merge(Rot.Seq,Rot.Out[,.(R.Level.Name,B.Code,R.Code)],by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
     
-    # Rot.Out: List papers for QC
-    # Papers with residues applied in first season
-    if(F){
-      Rot.Out.First.Season.Residues<-Rot.Seq[!R.Resid.Fate %in% c("Removed","Incorporated","Unspecified","Grazed","Burned") & is.na(R.Residues.Codes),c("B.Code","Rotation Treatment","Time","R.Start.Year","Rotation Component","R.Residues.Codes","R.Resid.Fate","R.Res.Prev1","R.Res.Prev2")] 
-      View(Rot.Out.First.Season.Residues)
-      rm(Rot.Out.First.Season.Residues)
-    }
-    
-    # List Rotation Papers
-    #write.table(unique(Rot.Out[,B.Code]),"clipboard",row.names = F,sep="\t")
-    
-    
-    }
-    # 6.3.x) ***!!!TO DO!!!*** Add Rotation Codes and remove codes for the first year of sequence ######
-    if(F){
-    Rot.Seq[,R.Code:=Rot.Out$R.Code[match(ID,Rot.Out$ID)]]
-    
-    # Find First Time that Product Switches 
-    # ISSUE - DOES THIS NEED TO TAKE INTO ACCOUNT PRECEEDING CROP? 
-    # Answer: If preceding crop is the same there is no rotation if it differsmthen there is,this should not be an isssue.
+    # Find first time that product switches 
+
     P.Switch<-function(X){
       Y<-which(X!=X[1])
       if(length(Y)==0){
@@ -4188,50 +4149,27 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
       }
     }
     
-    Rot.Seq[,Prod.Switch:=P.Switch(R.Prod),by="ID"][,Prod.Switch.All.F:=if(sum(Prod.Switch)==0){T}else{F},by="ID"]
-    }
-
-    # 6.3.x) ***!!!TO DO!!!*** Add structure ######
-    if(F){
-        X<-data.table(
-        MT.Out2[match(Rot.Seq[,paste(B.Code,`Rotation Component`)],MT.Out2[,paste(B.Code,T.Name2)]),Structure.Comb],
-        Int.Out[match(Rot.Seq[,paste(B.Code,`Rotation Component`)],Int.Out[,paste(B.Code,IN.Level.Name2)]),IN.Structure]
-        )
-        Join.Fun<-function(X,Y){c(X,Y)[!is.na(c(X,Y))]}
-        X<-X[,N:=1:.N][,R.Structure:=Join.Fun(V1,V2),by=N][,R.Structure]
-        Rot.Seq[,R.Structure:=X]
-        rm(X,Join.Fun)
-    }
-    # 6.3.x) ***!!!TO DO!!!***  Other validation ######
-    #  View Residues of Aggregated Products
-    if(F){
-      Rot.Out_Agg.Prod_Res<-Rot.Seq[grep("[.][.]",R.Prod.Prev)][!R.Resid.Fate %in% c("Removed","Incorporated","Grazed","Burned","Unspecified")]
-      View(Rot.Out_Agg.Prod_Res)
-      rm(Rot.Out_Agg.Prod_Res)
-    }
+    Rot.Seq[,Prod.Switch:=P.Switch(R.Prod),by=.(B.Code,R.Level.Name)
+                        ][,Prod.Switch.All.F:=if(sum(Prod.Switch)==0){T}else{F},by=.(B.Code,R.Level.Name)
+                          ][,min_seq:=seq_n==min(seq_n),by=.(B.Code,R.Level.Name)]
     
-    #  View Residues of Trees **THIS TITLE DOES NOT MAKE SENSE**
-    if(F){
-      Rot.Out_Tree_Residues<-Rot.Seq[!is.na(R.Resid.Fate) & R.Resid.Fate !="Unspecified" & is.na(R.Residues.Codes)]
-      View(Rot.Out_Tree_Residues)
-      rm(Rot.Out_Tree_Residues)
-    }
+    
+    # See section 6.5 for how this is used to remove codes for the first year of sequence
+    
+    # 6.3.6) Update structure ######
+    Join.Fun<-function(X,Y){c(X,Y)[!is.na(c(X,Y))]}
+    Rot.Seq[,R.Structure:=Join.Fun(Structure.Comb[1],IN.Structure[1]),by=.(Structure.Comb,IN.Structure)]
+    rm(Join.Fun)
 
   # 6.4) Rot.Out Processing #####
-    # 6.4.1) ***!!!TO DO!!!*** Update/add fields from Rot.Seq ######
-      # ***!!!TO DO!!!*** R.T.Level.Names.All
-      # ***!!!TO DO!!!*** R.T.Codes.All 
-      if(F){
-        # old code
+    # 6.4.1) Update/add fields from Rot.Seq ######
+      # R.T.Codes.All 
         # Would it be better to have Agg Treats by component split with a "|||" as well as Cmn Trts? and retaining NA values
-        # TO DO: NEEDS TO DEAL WITH (REMOVE) YEARS THAT STARTS BEFORE SEQUENCE BEGINNING #####
-        # Perhaos R.T.Codes.All should be derived from Rot.Seq?
-       
-        
-         Rot.Out$R.T.Codes.All<-unlist(lapply(1:nrow(Rot.Out),FUN=function(i){
+        # Perhap R.T.Codes.All should be derived from Rot.Seq?
+       Rot.Out$R.T.Codes.All<-unlist(pblapply(1:nrow(Rot.Out),FUN=function(i){
           X<-Rot.Out[i,]
-          Y<-unlist(strsplit(X$R.T.Level.Names.All,"|||",fixed=T))
-          
+          Y<-Rot.Seq[B.Code==X$B.Code & R.Level.Name==X$R.Level.Name,R.Treatment]
+
           N<-Y %in% Int.Out$IN.Level.Name2
           if(sum(N)>0){
             Z<-Int.Out$IN.T.Codes[paste0(Int.Out$IN.Level.Name2,Int.Out$B.Code) %in% paste0(Y,X$B.Code)]
@@ -4241,15 +4179,15 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
             Z<-NA
           }
           
-          N<-Y %in% MT.Out2$T.Name2
+          N<-Y %in% MT.Out$T.Name
           if(sum(N)>0){
-            Z<-MT.Out2$T.Codes[paste0(MT.Out2$T.Name2,MT.Out2$B.Code) %in% paste0(Y,X$B.Code)]
+            Z<-MT.Out$T.Codes[paste0(MT.Out$T.Name,MT.Out$B.Code) %in% paste0(Y,X$B.Code)]
             
             if(length(grep("[.][.][.]",Z))>0){
-              A<-unique(MT.Out2$T.Codes.Agg[paste0(MT.Out2$T.Name2,MT.Out2$B.Code) %in% paste0(Y,X$B.Code)])
+              A<-unique(MT.Out$T.Codes.Agg[paste0(MT.Out$T.Name,MT.Out2$B.Code) %in% paste0(Y,X$B.Code)])
               A<-A[!is.na(A)]
               
-              B<-unique(MT.Out2$T.Codes.No.Agg[paste0(MT.Out2$T.Name2,MT.Out2$B.Code) %in% paste0(Y,X$B.Code)])
+              B<-unique(MT.Out$T.Codes.No.Agg[paste0(MT.Out$T.Nam2,MT.Out$B.Code) %in% paste0(Y,X$B.Code)])
               B<-B[!is.na(B)]
               if(length(B)>0){
                 Z<-paste0("Agg Trts: ",paste0(A,collapse="|||")," Cmn Trts: ",paste0(B,collapse = "|||"))
@@ -4265,8 +4203,6 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
             Z<-NA
           }
           
-          
-          
           if(length(Z)>1){
             Z<-paste0(Z[order(Z)],collapse = "-")
           }
@@ -4277,48 +4213,35 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
           }
         }))
         
-        Rot.Out_Agg.T.Codes<-Rot.Out[grep("Agg",R.T.Codes.All)]
-        if(nrow(Rot.Out_Agg.T.Codes)>0){
-          View(Rot.Out_Agg.T.Codes)
-        }
-        rm(Rot.Out_Agg.T.Codes)
-        
-        # Rot.Out - Validation: Find Sequences with only one product listed
-        # View(Rot.Out[-grep("[.][.]",R.All.Products)][R.User.Code!="Natural or Bare Fallow"])
-        #write.table(Rot.Out[-grep("[.][.]",R.All.Products),c("R.All.Products","B.Code","R.Level.Name","R.T.Level.Names.All","R.User.Code")
-        #                   ][R.User.Code!="Natural or Bare Fallow"],"clipboard",row.names = F,sep="\t")
-      }
-      # ***!!!TO DO!!!*** R.Residue.Codes.All
-      if(F){
-        # TO DO: NEEDS TO DEAL WITH (REMOVE) YEARS THAT STARTS BEFORE SEQUENCE BEGINNING #####
+      # R.Residue.Codes.All
         # Consider adding a logical field that indicates if an observation is from a preceeding season.
-        X<-Rot.Seq[,list(Residues=if(all(is.na(R.Residues.Codes))){as.character(NA)}else{paste(R.Residues.Codes,collapse = "|||")},
-                         R.Residues.All = paste(unique(R.Residues.Codes[!is.na(R.Residues.Codes)])[order(unique(R.Residues.Codes[!is.na(R.Residues.Codes)]))],collapse="-")),by="ID"]
-        
-        X$R.Residue.Codes.All[match(Rot.Out$ID,X$ID)]
-        
-        Rot.Out[,R.Residue.Codes.All:=X$R.Residues.All[match(ID,X$ID)]][,R.Residues.All2:=X$Residues[match(ID,X$ID)]]
+        mergedat<-Rot.Seq[,list(R.Residues.All2=if(all(is.na(R.Residues.Codes))){as.character(NA)}else{paste(R.Residues.Codes,collapse = "|||")},
+                         R.Residue.Codes.All = paste(unique(R.Residues.Codes[!is.na(R.Residues.Codes)])[order(unique(R.Residues.Codes[!is.na(R.Residues.Codes)]))],collapse="-")),by=.(B.Code,R.Level.Name)]
+        Rot.Out[,c("R.Residue.Codes.All","R.Residues.All"):=NULL]
+        Rot.Out<-merge(Rot.Out,unique(mergedat),by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
         Rot.Out[R.Residue.Codes.All=="",R.Residue.Codes.All:=NA]
-        rm(X)
+      # R.All.Products
+        mergedat<-Rot.Seq[,list(R.All.Products=paste0(sort(unique(unlist(strsplit(unlist(strsplit(R.Prod,"[*][*][*]")),"[.][.][.]")))),collapse = "-")),by=.(B.Code,R.Level.Name)]
+        Rot.Out[,R.All.Products:=NULL]
+        Rot.Out<-merge(Rot.Out,unique(mergedat),by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
         
-      }
-      # ***!!!TO DO!!!*** R.All.Products
-      # ***!!!TO DO!!!*** R.All.Structure
-    # 6.4.x) ***!!!TO DO!!!*** Update delimiters in R.T.Level.Names.All ######
-    # This should not be required 
-  if(F){
-     X<-Rot.Seq[,list(R.T.Level.Names.All2=paste0(`Rotation Component`,collapse="|||")),by=c("Rotation Treatment","B.Code")
-    ][,R.ID:=paste(B.Code,`Rotation Treatment`)]
-    
-    Rot.Out[,R.ID:=paste(B.Code,R.Level.Name)]
-    Rot.Out[,R.T.Level.Names.All2:=X$R.T.Level.Names.All2[match(Rot.Out$R.ID,X$R.ID)]]
-  }
-    # 6.4.x) ***!!!TO DO!!!*** Generate T.Codes & Residue for System Outcomes ####
-    if(F){
+      # R.All.Structure
+        mergedat<-Rot.Seq[,list(R.All.Structure=paste0(sort(unique(R.Structure)),collapse = "-")),by=.(B.Code,R.Level.Name)]
+        Rot.Out[,R.All.Structure:=NULL]
+        Rot.Out<-merge(Rot.Out,unique(mergedat),by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
+        
+    # 6.4.2) Update delimiters in R.T.Level.Names.All ######
+        # Is this required ?
+        mergedat<-unique(Rot.Seq[,list(R.T.Level.Names.All2=paste0(R.Treatment,collapse="|||")),by=.(B.Code,R.Level.Name)])
+        Rot.Out<-merge(Rot.Out,mergedat,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)   
+        
+    # 6.4.3) Generate T.Codes & Residue for System Outcomes ####
     # Set Threshold for a practice to be considered present in the sequence (proportion of phases recorded)
     Threshold<-0.5
     
-    X<-rbindlist(pblapply(Rot.Seq[,unique(ID)],FUN=function(TC){
+    seq_ids<-Rot.Seq[,unique(ID)]
+    mergedat<-rbindlist(pblapply(1:length(seq_ids),FUN=function(i){
+      TC<-seq_ids[i]
       X<-Rot.Seq[ID==TC]
       Y<-table(unlist(strsplit(X[,R.T.Codes],"-")))/nrow(X)
       INT<-table(unlist(strsplit(X[,R.IN.Codes],"-")))/nrow(X)
@@ -4352,25 +4275,17 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
         A<-paste(A[order(A)],collapse="-")
       }
       
-      data.table(Code=TC,R.T.Codes.Sys=Y,R.Res.Codes.Sys=A,R.IN.Codes.Sys=INT)
+      data.table(B.Code=X$B.Code[1],R.Level.Name=X$R.Level.Name[i],R.T.Codes.Sys=Y,R.Res.Codes.Sys=A,R.IN.Codes.Sys=INT)
       
     }))
-    Rot.Out<-cbind(Rot.Out,X[match(Rot.Out[,paste(B.Code,R.Level.Name)],X[,Code]),c("R.T.Codes.Sys","R.Res.Codes.Sys","R.IN.Codes.Sys")])
-    rm(X)
     
-    Rot.Out[R.Res.Codes.Sys=="",R.Res.Codes.Sys:=NA]
-    Rot.Out[R.IN.Codes.Sys=="",R.IN.Codes.Sys:=NA]
-    }
+    Rot.Out<-merge(Rot.Out,mergedat,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
+    Rot.Out[R.Res.Codes.Sys=="",R.Res.Codes.Sys:=NA
+            ][R.IN.Codes.Sys=="",R.IN.Codes.Sys:=NA]
   
-    # 6.4.x) ***!!!TO DO!!!*** Add Practice Level Columns ######
-    if(F){
-    #Levels<-Fields[!Levels %in% c("P.Level.Name","O.Level.Name","W.Level.Name","C.Level.Name","T.Residue.Prev"),Levels]
-    
-    Levels<-Fields[!Levels %in% c("P.Level.Name","O.Level.Name","W.Level.Name","C.Level.Name","T.Residue.Prev")]
+    # 6.4.4) Add Practice Level Columns ######
+    Levels<-Fields[!Levels %in% c("P.Level.Name","O.Level.Name","W.Level.Name","C.Level.Name","PD.Level.Name","T.Residue.Prev")]
     Levels<-c(Levels[,Levels],Levels[,Codes])
-    
-    
-    Rot.Out[,which(B.Code=="AN0088")][3]
     
     Rot.Levels<-rbindlist(pblapply(1:nrow(Rot.Out),FUN=function(i){
       
@@ -4382,7 +4297,7 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
       Trts.All<-unlist(strsplit(Trts.All,"[*][*][*]"))
       Trts.All<-unlist(strsplit(Trts.All,"[.][.][.]"))
       
-      Trts<-MT.Out2[B.Code==X[,B.Code]][match(Trts.All,T.Name2)]
+      Trts<-MT.Out[B.Code==X[,B.Code]][match(Trts.All,T.Name)]
       
       Levels.Joined<-unlist(lapply(Levels,FUN=function(X){
         Y<-unlist(Trts[,..X])
@@ -4396,56 +4311,57 @@ errors2<-rbind(errors3.1,errors3.2)[,field:="R.Treatment"
     Rot.Levels[,R.ID:=paste(B.Code,R.Level.Name)]
     rm(Levels)
     
-    
-    X<-Rot.Seq[,list(Len=.N,Len.Till=sum(grepl("b38|b39",R.T.Codes))),by=c("B.Code","Rotation Treatment")
-    ][Len.Till>0
-    ][,Ratio:=Len.Till/Len
-    ][Ratio<1 & Len>2]
-    
-    write.table(X,"clipboard",row.names = F,sep="\t")
-      # 6.2.x) Other Validation ######
-      if(F){
+  # 6.5) Other Validation ######
         # Check for sequences that have a rotation code, but no rotation in the sequence presented
         # Only improved fallow should be able to have a sequence with no change in product.
-        Rot.Out_No.Rotation<-Rot.Seq[Prod.Switch.All.F==T]  
-          if(nrow(Rot.Out_No.Rotation)>0){
-          View(Rot.Out_No.Rotation)
-        }
-        rm(Rot.Out_No.Rotation)
-        
+        Rot.Seq[,n_crops:=length(unique(R.Prod)),by=.(B.Code,R.Level.Name)]
+        errors4<-Rot.Seq[n_crops==1 & R.Code!="h24" & !is.na(R.Code) & !B.Code %in% errors3$B.Code
+                ][,.(value=paste0(R.Level.Name[1],"-", R.Code[1],":",paste(unique(R.Prod),collapse="/"))),by=.(B.Code,R.Level.Name)
+                  ][,list(value=paste(value,collapse = "/")),by=B.Code
+                    ][,table:="Rot.Out"
+                      ][,field:="R.Level.Name-R.Code: R.Prod"
+                        ][,issue:="Rotation practice present but only one crop present in corresponding sequence."]  
+        write.table(errors4,"clipboard-256000",row.names = F,sep="\t")
+  
         # Update Rotation Codes to NA where crop has not changed (with exception of improved fallows with no change in product)
+        # Add Year==Min.Year & min_seq==T if you only want this to apply to the first instance of a sequence
         Rot.Seq[Prod.Switch==F & (Prod.Switch.All.F==F & !(R.Code %in% c("h24","b60.1","b60","b60.2"))),R.Code:=NA]
         
         # Rot.Out: Validation - Where do we have missing residue codes?
-        Rot.Out_Missing.Res.Codes<-Rot.Seq[!R.Resid.Fate %in% c("Removed","Incorporated","Grazed","Burned","Unspecified") & `Rotation Component` != "Natural or Bare Fallow" & 
-                                             ((!is.na(R.Prod1) & is.na(R.Res.Prev1)) |(!is.na(R.Prod2) & is.na(R.Res.Prev2)) | (!is.na(R.Prod3) & is.na(R.Res.Prev4)) | (!is.na(R.Prod4) & is.na(R.Res.Prev4)))]
+        issues<-unique(Rot.Seq[!R.Resid.Fate.Prev %in% c("Removed","Incorporated","Grazed","Burned","Unspecified","Burned or Grazed","Other") & 
+                  !is.na(R.Prod) & !is.na(R.Resid.Fate.Prev) &
+                  ((!is.na(R.Prod.Prev1) & is.na(R.Res.Prev.Code1)) |
+                     (!is.na(R.Prod.Prev2) & is.na(R.Res.Prev.Code2)) | 
+                     (!is.na(R.Prod.Prev3) & is.na(R.Res.Prev.Code3)) | 
+                     (!is.na(R.Prod.Prev4) & is.na(R.Res.Prev.Code4))),
+                .(B.Code,R.Level.Name,R.Resid.Fate.Prev,
+                  R.Prod.Prev1,R.Res.Prev.Code1,
+                  R.Prod.Prev2,R.Res.Prev.Code2,
+                  R.Prod.Prev3,R.Res.Prev.Code3,
+                  R.Prod.Prev4,R.Res.Prev.Code4)])
         
-        if(F & nrow(Rot.Out_Missing.Res.Codes)>0){
-          # EO0068 - Fate is reading 0 but sheet says "Unspecified - reload and see if issue resolves.
-          View(Rot.Out_Missing.Res.Codes) 
-        }
-        rm(Rot.Out_Missing.Res.Codes)
-      } 
-    }
-
-  # 6.3) ***!!!TO DO!!!*** Rot.Seq.Summ (summarise crop sequence) #####
-
-  if(F){
-  Seq.Fun<-function(A){
-  paste(A[!is.na(A)],collapse = "|||")
-}
-  Rot.Seq.Summ<-Rot.Seq[,list(Seq=Seq.Fun(R.Prod)),by=c("B.Code","Rotation Treatment")]
-  
-  setnames(Rot.Seq.Summ, "Rotation Treatment", "R.Level.Name")
-  
-  Rot.Out$R.Prod.Seq<-Rot.Seq.Summ$Seq[match(paste(Rot.Out$R.Level.Name,Rot.Out$B.Code),paste(Rot.Seq.Summ$R.Level.Name,Rot.Seq.Summ$B.Code))]
-  if(F){View(Rot.Out[,c("B.Code","R.Level.Name","R.T.Level.Names.All","R.Prod.Seq")])}
+        issues_crops<-unique(c(
+        issues[is.na(R.Res.Prev.Code1),R.Prod.Prev1],
+        issues[is.na(R.Res.Prev.Code2) & !is.na(R.Prod.Prev2),R.Prod.Prev2],
+        issues[is.na(R.Res.Prev.Code3) & !is.na(R.Prod.Prev3),R.Prod.Prev3],
+        issues[is.na(R.Res.Prev.Code4) & !is.na(R.Prod.Prev4),R.Prod.Prev4]))
+        
+        # Crops reference to products that have an issue matching to the master codes
+        issues_crops<-issues_crops[!issues_crops %in% error_list$prod_other_errors[grep("No match for",issue),unique(unlist(tstrsplit(value,"/",keep=2)))]]
+        
+        # Do we have any residual problems?
+        issues_crops
+      
+  # 6.3.5) Rot.Seq.Summ (summarise crop sequence) #####
+    Seq.Fun<-function(A){
+    paste(A[!is.na(A)],collapse = "|||")
   }
-  
-  
+    Rot.Seq.Summ<-Rot.Seq[,list(Seq=Seq.Fun(R.Prod)),by=.(B.Code,R.Level.Name)]
+    Rot.Out<-merge(Rot.Out,Rot.Seq.Summ,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
+
   # 6.6) Save errors #####
     error_list<-error_tracker(errors=unique(rbind(errors_a,errors_b)),filename = "rot_structure_errors",error_dir=error_dir,error_list = error_list)
-    error_list<-error_tracker(errors=rbind(errors1,errors2,errors3),filename = "rot_other_errors",error_dir=error_dir,error_list = error_list)
+    error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4),fill=T)[order(B.Code)],filename = "rot_other_errors",error_dir=error_dir,error_list = error_list)
 
 # 7) Outcomes ####
   data<-lapply(XL,"[[","Out.Out")
