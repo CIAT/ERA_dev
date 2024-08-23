@@ -1,6 +1,6 @@
 value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
 Canal,SA0051,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
-Clean water ,NN0515,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
+Clean water,NN0515,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
 Fish Drainage Water,CJ0197,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
 River,CJ0174,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""
 Saline,CJ0172,Irrig.Method,I.Water.Type,Irrig.Out,I.Water.Type,lookup_levels,FALSE,"",""

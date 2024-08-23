@@ -3,3 +3,5 @@ NN0162.2,1947-03-01,PD.Out,PD.Date.Start,Date not between 1950-01-01 & 2023-12-0
 NN0162.2,1947-03-31,PD.Out,PD.Date.End,Date not between 1950-01-01 & 2023-12-01,FALSE,Charity,The LTE is as old as 1947
 NN0164,1947-03-01,PD.Out,PD.Date.Start,Date not between 1950-01-01 & 2023-12-01,FALSE,Charity,The LTE is as old as 1947
 NN0164,1947-03-31,PD.Out,PD.Date.End,Date not between 1950-01-01 & 2023-12-01,FALSE,Charity,The LTE is as old as 1947
+NN0549,9999-01-01,PD.Out,PD.Date.Start,Date not between 1950-01-01 & 2023-12-01,FALSE,"",""
+NN0549,9999-12-01,PD.Out,PD.Date.End,Date not between 1950-01-01 & 2023-12-01,FALSE,"",""

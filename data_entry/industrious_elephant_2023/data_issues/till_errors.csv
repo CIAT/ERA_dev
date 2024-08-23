@@ -1,2 +1,3 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
+CJ0090,2012,Till.Out,Time,A Time used does not match the Time tab.,FALSE,"",""
 JO0217,Then.topsoilwasheapedinto50-cmhighmoundswithahoeatadensityof1moundm-2.,Till.Out,T.Date.End,Non-numeric value in numeric field.,FALSE,"",""
