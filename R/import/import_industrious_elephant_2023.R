@@ -93,7 +93,6 @@ if(file_status){
 
 # 2) Load data ####
   # 2.1) Load era vocab (era_master_sheet.xlsx) #####
-
   # Get names of all sheets in the workbook
   sheet_names <- readxl::excel_sheets(era_vocab_local)
   sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
@@ -2791,10 +2790,8 @@ if(file_status){
   Weed.Out[,N:=NULL][,No_struc:=NULL]
   
   # Add hand weeding code
-
-  Weed.Out[!W.Method %in% c("Mechanical","Ploughing"),W.Code:="h66.2"]
-  
-  Weed.Code<-Weed.Out[,list(W.Code=unique(W.Code[!is.na(W.Code)]),W.Structure=W.Structure[1]),by=list(B.Code,W.Level.Name)]
+  Weed.Out[!W.Method %in% c("Mechanical","Ploughing"),W.Codes:="h66.2"]
+  Weed.Code<-Weed.Out[,list(W.Codes=unique(W.Codes[!is.na(W.Codes)]),W.Structure=W.Structure[1]),by=list(B.Code,W.Level.Name)]
 
     # 3.21.1) Harmonization #######
   h_params<-data.table(h_table="Weed.Out",
@@ -2821,8 +2818,8 @@ if(file_status){
     pH.Out[pH.Level.Name=="Base" & !is.na(pH.Codes),c("B.Code","pH.Codes")],
     WH.Out[WH.Level.Name=="Base" & !is.na(WH.Codes),c("B.Code","WH.Codes")],
     Irrig.Codes[I.Level.Name=="Base" & !is.na(I.Codes),c("B.Code","I.Codes")],
-    Weed.Code[!is.na(W.Codes),c("B.Code","W.Code")],
-    Chems.Code[!is.na(C.Code),c("B.Code","C.Codes")]
+    Weed.Code[!is.na(W.Codes),c("B.Code","W.Codes")],
+    Chems.Code[!is.na(C.Codes),c("B.Code","C.Codes")]
   )
   
   Base.Out<-rbindlist(Base.Out,use.names = F)
@@ -3040,7 +3037,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
                Till.Level.Name="Till.Code",
                V.Level.Name="V.Codes",
                WH.Level.Name="WH.Codes",
-               W.Level.Name="W.Code",
+               W.Level.Name="W.Codes",
                C.Level.Name="C.Codes")
   
   t_codes<-apply(MT.Out[,..code_cols],1,FUN=function(x){
@@ -3301,7 +3298,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6),fill = T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "treatment_other_errors",error_dir=error_dir,error_list = error_list)
   
-  # 4.x) ***MT.Out: Correct Ridge & Furrow #####
+  # 4.x) ***!!!TO DO!!!***MT.Out: Correct Ridge & Furrow #####
   # remove water harvesting code if ridge and furrow is a conventional tillage control
   if(F){
     # Add row index
@@ -4360,7 +4357,7 @@ col_names<-colnames(data[[1]])
         # Do we have any residual problems?
         issues_crops
       
-# 6.6) Save errors #####
+  # 6.6) Save errors #####
   error_list<-error_tracker(errors=unique(rbind(errors_a,errors_b)),filename = "rot_structure_errors",error_dir=error_dir,error_list = error_list)
   error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4),fill=T)[order(B.Code)],filename = "rot_other_errors",error_dir=error_dir,error_list = error_list)
 
@@ -4791,20 +4788,22 @@ errors<-c(errors,list(Data.Out[grepl(master_codes$out[TC.Ratio=="Y",paste0(Subin
     
     # Where stover is listed as the component change all outcomes from biomass to crop residue
     Data.Out[!is.na(P.Product) & 
-               !P.Product %in% prod_master[Product.Subtype %in% c("Fodders","Cover Crops"),Product.Simple]  & 
+               !P.Product %in% master_codes$prod[Product.Subtype %in% c("Fodders","Cover Crops"),Product.Simple]  & 
                grepl("stover|residue",ED.Product.Comp,ignore.case = T) &
                Out.Subind=="Biomass Yield",Out.Code.Joined:=gsub("Biomass Yield","Crop Residue Yield",Out.Code.Joined)]
     
     Data.Out[!is.na(P.Product) & 
-               !P.Product %in% prod_master[Product.Subtype %in% c("Fodders","Cover Crops"),Product.Simple]  & 
+               !P.Product %in% master_codes$prod[Product.Subtype %in% c("Fodders","Cover Crops"),Product.Simple]  & 
                grepl("stover|residue",ED.Product.Comp,ignore.case = T) &
                Out.Subind=="Biomass Yield",Out.Subind:="Crop Residue Yield"]
+    
+    # Where natural fallow and crop residue yield are listed, change outcome to biomass yield
+    Data.Out[Out.Subind=="Crop Residue Yield" & P.Product %in% c("Fallow","Natural Fallow"),Out.Subind:="Biomass Yield"]
     
     # For fodders or cover crops remove stover
     Data.Out[!is.na(P.Product) & 
                grepl("stover|residue",ED.Product.Comp,ignore.case = T) &
                Out.Subind=="Biomass Yield",ED.Product.Comp:="Biomass/Fodder"]
-    
     
     error_dat<-Data.Out[!is.na(P.Product) & grepl("stover|residue",ED.Product.Comp,ignore.case = T) & Out.Subind=="Biomass Yield",.(value=paste(unique(P.Product),collapse="/")),by=B.Code
     ][,table:="Data.Out"
@@ -4905,154 +4904,167 @@ X
 }))
 
 
-# Data.Out: Add Products ####
-# Data.Out: Add Products: Validation Checks ####
-
-Data.Out[P.Product %in% prod_master[Product.Subtype %in% c("Cereals","Legumes"),Product.Simple] & Out.Subind=="Crop Yield",ED.Product.Comp:="Grain/Seed"]
-Data.Out[P.Product %in% c("Coffee") & Out.Subind=="Crop Yield",ED.Product.Comp:="Grain/Seed"]
-
-# Add component level 1 to Data.Out (used to match component + product to EU list)
-comp_codes<-master_codes$prod_comp
-prod_master<-master_codes$prod
-
-X<-Data.Out[,c("B.Code","P.Product","ED.Product.Comp","Out.Subind")
-          ][,EU.Comp.L1:=comp_codes$Comp.Level1[match(ED.Product.Comp,comp_codes$Component)]]
-
-# Add code field based on product x component combined to ERA data and product (EU) MASTERCODES
-X[,Code:=paste(P.Product,EU.Comp.L1)]
-prod_master[,Code:=paste(Product.Simple,Component)]
-
-# Check Yield Outcomes with no product component specified:
-error_dat<-unique(X[is.na(ED.Product.Comp) & (grepl("Yield",Out.Subind)|grepl("Efficiency",Out.Subind)) & !grepl("[.][.]",P.Product)])
-error_dat[!is.na(P.Product),list(P.Product=paste(unique(P.Product),collapse="/"),Out.Subind=paste(unique(Out.Subind),collapse = "/")),by=B.Code]
-
-# Check product components that do not match component column in EU.Comp tab of MASTERCODES
-error_dat<-unique(X[is.na(EU.Comp.L1)& (grepl("Yield",Out.Subind)|grepl("Efficiency",Out.Subind)) & !is.na(ED.Product.Comp) & !grepl("[.][.]",P.Product)])
-
-# Validation: Check Product + Component Combinations Not in EU2 tab of MASTERCODES
-error_dat<-unique(X[!Code %in% prod_master$Code & 
-                    P.Product %in% prod_master$Product.Simple &
-                    !is.na(EU.Comp.L1) & 
-                    !is.na(P.Product) &
-                    !is.na(ED.Product.Comp) & 
-                    !grepl("Efficiency",Out.Subind) &
-                    !Out.Subind %in% c("Biomass Yield","Aboveground Carbon Biomass","Aboveground Biomass","Belowground Biomass","Crop Residue Yield") & !grepl("[.][.]",P.Product)])
-
-
-# Data.Out: Add Products: Join Products to Data.Out ====
-# 1) Match products in Data.Out to MASTERCODES using product x component code  ####
-Data.Out[,ED.Product.Comp.L1:=Comp.Codes$Comp.Level1[match(ED.Product.Comp,Comp.Codes$Component)]]
-Data.Out[,ED.Product.Code:=paste(ED.Product.Simple,ED.Product.Comp.L1)]
-
-X<-EUCodes[match(Data.Out$ED.Product.Code,EUCodes$Code),c("EU","Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name" )]
-X[,N:=1:.N]
-
-# 2) For non-matches in 1, match products in Data.Out to MASTERCODES using product only  ####
-N<-which(is.na(X$EU))
-Y<-EUCodes[match(Data.Out$ED.Product.Simple[N],EUCodes$Product.Simple),c("EU","Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name" )
-][,N:=which(is.na(X$EU))]
-
-Y[,EU2:=lapply(strsplit(EU,"[.]"),"[",1)
-][,EU2.Match:=EU2 %in% EUCodes$EU
-][!is.na(EU2.Match),EU:=EU2
-][,Component:=NA
-][,EU2:=NULL
-][,EU2.Match:=NULL]
-
-# Join 1) & 2), dropping non-matches from 1)
-X<-rbind(X[!is.na(EU)],Y)[order(N)]
-rm(Y)
-
-# 3) Add in Agroforestry Trees ####
-NX<-is.na(X[,EU])  & Data.Out[,ED.Product.Simple] %in% TreeCodes$Product.Simple
-X[NX,Product.Type :="Plant Product"]
-X[NX,Product.Subtype :="Agroforestry Tree"]
-X[NX,Product := Data.Out[NX,ED.Product.Simple]]
-X[NX,Product.Simple := Product]
-X[NX,Component  := Data.Out[NX,ED.Product.Comp.L1]]
-X[NX,Latin.Name := Product]
-
-X[NX,EU:=TreeCodes[match(Data.Out[NX,ED.Product.Simple],TreeCodes[,Product.Simple]),EU]]
-rm(NX)
-
-# 4) Repeat 1-3 but for aggregated products (SLOW consider parallel) ####
-N<-grep("[.][.]",Data.Out$ED.Product.Simple)
-Z<-Data.Out[N,c("ED.Product.Simple","ED.Product.Comp","ED.Product.Code")]
-
-Z<-rbindlist(pblapply(1:nrow(Z),FUN=function(i){
-X1<-Z[i]
-Product<-unlist(strsplit(X1$ED.Product.Simple,"[.][.]"))
-Comp<-X1$ED.Product.Comp
-
-Code<-paste(Product,Comp)
-N<-match(Code,EUCodes$Code)
-
-X2<-EUCodes[N,c("EU","Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name" )]
-
-if(sum(is.na(X2$EU))>0){
-  N<-which(is.na(X2$EU))
-  N1<-match(Product[N],EUCodes$Product.Simple)
-  Y<-EUCodes[N1,c("EU","Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name" )
-  ]
+# 8.5.7) Add Products ######
+  # 8.5.7.1) Check product components #######
   
-  Y[,EU2:=lapply(strsplit(EU,"[.]"),"[",1)
-  ][,EU2.Match:=EU2 %in% EUCodes$EU
-  ][EU2.Match!=F,EU:=EU2
-  ][,Component:=NA
-  ][,EU2:=NULL
-  ][,EU2.Match:=NULL]
+  # Update okra fruits to okra pods
+  Data.Out[P.Product %in% c("Okra","Arabica","Robusta","Cocoa") & ED.Product.Comp=="Fruit (Unspecified)",ED.Product.Comp:="Pods"]
   
+  # Update production component if legume or cereal and outcome is crop yield
+  Data.Out[P.Product %in% master_codes$prod[Product.Subtype %in% c("Cereals","Legumes"),Product.Simple] & Out.Subind=="Crop Yield",ED.Product.Comp:="Grain/Seed"]
+  Data.Out[P.Product %in% c("Coffee") & Out.Subind=="Crop Yield",ED.Product.Comp:="Grain/Seed"]
   
-  if(sum(is.na(Y$EU))>0){
-    N<-which(is.na(Y$EU))
-    N1<-match(Product[N],TreeCodes[,Product.Simple])
-    if(sum(!is.na(N1))>0){
-      
-      Y<-rbind(Y[-N[!is.na(N1)]],data.table(EU=TreeCodes[N1,EU],Product.Type="Plant Product",Product.Subtype = "Agroforestry Tree",Product = Product[N],
-                                            Product.Simple=Product[N],Component = Comp, Latin.Name = Product[N]))
-    }
+  # Add component level 1 to Data.Out (used to match component + product to EU list)
+  comp_codes<-master_codes$prod_comp
+  prod_master<-master_codes$prod
+  
+  X<-Data.Out[,c("B.Code","P.Product","ED.Product.Comp","Out.Subind")
+            ][,EU.Comp.L1:=comp_codes$Comp.Level1[match(ED.Product.Comp,comp_codes$Component)]]
+  
+  # Add code field based on product x component combined to ERA data and product (EU) MASTERCODES
+  X[,Code:=paste(P.Product,EU.Comp.L1)]
+  prod_master[,Code:=paste(Product.Simple,Component)]
+  
+  # Check Yield Outcomes with no product component specified:
+  error_dat<-unique(X[is.na(ED.Product.Comp) & (grepl("Yield",Out.Subind)|grepl("Efficiency",Out.Subind)) & !grepl("[.][.]",P.Product)])
+  error_dat<-error_dat[!is.na(P.Product),list(P.Product=paste(unique(P.Product),collapse="/"),Out.Subind=paste(unique(Out.Subind),collapse = "/")),by=B.Code]
+  
+  # Check product components that do not match component column in EU.Comp tab of MASTERCODES
+  error_dat<-unique(X[is.na(EU.Comp.L1)& (grepl("Yield",Out.Subind)|grepl("Efficiency",Out.Subind)) & !is.na(ED.Product.Comp) & !grepl("[.][.]",P.Product)])
+  
+  # Validation: Check Product + Component Combinations Not in EU2 tab of MASTERCODES
+  error_dat<-unique(X[!Code %in% prod_master$Code & 
+                      P.Product %in% prod_master$Product.Simple &
+                      !is.na(EU.Comp.L1) & 
+                      !is.na(P.Product) &
+                      !is.na(ED.Product.Comp) & 
+                      !grepl("Efficiency",Out.Subind) &
+                      !Out.Subind %in% c("Biomass Yield","Aboveground Carbon Biomass","Aboveground Biomass","Belowground Biomass","Crop Residue Yield") & !grepl("[.][.]",P.Product)])
+  
+  error_dat<-error_dat[,.(value=paste(P.Product,"-",ED.Product.Comp)),by=B.Code
+            ][,.(value=paste(value,collapse="/")),by=B.Code
+              ][,table:="Data.Out"
+                ][,field:="P.Product-ED.Product.Comp"
+                  ][,issue:="Weird product + component combination, given outcome."]
+  
+  errors<-c(errors,list(error_dat))
+  
+  # 8.5.7.2) Merge using product x component code  #######
+
+merge_prods<-function(P.Product,Component,master_prods,master_prod_codes,prod_tab,tree_tab){
+  prods<-unlist(strsplit(P.Product,"-"))
+  if(!is.na(Component)){
+    prods_comp<-paste(prods,Component)
+    N<-match(prods_comp,master_prod_codes)
+    N[is.na(N)]<-match(prods[is.na(N)],master_prods)
+  }else{
+    N<-match(prods,master_prods)
+  }
+  
+  if(any(is.na(N))){
     
   }
-  X2<-rbind(X2[!is.na(EU)],Y) 
+  
+  p_cols<-c("EU","Product.Type","Product.Subtype","Product","Product.Simple","Latin.Name")
+  result<-prod_tab[N,..p_cols]
+  
+  result <- result[, lapply(.SD, function(x) {
+    paste(x, collapse = "**")
+  }), .SDcols = p_cols]
+  
+  return(result)
 }
 
-X2<-data.table(t(apply(X2,2,FUN=function(A){
-  paste(unique(A[!(is.na(A)|A=="NA")]),collapse = "**")
-})))
+Data.Out[,ED.Product.Comp.L1:=comp_codes$Comp.Level1[match(ED.Product.Comp,comp_codes$Component)]]
+dat<-unique(Data.Out[,.(P.Product,ED.Product.Comp.L1)])
 
-X2
+master_prods<-master_codes$prod$Product.Simple
+master_prod_codes<-master_codes$prod[,paste(Product.Simple,Component)]
+prod_tab<-master_codes$prod
+tree_tab<-master_codes$trees
 
+mergedat<-rbindlist(pblapply(1:nrow(dat),FUN=function(i){
+  merge_prods(P.Product=dat$P.Product[i],
+              Component=dat$ED.Product.Comp.L1[i],
+              master_prods=master_prods,
+              master_prod_codes=master_prod_codes,
+              prod_tab=prod_tab)[,P.Product:=dat$P.Product[i]
+                                 ][,ED.Product.Comp.L1:=dat$ED.Product.Comp.L1[i]]
 }))
 
-Z[,N:=grep("[.][.]",Data.Out$ED.Product.Simple)]
+Data.Out<-merge(Data.Out,mergedat,by=c("P.Product","ED.Product.Comp.L1"),all.x=T,sort=F)
 
-# 5) Join, order and cbind to Data.Out ####
-# Remove aggregated products from 1) and 2)
-X<-X[!grepl("[.][.]",Data.Out$ED.Product.Simple)]
-
-X<-rbind(X,Z)[order(N)]
-rm(Z,N)
-X[,N:=NULL]
-setnames(X,c("Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name"),paste0("EU.",c("Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name")))
-
-Data.Out<-cbind(Data.Out,X)
-Data.Out[,ED.Product.Code:=NULL]
-
-
+    # I THINK THIS IS NO LONGER RELEVANT - 3) Add in Agroforestry Trees ####
+    if(F){
+    NX<-is.na(X[,EU])  & Data.Out[,ED.Product.Simple] %in% TreeCodes$Product.Simple
+    X[NX,Product.Type :="Plant Product"]
+    X[NX,Product.Subtype :="Agroforestry Tree"]
+    X[NX,Product := Data.Out[NX,ED.Product.Simple]]
+    X[NX,Product.Simple := Product]
+    X[NX,Component  := Data.Out[NX,ED.Product.Comp.L1]]
+    X[NX,Latin.Name := Product]
+    
+    X[NX,EU:=TreeCodes[match(Data.Out[NX,ED.Product.Simple],TreeCodes[,Product.Simple]),EU]]
+    rm(NX)
+    }
+    # I THINK THIS IS NO LONGER RELEVANT -  4) Repeat 1-3 but for aggregated products (SLOW consider parallel) ####
+    if(F){
+    N<-grep("[.][.]",Data.Out$ED.Product.Simple)
+    Z<-Data.Out[N,c("ED.Product.Simple","ED.Product.Comp","ED.Product.Code")]
+    
+    Z<-rbindlist(pblapply(1:nrow(Z),FUN=function(i){
+    X1<-Z[i]
+    Product<-unlist(strsplit(X1$ED.Product.Simple,"[.][.]"))
+    Comp<-X1$ED.Product.Comp
+    
+    Code<-paste(Product,Comp)
+    N<-match(Code,EUCodes$Code)
+    
+    X2<-EUCodes[N,c("EU","Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name" )]
+    
+    if(sum(is.na(X2$EU))>0){
+      N<-which(is.na(X2$EU))
+      N1<-match(Product[N],EUCodes$Product.Simple)
+      Y<-EUCodes[N1,c("EU","Product.Type","Product.Subtype","Product","Product.Simple","Component","Latin.Name" )
+      ]
+      
+      Y[,EU2:=lapply(strsplit(EU,"[.]"),"[",1)
+      ][,EU2.Match:=EU2 %in% EUCodes$EU
+      ][EU2.Match!=F,EU:=EU2
+      ][,Component:=NA
+      ][,EU2:=NULL
+      ][,EU2.Match:=NULL]
+      
+      
+      if(sum(is.na(Y$EU))>0){
+        N<-which(is.na(Y$EU))
+        N1<-match(Product[N],TreeCodes[,Product.Simple])
+        if(sum(!is.na(N1))>0){
+          
+          Y<-rbind(Y[-N[!is.na(N1)]],data.table(EU=TreeCodes[N1,EU],Product.Type="Plant Product",Product.Subtype = "Agroforestry Tree",Product = Product[N],
+                                                Product.Simple=Product[N],Component = Comp, Latin.Name = Product[N]))
+        }
+        
+      }
+      X2<-rbind(X2[!is.na(EU)],Y) 
+    }
+    
+    X2<-data.table(t(apply(X2,2,FUN=function(A){
+      paste(unique(A[!(is.na(A)|A=="NA")]),collapse = "**")
+    })))
+    
+    X2
+    
+    }))
+    
+    Z[,N:=grep("[.][.]",Data.Out$ED.Product.Simple)]
+    }
 # Data.Out: Product Validation ####
 # Check ".." vs product yield (not allowed)
 
-Data.Out_Yield.with.Agg.Prod<-unique(Data.Out[grep("[.][.]",ED.Product.Simple)
-][Out.Subind %in% "Crop Yield",c("ED.Product.Simple","B.Code","Out.Subind","ED.Outcome")
-][-grep("LER",ED.Outcome)
-][-grep("Equivalent Ratio",ED.Outcome)
-][-grep("equivalent ratio",ED.Outcome)])
+# This can be moved to an earlier validation section
+error_dat<-unique(Data.Out[grepl("-",P.Product) & is.na(T.Name) & Out.Subind %in% c("Crop Yield"),.(B.Code,IN.Level.Name,R.Level.Name,P.Product,Out.Code.Joined)])
 
-if(nrow(Data.Out_Yield.with.Agg.Prod)>0){
-View(Data.Out_Yield.with.Agg.Prod)
-write.table(Data.Out_Yield.with.Agg.Prod, "clipboard",row.names=F,sep="\t")
-}
-rm(Data.Out_Yield.with.Agg.Prod)
 
 # Check NA & "No Product Specified" against outcome (should not be a productivity outcome)
 
