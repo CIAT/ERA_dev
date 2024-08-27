@@ -1,3 +1,10 @@
 B.Code,value,table,field,issue,tabname,issue_addressed,addressed_by_whom,notes
 AC0039,75,Site.Out,Site.Slope.Perc,Extreme values detected in field (outside range: 0-50),,TRUE,Charity,The paper presents that slope value
+CJ0110,"Kabare, DRC",Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified?,,FALSE,"",""
+CJ0182.1,Hayk S1..Hayk S2..Hayk S3..Sirinka ARC S1..Sirinka ARC S2..Sirinka ARC S3||Hayk S1,Site.Out,Site.ID,Value in used in aggregated site name not matching.,,FALSE,"",""
+CJ0182.1,Hayk S1..Hayk S2..Hayk S3||Hayk S1,Site.Out,Site.ID,Value in used in aggregated site name not matching.,,FALSE,"",""
+CJ0182.1,Hayk S1..Sirinka ARC S1||Hayk S1,Site.Out,Site.ID,Value in used in aggregated site name not matching.,,FALSE,"",""
+JO0060,"INERA Mulungu, DRC",Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified?,,FALSE,"",""
+JO0114,Amhara..Oromia..Tigray||Oromia/Tigray,Site.Out,Site.ID,Value in used in aggregated site name not matching.,,FALSE,"",""
+NN0423,"Makerere University ARI, Kabanyolo. 2018 site/Makerere University ARI, Kabanyolo. 2019 site/Makerere University ARI, Kabanyolo. 2018 site..Makerere University ARI, Kabanyolo. 2019 site",Site.Out,Site.LonD/Site.LatD,Co-ordinates are not in the country specified?,,FALSE,"",""
 NN0559.3,34.3,Site.Out,Site.MAT,Extreme values detected in field (outside range: 10-34),,TRUE,Jabesh,""
