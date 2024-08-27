@@ -4928,24 +4928,6 @@ col_names<-colnames(data[[800]])
   
   # 8.5) Update Fields From Harmonization Sheet ####
   n_rows<-Data.Out[,.N]
-    # 8.5.1) TO DO: Sites (ADD IN ALL TABS THAT USE SITES) #####
-    if(F){
-      Data.Out[,ED.Site.ID:=trimws(ED.Site.ID)]
-      Site.Match<-match(Data.Out[,ED.Site.ID],SiteHarmonization[,ED.Site.ID])
-      
-      # If there are entries in the validation below, then this may mean a non-match in the excel between the EnterData tab
-      # and the Site.Out tab
-      Data.Out.Site.Out.No.Match<-unique(Data.Out[is.na(Site.Match) & !grepl("[.][.]",ED.Site.ID),list(B.Code,ED.Site.ID)])
-      if(nrow(Data.Out.Site.Out.No.Match)>0){
-        View(Data.Out.Site.Out.No.Match)
-      }
-      rm(Data.Out.Site.Out.No.Match)
-      
-      Data.Out[!is.na(Site.Match),ED.Site.ID:=SiteHarmonization[Site.Match[!is.na(Site.Match)],ED.Site.ID.Corrected]]
-      
-      # Update Aggregated Site Name
-      Data.Out[grepl("[.][.]",ED.Site.ID),ED.Site.ID:=Agg.Site.Name.Fun(ED.Site.ID[1],SiteHarmonization),by=ED.Site.ID]
-    }
     # 8.5.2) Add MT.Out ######
     Data.Out<-merge(Data.Out,unique(MT.Out[,!c("P.Product","Base.Codes")]),by=c("B.Code","T.Name"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
