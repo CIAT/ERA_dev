@@ -677,386 +677,386 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
 
   
 # 3.7) Diet ####
-# 3.7.1) Animals.Out ####
-table_name<-"Animals.Out"
-data<-lapply(XL,"[[",table_name)
-col_names<-colnames(data[[1]][,1:19])
-
-Animals.Out<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
-  setnames(X,"A.Level.Name...1","A.Level.Name",skip_absent = T)
+  # 3.7.1) Animals.Out ####
+  table_name<-"Animals.Out"
+  data<-lapply(XL,"[[",table_name)
+  col_names<-colnames(data[[1]][,1:19])
   
-  if(!all(col_names %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
-  }else{
-    X<-X[,..col_names]
-    X<-X[!is.na(A.Level.Name)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }
-  }})
-
-errors_a<-rbindlist(lapply(Animals.Out,"[[","error"))
-
-Animals.Out<-rbindlist(lapply(Animals.Out,"[[","data"))
-p_names<- c("A.Feed.Add.1","A.Feed.Add.2","A.Feed.Add.3", "A.Feed.Add.C", "A.Feed.Sub.1","A.Feed.Sub.2","A.Feed.Sub.3",
-            "A.Feed.Sub.C","A.Feed.Pro.1","A.Feed.Pro.2","A.Feed.Pro.3","A.Manure.Man","A.Pasture.Man","A.Aquasilvaculture")
-setnames(Animals.Out,paste0("P",1:14),p_names)
-
-zero_cols<-c(p_names,"A.Notes","A.Grazing","A.Hay")
-
-results<-validator(data=Animals.Out,
-                   zero_cols =zero_cols,
-                   unique_cols = "A.Level.Name",
-                   tabname=table_name)
-
-errors<-results$errors
-Animals.Out<-results$data
-
-# Errors -  Feed Add Code but no control or >1 control
-errors1<-Animals.Out[A.Level.Name!="Base",feed_add_prac:=sum(!is.na(A.Feed.Add.1),!is.na(A.Feed.Add.2),!is.na(A.Feed.Add.3))>1,by=.(B.Code,A.Level.Name)
-               ][A.Level.Name!="Base",feed_add_cont:=sum(A.Feed.Add.C=="Yes",na.rm=T),by=.(B.Code)]
-
-errors1<-errors1[feed_add_cont>1 & feed_add_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
-                                          ][,table:=table_name
-                                          ][,field:="A.Level.Name"
-                                          ][,issue:="Possible error, there is more than 1 control present feed addition practice(s)."]
-
-# Errors - Feed Sub Code but no control
-errors2<-Animals.Out[A.Level.Name!="Base",feed_sub_prac:=sum(!is.na(A.Feed.Sub.1),!is.na(A.Feed.Sub.2),!is.na(A.Feed.Sub.3))>1,by=.(B.Code,A.Level.Name)
-][A.Level.Name!="Base",feed_sub_cont:=sum(A.Feed.Sub.C=="Yes",na.rm=T),by=.(B.Code)]
-
-errors2<-errors2[feed_sub_cont==0 & feed_sub_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
-][,table:=table_name
-][,field:="A.Level.Name"
-][,issue:="Possible error, there is no control present for feed substitution practice(s)."]
-
-# Errors - Animal diet has been specified but there are no practices listed
-cols<-zero_cols[!zero_cols %in% "A.Notes"]
-errors3 <- Animals.Out[, lapply(.SD, function(col) sum(!is.na(col))), by = list(A.Level.Name, B.Code), .SDcols = cols]
-errors3<-data.table(B.Code=errors3$B.Code,A.Level.Name=errors3$A.Level.Name,value=rowSums(errors3[,..cols]))[value==0 & A.Level.Name!="Base"]
-errors3<-errors3[,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
-        ][,table:=table_name
-          ][,field:="A.Level.Name"
-            ][,issue:="Possible error, an animal diet has no associated practices."]
-
-error_list<-error_tracker(errors=rbind(errors_a,errors,errors1,errors2,errors3),
-                          filename = paste0(table_name,"_errors"),
-                          error_dir=error_dir,
-                          error_list = error_list)
-
-# 3.7.2) Animal.Diet ####
-table_name<-"Animals.Diet"
-col_names<-colnames(data[[1]][,21:34])
-
-Animals.Diet<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  Animals.Out<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    setnames(X,"A.Level.Name...1","A.Level.Name",skip_absent = T)
+    
+    if(!all(col_names %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
+    }else{
+      X<-X[,..col_names]
+      X<-X[!is.na(A.Level.Name)]
+      if(nrow(X)>0){
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }
+    }})
   
-  if(!all(col_names %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
-  }else{
-    X<-X[,..col_names]
-    setnames(X,c("A.Level.Name...21","D.Item...23"),c("A.Level.Name","D.Item"),skip_absent = T)
-    X<-X[!is.na(A.Level.Name)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }
-  }})
-
-errors_a<-rbindlist(lapply(Animals.Diet,"[[","error"))
-
-Animals.Diet<-rbindlist(lapply(Animals.Diet,"[[","data"))
-
-zero_cols<-c("D.Item","D.Item.Group","D.Source","D.Process","D.Amount","D.Ad.lib","D.Unit.Amount","D.Unit.Time","D.Unit.Animals","D.Day.Start","D.Day.End","DC.Is.Dry")
-
-results<-validator(data=Animals.Diet,
-                   zero_cols =zero_cols,
-                   numeric_cols=c("D.Amount"),
-                   unit_pairs = data.table(unit="D.Unit.Amount",var="D.Amount",name_field="A.Level.Name"),
-                   compulsory_cols = c(A.Level.Name="D.Type"),
-                   trim_ws = T,
-                   tabname=table_name)
-
-errors1<-results$errors
-Animals.Diet<-results$data
-
-# Tidy diet process field
-Animals.Diet[,D.Process:=trimws(D.Process)
-             ][,D.Process:=gsub(" /","/",D.Process)
-               ][,D.Process:=gsub("/ ","/",D.Process)
-                 ][D.Process=="",D.Process:=NA]
-
-# Create a merged process and diet item name field for harmonization.
-Animals.Diet[!is.na(D.Process),D.ItemxProcess:=paste0(D.Item,"||",D.Process)]
-write.table(Animals.Diet[!is.na(D.Process),.(B.Code=paste0(unique(B.Code),collapse ="/")),by=D.ItemxProcess],"clipboard",row.names = F,sep="\t")
-
-# Convert diet process to list
-Animals.Diet[,D.Process:=strsplit(D.Process,"/")]
-
-# Error where not entire diet and is.na(Diet.Item)
-errors2<-Animals.Diet[D.Type!="Entire Diet" & is.na(D.Item),
-                      ][,list(value=paste0(unique(A.Level.Name),collapse="/")),by=B.Code
-                           ][,table:=table_name
-                             ][,field:="A.Level.Name"
-                               ][,issue:="Rows in have no diet item selected and diet type is no Entire Diet."]
-
-errors3<-check_key(parent = Animals.Out,child = Animals.Diet,tabname=table_name,keyfield="A.Level.Name")
-
-error_list<-error_tracker(errors=rbind(errors_a,errors1,errors2,errors3),
-                          filename = paste0(table_name,"_errors"),
-                          error_dir=error_dir,
-                          error_list = error_list)
-
-  # 3.7.2.1) Harmonization #######
-# Units
-h_params<-data.table(h_table=table_name,
-                     h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
-                     ignore_vals=c("unspecified","unspecified","unspecified"))[,c("h_field_alt","h_table_alt"):=NA]
-        
-
-results<-harmonizer_wrap(data=Animals.Diet,
-                         h_params=h_params,
-                         master_codes = master_codes)
-
-Animals.Diet<-results$data
-h_tasks1<-results$h_tasks
-
-# Insert updated diet naming system 
-diets_new<-unique(master_codes$ani_diet[,.(D.Item,D.Item.Root,D.Item.Expanded,D.Item.Full,D.Item.Other,D.Item.Process,D.Item.Component)])
-
-diets_new[,N:=.N,by=D.Item][N>1]
-
-# NOTE THAT THIS HARMONIZATION NEEDS TO CASCADE TO SUBSEQUENT SHEETS
-# NOTE THERE IS SOME USE OF DIET GROUP IN THE DIET ITEM COLUMN, ADD LOGIC COLS TO INDICATE THIS.
-# CONSIDER IF ENTIRE DIET SHOULD USE A.LEVEL.NAME AS THE DIET.ITEM
-Animals.Diet<-merge(Animals.Diet,diets_new,by.x="D.ItemxProcess",by.y="D.Item",all.x=T)
-Animals.Diet[is.na(D.Item.Full),D.Item:=D.Item.Full]
-
-h_tasks2<-results$h_tasks
-
-harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),
-                                  filename = table_name,
-                                  error_dir=harmonization_dir,
-                                  error_list = harmonization_list)
-
-# 3.7.3) Animals.Diet.Comp ######
-table_name<-"Animals.Diet.Comp"
-col_names<-colnames(data[[1]][,36:126])
-
-(numeric_cols<-col_names[2:30])
-unit_cols<-paste0(numeric_cols[numeric_cols!="DC.CN"],".Unit")
-method_cols<-paste0(numeric_cols,".Method")
-copy_down_cols<-c(unit_cols,method_cols,"DC.Unit.Is.Dry")
-
-fun1<-function(x){x[1]}
-
-Animals.Diet.Comp<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  errors_a<-rbindlist(lapply(Animals.Out,"[[","error"))
   
-  if(!all(col_names %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
-  }else{
-    X<-X[,..col_names]
-    setnames(X,c("D.Item...36"),c("D.Item"),skip_absent = T)
-    X[,c("...66","...95","...125"):=NULL]
-    X<-X[!is.na(D.Item)]
-    if(nrow(X)>0){
-      X <- X[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }
-  }})
-
-errors_a<-rbindlist(lapply(Animals.Diet.Comp,"[[","error"))
-
-Animals.Diet.Comp<-rbindlist(lapply(Animals.Diet.Comp,"[[","data"))
-
-# Add columns to indicate if a "compound" diet item described by A.Level.Name or Diet.Group 
-diet_groups<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
-setnames(diet_groups,"D.Item.Group","D.Item")
-
-diet_entire<-unique(Animals.Diet[D.Type=="Entire Diet",.(B.Code,A.Level.Name)][,is_entire_diet:=T])
-setnames(diet_entire,"A.Level.Name","D.Item")
-
-Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
-Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
-
-# Run standard validation
-unit_pairs<-data.table(unit=paste0(numeric_cols,".Unit"),var=numeric_cols,name_field="D.Item")
-unit_pairs<-unit_pairs[var!="DC.CN"]
-
-results<-validator(data=Animals.Diet.Comp,
-                   zero_cols =colnames(Animals.Diet.Comp),
-                   numeric_cols=numeric_cols,
-                   unit_pairs = unit_pairs,
-                   compulsory_cols = c(D.Item="D.Item"),
-                   trim_ws = T,
-                   tabname=table_name)
-
-errors1<-results$errors
-Animals.Diet.Comp<-results$data
-
-error_list<-error_tracker(errors=rbind(errors_a,errors1),
-                          filename = paste0(table_name,"_errors"),
-                          error_dir=error_dir,
-                          error_list = error_list)
-
-# Set non-numerics cols to character
-non_numeric_cols<-colnames(Animals.Diet.Comp)[!colnames(Animals.Diet.Comp) %in% numeric_cols]
-non_numeric_cols<-non_numeric_cols[!non_numeric_cols %in% c("is_group","is_entire_diet")]
-Animals.Diet.Comp <- Animals.Diet.Comp[, (non_numeric_cols) := lapply(.SD, as.character), .SDcols = non_numeric_cols]
-
-  # 3.7.3.1) Harmonization #######
-# Units
-target_cols<-grep(".Unit",col_names,value=T)
-h_params<-data.table(h_table=table_name,
-                     h_field=target_cols,
-                     h_field_alt=rep("DC.Unit",length(target_cols)),
-                     h_table_alt=rep("Animals.Diet.Comp",length(target_cols)),
-                     ignore_vals=rep("unspecified",length(target_cols)))
-
-results<-harmonizer_wrap(data=Animals.Diet.Comp,
-                         h_params=h_params,
-                         master_codes = master_codes)
-
-h_tasks1<-results$h_tasks
-Animals.Diet.Comp<-results$data
-
-# Methods
-target_cols<-grep(".Method",col_names,value=T)
-h_params<-data.table(h_table=table_name,
-                     h_field=method_cols,
-                     h_field_alt=rep("DC.Method",length(target_cols)),
-                     h_table_alt=rep("Animals.Diet.Comp",length(target_cols)))
-
-
-results<-harmonizer_wrap(data=Animals.Diet.Comp,
-                         h_params=h_params,
-                         master_codes = master_codes)
-
-h_tasks2<-results$h_tasks
-Animals.Diet.Comp<-results$data
-
-harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),filename = table_name,error_dir=harmonization_dir,error_list = harmonization_list)
-
-
-# 3.7.4) Animals.Diet.Digest ######
-table_name<-"Animals.Diet.Digest"
-col_names<-colnames(data[[1]][,127:208])
-
-numeric_cols<-col_names[5:23]
-unit_cols<-paste0(numeric_cols,".Unit")
-method_cols<-paste0(numeric_cols,".Method")
-dv_cols<-paste0(numeric_cols,".DorV")
-copy_down_cols<-c(unit_cols,method_cols,dv_cols,"DD.Unit.Is.Dry")
-
-fun1<-function(x){x[1]}
-
-Animals.Diet.Digest<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  Animals.Out<-rbindlist(lapply(Animals.Out,"[[","data"))
+  p_names<- c("A.Feed.Add.1","A.Feed.Add.2","A.Feed.Add.3", "A.Feed.Add.C", "A.Feed.Sub.1","A.Feed.Sub.2","A.Feed.Sub.3",
+              "A.Feed.Sub.C","A.Feed.Pro.1","A.Feed.Pro.2","A.Feed.Pro.3","A.Manure.Man","A.Pasture.Man","A.Aquasilvaculture")
+  setnames(Animals.Out,paste0("P",1:14),p_names)
   
-  if(!all(col_names %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
-  }else{
-    X<-X[,..col_names]
-    setnames(X,c("D.Item...129"),c("D.Item"),skip_absent = T)
-    X[,c("...128","...149","...169","...189"):=NULL]
-    X<-X[!is.na(D.Item)]
-    if(nrow(X)>0){
-      X <- X[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }
-  }})
-
-errors_a<-rbindlist(lapply(Animals.Diet.Digest,"[[","error"))
-
-Animals.Diet.Digest<-rbindlist(lapply(Animals.Diet.Digest,"[[","data"))
-
-# Add columns to indicate if a "compound" diet item described by A.Level.Name or Diet.Group 
-diet_groups<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
-setnames(diet_groups,"D.Item.Group","D.Item")
-
-diet_entire<-unique(Animals.Diet[D.Type=="Entire Diet",.(B.Code,A.Level.Name)][,is_entire_diet:=T])
-setnames(diet_entire,"A.Level.Name","D.Item")
-
-Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
-Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
-
-# Run standard validation
-(numeric_cols<-col_names[5:23])
-
-unit_pairs<-data.table(unit=unit_cols,var=numeric_cols,name_field="D.Item")
-
-results<-validator(data=Animals.Diet.Digest,
-                   zero_cols =colnames(Animals.Diet.Digest),
-                   numeric_cols=numeric_cols,
-                   unit_pairs = unit_pairs,
-                   compulsory_cols = c(D.Item="D.Item"),
-                   trim_ws = T,
-                   tabname=table_name)
-
-
-errors1<-results$errors
-Animals.Diet.Digest<-results$data
-
-error_list<-error_tracker(errors=rbind(errors_a,errors1),
-                          filename = paste0(table_name,"_errors"),
-                          error_dir=error_dir,
-                          error_list = error_list)
-
-# Set non-numerics cols to character
-non_numeric_cols<-colnames(Animals.Diet.Digest)[!colnames(Animals.Diet.Digest) %in% numeric_cols]
-non_numeric_cols<-non_numeric_cols[!non_numeric_cols %in% c("is_group","is_entire_diet")]
-Animals.Diet.Digest <- Animals.Diet.Digest[, (non_numeric_cols) := lapply(.SD, as.character), .SDcols = non_numeric_cols]
-
-
-  # 3.7.4.1) Harmonization #######
-h_params<-data.table(h_table=table_name,
-                     h_field=unit_cols,
-                     h_field_alt=rep("DC.Unit",length(target_cols)),
-                     h_table_alt=rep("Animals.Diet.Comp",length(target_cols)),
-                     ignore_vals=rep("unspecified",length(target_cols)))
-
-results<-harmonizer_wrap(data=Animals.Diet.Digest,
-                         h_params=h_params,
-                         master_codes = master_codes)
-
-h_tasks1<-results$h_tasks
-Animals.Diet.Digest<-results$data
-
-target_cols<-grep(".Method",col_names,value=T)
-h_params<-data.table(h_table=table_name,
-                     h_field=method_cols,
-                     h_field_alt=rep("DD.Method",length(target_cols)),
-                     h_table_alt=rep("Animals.Diet.Digest",length(target_cols)))
-
-
-results<-harmonizer_wrap(data=Animals.Diet.Digest,
-                         h_params=h_params,
-                         master_codes = master_codes)
-
-h_tasks2<-results$h_tasks
-Animals.Diet.Digest<-results$data
-
-harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),
-                                  filename = table_name,
-                                  error_dir=harmonization_dir,
-                                  error_list = harmonization_list)
-
-# 3.7.5) Harmonization of key fields (Diet Item) ####
-
-
+  zero_cols<-c(p_names,"A.Notes","A.Grazing","A.Hay")
+  
+  results<-validator(data=Animals.Out,
+                     zero_cols =zero_cols,
+                     unique_cols = "A.Level.Name",
+                     tabname=table_name)
+  
+  errors<-results$errors
+  Animals.Out<-results$data
+  
+  # Errors -  Feed Add Code but no control or >1 control
+  errors1<-Animals.Out[A.Level.Name!="Base",feed_add_prac:=sum(!is.na(A.Feed.Add.1),!is.na(A.Feed.Add.2),!is.na(A.Feed.Add.3))>1,by=.(B.Code,A.Level.Name)
+                 ][A.Level.Name!="Base",feed_add_cont:=sum(A.Feed.Add.C=="Yes",na.rm=T),by=.(B.Code)]
+  
+  errors1<-errors1[feed_add_cont>1 & feed_add_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
+                                            ][,table:=table_name
+                                            ][,field:="A.Level.Name"
+                                            ][,issue:="Possible error, there is more than 1 control present feed addition practice(s)."]
+  
+  # Errors - Feed Sub Code but no control
+  errors2<-Animals.Out[A.Level.Name!="Base",feed_sub_prac:=sum(!is.na(A.Feed.Sub.1),!is.na(A.Feed.Sub.2),!is.na(A.Feed.Sub.3))>1,by=.(B.Code,A.Level.Name)
+  ][A.Level.Name!="Base",feed_sub_cont:=sum(A.Feed.Sub.C=="Yes",na.rm=T),by=.(B.Code)]
+  
+  errors2<-errors2[feed_sub_cont==0 & feed_sub_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
+  ][,table:=table_name
+  ][,field:="A.Level.Name"
+  ][,issue:="Possible error, there is no control present for feed substitution practice(s)."]
+  
+  # Errors - Animal diet has been specified but there are no practices listed
+  cols<-zero_cols[!zero_cols %in% "A.Notes"]
+  errors3 <- Animals.Out[, lapply(.SD, function(col) sum(!is.na(col))), by = list(A.Level.Name, B.Code), .SDcols = cols]
+  errors3<-data.table(B.Code=errors3$B.Code,A.Level.Name=errors3$A.Level.Name,value=rowSums(errors3[,..cols]))[value==0 & A.Level.Name!="Base"]
+  errors3<-errors3[,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
+          ][,table:=table_name
+            ][,field:="A.Level.Name"
+              ][,issue:="Possible error, an animal diet has no associated practices."]
+  
+  error_list<-error_tracker(errors=rbind(errors_a,errors,errors1,errors2,errors3),
+                            filename = paste0(table_name,"_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
+  
+  # 3.7.2) Animal.Diet ####
+  table_name<-"Animals.Diet"
+  col_names<-colnames(data[[1]][,21:34])
+  
+  Animals.Diet<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    
+    if(!all(col_names %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
+    }else{
+      X<-X[,..col_names]
+      setnames(X,c("A.Level.Name...21","D.Item...23"),c("A.Level.Name","D.Item"),skip_absent = T)
+      X<-X[!is.na(A.Level.Name)]
+      if(nrow(X)>0){
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }
+    }})
+  
+  errors_a<-rbindlist(lapply(Animals.Diet,"[[","error"))
+  
+  Animals.Diet<-rbindlist(lapply(Animals.Diet,"[[","data"))
+  
+  zero_cols<-c("D.Item","D.Item.Group","D.Source","D.Process","D.Amount","D.Ad.lib","D.Unit.Amount","D.Unit.Time","D.Unit.Animals","D.Day.Start","D.Day.End","DC.Is.Dry")
+  
+  results<-validator(data=Animals.Diet,
+                     zero_cols =zero_cols,
+                     numeric_cols=c("D.Amount"),
+                     unit_pairs = data.table(unit="D.Unit.Amount",var="D.Amount",name_field="A.Level.Name"),
+                     compulsory_cols = c(A.Level.Name="D.Type"),
+                     trim_ws = T,
+                     tabname=table_name)
+  
+  errors1<-results$errors
+  Animals.Diet<-results$data
+  
+  # Tidy diet process field
+  Animals.Diet[,D.Process:=trimws(D.Process)
+               ][,D.Process:=gsub(" /","/",D.Process)
+                 ][,D.Process:=gsub("/ ","/",D.Process)
+                   ][D.Process=="",D.Process:=NA]
+  
+  # Create a merged process and diet item name field for harmonization.
+  Animals.Diet[!is.na(D.Process),D.ItemxProcess:=paste0(D.Item,"||",D.Process)]
+  write.table(Animals.Diet[!is.na(D.Process),.(B.Code=paste0(unique(B.Code),collapse ="/")),by=D.ItemxProcess],"clipboard",row.names = F,sep="\t")
+  
+  # Convert diet process to list
+  Animals.Diet[,D.Process:=strsplit(D.Process,"/")]
+  
+  # Error where not entire diet and is.na(Diet.Item)
+  errors2<-Animals.Diet[D.Type!="Entire Diet" & is.na(D.Item),
+                        ][,list(value=paste0(unique(A.Level.Name),collapse="/")),by=B.Code
+                             ][,table:=table_name
+                               ][,field:="A.Level.Name"
+                                 ][,issue:="Rows in have no diet item selected and diet type is no Entire Diet."]
+  
+  errors3<-check_key(parent = Animals.Out,child = Animals.Diet,tabname=table_name,keyfield="A.Level.Name")
+  
+  error_list<-error_tracker(errors=rbind(errors_a,errors1,errors2,errors3),
+                            filename = paste0(table_name,"_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
+  
+    # 3.7.2.1) Harmonization #######
+  # Units
+  h_params<-data.table(h_table=table_name,
+                       h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
+                       ignore_vals=c("unspecified","unspecified","unspecified"))[,c("h_field_alt","h_table_alt"):=NA]
+          
+  
+  results<-harmonizer_wrap(data=Animals.Diet,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  Animals.Diet<-results$data
+  h_tasks1<-results$h_tasks
+  
+  # Insert updated diet naming system 
+  diets_new<-unique(master_codes$ani_diet[,.(D.Item,D.Item.Root,D.Item.Expanded,D.Item.Full,D.Item.Other,D.Item.Process,D.Item.Component)])
+  
+  diets_new[,N:=.N,by=D.Item][N>1]
+  
+  # NOTE THAT THIS HARMONIZATION NEEDS TO CASCADE TO SUBSEQUENT SHEETS
+  # NOTE THERE IS SOME USE OF DIET GROUP IN THE DIET ITEM COLUMN, ADD LOGIC COLS TO INDICATE THIS.
+  # CONSIDER IF ENTIRE DIET SHOULD USE A.LEVEL.NAME AS THE DIET.ITEM
+  Animals.Diet<-merge(Animals.Diet,diets_new,by.x="D.ItemxProcess",by.y="D.Item",all.x=T)
+  Animals.Diet[is.na(D.Item.Full),D.Item:=D.Item.Full]
+  
+  h_tasks2<-results$h_tasks
+  
+  harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),
+                                    filename = table_name,
+                                    error_dir=harmonization_dir,
+                                    error_list = harmonization_list)
+  
+  # 3.7.3) Animals.Diet.Comp ######
+  table_name<-"Animals.Diet.Comp"
+  col_names<-colnames(data[[1]][,36:126])
+  
+  (numeric_cols<-col_names[2:30])
+  unit_cols<-paste0(numeric_cols[numeric_cols!="DC.CN"],".Unit")
+  method_cols<-paste0(numeric_cols,".Method")
+  copy_down_cols<-c(unit_cols,method_cols,"DC.Unit.Is.Dry")
+  
+  fun1<-function(x){x[1]}
+  
+  Animals.Diet.Comp<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    
+    if(!all(col_names %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
+    }else{
+      X<-X[,..col_names]
+      setnames(X,c("D.Item...36"),c("D.Item"),skip_absent = T)
+      X[,c("...66","...95","...125"):=NULL]
+      X<-X[!is.na(D.Item)]
+      if(nrow(X)>0){
+        X <- X[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }
+    }})
+  
+  errors_a<-rbindlist(lapply(Animals.Diet.Comp,"[[","error"))
+  
+  Animals.Diet.Comp<-rbindlist(lapply(Animals.Diet.Comp,"[[","data"))
+  
+  # Add columns to indicate if a "compound" diet item described by A.Level.Name or Diet.Group 
+  diet_groups<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
+  setnames(diet_groups,"D.Item.Group","D.Item")
+  
+  diet_entire<-unique(Animals.Diet[D.Type=="Entire Diet",.(B.Code,A.Level.Name)][,is_entire_diet:=T])
+  setnames(diet_entire,"A.Level.Name","D.Item")
+  
+  Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
+  Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
+  
+  # Run standard validation
+  unit_pairs<-data.table(unit=paste0(numeric_cols,".Unit"),var=numeric_cols,name_field="D.Item")
+  unit_pairs<-unit_pairs[var!="DC.CN"]
+  
+  results<-validator(data=Animals.Diet.Comp,
+                     zero_cols =colnames(Animals.Diet.Comp),
+                     numeric_cols=numeric_cols,
+                     unit_pairs = unit_pairs,
+                     compulsory_cols = c(D.Item="D.Item"),
+                     trim_ws = T,
+                     tabname=table_name)
+  
+  errors1<-results$errors
+  Animals.Diet.Comp<-results$data
+  
+  error_list<-error_tracker(errors=rbind(errors_a,errors1),
+                            filename = paste0(table_name,"_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
+  
+  # Set non-numerics cols to character
+  non_numeric_cols<-colnames(Animals.Diet.Comp)[!colnames(Animals.Diet.Comp) %in% numeric_cols]
+  non_numeric_cols<-non_numeric_cols[!non_numeric_cols %in% c("is_group","is_entire_diet")]
+  Animals.Diet.Comp <- Animals.Diet.Comp[, (non_numeric_cols) := lapply(.SD, as.character), .SDcols = non_numeric_cols]
+  
+    # 3.7.3.1) Harmonization #######
+  # Units
+  target_cols<-grep(".Unit",col_names,value=T)
+  h_params<-data.table(h_table=table_name,
+                       h_field=target_cols,
+                       h_field_alt=rep("DC.Unit",length(target_cols)),
+                       h_table_alt=rep("Animals.Diet.Comp",length(target_cols)),
+                       ignore_vals=rep("unspecified",length(target_cols)))
+  
+  results<-harmonizer_wrap(data=Animals.Diet.Comp,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  h_tasks1<-results$h_tasks
+  Animals.Diet.Comp<-results$data
+  
+  # Methods
+  target_cols<-grep(".Method",col_names,value=T)
+  h_params<-data.table(h_table=table_name,
+                       h_field=method_cols,
+                       h_field_alt=rep("DC.Method",length(target_cols)),
+                       h_table_alt=rep("Animals.Diet.Comp",length(target_cols)))
+  
+  
+  results<-harmonizer_wrap(data=Animals.Diet.Comp,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  h_tasks2<-results$h_tasks
+  Animals.Diet.Comp<-results$data
+  
+  harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),filename = table_name,error_dir=harmonization_dir,error_list = harmonization_list)
+  
+  
+  # 3.7.4) Animals.Diet.Digest ######
+  table_name<-"Animals.Diet.Digest"
+  col_names<-colnames(data[[1]][,127:208])
+  
+  numeric_cols<-col_names[5:23]
+  unit_cols<-paste0(numeric_cols,".Unit")
+  method_cols<-paste0(numeric_cols,".Method")
+  dv_cols<-paste0(numeric_cols,".DorV")
+  copy_down_cols<-c(unit_cols,method_cols,dv_cols,"DD.Unit.Is.Dry")
+  
+  fun1<-function(x){x[1]}
+  
+  Animals.Diet.Digest<-lapply(1:length(data),FUN=function(i){
+    X<-data[[i]]
+    B.Code<-Pub.Out$B.Code[i]
+    
+    if(!all(col_names %in% colnames(X))){
+      cat("Structural issue with file",i,B.Code,"\n")
+      list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
+    }else{
+      X<-X[,..col_names]
+      setnames(X,c("D.Item...129"),c("D.Item"),skip_absent = T)
+      X[,c("...128","...149","...169","...189"):=NULL]
+      X<-X[!is.na(D.Item)]
+      if(nrow(X)>0){
+        X <- X[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
+        X[,B.Code:=B.Code]
+        list(data=X)
+      }
+    }})
+  
+  errors_a<-rbindlist(lapply(Animals.Diet.Digest,"[[","error"))
+  
+  Animals.Diet.Digest<-rbindlist(lapply(Animals.Diet.Digest,"[[","data"))
+  
+  # Add columns to indicate if a "compound" diet item described by A.Level.Name or Diet.Group 
+  diet_groups<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
+  setnames(diet_groups,"D.Item.Group","D.Item")
+  
+  diet_entire<-unique(Animals.Diet[D.Type=="Entire Diet",.(B.Code,A.Level.Name)][,is_entire_diet:=T])
+  setnames(diet_entire,"A.Level.Name","D.Item")
+  
+  Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
+  Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
+  
+  # Run standard validation
+  (numeric_cols<-col_names[5:23])
+  
+  unit_pairs<-data.table(unit=unit_cols,var=numeric_cols,name_field="D.Item")
+  
+  results<-validator(data=Animals.Diet.Digest,
+                     zero_cols =colnames(Animals.Diet.Digest),
+                     numeric_cols=numeric_cols,
+                     unit_pairs = unit_pairs,
+                     compulsory_cols = c(D.Item="D.Item"),
+                     trim_ws = T,
+                     tabname=table_name)
+  
+  
+  errors1<-results$errors
+  Animals.Diet.Digest<-results$data
+  
+  error_list<-error_tracker(errors=rbind(errors_a,errors1),
+                            filename = paste0(table_name,"_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
+  
+  # Set non-numerics cols to character
+  non_numeric_cols<-colnames(Animals.Diet.Digest)[!colnames(Animals.Diet.Digest) %in% numeric_cols]
+  non_numeric_cols<-non_numeric_cols[!non_numeric_cols %in% c("is_group","is_entire_diet")]
+  Animals.Diet.Digest <- Animals.Diet.Digest[, (non_numeric_cols) := lapply(.SD, as.character), .SDcols = non_numeric_cols]
+  
+  
+    # 3.7.4.1) Harmonization #######
+  h_params<-data.table(h_table=table_name,
+                       h_field=unit_cols,
+                       h_field_alt=rep("DC.Unit",length(target_cols)),
+                       h_table_alt=rep("Animals.Diet.Comp",length(target_cols)),
+                       ignore_vals=rep("unspecified",length(target_cols)))
+  
+  results<-harmonizer_wrap(data=Animals.Diet.Digest,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  h_tasks1<-results$h_tasks
+  Animals.Diet.Digest<-results$data
+  
+  target_cols<-grep(".Method",col_names,value=T)
+  h_params<-data.table(h_table=table_name,
+                       h_field=method_cols,
+                       h_field_alt=rep("DD.Method",length(target_cols)),
+                       h_table_alt=rep("Animals.Diet.Digest",length(target_cols)))
+  
+  
+  results<-harmonizer_wrap(data=Animals.Diet.Digest,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  h_tasks2<-results$h_tasks
+  Animals.Diet.Digest<-results$data
+  
+  harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),
+                                    filename = table_name,
+                                    error_dir=harmonization_dir,
+                                    error_list = harmonization_list)
+  
+  # 3.7.5) Harmonization of key fields (Diet Item) ####
+  
+  
 # 3.8) Agroforestry #####
 data<-lapply(XL,"[[","AF.Out")
 col_names<-colnames(data[[800]])
