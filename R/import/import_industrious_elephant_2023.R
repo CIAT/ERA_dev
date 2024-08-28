@@ -379,8 +379,19 @@ if(file_status){
       
     }
     
-    # Check results
-    # Site.Out[Site.ID!=Site.ID_raw,.(Site.ID_raw,Site.ID)][36]
+    # Check for missing facilities in era_master_sheet
+    master_site_list<-c(master_codes$site_list[,paste0(Country,"|||",Site.ID)],
+                        master_codes$site_list[!is.na(Synonyms),paste0(Country,"|||",unlist(strsplit(Synonyms,";")))],
+                        master_codes$site_list[!is.na(Harmonization),paste0(Country,"|||",unlist(strsplit(Harmonization,";")))])
+    
+    errors5<-Site.Out[,.(B.Code,Country,Site.ID_raw,Site.Type)][,Code:=paste0(Country,"|||",Site.ID_raw)]
+    errors5<-errors5[!Code %in% master_site_list & 
+                           Site.Type == "Researcher Managed & Research Facility" &
+                           !grepl("[.][.]",Site.ID_raw)
+    ][,.(value=paste(Site.ID_raw,collapse = "/")),by=B.Code
+    ][,table:=table_name
+    ][,field:="Site.ID"
+    ][,issue:="No match for facility in era_master_sheet site_list tab (inc. synonyms or harmonization fields)."]
     
     # 3.2.3) Create Aggregated Site Rows #######
     mergedat<-Site.Out[grep("[.][.]",Site.ID)]
@@ -418,7 +429,7 @@ if(file_status){
     Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)
    
     # 3.2.4) Save errors #####
-    error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4),fill=T),
+    error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4,errors5),fill=T),
                               filename = "site_other_errors",
                               error_dir=error_dir,
                               error_list = error_list)    
@@ -532,6 +543,12 @@ if(file_status){
     errors_b<-rbindlist(lapply(Times.Clim,"[[","error"))
     Times.Clim<-rbindlist(lapply(Times.Clim,"[[","data"))
     
+    # Update Site.ID
+    Times.Clim[,Site.ID_new:=Site.Out$Site.ID[match(Times.Clim$Site.ID,Site.Out$Site.ID_raw)]
+    ][is.na(Site.ID_new),Site.ID_new:=Site.ID
+    ][,Site.ID:=Site.ID_new
+    ][,Site.ID_new:=NULL]
+    
     results<-validator(data=Times.Clim,
                        numeric_cols=c("Time.Clim.SP","Time.Clim.TAP","Time.Clim.Temp.Mean","Time.Clim.Temp.Max","Time.Clim.Temp.Min"),
                        time_data = Times.Out,
@@ -556,13 +573,7 @@ if(file_status){
     
     errors3<-Times.Clim[Time.Clim.SP>Time.Clim.TAP
                         ][,issue:="Seasonal > annual precip"]
-    
-      # 3.3.2.1) Update Site.ID #######
-    Times.Clim[,Site.ID_new:=Site.Out$Site.ID[match(Times.Clim$Site.ID,Site.Out$Site.ID_raw)]
-               ][is.na(Site.ID_new),Site.ID_new:=Site.ID
-                 ][,Site.ID:=Site.ID_new
-                   ][,Site.ID_new:=NULL]
-    
+
     # 3.3.3) Save errors #####
     errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL][order(B.Code)]
     
@@ -711,7 +722,7 @@ if(file_status){
   Soil.Out[variable %in% c("CLY","SND","SLT"),Unit:="%"]
   
   # Update Site ID
-  Soil.Out[,Site.ID:=Site.Out$Site.ID_new[match(Soil.Out$Site.ID,Site.Out$Site.ID_raw)]
+  Soil.Out[,Site.ID:=Site.Out$Site.ID[match(Soil.Out$Site.ID,Site.Out$Site.ID_raw)]
            ][is.na(Site.ID_new),Site.ID_new:=Site.ID
              ][,Site.ID:=Site.ID_new
                ][,Site.ID_new:=NULL]
