@@ -100,7 +100,7 @@ if(file_status){
   master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
   
   # 2.2) Load excel data entry template #####
-  Master<-list.files(paste0(project_dir,"/data/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
+  Master<-list.files(paste0(project_dir,"/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
   
   # List sheet names that we need to extract
   SheetNames<-excel_sheets(Master)
@@ -228,8 +228,8 @@ Pub.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
 # Replace zeros with NAs
 Pub.Out<-validator(data=Pub.Out,
                    zero_cols=c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4"),
-                   tabname=table_name)$data
-
+                   trim_ws = T,
+                   tabname="Pub.Out")$data
 
 # Pub.Out: Validation: Duplicate or mismatched B.Codes
 Pub.Out<-merge(Pub.Out,excel_files[,list(filename,era_code2)],all.x=T)
@@ -242,7 +242,7 @@ errors<-Pub.Out[N>1|code_issue,list(B.Code,era_code2,filename,N,code_issue)
                     ][,table:="Pub.Out"
                       ][,field:="B.Code"
                         ][,issue:="Potential issues with study code, it does not match the filename."]
-error_list<-error_tracker(errors=errors,filename = paste0(table_name,"_code_errors"),error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=errors,filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
 
 # Set B.Code to match filename
 Pub.Out[,B.Code:=era_code2]
@@ -286,7 +286,9 @@ Site.Out<-lapply(1:length(data),FUN=function(i){
     }
   }})
 
-errors_a<-rbindlist(lapply(Site.Out,"[[","error"))
+error_dat<-rbindlist(lapply(Site.Out,"[[","error"))
+
+errors<-list(error_dat)
 
 Site.Out<-rbindlist(lapply(Site.Out,"[[","data"))
 setnames(Site.Out,c("MSP...20","MSP...21","LatD...8","LatD...10"),
@@ -314,23 +316,22 @@ results<-validator(data=Site.Out,
                                      Site.Slope.Degree=c(0,45)),
                    unique_cols = "Site.ID",
                    date_cols=NULL,
+                   trim_ws=T,
                    tabname=table_name)
 
 Site.Out<-results$data
-errors1<-results$errors
+error_dat<-results$errors
 # remove aggregated sites from error list
-errors1<-errors1[!grepl("[.][.]",value)]
+error_dat<-error_dat[!grepl("[.][.]",value)]
+errors<-c(errors,list(error_dat))
 
-errors2<-Site.Out[(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manual) & !grepl("[.][.]",Site.ID)
+error_dat<-Site.Out[(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manual) & !grepl("[.][.]",Site.ID)
 ][,list(value=paste0(unique(Site.ID),collapse = "/")),by=list(B.Code)
 ][,table:=table_name
 ][,field:="Site.ID"
 ][,issue:="Missing value in compulsory field location uncertainty."]
 
-error_list<-error_tracker(errors=rbindlist(list(errors_a,errors1,errors2),fill=T),
-                          filename = paste0(table_name,"_errors"),
-                          error_dir=error_dir,
-                          error_list = error_list)
+errors<-c(errors,list(error_dat))
 
 # Add ISO.3166.1.alpha.3
 c_dat<-master_codes$countries[,list(Country,`ISO.3166-1.alpha-3`)]
@@ -338,13 +339,11 @@ colnames(c_dat)[2]<-"ISO.3166.1.alpha.3"
 Site.Out<-merge(Site.Out,c_dat,all.x=T)
 
 dat<-Site.Out[!(is.na(Site.LatD)|is.na(Site.LonD)|is.na(ISO.3166.1.alpha.3))]
-errors3<-check_coordinates(data=dat[,list(Site.LatD,Site.LonD,ISO.3166.1.alpha.3)])
-errors3<-dat[!errors3][,list(value=paste(unique(Site.ID),collapse="/")),by=list(B.Code,Country,ISO.3166.1.alpha.3,Site.LatD,Site.LonD)
+error_dat<-check_coordinates(data=dat[,list(Site.LatD,Site.LonD,ISO.3166.1.alpha.3)])
+error_dat<-dat[!error_dat][,list(value=paste0(paste0(Country,"-",Site.ID,": lat ",Site.LatD," lon ",Site.LonD),collapse="/")),by=B.Code
 ][,table:="Site.Out"
 ][,field:="Site.LonD/Site.LatD"
 ][,issue:="Co-ordinates may not be in the country specified."]
-
-error_list<-error_tracker(errors=errors3,filename = paste0(table_name,"_coordinate_errors"),error_dir=error_dir,error_list = error_list)
 
   # 3.2.1) Harmonization ######
   h_params<-data.table(h_table=table_name,
@@ -379,10 +378,93 @@ error_list<-error_tracker(errors=errors3,filename = paste0(table_name,"_coordina
   Site.Out<-results$data
   
   
-  # !!! TO DO !!! Site.Out: Update Fields From Harmonization Sheet - BEST LEFT TILL OTHER SHEETS READ IN ####
-  if(F){
-    # Update from industrious elephant when complete
+  # 3.2.2) Harmonize Site.ID field #######
+  master_sites<-master_codes$site_list[!(is.na(Synonyms) & is.na(Harmonization)),.(Site.ID,Country,Synonyms,Harmonization)
+  ][,old_name:=Synonyms
+  ][is.na(old_name),old_name:=Harmonization
+  ][!is.na(Synonyms) & !is.na(Harmonization),old_name:=paste(c(Synonyms[1],Harmonization[1]),collapse=";"),by=.(Site.ID,Country,Synonyms,Harmonization)
+  ][,c("Synonyms","Harmonization"):=NULL]
+  
+  master_sites<-unique(rbindlist(lapply(1:nrow(master_sites),FUN=function(i){
+    old_names<-master_sites[i,unlist(strsplit(old_name,";"))]
+    data.table(new_names=master_sites$Site.ID[i],Country=master_sites$Country[i],Site.ID=old_names)
+  })))[,site_code_new:=paste0(Country,"|||",new_names)][,site_code:=paste0(Country,"|||",Site.ID)]
+  
+  Site.Out$Site.ID_raw<-Site.Out$Site.ID
+  
+  for(i in 1:nrow(Site.Out)){
+    country<-Site.Out$Country[i]
+    site_id<-Site.Out$Site.ID_raw[i]
+    site_id<-trimws(unlist(strsplit(site_id,"[.][.]")))
+    site_codes<-paste0(country,"|||",site_id)
+    
+    site_codes_new<-master_sites[match(site_codes,site_code),site_code_new]
+    site_codes[!is.na(site_codes_new)]<-site_codes_new[!is.na(site_codes_new)]
+    
+    site_ids_new<-unlist(tstrsplit(site_codes,"[|][|][|]",keep=2))
+    site_ids_new<-paste0(site_ids_new,collapse="..")
+    
+    Site.Out$Site.ID[i]<-site_ids_new
   }
+  
+  # Check for missing facilities in era_master_sheet
+  master_site_list<-c(master_codes$site_list[,paste0(Country,"|||",Site.ID)],
+                      master_codes$site_list[!is.na(Synonyms),paste0(Country,"|||",unlist(strsplit(Synonyms,";")))],
+                      master_codes$site_list[!is.na(Harmonization),paste0(Country,"|||",unlist(strsplit(Harmonization,";")))])
+  
+  error_dat<-Site.Out[,.(B.Code,Country,Site.ID_raw,Site.Type)][,Code:=paste0(Country,"|||",Site.ID_raw)]
+  error_dat<-error_dat[!Code %in% master_site_list & 
+                      Site.Type == "Researcher Managed & Research Facility" &
+                      !grepl("[.][.]",Site.ID_raw)
+                   ][,.(value=paste(Site.ID_raw,collapse = "/")),by=B.Code
+                     ][,table:=table_name
+                       ][,field:="Site.ID"
+                         ][,issue:="No match for facility in era_master_sheet site_list tab (inc. synonyms or harmonization fields)."]
+
+  errors<-c(errors,list(error_dat))
+  
+  # 3.2.3) Create Aggregated Site Rows #######
+  mergedat<-Site.Out[grep("[.][.]",Site.ID)]
+  
+  result<-pblapply(1:nrow(mergedat),FUN=function(i){
+    site_id<-mergedat$Site.ID[i]
+    site_id<-trimws(unlist(strsplit(site_id,"[.][.]")))
+    b_code<-mergedat[i,B.Code]
+    agg_dat<-Site.Out[B.Code==b_code]
+    N<-agg_dat[,match(site_id,Site.ID)]
+    
+    if(any(is.na(N))){
+      cat("\n Non-match in aggregated site name",i,b_code,":",site_id[is.na(N)],"\n")
+      list(error=data.table(B.Code=b_code,
+                            value=paste0(mergedat$Site.ID[i],"||",paste(site_id[is.na(N)],collapse="/")),
+                            table="Site.Out",
+                            field="Site.ID",
+                            issue="Value in used in aggregated site name not matching."))
+    }else{
+      
+      agg_dat<-agg_dat[N]
+      
+      result <- agg_dat[, lapply(.SD, function(x) {
+        paste(unique(x), collapse = "..")
+      }), .SDcols = colnames(agg_dat)]
+      
+      list(data=result)
+    }
+  })
+  
+  mergedat<-rbindlist(lapply(result,"[[","data"))
+  error_dat<-rbindlist(lapply(result,"[[","error"))
+  errors<-c(errors,list(error_dat))
+  
+  # Replace aggregated site rows
+  Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)[order(B.Code,Site.ID)]
+  
+  # 3.2.4) Save errors ######
+  error_list<-error_tracker(errors=rbindlist(errors,fill=T)[order(B.Code)],
+                            filename = paste0(table_name,"_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
+  
 # 3.3) Soil (Soil.Out) #####
 table_name<-"Soils.Out"
 data<-lapply(XL,"[[",table_name)
@@ -404,8 +486,7 @@ Soil.Out<-lapply(1:length(data),FUN=function(i){
     }
   }})
 
-errors_a<-rbindlist(lapply(Soil.Out,"[[","error"))
-#error_list<-error_tracker(errors=errors_a,filename = "soil_structure_errors",error_dir=error_dir,error_list = error_list)
+errors<-list(rbindlist(lapply(Soil.Out,"[[","error")))
 
 Soil.Out<-rbindlist(lapply(Soil.Out,"[[","data"))
 
@@ -413,7 +494,7 @@ Soil.Out<-rbindlist(lapply(Soil.Out,"[[","data"))
 colnames(Soil.Out)[grep("Soil.N.Unit",colnames(Soil.Out))]<-c("Soil.TN.Unit","Soil.AN.Unit")
 
 # Structure errors: Check for case where only one of upper or lower is present
-errors1<-rbindlist(lapply(1:length(data),FUN=function(i){
+error_dat<-rbindlist(lapply(1:length(data),FUN=function(i){
   dt<-data[[i]]
   
   if(colnames(dt)[1]!="...1"){
@@ -431,18 +512,27 @@ errors1<-rbindlist(lapply(1:length(data),FUN=function(i){
     }
   }
 }))
+errors<-c(errors,list(error_dat))
 
 zero_cols<-c("SND","SLT","CLY","Soil.Lower","Soil.BD","Soil.TC","Soil.SOC","Soil.SOM","Soil.pH","Soil.CEC","Soil.EC","Soil.FC","Soil.TN","Soil.NH4","Soil.NO3","Soil.AN",
              "SND.Unit","SLT.Unit","CLY.Unit","Soil.BD.Unit","Soil.TC.Unit","Soil.FC.Unit","Soil.SOC.Unit","Soil.SOM.Unit","Soil.CEC.Unit","Soil.EC.Unit","Soil.TN.Unit","Soil.NH4.Unit","Soil.NO3.Unit",
              "Soil.AN.Unit","Soil.SOC.Method","Soil.SOM.Method","Soil.pH.Method")
 
+# Update Site ID
+Soil.Out[,Site.ID_new:=Site.Out$Site.ID[match(Soil.Out$Site.ID,Site.Out$Site.ID_raw)]
+][is.na(Site.ID_new),Site.ID_new:=Site.ID
+][,Site.ID:=Site.ID_new
+][,Site.ID_new:=NULL]
+
 results<-validator(data=Soil.Out,
                    zero_cols =zero_cols,
                    numeric_cols=c("Soil.Upper","Soil.Lower","Soil.BD","Soil.TC","Soil.SOC","Soil.SOM","Soil.pH","Soil.CEC","Soil.EC","Soil.FC","Soil.TN","Soil.NH4","Soil.NO3","Soil.AN"),
                    tabname=table_name,
+                   trim_ws = T,
                    site_data=Site.Out)
 
-errors2<-results$errors
+error_dat<-results$errors
+errors<-c(errors,list(error_dat))
 
 Soil.Out<-results$data
 Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
@@ -460,12 +550,13 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
   ][is.na(SND),SND:=100-val]
   
   # Any values not 100
-  errors3<-unique(Soil.Out.Texture[N!=1 & (val>102|val<98),list(B.Code,Site.ID)])
+  error_dat<-unique(Soil.Out.Texture[N!=1 & (val>102|val<98),list(B.Code,Site.ID)])
   
-  if(nrow(errors3)>0){
-    setnames(errors3,"Site.ID","value")
-    errors3[,table:=table_name][,field:="Site.ID"][,issue:="Sand, silt, clay sum to beyond 2% different to 100%"]
+  if(nrow(error_dat)>0){
+    setnames(error_dat,"Site.ID","value")
+    error_dat[,table:=table_name][,field:="Site.ID"][,issue:="Sand, silt, clay sum to beyond 2% different to 100%"]
   }
+  errors<-c(errors,list(error_dat))
   
   # Subset to sensible soil textures
   Soil.Out.Texture<-Soil.Out.Texture[!(N!=1 & (val>102|val<98))]
@@ -483,28 +574,52 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
   Soil.Out.Texture<-unique(Soil.Out.Texture[,list(SND,SLT,CLY,Site.Soil.Texture)])
   Soil.Out<-merge(Soil.Out,Soil.Out.Texture,all.x=T,by=c("SND","SLT","CLY"))
 
-  # Combine & save errors
-  errors<-rbindlist(list(errors_a,errors1,errors2,errors3),fill = T)[order(B.Code)]
+  # 3.3.2) Save errors ######
+  errors<-rbindlist(errors,fill = T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,
                             filename = paste0(table_name,"_errors"),
                             error_dir=error_dir,
                             error_list = error_list)
-  
   # ***!!!TO DO!!!***  harmonize methods, units and variables ####
-# 3.3) Times periods #####
-data<-lapply(XL,"[[","Times")
+# 3.3) Time periods #####
+  table_name<-"Times.Out"
+  
+  data<-lapply(XL,"[[","Times")
 
-Times<-rbindlist(pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]][7:30,10:18]
-  names(X)<-c("Time","Site.ID","TSP","TAP","Plant.Start","Plant.End","Harvest.Start","Harvest.End","Harvest.DAP")
-  X<-X[!is.na(Time)]
-  X$B.Code<-Pub.Out$B.Code[i]
-  X
-}))
+  Times.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
+    X<-data[[i]][7:30,10:18]
+    names(X)<-c("Time","Site.ID","TSP","TAP","Plant.Start","Plant.End","Harvest.Start","Harvest.End","Harvest.DAP")
+    X<-X[!is.na(Time)]
+    X$B.Code<-Pub.Out$B.Code[i]
+    X
+    }))
+  
+  
+  results<-validator(data=Times.Out,
+                     numeric_cols=c("TSP","TAP"),
+                     site_data = Site.Out,
+                     compulsory_cols = c(Site.ID="Time",Time="Site.ID"),
+                     trim_ws = T,
+                     duplicate_field="Time",
+                     duplicate_ignore_fields=colnames(Times.Out)[!colnames(Times.Out) %in% c("Time","Site.ID","B.Code")],
+                     rm_duplicates=T,
+                     do_time=F,
+                     tabname=table_name)
+  
+   errors<-results$errors
+   
+   Times.Out<-results$data
+    
+    error_list<-error_tracker(errors=errors,
+                              filename = paste0(table_name,"_errors"),
+                              error_dir=error_dir,
+                              error_list = error_list)
+  
 # 3.4) Experimental Design (ExpD.Out) ####
 table_name<-"ExpD.Out"
 data<-lapply(XL,"[[",table_name)
 col_names<-colnames(data[[1]])
+
 ExpD.Out<-lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
   B.Code<-Pub.Out[,B.Code[i]]
@@ -518,19 +633,20 @@ ExpD.Out<-lapply(1:length(data),FUN=function(i){
   }
 })
 
-errors<-rbindlist(lapply(ExpD.Out,"[[","error"))
-error_list<-error_tracker(errors=errors,filename = paste0(table_name,"_structure_errors"),error_dir=error_dir,error_list = error_list)
+errors<-list(rbindlist(lapply(ExpD.Out,"[[","error")))
 
 ExpD.Out<-rbindlist(lapply(ExpD.Out,"[[","data"))
 
 results<-validator(data=ExpD.Out,
                    numeric_cols=c("EX.Plot.Size","EX.HPlot.Size"),
                    zero_cols = c("EX.Design","EX.Plot.Size","EX.HPlot.Size","EX.Notes"),
+                   trim_ws = T,
                    tabname="ExpD.Out")
 
 ExpD.Out<-results$data
 
-error_list<-error_tracker(errors=results$errors,filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
+errors<-c(errors,list(results$errors))
+error_list<-error_tracker(errors=rbindlist(errors,fill = T)[order(B.Code)],filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
 
 # 3.5) Products (Prod.Out) ####
 table_name<-"Prod.Out"
@@ -559,8 +675,12 @@ Prod.Out<-lapply(1:length(data),FUN=function(i){
   }
 })
 
-errors_a<-rbindlist(lapply(Prod.Out,"[[","error"))
+errors<-list(rbindlist(lapply(Prod.Out,"[[","error")))
 Prod.Out<-rbindlist(lapply(Prod.Out,"[[","data"))
+
+Prod.Out<-validator(data=Prod.Out,
+                    tabname="Prod.Out",
+                    trim_ws = T)$data
 
 # Check products exists (non-tree)
 mprod<-unique(master_codes$prod[,list(Product.Simple)])
@@ -569,13 +689,15 @@ mprod[,check:=T]
 mergedat<-merge(Prod.Out,mprod,all.x=T)
 
 mergedat<-mergedat[is.na(check),list(B.Code,P.Product)]
-errors1<-mergedat[,value:=P.Product
+error_dat<-mergedat[,value:=P.Product
 ][,table:=table_name
 ][,field:="P.Product"
 ][,issue:="No match for product in master codes Product tab"
 ][order(B.Code)][,P.Product:=NULL]
 
-error_list<-error_tracker(errors=rbind(errors_a,errors1),filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
+errors<-c(errors,list(error_dat))
+
+error_list<-error_tracker(errors=rbindlist(errors)[order(B.Code)],filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
 
   # TO DO - updated mulched and incorporated codes, check product is in master codes ####
 # 3.6) Var (Var.Out) ####
@@ -606,7 +728,7 @@ Var.Out<-lapply(1:length(data),FUN=function(i){
   }
 })
 
-errors_a<-rbindlist(lapply(Var.Out,"[[","error"))
+errors<-list(rbindlist(lapply(Var.Out,"[[","error")))
 
 Var.Out<-rbindlist(lapply(Var.Out,"[[","data"))
 setnames(Var.Out,"V.Subpecies","V.Subspecies")
@@ -618,9 +740,11 @@ results<-validator(data=Var.Out,
                                  "V.Type","V.Maturity","V.Code.Crop","V.Code.Animal",
                                  "V.Codes"),
                    tabname=table_name,
+                   duplicate_field = "V.Var",
                    trim_ws=T)
 
-errors1<-results$errors
+errors<-c(errors,list(results$errors))
+
 Var.Out<-results$data
 
 # Check & fix for where Animal Practices has been entered in Crop Practice, remove crop related cols
@@ -644,40 +768,84 @@ Var.Out[,unique(V.Animal.Practice)]
 Var.Out[,V.Codes:=master_codes$prac[match(Var.Out$V.Animal.Practice,master_codes$prac$Subpractice),Code]]
 
 # Errors
-errors1<-unique(Var.Out[(V.Type %in% c("Local","Landrace")) & V.Animal.Practice != "Unimproved Breed",!c("V.Base","V.Codes")])
-errors1<-errors1[,.(value=paste(unique(V.Var),collapse = "/")),by=B.Code
+error_dat<-unique(Var.Out[(V.Type %in% c("Local","Landrace")) & V.Animal.Practice != "Unimproved Breed",!c("V.Base","V.Codes")])
+error_dat<-error_dat[,.(value=paste(unique(V.Var),collapse = "/")),by=B.Code
                      ][,table:=table_name
                        ][,field:="V.Var"
                          ][,issue:="V.Type is local, but V.Animal.Practice is not Unimproved Breed"]
 
-errors2<-unique(Var.Out[V.Type %in% c("Hybrid","Crossbreed") & V.Animal.Practice != "Hybridization or Cross Breeding",!c("V.Base","V.Codes")])
-errors2<-errors2[,.(value=paste(unique(V.Var),collapse = "/")),by=B.Code
+errors<-c(errors,list(error_dat))
+
+error_dat<-unique(Var.Out[V.Type %in% c("Hybrid","Crossbreed") & V.Animal.Practice != "Hybridization or Cross Breeding",!c("V.Base","V.Codes")])
+error_dat<-error_dat[,.(value=paste(unique(V.Var),collapse = "/")),by=B.Code
 ][,table:=table_name
 ][,field:="V.Var"
 ][,issue:="V.Type is hybrid/crossbreed, but V.Animal.Practice is not Hybridization or Cross Breeding"]
 
-errors<-rbindlist(list(errors_a,errors1,errors2))
-
-error_list<-error_tracker(errors=errors,filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
+errors<-c(errors,list(error_dat))
 
  # 3.6.1) Harmonization #####
+# Save original variety name as this is a keyfield used in the MT.Out tab, if it is changed then this causes issues
+Var.Out[,V.Level.Name:=V.Var]
+
+# Update fields associated with varieties
+mvars<-unique(master_codes$vars[!is.na(V.Animal.Practice),list(V.Product,V.Var,V.Animal.Practice,V.Type)])[,N:=.N,by=list(V.Product,V.Var)]
+error_dat<-mvars[N>1][,.(value=paste0(V.Product,":",V.Var)),by=.(V.Product,V.Var)
+                      ][,B.Code:=NA
+                        ][,table:=table_name
+                          ][,field:="V.Product:V.Var"
+                            ][,issue:="More than one description of same variety in master codes/var tab."
+                              ][,c("V.Product","V.Var"):=NULL]
+
+errors<-c(errors,list(error_dat))
+
+mergedat<-merge(Var.Out[,list(V.Product,V.Var)],mvars,by=c("V.Product","V.Var"),all.x=T,sort=F)
+
+Var.Out[!is.na(mergedat$V.Animal.Practice),V.Crop.Practice:=mergedat[!is.na(V.Animal.Practice),V.Animal.Practice]
+][!is.na(mergedat$V.Type),V.Type:=mergedat[!is.na(V.Type),V.Type]]
+
+# Update varietal by matching to master_codes
+mvars<-unique(master_codes$vars[!is.na(V.Var1) & !is.na(V.Var) & !is.na(V.Animal.Practice),
+                                list(V.Product,V.Var,V.Var1)])[,N:=.N,by=list(V.Product,V.Var)]
+error_dat<-mvars[N>1][,.(value=paste0(V.Product,":",V.Var)),by=.(V.Product,V.Var)
+                      ][,B.Code:=NA
+                        ][,table:=table_name
+                          ][,field:="V.Product:V.Var"
+                            ][,issue:="More than one description of same variety in master codes"
+                              ][,c("V.Product","V.Var"):=NULL]
+errors<-c(errors,list(error_dat))
+
+mvars<-mvars[N==1][,N:=NULL]
+
+mergedat<-merge(Var.Out[,list(V.Product,V.Var)],mvars,by=c("V.Product","V.Var"),all.x=T,sort=F)
+
+Var.Out[!is.na(mergedat$V.Var1),V.Var:=mergedat[!is.na(V.Var1),V.Var1]]
+
 # Non-matching varieties
-h_tasks3<- Var.Out[is.na(V.Var1) & !is.na(V.Var) & !grepl("local|unspecified|unimproved|[*][*][*]",V.Var,ignore.case=T),list(V.Product,V.Var,B.Code)
-][,list(B.Code=paste(B.Code,collapse = "/")),by=list(V.Product,V.Var)
+h_dat<- Var.Out[is.na(V.Var1) & !is.na(V.Var) & !grepl("local|unspecified|unimproved|[*][*][*]",V.Var,ignore.case=T),
+][,.(value=paste0(V.Product,":",V.Var)),by=B.Code
 ][,master_tab:="vars"
 ][,table:="Var.Out"
-][,field:="V.Var"]
-setnames(h_tasks3,"V.Var","value")
-
-harmonization_list<-error_tracker(errors=errors3,filename = paste(table_name,"_harmonization"),error_dir=harmonization_dir,error_list = harmonization_list)
+][,field:="V.Var"
+][,table_alt:=NA
+][,field_alt:=NA]
+h_tasks<-list(h_dat)
 
 # Remove harmonization columns
 Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
 
+  
+ # 3.6.2) Save errors & harmonization #######
+  errors<-rbindlist(errors,use.names = T)[order(B.Code)]
+  error_list<-error_tracker(errors=errors,filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
 
+  h_tasks<-rbindlist(h_tasks,use.names = T)[order(B.Code)]
+  
+  harmonization_list<-error_tracker(errors=h_tasks,filename = paste(table_name,"_harmonization"),error_dir=harmonization_dir,error_list = harmonization_list)
+  
   
 # 3.7) Diet ####
-  # 3.7.1) Animals.Out ####
+  # 3.7.1) Animals.Out ######
   table_name<-"Animals.Out"
   data<-lapply(XL,"[[",table_name)
   col_names<-colnames(data[[1]][,1:19])
@@ -685,12 +853,12 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   Animals.Out<-lapply(1:length(data),FUN=function(i){
     X<-data[[i]]
     B.Code<-Pub.Out$B.Code[i]
-    setnames(X,"A.Level.Name...1","A.Level.Name",skip_absent = T)
     
     if(!all(col_names %in% colnames(X))){
       cat("Structural issue with file",i,B.Code,"\n")
       list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
     }else{
+      setnames(X,"A.Level.Name...1","A.Level.Name",skip_absent = T)
       X<-X[,..col_names]
       X<-X[!is.na(A.Level.Name)]
       if(nrow(X)>0){
@@ -699,7 +867,7 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
       }
     }})
   
-  errors_a<-rbindlist(lapply(Animals.Out,"[[","error"))
+  errors<-list(rbindlist(lapply(Animals.Out,"[[","error")))
   
   Animals.Out<-rbindlist(lapply(Animals.Out,"[[","data"))
   p_names<- c("A.Feed.Add.1","A.Feed.Add.2","A.Feed.Add.3", "A.Feed.Add.C", "A.Feed.Sub.1","A.Feed.Sub.2","A.Feed.Sub.3",
@@ -711,43 +879,60 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   results<-validator(data=Animals.Out,
                      zero_cols =zero_cols,
                      unique_cols = "A.Level.Name",
+                     trim_ws = T,
                      tabname=table_name)
   
-  errors<-results$errors
+  errors<-c(errors,list(results$errors))
   Animals.Out<-results$data
   
+  # All NA rows 
+  N<-apply(Animals.Out[,!c("A.Level.Name","B.Code")],1,FUN = function(x){all(is.na(x))})
+  error_dat<-Animals.Out[N,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
+  ][,table:=table_name
+  ][,field:="A.Level.Name"
+  ][,issue:="Possible error, row is entirely NA."]
+  
+  errors<-c(errors,list(error_dat))
+  
   # Errors -  Feed Add Code but no control or >1 control
-  errors1<-Animals.Out[A.Level.Name!="Base",feed_add_prac:=sum(!is.na(A.Feed.Add.1),!is.na(A.Feed.Add.2),!is.na(A.Feed.Add.3))>1,by=.(B.Code,A.Level.Name)
+  error_dat<-Animals.Out[A.Level.Name!="Base",feed_add_prac:=sum(!is.na(A.Feed.Add.1),!is.na(A.Feed.Add.2),!is.na(A.Feed.Add.3))>1,by=.(B.Code,A.Level.Name)
                  ][A.Level.Name!="Base",feed_add_cont:=sum(A.Feed.Add.C=="Yes",na.rm=T),by=.(B.Code)]
   
-  errors1<-errors1[feed_add_cont>1 & feed_add_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
+  error_dat<-error_dat[feed_add_cont>1 & feed_add_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
                                             ][,table:=table_name
                                             ][,field:="A.Level.Name"
                                             ][,issue:="Possible error, there is more than 1 control present feed addition practice(s)."]
   
-  # Errors - Feed Sub Code but no control
-  errors2<-Animals.Out[A.Level.Name!="Base",feed_sub_prac:=sum(!is.na(A.Feed.Sub.1),!is.na(A.Feed.Sub.2),!is.na(A.Feed.Sub.3))>1,by=.(B.Code,A.Level.Name)
-  ][A.Level.Name!="Base",feed_sub_cont:=sum(A.Feed.Sub.C=="Yes",na.rm=T),by=.(B.Code)]
-  
-  errors2<-errors2[feed_sub_cont==0 & feed_sub_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
-  ][,table:=table_name
-  ][,field:="A.Level.Name"
-  ][,issue:="Possible error, there is no control present for feed substitution practice(s)."]
-  
-  # Errors - Animal diet has been specified but there are no practices listed
-  cols<-zero_cols[!zero_cols %in% "A.Notes"]
-  errors3 <- Animals.Out[, lapply(.SD, function(col) sum(!is.na(col))), by = list(A.Level.Name, B.Code), .SDcols = cols]
-  errors3<-data.table(B.Code=errors3$B.Code,A.Level.Name=errors3$A.Level.Name,value=rowSums(errors3[,..cols]))[value==0 & A.Level.Name!="Base"]
-  errors3<-errors3[,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
-          ][,table:=table_name
-            ][,field:="A.Level.Name"
-              ][,issue:="Possible error, an animal diet has no associated practices."]
-  
-  error_list<-error_tracker(errors=rbind(errors_a,errors,errors1,errors2,errors3),
-                            filename = paste0(table_name,"_errors"),
-                            error_dir=error_dir,
-                            error_list = error_list)
-  
+  errors<-c(errors,list(error_dat))
+
+    # Errors - Feed Sub Code but no control
+    error_dat<-Animals.Out[A.Level.Name!="Base",feed_sub_prac:=sum(!is.na(A.Feed.Sub.1),!is.na(A.Feed.Sub.2),!is.na(A.Feed.Sub.3))>1,by=.(B.Code,A.Level.Name)
+    ][A.Level.Name!="Base",feed_sub_cont:=sum(A.Feed.Sub.C=="Yes",na.rm=T),by=.(B.Code)]
+    
+    error_dat<-error_dat[feed_sub_cont==0 & feed_sub_prac==T,list(value=paste0(A.Level.Name,collapse = "/")),by=B.Code
+    ][,table:=table_name
+    ][,field:="A.Level.Name"
+    ][,issue:="Possible error, there is no control present for feed substitution practice(s)."]
+    
+    errors<-c(errors,list(error_dat))
+    
+    # Errors - Animal diet has been specified but there are no practices listed
+    cols<-zero_cols[!zero_cols %in% "A.Notes"]
+    error_dat <- Animals.Out[, lapply(.SD, function(col) sum(!is.na(col))), by = list(A.Level.Name, B.Code), .SDcols = cols]
+    error_dat<-data.table(B.Code=error_dat$B.Code,A.Level.Name=error_dat$A.Level.Name,value=rowSums(error_dat[,..cols]))[value==0 & A.Level.Name!="Base"]
+    error_dat<-error_dat[,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
+            ][,table:=table_name
+              ][,field:="A.Level.Name"
+                ][,issue:="Possible error, an animal diet has no associated practices."]
+    
+    errors<-c(errors,list(error_dat))
+    
+    # 3.7.1.1) Save Errors #######
+    error_list<-error_tracker(errors=rbindlist(errors,use.names = T)[order(B.Code)],
+                              filename = paste0(table_name,"_errors"),
+                              error_dir=error_dir,
+                              error_list = error_list)
+    
   # 3.7.2) Animal.Diet ####
   table_name<-"Animals.Diet"
   col_names<-colnames(data[[1]][,21:34])
@@ -769,7 +954,8 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
       }
     }})
   
-  errors_a<-rbindlist(lapply(Animals.Diet,"[[","error"))
+  error_dat<-rbindlist(lapply(Animals.Diet,"[[","error"))
+  errors<-list(error_dat)
   
   Animals.Diet<-rbindlist(lapply(Animals.Diet,"[[","data"))
   
@@ -778,13 +964,25 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   results<-validator(data=Animals.Diet,
                      zero_cols =zero_cols,
                      numeric_cols=c("D.Amount"),
+                     numeric_ignore_vals="Unspecified",
                      unit_pairs = data.table(unit="D.Unit.Amount",var="D.Amount",name_field="A.Level.Name"),
                      compulsory_cols = c(A.Level.Name="D.Type"),
+                     duplicate_field="D.Item",
+                     check_keyfields=data.table(parent_tab=list(Animals.Out),
+                                                parent_tab_name="Animals.Out",
+                                                keyfield="A.Level.Name"),
                      trim_ws = T,
                      tabname=table_name)
+
   
-  errors1<-results$errors
+  
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
   Animals.Diet<-results$data
+  
+  # Remove \n and \r
+  Animals.Diet[,D.Item:=gsub("\r\n"," ",D.Item,fixed = T)]
   
   # Tidy diet process field
   Animals.Diet[,D.Process:=trimws(D.Process)
@@ -793,58 +991,109 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
                    ][D.Process=="",D.Process:=NA]
   
   # Create a merged process and diet item name field for harmonization.
-  Animals.Diet[!is.na(D.Process),D.ItemxProcess:=paste0(D.Item,"||",D.Process)]
-  write.table(Animals.Diet[!is.na(D.Process),.(B.Code=paste0(unique(B.Code),collapse ="/")),by=D.ItemxProcess],"clipboard",row.names = F,sep="\t")
+  Animals.Diet[,D.ItemxProcess:=D.Item][!is.na(D.Process) & !is.na(D.Item),D.ItemxProcess:=paste0(D.Item,"||",D.Process)]
+  # write.table(Animals.Diet[!is.na(D.Process),.(B.Code=paste0(unique(B.Code),collapse ="/")),by=D.ItemxProcess],"clipboard",row.names = F,sep="\t")
   
   # Convert diet process to list
   Animals.Diet[,D.Process:=strsplit(D.Process,"/")]
   
-  # Error where not entire diet and is.na(Diet.Item)
-  errors2<-Animals.Diet[D.Type!="Entire Diet" & is.na(D.Item),
+  # Error where the entire diet is not being described and is.na(Diet.Item)
+  error_dat<-Animals.Diet[D.Type!="Entire Diet" & is.na(D.Item),
                         ][,list(value=paste0(unique(A.Level.Name),collapse="/")),by=B.Code
                              ][,table:=table_name
                                ][,field:="A.Level.Name"
-                                 ][,issue:="Rows in have no diet item selected and diet type is no Entire Diet."]
+                                 ][,issue:="Rows in have no diet item selected and diet type is not Entire Diet."]
   
-  errors3<-check_key(parent = Animals.Out,child = Animals.Diet,tabname=table_name,keyfield="A.Level.Name")
-  
-  error_list<-error_tracker(errors=rbind(errors_a,errors1,errors2,errors3),
-                            filename = paste0(table_name,"_errors"),
-                            error_dir=error_dir,
-                            error_list = error_list)
+  errors<-c(errors,list(error_dat))
   
     # 3.7.2.1) Harmonization #######
-  # Units
-  h_params<-data.table(h_table=table_name,
-                       h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
-                       ignore_vals=c("unspecified","unspecified","unspecified"))[,c("h_field_alt","h_table_alt"):=NA]
-          
-  
-  results<-harmonizer_wrap(data=Animals.Diet,
-                           h_params=h_params,
-                           master_codes = master_codes)
-  
-  Animals.Diet<-results$data
-  h_tasks1<-results$h_tasks
-  
-  # Insert updated diet naming system 
-  diets_new<-unique(master_codes$ani_diet[,.(D.Item,D.Item.Root,D.Item.Expanded,D.Item.Full,D.Item.Other,D.Item.Process,D.Item.Component)])
-  
-  diets_new[,N:=.N,by=D.Item][N>1]
-  
-  # NOTE THAT THIS HARMONIZATION NEEDS TO CASCADE TO SUBSEQUENT SHEETS
-  # NOTE THERE IS SOME USE OF DIET GROUP IN THE DIET ITEM COLUMN, ADD LOGIC COLS TO INDICATE THIS.
-  # CONSIDER IF ENTIRE DIET SHOULD USE A.LEVEL.NAME AS THE DIET.ITEM
-  Animals.Diet<-merge(Animals.Diet,diets_new,by.x="D.ItemxProcess",by.y="D.Item",all.x=T)
-  Animals.Diet[is.na(D.Item.Full),D.Item:=D.Item.Full]
-  
-  h_tasks2<-results$h_tasks
-  
-  harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),
-                                    filename = table_name,
-                                    error_dir=harmonization_dir,
-                                    error_list = harmonization_list)
-  
+    # Units
+    h_params<-data.table(h_table=table_name,
+                         h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
+                         ignore_vals=c("unspecified","unspecified","unspecified"))[,c("h_field_alt","h_table_alt"):=NA]
+            
+    
+    results<-harmonizer_wrap(data=Animals.Diet,
+                             h_params=h_params,
+                             master_codes = master_codes)
+    
+    Animals.Diet<-results$data
+    h_tasks<-list(results$h_tasks)
+    
+    # Insert updated diet naming system 
+    # TO DO!!! #######
+    # split on ";" in D.Item and duplicate rows
+    mergedat<-unique(master_codes$ani_diet[order(D.Item),.(D.Item,
+                                               D.Item.Root.Comp,
+                                               D.Item.Root.Comp.Proc_Major,
+                                               D.Item.Root.Other.Comp.Proc_All,
+                                               D.Item.Other,
+                                               D.Item.Proc_All,
+                                               D.Item.Proc_Major,
+                                               D.Item.Proc_Minor,
+                                               D.Item.Comp,
+                                               B.Code)][,D.Item:=trimws(tolower(D.Item))])
+    
+      
+    # Find non-unique diet items that will cause matching issues
+    error_dat<-unique(mergedat[,!"B.Code"])[,N:=.N,by=D.Item][N>1]
+    excluded_items<-error_dat[,unique(D.Item)]
+    error_dat<-error_dat[,D.Item2:=D.Item
+              ][,B.Code:=mergedat[mergedat$D.Item==D.Item2[1],paste(unique(unlist(strsplit(B.Code,"/"))),collapse="/")],by=D.Item2
+                ][,value:=paste(D.Item,"-",D.Item.Root.Comp.Proc_Major)
+                  ][,.(B.Code,value)
+                    ][,table:="era_master_sheet/ani_diets"
+                      ][,field:="D.Item-D.Item.Root.Comp.Proc_Major"
+                        ][,issue:="Multiple rows for unique value of D.Item exist."]
+    
+    errors<-c(errors,list(error_dat))
+    
+    mergedat<-unique(mergedat[,!"B.Code"])[,N:=.N,by=D.Item][N==1][,N:=NULL]
+    
+    # Make fields lower case to improve odds of matching
+    Animals.Diet[,D.ItemxProcess_low:=tolower(D.ItemxProcess)]
+    
+    mergedat[,check:=T]
+    
+    # Merge new names
+    Animals.Diet<-merge(Animals.Diet,mergedat,by.x="D.ItemxProcess_low",by.y="D.Item",all.x=T)
+    Animals.Diet[,D.Item_raw:=D.Item]
+    
+    mergedat[grep("karroo",D.Item)]
+    
+    # Non-matches
+    
+    # Use check than D.Item.Root.Other.Comp.Proc_All
+    
+    h_dat<-Animals.Diet[!is.na(D.Item) & 
+                              is.na(check) & 
+                              !D.Item %in% excluded_items,.(B.Code=paste0(unique(B.Code),collapse = "/")),
+                            by=D.ItemxProcess
+              ][,value:=D.ItemxProcess
+                ][,D.ItemxProcess:=NULL
+                  ][,table:=table_name
+                    ][,field:="D.Item"
+                      ][,issue:="No-match between excel D.Item and era_master_sheet/ani_diet/D.Item"]
+    
+    write.table(h_dat[,.(value,B.Code)],"clipboard-256000",row.names = F,sep="\t",col.names = F)
+    
+    
+    Animals.Diet[is.na(D.Item.Full),D.Item:=D.Item.Full]
+    
+    h_tasks2<-results$h_tasks
+    
+    harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),
+                                      filename = table_name,
+                                      error_dir=harmonization_dir,
+                                      error_list = harmonization_list)
+    
+    # 3.7.2.2) Save Errors #######
+    error_list<-error_tracker(errors=rbindlist(errors)[order(B.Code)],
+                              filename = paste0(table_name,"_errors"),
+                              error_dir=error_dir,
+                              error_list = error_list)
+    
+    
   # 3.7.3) Animals.Diet.Comp ######
   table_name<-"Animals.Diet.Comp"
   col_names<-colnames(data[[1]][,36:126])
