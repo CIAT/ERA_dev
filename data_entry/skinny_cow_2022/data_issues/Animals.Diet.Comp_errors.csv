@@ -1,3 +1,0 @@
-B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-NN0339.2,18/.2,Animals.Diet.Comp,DC.GE,Non-numeric value in numeric field.,FALSE,"",""
-NN0321,Baobao Seed Oilcake,Animals.Diet.Comp,D.Item,"Amount is present, but unit is missing for DC.DM.",FALSE,"",""
