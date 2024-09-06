@@ -998,6 +998,7 @@ validator <- function(data,
                       trim_ws = FALSE,
                       do_site = TRUE,
                       do_time = TRUE,
+                      check_keyfields=NULL,
                       convert_NA_strings = FALSE,
                       duplicate_field=NULL,
                       duplicate_ignore_fields=NULL,
@@ -1071,6 +1072,11 @@ validator <- function(data,
     errors1 <- find_non_numeric(data = data, numeric_cols = numeric_cols, tabname = tabname)
     errors1 <- errors1[, list(value = paste(value, collapse = "/")), by = list(B.Code, table, field)
     ][, issue := "Non-numeric value in numeric field."]
+    
+    if(!is.null(numeric_ignore_vals)){
+      errors1<-errors1[!grepl(paste0(numeric_ignore_vals,collapse = "|"),value,ignore.case = T)]
+    }
+    
     errors[[n]] <- errors1
     n <- n + 1
     # Convert numeric fields to being numeric
@@ -1094,6 +1100,21 @@ validator <- function(data,
   if (trim_ws) {
     char_cols <- sapply(data, is.character)
     data[, (names(data)[char_cols]) := lapply(.SD, trimws), .SDcols = char_cols]
+  }
+  
+  # Check keyfields
+  if(!is.null(check_keyfields)){
+    errors1<-rbindlist(lapply(1:nrow(check_keyfields),FUN=function(i){
+      result<-check_key(parent=check_keyfields$parent_tab[[i]],
+                child=data,
+                tabname=table_name,
+                tabname_parent=check_keyfields$parent_tab_name[i],
+                keyfield=check_keyfields$keyfield[i],
+                collapse_on_code=T)[,table:=paste0(parent_table,"/",table)][,parent_table:=NULL]
+      return(result)
+    }))
+    errors[[n]]<-errors1
+    n<-n+1
   }
   
   # Convert date cols to date format
@@ -1147,23 +1168,27 @@ validator <- function(data,
   if(find_duplicates & !is.null(duplicate_field)){
     if(!is.null(duplicate_ignore_fields)){
       keep_cols<-colnames(data)[!colnames(data) %in% duplicate_ignore_fields]
-      errors1<-data[duplicated(data[,..keep_cols])]
+      issue_text<-paste0("Duplicate rows exist in table for cols: ",paste(keep_cols,collapse = ", "),".")
+      dup_n<-duplicated(data[,..keep_cols])
       }else{
-      errors1<-data[duplicated(data)]
-    }
+      dup_n<-duplicated(data)
+      issue_text<-"Exact duplicate rows exist in table."
+      }
+    
+    errors1<-data[dup_n]
 
     if(nrow(errors1)>0){
       setnames(errors1,duplicate_field,"value")
       errors1<-errors1[,list(value=paste0(unique(value),collapse = "/")),by=B.Code
                          ][, table := tabname
                          ][, field := duplicate_field
-                         ][, issue := "Exact Duplicate rows in table"]
+                         ][, issue :=issue_text]
       errors[[n]] <- errors1
       n<-n+1
       }
       
       if(rm_duplicates){
-        data<-data[!duplicated(data)]
+        data<-data[!dup_n]
       }
     }
   
