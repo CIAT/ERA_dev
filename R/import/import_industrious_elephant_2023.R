@@ -722,7 +722,7 @@ if(file_status){
   Soil.Out[variable %in% c("CLY","SND","SLT"),Unit:="%"]
   
   # Update Site ID
-  Soil.Out[,Site.ID:=Site.Out$Site.ID[match(Soil.Out$Site.ID,Site.Out$Site.ID_raw)]
+  Soil.Out[,Site.ID_new:=Site.Out$Site.ID[match(Soil.Out$Site.ID,Site.Out$Site.ID_raw)]
            ][is.na(Site.ID_new),Site.ID_new:=Site.ID
              ][,Site.ID:=Site.ID_new
                ][,Site.ID_new:=NULL]
@@ -1024,15 +1024,13 @@ if(file_status){
                                   ][,issue:="Duplicate varieties present"]
   
   # Check for multiple base practices for the same crop
-  errors5<-Var.Out[V.Base=="Yes",.(V.Product,V.Var,V.Base,B.Code,V.Level.Name)
+  errors5<-Var.Out[V.Base=="Yes",.(V.Product,V.Var,V.Base,B.Code)
   ][,N:=length(V.Base),by=.(B.Code,V.Product)
   ][N>1
-  ][,.(value=paste(paste0(V.Product,":",V.Level.Name),collapse="/")),by=.(B.Code)
+  ][,.(value=paste(paste0(V.Product,":",V.Var),collapse="/")),by=.(B.Code)
     ][,table:="Var.Out"
       ][,field:="V.Product:V.Var"
         ][,issue:="Multiple base practices present."]
-  
-  error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4,errors5),use.names = T)[order(B.Code)],filename = "var_other_errors",error_dir=error_dir,error_list = error_list)
   
     # 3.7.1) Var.Out: Harmonize Variety Naming and Codes #####
   
@@ -1060,7 +1058,7 @@ if(file_status){
   
   
   harmonization_list<-error_tracker(errors=h_tasks1,filename = "var_master_dups1_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
-  harmonization_list<-error_tracker(errors=h_tasks2,filename = "var_master_dups2_harmoniazation",error_dir=harmonization_dir,error_list = harmonization_list)
+  harmonization_list<-error_tracker(errors=h_tasks2,filename = "var_master_dups2_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
   # Non-matching varieties
   h_tasks3<- Var.Out[is.na(mergedat$V.Var1) & !is.na(V.Var) & !grepl("local|unspecified|unimproved",V.Var,ignore.case=T),list(V.Product,V.Var,B.Code)
@@ -1072,8 +1070,10 @@ if(file_status){
   
   harmonization_list<-error_tracker(errors=errors3,filename = "var_varieties_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-  
     # Q: Should we update traits and maturity too? ####
+    # 3.7.2) Save errors #######
+    error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4,errors5),use.names = T)[order(B.Code)],filename = "var_other_errors",error_dir=error_dir,error_list = error_list)
+  
   # 3.8) Agroforestry #####
   data<-lapply(XL,"[[","AF.Out")
   col_names<-colnames(data[[800]])
@@ -2643,10 +2643,11 @@ if(file_status){
   ][,table:="WH.Out"
   ][,field:="WH.Level.Name"
   ][,issue:="Multiple base practices present."]
-    
+  
+  WH.Out[,c("N","N1"):=NULL]
     # 3.17.1) Save errors ######
-    error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,error3),fill=T),filename = "wh_other_errors",error_dir=error_dir,error_list = error_list)
-    WH.Out[,c("N","N1"):=NULL]
+    error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3),fill=T),filename = "wh_other_errors",error_dir=error_dir,error_list = error_list)
+
   
   # 3.18) Dates #####
   data<-lapply(XL,"[[","PD.Out")
@@ -2722,10 +2723,10 @@ if(file_status){
       }
     }})
   
-  setnames(PD.Out,"Times","Time")
-  
   errors_b<-rbindlist(lapply(PD.Out,"[[","error"))
+
   PD.Out<-rbindlist(lapply(PD.Out,"[[","data"))  
+  setnames(PD.Out,"Times","Time")
   
   # Update Site.IDs
   PD.Out[Site.ID!="All Sites",Site.ID_new:=Site.Out$Site.ID[match(PD.Out[Site.ID!="All Sites",Site.ID],Site.Out$Site.ID_raw)]  
@@ -3033,13 +3034,12 @@ MT.Out<-rbindlist(lapply(MT.Out,"[[","data"))
 setnames(MT.Out,c("C.Name","V.Var","T.Comp"),c("C.Level.Name","V.Level.Name","P.Product"))
 MT.Out[,V.Level.Name:=trimws(V.Level.Name)]
 
-
-
 results<-validator(data=MT.Out,
                  numeric_cols = c("T.Reps","T.Start.Year"),
                  unique_cols = "T.Name",
                  trim_ws = T,
                  compulsory_cols = c(T.Name="T.Name",T.Name="P.Product"),
+                 duplicate_field = "T.Name",
                  tabname="MT.Out")
 
 errors1<-results$errors
@@ -3110,23 +3110,21 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
                                    ][,field:="T.Name"
                                    ][,issue:="Variety practice + crop selected does not merge with Var.Out tab."]
 
-
   # Check for aggregated products
   errors6<-MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(value=paste(unique(P.Product),collapse="/")),by=B.Code
            ][,table:="MT.Out"
              ][,field:="P.Product"
                ][,issue:="Product is aggregated, check the use of aggregation is valid."]
       
-  
   # Check for duplicate rows in make treatment table
-  dat<-MT.Out[B.Code=="CJ0162"]
-  dup_check<-dat[,..keyfields]
-  dat[duplicated(dup_check)]
-  
-  keyfields<-unique(c(keyfields,"T.Residue.Prev","B.Code","P.Product","T.Reps","T.Start.Year","T.Start.Season"))
-  dup_check<-MT.Out[,..keyfields]
-  duplicates <- MT.Out[duplicated(dup_check)][!grepl("[.][.]",T.Name)]
-  duplicates<-duplicates[,list(value=paste0(T.Name,collapse="/"),n_dups=.N),by=B.Code][order(n_dups,decreasing = T)]
+  error_dat<-cbind(MT.Out[,.(B.Code,T.Name)],code=apply(MT.Out[,!"T.Name"],1,paste,collapse="/"))[,N:=.N,by=.(B.Code,code)][N>1 & !grepl("[.][.]",T.Name)]
+  error_dat<-error_dat[,.(value=paste(T.Name,collapse = "==")),by=.(B.Code,code)
+                       ][,code:=NULL
+                         ][,.(value=paste(value,collapse = "/")),by=B.Code
+                           ][,table:="MT.Out"
+                             ][,field:="T.Name"
+                               ][,issue:="Identical treatments, look at names to see if this could be an error (e.g. a missing field)."]
+
   
   error_list<-error_tracker(errors=duplicates,filename = "treatment_duplicates",error_dir=error_dir,error_list = error_list)
   
@@ -4727,22 +4725,7 @@ col_names<-colnames(data[[800]])
   
   Data.Out[ED.Product.Comp=="NA",ED.Product.Comp:=NA]
   
-  # Check for missing required fields that don't work with standard validator
-  errors1<-unique(rbind(
-    Data.Out[is.na(T.Name) & is.na(IN.Level.Name) & is.na(R.Level.Name)
-             ][,list(value=paste0(unique(Out.Code.Joined),collapse="/")),by=B.Code
-               ][,field:="Out.Code.Joined"
-                 ][,issue:="Compulsory Treatment, Intercropping and Rotation fields are all blank (at least one value must be present)."],
-    Data.Out[is.na(P.Product) & !(is.na(IN.Level.Name) & is.na(T.Name))
-             ][,list(value=paste0(unique(IN.Level.Name),collapse="/")),by=B.Code
-               ][,field:="IN.Level.Name/T.Name"
-                 ][,issue:="Compulsory Product field is blank."]
-  ))[,list(value=paste(value,collapse="/")),by=list(B.Code,field,issue)
-     ][,table:="Data.Out"
-       ][order(B.Code)]
-  
-  errors<-list(errors1)
-  
+
     # Check times in treatment tab match time tab (note aggregation too)
   errors2<-Data.Out[,list(B.Code,T.Name,IN.Level.Name,R.Level.Name,Time)]
   
@@ -4773,10 +4756,9 @@ col_names<-colnames(data[[800]])
                      do_site = F,
                      convert_NA_strings=T)
   
-  errors<-c(errors,list(results$errors[!(grepl("[.][.]",value) & field=="Time")]))
+  errors<-list(results$errors[!(grepl("[.][.]",value) & field=="Time")])
   
   Data.Out<-results$data
-  
   
   # Update Site.ID
   Data.Out[,Site.ID_new:=Site.Out$Site.ID[match(gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",trimws(tolower(Data.Out$Site.ID))),tolower(Site.Out$Site.ID_raw))]] 
@@ -4786,9 +4768,7 @@ col_names<-colnames(data[[800]])
   # Check that Outcomes match
   error_dat<-check_key(parent=Out.Out,child=Data.Out[!is.na(Out.Code.Joined)],tabname="Data.Out",tabname_parent="Out.Out",keyfield="Out.Code.Joined",collapse_on_code=T)
   errors[["outcome_mismatches"]]<-error_dat
-  # Check that Treatments match
-  error_dat<-check_key(parent=MT.Out,child=Data.Out[!is.na(T.Name)],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)
-  errors[["treatment_mismatches"]]<-error_dat
+
   errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison1)][,T.Name:=ED.Comparison1],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison1"]))
   errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison2) & ED.Comparison2!="Not in template"][,T.Name:=ED.Comparison2],tabname_parent="MT.Out",tabname="Data.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison2"]))
   
@@ -4864,6 +4844,10 @@ col_names<-colnames(data[[800]])
   # MT.Out
   Data.Out[,T.Name:= split_trimws(T.Name[1],delim = ".."),by=T.Name]
   Data.Out[,T.Name:=gsub("[.][.]","...",T.Name)]
+  
+  # Check that Treatments match
+  error_dat<-check_key(parent=MT.Out,child=Data.Out[!is.na(T.Name)],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)
+  errors[["treatment_mismatches"]]<-error_dat
 
   # Int.Out
   Data.Out[,IN.Level.Name:=gsub("__","***",IN.Level.Name)][,IN.Level.Name:=gsub("[.][.]","...",IN.Level.Name)]
@@ -4893,6 +4877,22 @@ col_names<-colnames(data[[800]])
   mergedat<-unique(Data.Out[is.na(T.Name) &is.na(IN.Level.Name) &!is.na(R.Level.Name),list(B.Code,R.Level.Name)][,Index:=1:.N])
   mergedat<-merge(mergedat,unique(Rot.Out[,list(B.Code,R.Level.Name,R.All.Products)]),all.x=T,sort=F)[order(Index)]
   Data.Out[is.na(T.Name) &is.na(IN.Level.Name) &!is.na(R.Level.Name),P.Product:=mergedat$R.All.Products]
+  
+  # Check for missing required fields that don't work with standard validator
+  error_dat<-unique(rbind(
+    Data.Out[is.na(T.Name) & is.na(IN.Level.Name) & is.na(R.Level.Name)
+    ][,list(value=paste0(unique(Out.Code.Joined),collapse="/")),by=B.Code
+    ][,field:="Out.Code.Joined"
+    ][,issue:="Compulsory Treatment, Intercropping and Rotation fields are all blank (at least one value must be present)."],
+    Data.Out[is.na(P.Product) & !(is.na(IN.Level.Name) & is.na(T.Name))
+    ][,list(value=paste0(unique(IN.Level.Name),collapse="/")),by=B.Code
+    ][,field:="IN.Level.Name/T.Name"
+    ][,issue:="Compulsory Product field is blank."]
+  ))[,list(value=paste(value,collapse="/")),by=list(B.Code,field,issue)
+  ][,table:="Data.Out"
+  ][order(B.Code)]
+  
+  errors[["product_mistmatches"]]<-error_dat
   
   # 8.3) Harmonization #####
   h_tasks1<-harmonizer(data=Data.Out, 
@@ -5486,10 +5486,9 @@ col_names<-colnames(data[[800]])
     Data.Out[,Irrig:=F][,Irrig:=any(unlist(strsplit(c(T.Codes[1],Base.Codes[1]),"-")) %in% irrig_codes$Code),by=.(T.Codes,Base.Codes)]
     
     # Add h23 rainfed code to non-irrigated treatments
-    Data.Out[Irrig=F,T.Codes:=paste(sort(unique(c("h23",unlist(strsplit(T.Codes[1],"-"))))),collapse="-"),by=T.Codes]
+    Data.Out[Irrig==F,T.Codes:=paste(sort(unique(c("h23",unlist(strsplit(T.Codes[1],"-"))))),collapse="-"),by=T.Codes]
     # Also update aggregated treatment codes
-    Data.Out[Irrig=F, 
-             T.Codes.No.Agg:=paste(sort(unique(c("h23",unlist(strsplit(T.Codes.No.Agg[1],"-"))))),collapse="-"),by=T.Codes.No.Agg]
+    Data.Out[Irrig==F,T.Codes.No.Agg:=paste(sort(unique(c("h23",unlist(strsplit(T.Codes.No.Agg[1],"-"))))),collapse="-"),by=T.Codes.No.Agg]
     
   # 8.6) Save errors #####
   errors<-rbindlist(errors,fill=T)
