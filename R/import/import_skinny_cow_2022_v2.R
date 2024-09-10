@@ -745,6 +745,9 @@ errors<-c(errors,list(results$errors))
 
 Var.Out<-results$data
 
+# Save original variety name as this is a keyfield used in the MT.Out tab, if it is changed then this causes issues
+Var.Out[,V.Level.Name:=Join]
+
 # Check & fix for where Animal Practices has been entered in Crop Practice, remove crop related cols
 Var.Out[!is.na(V.Crop.Practice) & V.Crop.Practice!=V.Animal.Practice]
 Var.Out[!is.na(V.Crop.Practice) & V.Crop.Practice!=V.Animal.Practice,V.Animal.Practice:=V.Crop.Practice
@@ -754,10 +757,10 @@ Var.Out[!is.na(V.Crop.Practice) & V.Crop.Practice!=V.Animal.Practice,V.Animal.Pr
 Var.Out[,V.Var:=Join][,Join:=NULL]
 
 # Update Variety Naming and Codes
-mvars<-master_codes$vars_animals[,list(V.Product,V.Var,V.Var1,V.Animal.Practice)]
-setnames(mvars,"V.Animal.Practice","V.Animal.Practice1")
+merge_dat<-master_codes$vars_animals[,list(V.Product,V.Var,V.Var1,V.Animal.Practice)]
+setnames(merge_dat,"V.Animal.Practice","V.Animal.Practice1")
 
-Var.Out<-merge(Var.Out,mvars,all.x=T,by=c("V.Product","V.Var"))
+Var.Out<-merge(Var.Out,merge_dat,all.x=T,by=c("V.Product","V.Var"))
 Var.Out[!is.na(V.Var1),V.Var:=V.Var1
 ][!is.na(V.Animal.Practice1),V.Animal.Practice:=V.Animal.Practice1]
 
@@ -783,9 +786,6 @@ error_dat<-error_dat[,.(value=paste(unique(V.Var),collapse = "/")),by=B.Code
 errors<-c(errors,list(error_dat))
 
  # 3.6.1) Harmonization #####
-# Save original variety name as this is a keyfield used in the MT.Out tab, if it is changed then this causes issues
-Var.Out[,V.Level.Name:=V.Var]
-
 # Update fields associated with varieties
 mvars<-unique(master_codes$vars[!is.na(V.Animal.Practice),list(V.Product,V.Var,V.Animal.Practice,V.Type)])[,N:=.N,by=list(V.Product,V.Var)]
 error_dat<-mvars[N>1][,.(value=paste0(V.Product,":",V.Var)),by=.(V.Product,V.Var)
@@ -1060,7 +1060,7 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
     # Merge new names
     ani_diet_cols<-c(colnames(Animals.Diet),"index")
     Animals.Diet<-merge(Animals.Diet,mergedat,by.x="D.ItemxProcess_low",by.y="D.Item",all.x=T,sort=F)
-    Animals.Diet[,D.Item_raw:=D.Item][,index:=1:.N]
+    Animals.Diet[,index:=1:.N]#[,D.Item_raw:=D.Item]
     
     # Merge on uncorrected names where no match exists
     Animals.Diet_nomatch<-Animals.Diet[!is.na(D.Item) & is.na(check) & !D.Item %in% excluded_items,..ani_diet_cols]
@@ -1068,7 +1068,7 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
     
     mergedat[,D.Item:=trimws(tolower(D.Item.Root.Other.Comp.Proc_All))]
     Animals.Diet_nomatch<-merge(Animals.Diet_nomatch,mergedat,by.x="D.ItemxProcess_low",by.y="D.Item",all.x=T,sort=F)
-    Animals.Diet_nomatch[,D.Item_raw:=D.Item]
+    #Animals.Diet_nomatch[,D.Item_raw:=D.Item]
     
     Animals.Diet<-rbind(Animals.Diet_match,Animals.Diet_nomatch)[order(index)][,index:=NULL]
     
@@ -1171,7 +1171,6 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
   Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
   
-  
     # 3.7.3.1) Harmonization #######
 
   # Merge in updated name from Animals.Diet table
@@ -1182,10 +1181,13 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   Animals.Diet.Comp<-merge(Animals.Diet.Comp,merge_dat,by=c("D.Item","B.Code"),all.x=T,sort=F)
   
   # Check for non-matches
-  error_dat<-Animals.Diet.Comp[!(is_group) & !(is_entire_diet) & is.na(check),.(B.Code,D.Item)][,.(value=paste(D.Item,collapse = "/")),by=B.Code
-                                                                                                ][,tabname:=table_name
-                                                                                                  ][,field:="D.Item"
-                                                                                                    ][,issue:="No matching value in diet description table."]
+  error_dat<-Animals.Diet.Comp[!(is_group) & 
+                                 !(is_entire_diet) & 
+                                 is.na(check),.(B.Code,D.Item)
+                               ][,.(value=paste(D.Item,collapse = "/")),by=B.Code
+                                 ][,table:=table_name
+                                   ][,field:="D.Item"
+                                     ][,issue:="No matching value in diet description table."]
   errors<-c(errors,list(error_dat))
   
   Animals.Diet.Comp[,check:=NULL]
@@ -1202,7 +1204,7 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
                            h_params=h_params,
                            master_codes = master_codes)
   
-  h_tasks<-c(Animals.Diet.Comp,list(results$h_tasks))
+  h_tasks<-c(h_tasks,list(results$h_tasks))
   Animals.Diet.Comp<-results$data
   
   # Methods
@@ -1217,16 +1219,16 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
                            h_params=h_params,
                            master_codes = master_codes)
   
-  h_tasks2<-results$h_tasks
+  h_tasks<-c(h_tasks,list(results$h_tasks))
   Animals.Diet.Comp<-results$data
-  
-  harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),filename = table_name,error_dir=harmonization_dir,error_list = harmonization_list)
-  
+
   # 3.7.4) Animals.Diet.Digest ######
   table_name<-"Animals.Diet.Digest"
   col_names<-colnames(data[[1]][,127:208])
+  col_names[col_names=="D.Item...129"]<-"D.Item"
+  col_names<-col_names[!grepl("...",col_names,fixed = T)]
   
-  numeric_cols<-col_names[5:23]
+  numeric_cols<-col_names[3:21]
   unit_cols<-paste0(numeric_cols,".Unit")
   method_cols<-paste0(numeric_cols,".Method")
   dv_cols<-paste0(numeric_cols,".DorV")
@@ -1237,14 +1239,14 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   Animals.Diet.Digest<-lapply(1:length(data),FUN=function(i){
     X<-data[[i]]
     B.Code<-Pub.Out$B.Code[i]
+    setnames(X,c("D.Item...129"),c("D.Item"),skip_absent = T)
+    
     
     if(!all(col_names %in% colnames(X))){
       cat("Structural issue with file",i,B.Code,"\n")
       list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
     }else{
       X<-X[,..col_names]
-      setnames(X,c("D.Item...129"),c("D.Item"),skip_absent = T)
-      X[,c("...128","...149","...169","...189"):=NULL]
       X<-X[!is.na(D.Item)]
       if(nrow(X)>0){
         X <- X[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
@@ -1253,23 +1255,12 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
       }
     }})
   
-  errors_a<-rbindlist(lapply(Animals.Diet.Digest,"[[","error"))
+  error_dat<-rbindlist(lapply(Animals.Diet.Digest,"[[","error"))
+  errors<-c(errors,list(error_dat))
   
   Animals.Diet.Digest<-rbindlist(lapply(Animals.Diet.Digest,"[[","data"))
   
-  # Add columns to indicate if a "compound" diet item described by A.Level.Name or Diet.Group 
-  diet_groups<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
-  setnames(diet_groups,"D.Item.Group","D.Item")
-  
-  diet_entire<-unique(Animals.Diet[D.Type=="Entire Diet",.(B.Code,A.Level.Name)][,is_entire_diet:=T])
-  setnames(diet_entire,"A.Level.Name","D.Item")
-  
-  Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
-  Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
-  
   # Run standard validation
-  (numeric_cols<-col_names[5:23])
-  
   unit_pairs<-data.table(unit=unit_cols,var=numeric_cols,name_field="D.Item")
   
   results<-validator(data=Animals.Diet.Digest,
@@ -1277,179 +1268,131 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
                      numeric_cols=numeric_cols,
                      unit_pairs = unit_pairs,
                      compulsory_cols = c(D.Item="D.Item"),
+                     duplicate_field="D.Item",
                      trim_ws = T,
                      tabname=table_name)
   
-  
-  errors1<-results$errors
+  errors<-c(errors,list(results$errors))
   Animals.Diet.Digest<-results$data
-  
-  error_list<-error_tracker(errors=rbind(errors_a,errors1),
-                            filename = paste0(table_name,"_errors"),
-                            error_dir=error_dir,
-                            error_list = error_list)
   
   # Set non-numerics cols to character
   non_numeric_cols<-colnames(Animals.Diet.Digest)[!colnames(Animals.Diet.Digest) %in% numeric_cols]
-  non_numeric_cols<-non_numeric_cols[!non_numeric_cols %in% c("is_group","is_entire_diet")]
   Animals.Diet.Digest <- Animals.Diet.Digest[, (non_numeric_cols) := lapply(.SD, as.character), .SDcols = non_numeric_cols]
   
+  # Add columns to indicate if a "compound" diet item described by A.Level.Name or Diet.Group 
+  diet_groups<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
+  setnames(diet_groups,"D.Item.Group","D.Item")
+  
+  diet_entire<-unique(Animals.Out[,.(B.Code,A.Level.Name)][,is_entire_diet:=T])
+  setnames(diet_entire,"A.Level.Name","D.Item")
+  
+  Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
+  Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
   
     # 3.7.4.1) Harmonization #######
+
+  Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by=c("D.Item","B.Code"),all.x=T,sort=F)
+  
+  # Check for non-matches
+  error_dat<-Animals.Diet.Digest[!(is_group) & !(is_entire_diet) & is.na(check),.(B.Code,D.Item)][,.(value=paste(D.Item,collapse = "/")),by=B.Code
+  ][,table:=table_name
+  ][,field:="D.Item"
+  ][,issue:="No matching value in diet description table."]
+  errors<-c(errors,list(error_dat))
+  
+  Animals.Diet.Digest[,check:=NULL]
+  
+  # Units
   h_params<-data.table(h_table=table_name,
                        h_field=unit_cols,
-                       h_field_alt=rep("DC.Unit",length(target_cols)),
-                       h_table_alt=rep("Animals.Diet.Comp",length(target_cols)),
-                       ignore_vals=rep("unspecified",length(target_cols)))
+                       h_field_alt=rep("DC.Unit",length(unit_cols)),
+                       h_table_alt=rep("Animals.Diet.Comp",length(unit_cols)),
+                       ignore_vals=rep("unspecified",length(unit_cols)))
   
   results<-harmonizer_wrap(data=Animals.Diet.Digest,
                            h_params=h_params,
                            master_codes = master_codes)
   
-  h_tasks1<-results$h_tasks
+  h_tasks<-c(h_tasks,list(results$h_tasks))
+  
   Animals.Diet.Digest<-results$data
   
-  target_cols<-grep(".Method",col_names,value=T)
+  # Methods
   h_params<-data.table(h_table=table_name,
                        h_field=method_cols,
-                       h_field_alt=rep("DD.Method",length(target_cols)),
-                       h_table_alt=rep("Animals.Diet.Digest",length(target_cols)))
+                       h_field_alt=rep("DD.Method",length(method_cols)),
+                       h_table_alt=rep("Animals.Diet.Digest",length(method_cols)))
   
   
   results<-harmonizer_wrap(data=Animals.Diet.Digest,
                            h_params=h_params,
                            master_codes = master_codes)
   
-  h_tasks2<-results$h_tasks
+  h_tasks<-c(h_tasks,list(results$h_tasks))
   Animals.Diet.Digest<-results$data
   
-  harmonization_list<-error_tracker(errors=rbind(h_tasks1,h_tasks2),
-                                    filename = table_name,
-                                    error_dir=harmonization_dir,
-                                    error_list = harmonization_list)
+  # 3.7.5) Update D.Item field with harmonized names ######
+  Animals.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+  Animals.Diet.Comp[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+  Animals.Diet.Digest[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
   
-  # 3.7.5) Update key fields with harmonized names ######
-  Animals.Diet[!is.na(D.Item.Proc_All),D.Item:=D.Item.Proc_All]
-  
-  # 3.7.5) Save errors & harmonization #######
-  error_list<-error_tracker(errors=rbindlist(errors)[order(B.Code)],
+  # 3.7.6) Save errors & harmonization #######
+  error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
                             filename = paste0("diet_errors"),
                             error_dir=error_dir,
                             error_list = error_list)
   
-  harmonization_list<-error_tracker(errors=h_tasks,
+  harmonization_list<-error_tracker(errors=rbindlist(h_tasks),
                                     filename = "diet",
                                     error_dir=harmonization_dir,
                                     error_list = harmonization_list)
   
 # 3.8) Agroforestry #####
-data<-lapply(XL,"[[","AF.Out")
-col_names<-colnames(data[[800]])
-
-  # 3.8.1) AF.Out ######
-  col_names2<-col_names[1:8]
-  
-  AF.Out<-pblapply(1:length(data),FUN=function(i){
-    X<-data[[i]]
-    B.Code<-Pub.Out$B.Code[i]
-    Filename<-basename(names(XL)[i])
-    
-    if(!all(col_names2 %in% colnames(X))){
-      cat("Structural issue with file",i,B.Code,"\n")
-      list(errors2=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure"))
-    }else{
-      X<-X[,..col_names2]
-      colnames(X)[1]<-"AF.Level.Name"
-      X<-X[!is.na(AF.Level.Name)]
-      
-      # Remove any all NA rows
-      na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
-      rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
-      errors<-X[!is.na(AF.Level.Name) & AF.Level.Name!="Base" & rows_with_na==T][,B.Code:=B.Code]
-      X <- X[!rows_with_na]
-      
-      if(nrow(X)>0){
-        X$B.Code<-B.Code
-        if(nrow(errors)>0){
-          list(data=X,errors=errors)
-        }else{
-          list(data=X)
-        }
-      }else{
-        if(nrow(errors)>0){
-          list(errors=errors)
-        }
-      }
-    }
-  })
-  
-  errors_a<-rbindlist(lapply(AF.Out,"[[","errors2"))
-  errors1<-rbindlist(lapply(AF.Out,"[[","errors"))
-  AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
-  
-  # 3.8.1) AF.Trees ######
-  col_names2<-col_names[10:13]
-  AF.Trees<-pblapply(1:length(data),FUN=function(i){
-    X<-data[[i]]
-    B.Code<-Pub.Out$B.Code[i]
-    Filename<-basename(names(XL)[i])
-    
-    if(!all(col_names2 %in% colnames(X))){
-      cat("Structural issue with file",i,B.Code,"\n")
-      list(error=data.table(B.Code=B.Code,filename=Filename,issue="Problem with agroforestry tab structure - trees"))
-    }else{
-      X<-X[,..col_names2]
-      colnames(X)[1]<-"AF.Level.Name"
-      X<-X[!is.na(AF.Level.Name)]
-      # Remove any all NA rows
-      na_matrix <- is.na(X[, !("AF.Level.Name"), with = FALSE])
-      rows_with_na <- rowSums(na_matrix) == ncol(na_matrix)
-      X <- X[!rows_with_na]
-      
-      if(nrow(X)>0){
-        X$B.Code<-B.Code
-        list(data=X)
-        
-      }else{
-        NULL
-      }
-    }
-  })
-  errors_b<-rbindlist(lapply(AF.Trees,"[[","errors2"))
-  AF.Trees<-rbindlist(lapply(AF.Trees,"[[","data"))
-  
-  results<-validator(data=AF.Trees,
-                     numeric_cols=c("AF.Tree.N"),
-                     tabname="AF.Trees")
-  
-  AF.Trees<-results$data
-  errors2<-results$errors
-  
-  # Key field matches
-  errors3<-check_key(parent=AF.Out,child=AF.Trees,tabname="AF.Trees",keyfield="AF.Level.Name")
-  
-  # Check for missing units
-  errors4<-AF.Trees[!is.na(AF.Tree.N) & is.na(AF.Tree.Unit)
-  ][,list(value=paste0(unique(AF.Level.Name))),by=B.Code
-  ][,table:="AF.Tree"
-  ][,field:="AF.Level.Name"
-  ][,issue:="Trees number is present without unit."]
-  
-  # combine and save errors
-  errors<-rbindlist(list(errors2,errors3,errors1,errors4),fill=T)
-  error_list<-error_tracker(errors=errors,filename = "af_errors",error_dir=error_dir,error_list = error_list)
-  error_list<-error_tracker(errors=rbind(errors_a,errors_b),filename = "af_structure_errors",error_dir=error_dir,error_list = error_list)
-  
-  
-  # 3.8.1) Harmonization - TO DO !!! ######
-  # AF.Tree and AF.Tree.Unit
-  
-# 3.12) Chemicals (Chems.Out) #####
-data<-lapply(XL,"[[","Chems.Out")
+table_name<-"AF.Out"
+data<-lapply(XL,"[[",table_name)
 col_names<-colnames(data[[1]])
 
-  # 3.12.1) Chems.Code ####
-col_names2<-col_names[1:3]
+  # 3.8.1) AF.Out######
+  col_names2<-col_names[c(1:4)]
+  
+  AF.Out<-pblapply(1:length(data),FUN=function(i){
+      X<-data[[i]]
+      B.Code<-Pub.Out$B.Code[i]
+      Filename<-basename(names(XL)[i])
+      
+      if(!all(col_names2 %in% colnames(X))){
+        cat("Structural issue with file",i,B.Code,"\n")
+        list(errors=data.table(B.Code=B.Code,
+                               value=NA,
+                               table=table_name,
+                               field=NA,
+                               issue="Problem with tab structure"))
+      }else{
+        X<-X[,..col_names2]
+        colnames(X)[1]<-"AF.Level.Name"
+        X<-X[!is.na(AF.Level.Name)][,B.Code:=B.Code]
+        list(data=X)
+        }
+    })
+  
+  error_dat<-rbindlist(lapply(AF.Out,"[[","errors"))
+  errors<-list(error_dat)
+
+  AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
+  
+  # 3.8.3) Save errors
+  error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
+                            filename = paste0(table_name,"_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
+  
+# 3.9) Chemicals #####
+data<-lapply(XL,"[[","Chems.Out")
+col_names<-colnames(data[[1]])
+table_name<-"Chems.Code"
+
+  # 3.9.1) Chems.Code ####
+col_names2<-col_names[1:2]
 
 Chems.Code<-lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
@@ -1457,7 +1400,7 @@ Chems.Code<-lapply(1:length(data),FUN=function(i){
   
   if(!all(col_names2 %in% colnames(X))){
     cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Chems.Out tab structure (first 3 cols A:C in excel)"))
+    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
   }else{
     X<-X[,..col_names2]
     colnames(X)[1]<-"C.Level.Name"
@@ -1470,210 +1413,119 @@ Chems.Code<-lapply(1:length(data),FUN=function(i){
     }
   }})
 
-errors_a<-rbindlist(lapply(Chems.Code,"[[","errors"))
+errors<-list(rbindlist(lapply(Chems.Code,"[[","errors")))
 Chems.Code<-rbindlist(lapply(Chems.Code,"[[","data"))
 
-errors8<-validator(data=Chems.Code,
+error_dat<-validator(data=Chems.Code,
                    unique_cols = "C.Level.Name",
                    tabname="Chems.Code")$errors
 
-  # 3.12.2) Chems.Out ####
-col_names2<-col_names[5:23]
-col_names2[grep("C.Type",col_names2)]<-"C.Type1"
-col_names2[grep("C.Brand",col_names2)]<-"C.Brand1"
+errors<-c(errors,list(error_dat))
+
+  # 3.9.2) Chems.Out ####
+col_names2<-col_names[4:17]
+table_name<-"Chems.Out"
 
 Chems.Out<-pblapply(1:length(data),FUN=function(i){
   X<-data[[i]]
   B.Code<-Pub.Out$B.Code[i]
-  
-  if(!"C.Date.DAE" %in% colnames(X)){
-    X[,C.Date.DAE:=NA]
-  }
-  
-  colnames(X)[grep("C.Type",colnames(X))]<-paste0("C.Type",1:length(grep("C.Type",colnames(X))))
-  colnames(X)[grep("C.Brand",colnames(X))]<-paste0("C.Brand",1:length(grep("C.Brand",colnames(X))))
-  
+
   if(!all(col_names2 %in% colnames(X))){
     cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Chems.Out tab structure (first 3 cols A:C in excel)"))
+    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
   }else{
     X<-X[,..col_names2]
     colnames(X)[1]<-"C.Level.Name"
     X<-X[!is.na(C.Level.Name)]
     if(nrow(X)>0){
       X[,B.Code:=B.Code]
-      setnames(X,c("C.Type1","C.Brand1"),c("C.Type","C.Brand"))
       list(data=X)
     }else{
       NULL
     }
   }})
-errors_b<-rbindlist(lapply(Chems.Out,"[[","errors"))
+
+error_dat<-rbindlist(lapply(Chems.Out,"[[","errors"))
+errors<-c(errors,list(error_dat))
+
 Chems.Out<-rbindlist(lapply(Chems.Out,"[[","data"))
 setnames(Chems.Out,"C.Brand","C.Name")
 Chems.Out[,C.Type:=gsub("Animal - ","",C.Type)]
 
 results<-validator(data=Chems.Out,
+                   zero_cols = colnames(Chems.Out),
                    compulsory_cols = c(C.Level.Name="C.Type",C.Level.Name="C.Name"),
-                   numeric_cols=c("C.Amount","C.Date.DAP","C.Date.DAE"),
-                   date_cols=c("C.Date.Start", "C.Date.End", "C.Date"),
-                   valid_start=valid_start,
-                   valid_end=valid_end,
-                   site_data=Site.Out,
-                   time_data=Times.Out,
-                   tabname="Chems.Out",
-                   ignore_values = c("All Times","Unspecified","Not specified","All Sites"))
+                   numeric_cols=c("C.Amount","C.AI.Amount","C.Applications"),
+                   numeric_ignore_vals="Unspecified",
+                   unit_pairs = data.table(unit=c("C.AI.Unit","C.Unit"),
+                                           var=c("C.AI.Amount","C.Amount"),
+                                           name_field="C.Level.Name"),
+                   check_keyfields=data.table(parent_tab=list(Chems.Code),
+                                              parent_tab_name="Chems.Code",
+                                              keyfield="C.Level.Name"),
+                    tabname=table_name,
+                   duplicate_field="C.Level.Name",
+                   trim_ws = T)
 
-errors1<-results$errors
+error_dat<-results$errors
 Chems.Out<-results$data
 
-# Dates are dd/mm format, (year agnostic)
-Chems.Out[,C.Date:=format(C.Date,"%m-%d")]
-errors1<-errors1[field!="C.Date"]
+    # 3.9.2.1) Harmonization #######
+# Update C.Names
+Chems.Out<-Chems.Out[C.Name %in% c("Unspecified","unspecified")|is.na(C.Name),C.Name:=paste0("unspecified ",tolower(C.Type))]
 
-errors2<-unique(Chems.Out[C.Date.End<C.Date.Start,list(B.Code,C.Date.End,C.Date.Start)])
-errors2[,value:=paste0("C.Date.Start =",C.Date.Start," & C.Date.End = ",C.Date.End)
-][,c("C.Date.Start","C.Date.End"):=NULL
-][,table:="Chems.Out"
-][,field:="C.Date.Start/C.Date.End"
-][,issue:="End date before start date."
-][,order(B.Code)]
+merge_dat<-master_codes$chem[!is.na(C.Name.Raw),.(C.Name.Raw,C.Name)]
+colnames(merge_dat)<-c("C.Name","C.Name.New")
+merge_dat<-split_syn(data=merge_dat,split_col="C.Name",delim=";")
 
-# Check key_fields
-errors3<-check_key(parent = Chems.Code,child = Chems.Out,tabname="Chems.Out",keyfield="C.Level.Name")
+Chems.Out<-merge(Chems.Out,merge_dat,by="C.Name",all.x=T,sort=F)
 
-# Check units
-errors9<-Chems.Out[is.na(C.Unit) & !is.na(C.Amount),list(value=paste(C.Level.Name,collapse = "/")),by=B.Code
-][,table:="Chems.Out"
-][,field:="C.Level.Name"
-][,issue:="Amount is present, but unit is missing."
-][order(B.Code)]
+error_dat<-unique(Chems.Out[!C.Name %in% c("Unspecified") & 
+                              !is.na(C.Name) & 
+                              is.na(C.Name.New) & 
+                              !tolower(C.Name) %in% merge_dat$C.Name.New,.(C.Type,C.Name,B.Code)
+                            ][,value:=paste0(C.Type,"-",C.Name)
+                              ][,.(B.Code=paste(B.Code,collapse="/")),by=value
+                                ][,table:=table_name
+                                  ][,field:="C.Name"
+                                    ][,issue:="No match with master codes chems tab."])
+
+errors[["chems_nomatch"]]<-error_dat
+
+Chems.Out[,C.Name_raw:=C.Name][!is.na(C.Name.New),C.Name:=C.Name.New][,C.Name.New:=NULL]
+
+# Merge in chemical information
+merge_dat<-master_codes$chem[!is.na(C.Name.Raw),.(C.Name,C.Type.AI,C.Is.Name.Commercial,C.AI)]
+merge_dat[is.na(C.AI),C.AI:=C.Name]
+
+Chems.Out<-merge(Chems.Out,merge_dat,by="C.Name",all.x=T,sort=F)
 
 
-# Add Code for Herbicide
-Chems.Out[C.Type=="Herbicide",C.Code:="h66.1"]
-
-    # 3.12.2.1) Harmonization #######
+# Units
 h_params<-data.table(h_table="Chems.Out",
-                     h_field=c("C.App.Method","C.Mechanization","C.Unit"),
-                     h_table_alt=c(NA,"Fert.Out",NA),
-                     h_field_alt=c(NA,"F.Mechanisation",NA))
+                     h_field=c("C.Unit","C.AI.Unit"),
+                     h_table_alt=c(NA,NA),
+                     h_field_alt=c(NA,NA))
 
 results<-harmonizer_wrap(data=Chems.Out,
                          h_params=h_params,
                          master_codes = master_codes)
 
-h_tasks1<-results$h_tasks
+h_tasks<-list(results$h_tasks)
 Chems.Out<-results$data
-
-mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name")[!is.na(C.Type)][,check:=T]
-
-h_tasks2<-setnames(merge(Chems.Out[,list(B.Code,C.Type,C.Name)],mergedat,all.x = T)[is.na(check)][,check:=NULL],"C.Name","value")[,field:="C.Name"][,field_alt:="C.Name.2020"][,table:="Chem.Out"][,master_tab:="chem"]
-
-errors7<-unique(h_tasks2[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect or simply missing from chem tab in master sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
-h_tasks2<-h_tasks2[C.Type %in% mergedat$C.Type]
-
-
-# Add C.Code to Chems.Code tab
-Chems.Code<-merge(Chems.Code,Chems.Out[,list(C.Code=unique(C.Code[!is.na(C.Code)])),by=list(C.Level.Name,B.Code)],all.x=T)
-
-  # 3.12.3) Chems.AI ####
-col_names2<-col_names[25:31]
-col_names2[grep("C.Type",col_names2)]<-"C.Type2"
-col_names2[grep("C.Brand",col_names2)]<-"C.Brand2"
-
-Chems.AI<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  # 3.9.3)Save errors and harmonization tasks ######
+  error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
+                            filename = paste0("chems_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
   
-  if(!"C.Date.DAE" %in% colnames(X)){
-    X[,C.Date.DAE:=NA]
-  }
-  
-  colnames(X)[grep("C.Type",colnames(X))]<-paste0("C.Type",1:length(grep("C.Type",colnames(X))))
-  colnames(X)[grep("C.Brand",colnames(X))]<-paste0("C.Brand",1:length(grep("C.Brand",colnames(X))))
-  
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with Chems.Out tab structure (first 3 cols A:C in excel)"))
-  }else{
-    X<-X[,..col_names2]
-    X<-X[!is.na(C.Brand2)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      setnames(X,c("C.Type2","C.Brand2"),c("C.Type","C.Brand"))
-      list(data=X)
-    }else{
-      NULL
-    }
-  }})
+  harmonization_list<-error_tracker(errors=rbindlist(h_tasks),
+                                    filename = "chems",
+                                    error_dir=harmonization_dir,
+                                    error_list = harmonization_list)
 
-errors_c<-rbindlist(lapply(Chems.AI,"[[","errors"))
-Chems.AI<-rbindlist(lapply(Chems.AI,"[[","data"))
-setnames(Chems.AI,"C.Brand","C.Name")
-Chems.AI[,C.Type:=gsub("Animal - ","",C.Type)]
-
-results<-validator(data=Chems.AI,
-                   numeric_cols=c("C.AI.Amount"),
-                   tabname="Chems.AI",
-                   trim_ws = T)
-
-errors4<-results$errors
-Chems.AI<-results$data
-
-errors5<-check_key(parent = Chems.Out,child = Chems.AI,tabname="Chems.AI",keyfield="C.Name")[,issue:="Mismatch in Product Name (C.Brand or C.Name) between description and AI table."]
-
-# Check units
-errors10<-Chems.AI[is.na(C.AI.Unit) & !is.na(C.AI.Amount),list(value=paste(C.Name,collapse = "/")),by=B.Code
-][,table:="Chems.AI"
-][,field:="C.Name"
-][,issue:="Amount is present, but unit is missing (active ingredient section)."
-][order(B.Code)]
-
-    # 3.12.3.1) Harmonization #######
-h_params<-data.table(h_table="Chems.AI",
-                     h_field="C.AI.Unit",
-                     h_table_alt="Chems.Out",
-                     h_field_alt="C.AI.Unit")
-
-results<-harmonizer_wrap(data=Chems.AI,
-                         h_params=h_params,
-                         master_codes = master_codes)
-
-h_tasks3<-results$h_tasks
-Chems.AI<-results$data
-
-mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name.AI")[!is.na(C.Type)][,check:=T][,C.Name.AI:=tolower(C.Name.AI)]
-h_tasks4<-setnames(merge(Chems.AI[!is.na(C.Name.AI),list(B.Code,C.Type,C.Name.AI)][,C.Name.AI:=tolower(C.Name.AI)],mergedat,all.x = T)[is.na(check)][,check:=NULL],"C.Name.AI","value")
-h_tasks4<-h_tasks4[,list(B.Code=paste0(unique(B.Code),collapse="/")),by=list(C.Type,value)
-][,field:="C.Name.AI"
-][,field_alt:="C.Name.2020"
-][,table:="Chems.AI"
-][,master_tab:="chems"]
-
-errors6<-unique(h_tasks4[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect, or simply missing from Master Sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
-h_tasks4<-h_tasks4[C.Type %in% mergedat$C.Type]
-
-  # 3.12.5) Add/check herbicide codes ######
-# In case there have been changes to C.Codes from harmonization process update these
-mdat<-Chems.Out[C.Type=="Herbicide",list(B.Code,C.Level.Name,C.Code)]
-colnames(mdat)[3]<-"C.Code2"
-
-Chems.Code<-merge(Chems.Code,mdat,all.x=T)
-Chems.Code<-Chems.Code[is.na(C.Code),C.Code:=C.Code2][,C.Code2:=NA]
-
-  # 3.12.6) Join and save errors and harmonization tasks ######
-errors<-rbindlist(list(errors_a,errors_b,errors_c))
-error_list<-error_tracker(errors=errors,filename = "chem_structure_errors",error_dir=error_dir,error_list = error_list)
-
-errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6,errors7,errors8,errors9,errors10),fill=T)[order(B.Code)]
-error_list<-error_tracker(errors=errors,filename = "chem_other_errors",error_dir=error_dir,error_list = error_list)
-
-h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4),fill=T)
-harmonization_list<-error_tracker(errors=h_tasks,filename = "chem_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
-
-
-# 3.20) Other ######
+# 3.10) Other ######
+table_name<-"Other.Out"
 data<-lapply(XL,"[[","Other.Out")
 col_names<-colnames(data[[1]])
 
@@ -1683,7 +1535,7 @@ Other.Out<-pblapply(1:length(data),FUN=function(i){
   
   if(!all(col_names %in% colnames(X))){
     cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with other tab structure"))
+    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
   }else{
     X<-X[!is.na(O.Level.Name)]
     if(nrow(X)>0){
@@ -1694,25 +1546,28 @@ Other.Out<-pblapply(1:length(data),FUN=function(i){
     }
   }})
 
-errors_a<-rbindlist(lapply(Other.Out,"[[","errors"))
-error_list<-error_tracker(errors=errors,filename = "other_structure_errors",error_dir=error_dir,error_list = error_list)
+errors<-list(rbindlist(lapply(Other.Out,"[[","errors")))
 
 Other.Out<-rbindlist(lapply(Other.Out,"[[","data"))  
 
 Other.Out<-Other.Out[!(is.na(O.Notes) & is.na(O.Structure) & O.Level.Name=="Base")]
 Other.Out<-Other.Out[!(O.Level.Name=="Base" & O.Structure=="No")]
 
-errors1<-validator(data=Other.Out,
+results<-validator(data=Other.Out,
                    unique_cols = "O.Level.Name",
-                   tabname="Other.Out")$errors
+                   zero_cols = "O.Notes",
+                   trim_ws = T,
+                   tabname="Other.Out")
 
+errors<-c(errors,list(results$errors))
+Other.Out<-results$data
 
 Other.Out[,N:=.N,by=B.Code][,No_struc:=any(O.Structure=="Yes"),by=B.Code]
 
 # If Base  practice set W.Structure to NA
 Other.Out[O.Level.Name=="Base",O.Structure:=NA]
 
-errors2<-Other.Out[N>1 & No_struc==T
+error_dat<-Other.Out[N>1 & No_struc==T
 ][,N:=NULL
 ][,No_struc:=NULL
 ][,list(B.Code,O.Level.Name)
@@ -1722,8 +1577,9 @@ errors2<-Other.Out[N>1 & No_struc==T
 ][,table:="Other.Out"
 ][,field:="O.Level.Name"
 ][,issue:=">1 other practice exists and comparison IS allowed, check comparisons field is correct."]
+errors<-c(errors,list(error_dat))
 
-errors3<-Other.Out[N>1 & No_struc==F
+error_dat<-Other.Out[N>1 & No_struc==F
 ][,N:=NULL
 ][,No_struc:=NULL
 ][,list(B.Code,O.Level.Name)
@@ -1733,9 +1589,9 @@ errors3<-Other.Out[N>1 & No_struc==F
 ][,table:="Other.Out"
 ][,field:="O.Level.Name"
 ][,issue:=">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct."]
+errors<-c(errors,list(error_dat))
 
-
-errors4<-Other.Out[N==1][,N:=NULL
+error_dat<-Other.Out[N==1][,N:=NULL
 ][,list(B.Code,O.Level.Name)
 ][,list(O.Level.Name=paste(O.Level.Name,collapse="/")),by=B.Code
 ][,value:=O.Level.Name
@@ -1743,45 +1599,42 @@ errors4<-Other.Out[N==1][,N:=NULL
 ][,table:="Other.Out"
 ][,field:="O.Level.Name"
 ][,issue:="One other practice exists, please check that the comparisons field is correctly assigned."]
+errors<-c(errors,list(error_dat))
 
-error_list<-error_tracker(errors=rbind(errors1,errors2,errors3,errors4)[order(B.Code)],filename = "other_other_errors",error_dir=error_dir,error_list = error_list)
+error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
+                          filename = paste0(table_name,"_errors"),
+                          error_dir=error_dir,
+                          error_list = error_list)
 
 Other.Out[,N:=NULL][,No_struc:=NULL]
 
-# 3.22) Base Practices (Base.Out) #####
+# 3.1) Base Practices (Base.Out) #####
 Base.Out<-list(
   Var.Out[V.Base=="Yes" & !is.na(V.Codes),c("B.Code","V.Codes")],
   AF.Out[AF.Level.Name=="Base" & !is.na(AF.Codes),c("B.Code","AF.Codes")],
-  Till.Codes[Till.Level.Name=="Base"& !is.na(Till.Code),c("B.Code","Till.Code")],
-  Fert.Out[F.Level.Name=="Base" & !is.na(F.Codes),c("B.Code","F.Codes")],
-  Res.Out[M.Level.Name=="Base" & !is.na(M.Codes),c("B.Code","M.Codes")],
-  Har.Out[H.Level.Name=="Base" & !is.na(H.Code),c("B.Code","H.Code")],
-  pH.Out[pH.Level.Name=="Base" & !is.na(pH.Codes),c("B.Code","pH.Codes")],
-  WH.Out[WH.Level.Name=="Base" & !is.na(WH.Codes),c("B.Code","WH.Codes")],
-  Irrig.Codes[I.Level.Name=="Base" & !is.na(I.Codes),c("B.Code","I.Codes")],
-  Weed.Code[!is.na(W.Code),c("B.Code","W.Code")],
-  Chems.Code[!is.na(C.Code),c("B.Code","C.Code")]
+  Animals.Out[A.Level.Name=="Base"& !is.na(A.Codes),c("B.Code","A.Codes")]
 )
 
 Base.Out<-rbindlist(Base.Out[unlist(lapply(Base.Out,nrow))>0],use.names = F)
 Base.Out<-Base.Out[,list(Base.Codes=paste(unique(V.Codes[order(V.Codes,decreasing = F)]),collapse="-")),by=B.Code]
 
 # 4) Treatments (MT.Out)  #####
-data<-lapply(XL,"[[","MT.Out")
-col_names<-colnames(data[[1]])
-col_names<-col_names[!grepl("[.][.][.]",col_names)]
+table_name<-"MT.Out"
+data<-lapply(XL,"[[",table_name)
+col_names<-c("T.Name","T.Comp","T.Control","T.Reps","T.Animals","T.Start.Year","T.Start.Season",
+             "A.Level.Name","AF.Level.Name...12","V.Level.Name","O.Level.Name","C.Level.Name")
 
 MT.Out<-lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
-  setnames(X,c("0","AF.Other"),c("AF.Level.Name","AF.Level.Name"),skip_absent = T)
   B.Code<-Pub.Out$B.Code[i]
   
   if(!all(col_names %in% colnames(X))){
     cat("Structural issue with file",i,B.Code,"\n")
-    list(errors=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with make treatments tab structure (AF.Level.Name duplicated C.Name missing?)."))
+    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
   }else{
     X<-X[,..col_names]
     X<-X[!is.na(T.Name)]
+    setnames(X,"AF.Level.Name...12","AF.Level.Name")
     if(nrow(X)>0){
       X[,B.Code:=B.Code]
       list(data=X)
@@ -1790,185 +1643,54 @@ MT.Out<-lapply(1:length(data),FUN=function(i){
     }
   }})
 
-errors_a<-rbindlist(lapply(MT.Out,"[[","errors"))
-error_list<-error_tracker(errors=errors_a,filename = "treatment_structure_errors",error_dir=error_dir,error_list = error_list)
-
+errors<-list(rbindlist(lapply(MT.Out,"[[","errors")))
 MT.Out<-rbindlist(lapply(MT.Out,"[[","data"))
-setnames(MT.Out,c("C.Name","V.Var","T.Comp"),c("C.Level.Name","V.Level.Name","P.Product"))
-MT.Out[,V.Level.Name:=trimws(V.Level.Name)]
+
+setnames(MT.Out,c("T.Comp"),c("P.Product"))
 
 results<-validator(data=MT.Out,
-                   numeric_cols = c("T.Reps","T.Start.Year"),
+                   numeric_cols = c("T.Reps","T.Animals","T.Start.Year"),
                    unique_cols = "T.Name",
+                   zero_cols=c("T.Start.Year","T.Start.Season","A.Level.Name","AF.Level.Name","C.Level.Name","O.Level.Name","V.Level.Name"),
+                   trim_ws = T,
+                   check_keyfields=data.table(parent_tab=list(Animals.Out,AF.Out,Chems.Code,Other.Out,Var.Out),
+                                              parent_tab_name=c("Animals.Out","AF.Out","Chems.Code","Other.Out","Var.Out"),
+                                              keyfield=c("A.Level.Name","AF.Level.Name","C.Level.Name","O.Level.Name","V.Level.Name")),
                    compulsory_cols = c(T.Name="T.Name",T.Name="P.Product"),
+                   duplicate_field = "T.Name",
+                   duplicate_ignore_fields = c("T.Name"),
                    tabname="MT.Out")
 
-errors1<-results$errors
-errors1<-errors1[value!="Unspecified"]
+error_dat<-results$errors
+errors<-c(errors,list(error_dat))
 
 MT.Out<-results$data
 
-# Error checking: look for non-matches in keyfield
-keyfields<-colnames(MT.Out)[5:18]
-
-# List of variable names as strings
-prac_tabs <- c("AF.Out", "Chems.Code", "Har.Out", "Irrig.Codes", "Res.Out", "Fert.Out",
-               "pH.Out", "Plant.Out", "PD.Codes", "Till.Codes", "Var.Out", "WH.Out",
-               "Other.Out", "Weed.Code")
-
-# Use mget to get the objects by names and setNames to assign the names
-prac_list <- setNames(mget(prac_tabs, .GlobalEnv), prac_tabs)
-
-key_params<-data.table(parent=prac_list,
-                       child=list(MT.Out),
-                       tabname="MT.Out",
-                       tabname_parent=prac_tabs,
-                       keyfield=keyfields)
-
-errors2<-rbindlist(lapply(1:nrow(key_params),FUN=function(i){
-  child<-key_params[i,child][[1]]
-  keyfield<-key_params[i,keyfield]
-  N<-!is.na(unlist(child[,..keyfield]))
-  child<-child[N]
-  
-  if(key_params[i,parent][[1]][,.N] != unique(key_params[i,parent][[1]])[,.N]){
-    cat("Warning: Potential non-unique values in key field for",keyfield, "in the",key_params[i,tabname_parent],"table \n")
-  }
-  
-  result<-check_key(parent = unique(key_params[i,parent][[1]]),
-                    child = child,
-                    tabname= key_params[i,tabname],
-                    tabname_parent= key_params[i,tabname_parent],
-                    keyfield= keyfield)
-  result[,issue:=paste0("Non-match for name in ",key_params[i,keyfield]," column.")]
-  result
-}))[order(B.Code)]
-
-errors<-rbindlist(list(errors1,errors2),fill = T)
-error_list<-error_tracker(errors=errors,filename = "treatment_other_errors",error_dir=error_dir,error_list = error_list)
-
-# Check for duplicate rows in make treatment table
-dat<-MT.Out[B.Code=="CJ0162"]
-dup_check<-dat[,..keyfields]
-dat[duplicated(dup_check)]
-
-keyfields<-unique(c(keyfields,"T.Residue.Prev","B.Code","P.Product","T.Reps","T.Start.Year","T.Start.Season"))
-dup_check<-MT.Out[,..keyfields]
-duplicates <- MT.Out[duplicated(dup_check)][!grepl("[.][.]",T.Name)]
-duplicates<-duplicates[,list(value=paste0(T.Name,collapse="/"),n_dups=.N),by=B.Code][order(n_dups,decreasing = T)]
-
-error_list<-error_tracker(errors=duplicates,filename = "treatment_duplicates",error_dir=error_dir,error_list = error_list)
-
-
 # Convert T.Start.Year and T.Reps fields to integers
-MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)]
+MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.Animals:=as.integer(T.Animals)]
+  
+  # 4.1) Save errors  ######
+  error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
+                            filename = paste0(table_name,"_errors"),
+                            error_dir=error_dir,
+                            error_list = error_list)
 
-# Check residue codes
-h_params<-data.table(h_table="MT.Out",
-                     h_field=c("T.Residue.Prev"),
-                     h_table_alt=c("Res.Method"),
-                     h_field_alt=c("M.Fate"))
-
-results<-harmonizer_wrap(data=MT.Out,
-                         h_params=h_params,
-                         master_codes = master_codes)
-
-harmonization_list<-error_tracker(errors=results$h_tasks,filename = "treatment_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
-
-# 7) Outcomes ####
+# 5) Outcomes ####
+table_name<-"Out.Out"
 data<-lapply(XL,"[[","Out.Out")
-col_names<-colnames(data[[800]])
-
-# 7.1) Out.Out #####
-col_names2<-col_names[1:10]
+col_names<-colnames(data[[1]])
 
 Out.Out<-lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
   B.Code<-Pub.Out$B.Code[i]
   
-  # Add missing cols to older versions
-  if(!"Out.Agg.Stat" %in% colnames(X)){
-    X$Out.Agg.Stat<-"Not in template"
-  }
-  
-  if(!"Out.Notes" %in% colnames(X)){
-    X$Out.Notes<-"Not in template"
-  }
-  
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with outcome tab structure"))
-  }else{
-    X<-X[,..col_names2]
-    X<-X[!is.na(Out.Subind)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }else{
-      cat("No data in file",i,B.Code,"\n")
-      list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="No data for outcome name in outcome tab"))
-    }
-  }})
-
-errors_a<-rbindlist(lapply(Out.Out,"[[","error"))
-Out.Out<-rbindlist(lapply(Out.Out,"[[","data"))
-
-# Check outcome names match master codes
-parent<-master_codes$out[,list(Subindicator)][,Out.Subind:=Subindicator]
-errors1<-Out.Out[!Out.Out$Out.Subind %in% parent$Out.Subind
-][,list(value=paste(Out.Subind,collapse = "/")),by=B.Code
-][,table:="Out.Out"
-][,master_table:="out"
-][,field:="Out.Subind"
-][,issue:="Outcome name used does not match master codes."
-][order(B.Code)]
-
-results<-validator(data=Out.Out,
-                   numeric_cols=c("Out.Depth.Upper","Out.Depth.Lower","Out.NPV.Rate","Out.NPV.Time"),
-                   compulsory_cols = c(Out.Code.Joined="Out.Unit"),
-                   unique_cols = "Out.Code.Joined",
-                   tabname="Out.Out")
-
-errors2<-results$errors
-errors2<-errors2[!(grepl("Ratio|Use Efficiency|Agronomic Efficiency|Rate of Return|Index",value) & issue=="Missing value in compulsory field Out.Unit.")]
-Out.Out<-results$data
-
-# Incorrect depths
-errors3<-Out.Out[Out.Depth.Upper>Out.Depth.Lower
-][,list(value=paste0(Out.Code.Joined,collapse="/")),by=B.Code
-][,table:="Out.Out"
-][,field:="Out.Code.Joined"
-][,issue:="Upper depth is greater than lower depth."
-][order(B.Code)]
-
-
-# 8) Enter Data (Data.Out) ####
-data<-lapply(XL,"[[","Data.Out")
-col_names<-colnames(data[[800]])
-
-Data.Out<-pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
-  
-  # Add missing cols to older versions
-  if(!"ED.Sample.DAE" %in% colnames(X)){
-    X$ED.Sample.DAE<-"Not in template"
-  }
-  
-  if(!"ED.Sample.Stage" %in% colnames(X)){
-    X$ED.Sample.Stage<-"Not in template"
-  }
-  
-  if(!"ED.Comparison2" %in% colnames(X)){
-    X$ED.Comparison2<-"Not in template"
-  }
-  
   if(!all(col_names %in% colnames(X))){
     cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,filename=basename(names(XL)[i]),issue="Problem with enter data tab structure"))
+    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
   }else{
+    X<-X[,..col_names]
+    X<-X[!is.na(Out.Subind)]
     if(nrow(X)>0){
-      X<-X[,..col_names]
       X[,B.Code:=B.Code]
       list(data=X)
     }else{
@@ -1976,16 +1698,88 @@ Data.Out<-pblapply(1:length(data),FUN=function(i){
     }
   }})
 
-errors_a<-rbindlist(lapply(Data.Out,"[[","errors"))
-error_list<-error_tracker(errors=errors_a,filename = "enterdata_structure_errors",error_dir=error_dir,error_list = error_list)
+errors<-list(rbindlist(lapply(Out.Out,"[[","error")))
+Out.Out<-rbindlist(lapply(Out.Out,"[[","data"))
 
+
+# Check outcome names match master codes
+out_name_changes<-data.table(old_values=c("Nitrogen (Apparent Efficiency)","Carbon dioxide emissions","Aboveground Biomass"),
+                             new_values=c('Nitrogen (Apparent Efficiency Animals Feed)',"Carbon Dioxide Emissions","Aboveground Carbon Biomass"))
+
+parent<-master_codes$out[,list(Subindicator)][,Out.Subind:=Subindicator]
+error_dat<-Out.Out[!Out.Out$Out.Subind %in% parent$Out.Subind & !Out.Subind %in% outname_name_changes$old_old_values
+][,value:=Out.Subind
+][,list(B.Code=paste(B.Code,collapse = "/")),by=value
+][,table:="Out.Out"
+][,field:="Out.Subind"
+][,issue:="Outcome not found in master codes."]
+errors<-list(error_dat)
+
+results<-validator(data=Out.Out,
+                   numeric_cols=c("Out.Depth.Upper","Out.Depth.Lower","Out.NPV.Rate","Out.NPV.Time","Out.WG.Start","Out.WG.Days"),
+                   ignore_values = "Unspecified",
+                   zero_cols = colnames(Out.Out)[3:13],
+                   compulsory_cols = c(Out.Code.Joined="Out.Unit"),
+                   unit_pairs = data.table(unit="Out.WG.Unit",var="Out.WG.Start",name_field="Out.Code.Joined"),
+                   unique_cols = "Out.Code.Joined",
+                   duplicate_field = "Out.Code.Joined",
+                   tabname="Out.Out")
+
+error_dat<-results$errors
+errors<-c(errors,list(error_dat))
+
+Out.Out<-results$data
+
+# Incorrect depths
+error_dat<-Out.Out[Out.Depth.Upper>Out.Depth.Lower
+][,list(value=paste0(Out.Code.Joined,collapse="/")),by=B.Code
+][,table:="Out.Out"
+][,field:="Out.Code.Joined"
+][,issue:="Upper depth is greater than lower depth."
+]
+errors<-c(errors,list(error_dat))
+
+# Use setNames to map old values to new values
+replacement_map <- setNames(out_name_changes$new_values, out_name_changes$old_values)
+# Apply str_replace_all to the entire Out.Subind column using the named vector
+Out.Out[, Out.Subind := stringr::str_replace_all(Out.Subind, replacement_map)]
+Out.Out[, Out.Code.Joined := stringr::str_replace_all(Out.Code.Joined, replacement_map)]
+
+# 6) Enter Data (Data.Out) ####
+table_name<-"Data.Out"
+data<-lapply(XL,"[[",table_name)
+col_names<-colnames(data[[1]])
+col_names<-col_names[!col_names %in% c("ED.Int","ED.Rot","ED.I.Amount","ED.I.Unit","ED.Plant.Start","ED.Plant.End","ED.Harvest.Start","ED.Harvest.End","ED.Harvest.DAS")]
+
+Data.Out<-lapply(1:length(data),FUN=function(i){
+  X<-data[[i]]
+  B.Code<-Pub.Out$B.Code[i]
+  
+  if(!all(col_names %in% colnames(X))){
+    cat("Structural issue with file",i,B.Code,"\n")
+    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
+  }else{
+    X<-X[,..col_names]
+    X <- X[rowSums(is.na(X)) != ncol(X)]
+    if(nrow(X)>0){
+      X[,B.Code:=B.Code]
+      list(data=X)
+    }else{
+      NULL
+    }
+  }})
+
+
+errors<-list(rbindlist(lapply(Data.Out,"[[","errors")))
 Data.Out<-rbindlist(lapply(Data.Out,"[[","data"),use.names = T)
-setnames(Data.Out,c("ED.Treatment","ED.Int","ED.Rot","ED.Site.ID","ED.Outcome","ED.M.Year","ED.Product.Simple"),
-         c("T.Name","IN.Level.Name","R.Level.Name","Site.ID","Out.Code.Joined","Time","P.Product"))
 
-# remove NA rows
-Data.Out<-Data.Out[!(is.na(Site.ID) & is.na(T.Name) & is.na(P.Product) & is.na(Time) & is.na(Out.Code.Joined) & is.na(ED.Mean.T))]
+setnames(Data.Out,c("ED.Treatment","ED.Site.ID","ED.Outcome","ED.M.Year","ED.Product.Simple"),
+         c("T.Name","Site.ID","Out.Code.Joined","Time","P.Product"))
 
+# Update outcome subind names
+Data.Out[, Out.Code.Joined := stringr::str_replace_all(Out.Code.Joined, replacement_map)]
+
+# START FROM HERE!!!
 # Index products from MT.Out tab
 Data.Out[,P.Product:=NA]
 
