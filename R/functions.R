@@ -1225,9 +1225,9 @@ check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE,
   mergetab<-mergetab[!is.na(value)]
   
   if (collapse_on_code) {
-    mergetab <- mergetab[, list(value = paste(unique(value), collapse = "/")), by = list(B.Code)]
+    mergetab <- mergetab[, .(value = paste(unique(value), collapse = "/")), by = list(B.Code)]
   } else {
-    mergetab <- mergetab[, list(B.Code, value)]
+    mergetab <- mergetab[, .(B.Code, value)]
   }
   
   mergetab[, table := tabname
