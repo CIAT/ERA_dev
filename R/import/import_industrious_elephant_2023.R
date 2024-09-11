@@ -4937,7 +4937,7 @@ col_names<-colnames(data[[800]])
   
   Data.Out[,N:=1:nrow(Data.Out)]
   
-  # 8.5) Update Fields From Harmonization Sheet ####
+  # 8.5) Merge data from linked tables ####
   n_rows<-Data.Out[,.N]
     # 8.5.2) Add MT.Out ######
     Data.Out<-merge(Data.Out,unique(MT.Out[,!c("P.Product","Base.Codes")]),by=c("B.Code","T.Name"),all.x=T,sort=F)
@@ -5199,7 +5199,6 @@ col_names<-colnames(data[[800]])
       # Check NA & "No Product Specified" against outcome (should not be a productivity outcome)
       error_dat<-unique(Data.Out[is.na(P.Product) | P.Product == "No Product Specified",c("P.Product","B.Code","T.Name","IN.Level.Name","R.Level.Name","Out.Subind")]
                         [grep("Yield",Out.Subind)])
-      
       
       # Often these errors results from mismatches and structural errors in others
       error_dat[is.na(IN.Level.Name) & !B.Code %in% c("JO0088","JO0002","SP0038","SA0059.3"),table(B.Code)]
@@ -5496,7 +5495,7 @@ col_names<-colnames(data[[800]])
   
 # 9) Save tables as a list  ####
 
-Tables<-list(
+  Tables<-list(
 Pub.Out=Pub.Out, 
 Site.Out=Site.Out, 
 Soil.Out=Soil.Out,
