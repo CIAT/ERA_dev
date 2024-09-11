@@ -8,12 +8,12 @@ if (!require("pacman", character.only = TRUE)) {
 pacman::p_load(s3fs,paws.storage,rnaturalearth,terra,remotes,data.table)
 
 if(!require(ERAg)){
-  remotes::install_github(repo="https://github.com/EiA2030/ERAg")
+  remotes::install_github(repo="https://github.com/EiA2030/ERAg",build_vignettes = T)
   library(ERAg)
 }
 
 if(!require(ERAgON)){
-  remotes::install_github(repo="https://github.com/EiA2030/ERAgON")
+  remotes::install_github(repo="https://github.com/EiA2030/ERAgON",build_vignettes = T)
   library(ERAgON)
 }
 
@@ -57,9 +57,15 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   }
   
   # Working locally
-  if(project_dir=="C:/rprojects/ERA_dev"){
+  if(project_dir =="C:/rprojects/ERA_dev"){
     era_dir<-"C:/rprojects/common_data/era"
   }
+  
+  if(project_dir == "C:/rprojects/common_data/era"){
+    project_dir<-"C:/rprojects/ERA_dev"   
+    era_dir<-"C:/rprojects/common_data/era"  
+    }
+  
   
   Aflabs<-F
   if(project_dir=="/home/psteward/rprojects/ERA_dev"){
