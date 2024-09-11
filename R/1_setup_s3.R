@@ -102,7 +102,7 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
       
       
   # 1.3) 2022 skinny cow ######
-      # 1.3.1) excels #######
+      # 1.3.1) Upload excels #######
       folder_local<-file.path("C:/Users/PSteward/OneDrive - CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
       project<-era_projects$skinny_cow_2022
       folder<-file.path(era_dirs$era_dataentry_dir,
@@ -146,7 +146,20 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
                          overwrite=T,
                          mode="public-read")
     
-      # 1.3.3) upload pdfs #######
+      # 1.3.3) Upload pdfs #######
+      project<-era_projects$skinny_cow_2022
+      folder<-file.path(era_dirs$era_dataentry_dir,project,"pdfs")
+      files<-list.files(folder,"pdf",full.names = T)
+      
+      s3_bucket<-file.path(era_dirs$era_dataentry_s3,project,"pdfs")
+      
+      upload_files_to_s3(files = files,
+                         selected_bucket=s3_bucket,
+                         max_attempts = 3,
+                         overwrite=F,
+                         mode="private")
+      
+
   # 1.4) 2020 majestic_hippo ######
       # 1.4.1) Upload pdfs #######
       local_folder<-"C://Users//PSteward//OneDrive - CGIAR//ERA//Bibliography//Reconstructed Search History for Classification Models//ERA Bibliography 2013-18//2013-18 ENL.Data//PDF"
