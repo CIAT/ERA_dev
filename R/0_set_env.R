@@ -5,7 +5,7 @@ if (!require("pacman", character.only = TRUE)) {
   library(pacman)
 }
 
-pacman::p_load(s3fs,paws.storage,rnaturalearth,terra,remotes,data.table)
+pacman::p_load(s3fs,paws.storage,rnaturalearth,terra,remotes,data.table,treemap)
 
 if(!require(ERAg)){
   remotes::install_github(repo="https://github.com/EiA2030/ERAg",build_vignettes = T)
@@ -86,7 +86,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
                      industrious_elephant_2023="industrious_elephant_2023",
                      livestock_2024="livestock_2024")
   
-  # 1.4) Create ERA output dirs #####
+  # 1.4) Create ERA output dirs#####
   era_dirs<-list()
   
   # era master datasets
@@ -105,7 +105,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
   era_dirs$era_dataentry_prj<-file.path(project_dir,"data_entry")
   era_dirs$era_dataentry_dir<-file.path(era_dir,"data_entry")
   era_dirs$era_dataentry_s3<-file.path(era_s3,"data_entry")
-  
+
   # extracted geodata folders
   era_dirs$era_geodata_dir<-file.path(era_dir,"geodata")
   era_dirs$era_geodata_s3<-file.path(era_s3,"geodata")
@@ -136,6 +136,8 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     }
   }
 
+  era_dirs$era_masterdata_s3
+  
   # 1.5) Set urls #####
   era_vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
   # 1.4) Set directories of external datasets (e.g. chirps)
@@ -206,7 +208,13 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     data<-miceadds::load.Rdata2(path=era_dirs$era_masterdata_dir,filename= tail(list.files(era_dirs$era_masterdata_dir,"industrious_elephant"),1))
     data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
     setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
-    data<-data[!(is.na(Latitude)|is.na(Longitude))]
+    data<-data[!grepl("[.][.]",Site.ID)
+               ][,Latitude:=as.numeric(Latitude)
+                 ][,Longitude:=as.numeric(Longitude)
+                   ][,Buffer:=as.numeric(Buffer)
+                   ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
+                     ][,Site.Lon.Unc:=as.numeric(Site.Lon.Unc)
+                       ][!(is.na(Latitude)|is.na(Longitude))]
     data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
     # Assign 5km buffer to missing buffer values
     data<-data[!(is.na(Buffer)|Buffer==0)]
