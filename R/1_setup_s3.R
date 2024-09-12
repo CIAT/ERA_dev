@@ -88,8 +88,7 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
                          mode="public-read")
       
       # 1.2.2) Upload pdfs #####
-      
-    
+
       # 1.2.3) Upload compiled data ######
       files<-list.files(era_dirs$era_masterdata_dir,"industrious_elephant",full.names = T,recursive=T)
       s3_bucket<-era_dirs$era_masterdata_s3
@@ -163,7 +162,7 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
   # 1.4) 2020 majestic_hippo ######
       # 1.4.1) Upload pdfs #######
       local_folder<-"C://Users//PSteward//OneDrive - CGIAR//ERA//Bibliography//Reconstructed Search History for Classification Models//ERA Bibliography 2013-18//2013-18 ENL.Data//PDF"
-      files<-list.files(pdf_folder,".pdf",recursive = T,full.names = T)
+      files<-list.files(local_folder,".pdf",recursive = T,full.names = T)
       
       # pdf folders
       s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$majestic_hippo_2020,"pdfs")
@@ -173,8 +172,39 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
                          max_attempts = 3,
                          overwrite=F,
                          mode="private")
-      
+
       # 1.4.2) Upload excels #######
+      # 1.3.1) Upload excels #######
+      folder_local<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/Data Entry/Data Entry 2020"
+      project<-era_projects$majestic_hippo_2020
+      folder<-file.path(era_dirs$era_dataentry_dir,
+                        project,
+                        "excel_files")
+      
+      if(!dir.exists(folder)){
+        dir.create(folder,recursive = T)
+      }
+      
+      # this is the target folder on the S3 bucket and generalized structured file system
+      s3_bucket<-file.path(era_dirs$era_dataentry_s3,
+                           project,
+                           "excel_files")
+      
+      # List excel files to be zipped
+      files<-list.files(folder_local,"xls",full.names = T,recursive=T)
+      files<-grep("Quality Controlled|Extracted",files,value=T)
+      files<-grep("xlsx$|xlsm$",files,value=T)
+      files<-files[!grepl("~",files)]
+      
+      # zip all the excels and upload to the s3
+      output_zip_file <- file.path(folder,paste0(project,".zip"))
+      zip::zipr(zipfile = output_zip_file, files =files)
+      
+      upload_files_to_s3(files = output_zip_file,
+                         selected_bucket=s3_bucket,
+                         max_attempts = 3,
+                         overwrite=T,
+                         mode="public-read")
       
       
   # 1.4) Upload livestock 2024 search to s3 #####
