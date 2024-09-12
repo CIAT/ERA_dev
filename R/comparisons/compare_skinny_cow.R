@@ -9,8 +9,16 @@ pacman::p_load(data.table,
                miceadds)
 
 # 0.1) Set cores for parallel ####
-project<-era_projects$skinny_cow_2022
 Cores<-14
+
+# 0.2) Set project & directories
+project<-era_projects$skinny_cow_2022
+
+# Set directory for error and harmonization tasks
+error_dir<-file.path(era_dirs$era_dataentry_prj,project,"data_issues")
+if(!dir.exists(error_dir)){
+  dir.create(error_dir,recursive=T)
+}
 
 # 1) Load data ####
   # 1.1) Load compiled excel data #####
@@ -88,9 +96,6 @@ Cores<-14
   if(F){
     unique(Data.Out.Animals[is.na(A.Level.Name),c("B.Code","T.Name","V.Animal.Practice","A.Level.Name")])
   }
-
-  # TO DO: Add validation for Feed.Addition Control any rows it contained should also be in the Treatment #####
-  
   # Calculate Number of ERA Practices
   Data.Out.Animals[,N.Prac:=unlist(lapply(Final.Codes,length)),by=N]
   
@@ -277,6 +282,8 @@ Cores<-14
   Comparisons1[,Compare.Trt:=paste0(Data.Out.Animals[match(unlist(Control.For),N),T.Name],collapse="//"),by=Control.N]
   Comparisons1[,Control.For:=paste0(unlist(Control.For),collapse="//"),by=Control.N][,Control.For:=as.character(Control.For)]
   
+  Comparisons1$Analysis.Function<-"NoDietSub"
+  
   Comparison.List[["Animal.NoDietSub"]]<-Comparisons1
   
   # 2.2) Feed.Add: Aggregated Practices ####
@@ -302,9 +309,6 @@ Cores<-14
                      !is.na(Out.WG.Days)|
                      !is.na(Out.WG.Unit),
                    Out.Code.Joined:=paste(unlist(tstrsplit(Out.Code.Joined[1],"[.][.]",keep=1:2)),collapse=".."),by=Out.Code.Joined]
-  
-  
-  #Data.Out.Animals.Agg[!is.na(T.Agg.Levels),.(T.Name,T.Agg.Levels,A.Level.Name,O.Level.Name,V.Level.Name)]
   
   # Set Grouping Variables
   CompareWithin<-c("Site.ID","P.Product","ED.Product.Comp","Time", "Out.Code.Joined",
@@ -349,6 +353,7 @@ Cores<-14
   Comparisons1[,Compare.Trt:=paste0(Data.Out.Animals.Agg[match(unlist(Control.For),N),T.Name],collapse="//"),by=Control.N]
   Comparisons1[,Control.For:=paste0(unlist(Control.For),collapse="//"),by=Control.N][,Control.For:=as.character(Control.For)]
   
+  Comparisons1$Analysis.Function<-"NoDietSub.Agg"
   Comparison.List[["Animal.NoDietSub.Agg"]]<-Comparisons1
   
   # 2.3) Feed Substitution ####
@@ -422,12 +427,12 @@ Cores<-14
     
   }
   
-  B.Codes<-DATA[,unique(B.Code)]
   
   # Set Grouping Variables
   CompareWithin<-c("Site.ID","P.Product","ED.Product.Comp","Time", "Out.Code.Joined",
                    "ED.Sample.End","ED.Sample.DAS","O.Structure","C.Structure","B.Code","Country","T.Agg.Levels_name")
   
+  B.Codes<-DATA[,unique(B.Code)]
   Comparisons<-rbindlist(pblapply(1:length(B.Codes),FUN=function(BC){
     BC<-B.Codes[i]
     
@@ -451,8 +456,6 @@ Cores<-14
     
   }))
 
-  DATA[N %in% Comparisons[Control.For=="No Feed Substitution Control Present",N],c("B.Code","T.Name","Out.Code.Joined","Time")]
-  
   Comparisons[Control.For=="No Feed Substitution Control Present",Control.For:=NA]
   
   error_data<-Comparisons[,N.Comp:=length(!is.na(Control.For)),by=B.Code
@@ -479,9 +482,7 @@ Cores<-14
   
   Comparisons1[,Compare.Trt:=paste0(Data.Out.Animals[match(unlist(Control.For),N),T.Name],collapse="//"),by=Control.N]
   Comparisons1[,Control.For:=paste0(unlist(Control.For),collapse="//"),by=Control.N][,Control.For:=as.character(Control.For)]
-  
-  # fwrite(Comparisons1,paste0(choose.dir(),"\\Animal_DietSub_V1.5.csv"),row.names = F)
-  
+  Comparisons1$Analysis.Function<-"DietSub"
   Comparison.List[["Animal.DietSub"]]<-Comparisons1
   
   # 2.4) Simple Comparisons #####
@@ -489,36 +490,42 @@ Cores<-14
   # Remove outcomes aggregated over rot/int entire sequence or system (dealt with sections 1.2 and 1.3)
   Data.Out.No.Agg<-Data.Out.No.Agg[!is.na(T.Name)]
   # Remove animal data (dealt with in section 2)
-  Data.Out.No.Agg<-Data.Out.No.Agg[Feed.Add==F&A.Feed.Add.C=="No"&Feed.Sub==F&A.Feed.Sub.C=="No"]
+  Data.Out.No.Agg<-Data.Out.No.Agg[Feed.Add==F & Feed.Sub==F]
 
   # Calculate Number of ERA Practices
   Data.Out.No.Agg[,N.Prac:=length(unlist(Final.Codes)[!is.na(unlist(Final.Codes))]),by="N"]
 
+  # Weight Gain Outcomes need non-essential info removing
+  Data.Out.No.Agg[!is.na(Out.WG.Start) |
+                     !is.na(Out.WG.Days)|
+                     !is.na(Out.WG.Unit),
+                   Out.Code.Joined:=paste(unlist(tstrsplit(Out.Code.Joined[1],"[.][.]",keep=1:2)),collapse=".."),by=Out.Code.Joined]
+  
   
   DATA<-Data.Out.No.Agg
   
   CompareWithin<-c("Site.ID","P.Product","ED.Product.Comp","Time", "Out.Code.Joined",
                      "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","C.Structure","O.Structure",
                      "B.Code")
+  
+  Match.Fun<-function(A,B){
+    A<-unlist(A)
+    B<-unlist(B)
+    list(A[!A %in% B])
+  }
+  
+  Match.Fun2<-function(A,B,C){
+    A<-unlist(A)
+    B<-unlist(B)
+    C<-unlist(C)
+    list(unique(C[match(A,B)]))
+  }
+  
   Compare.Fun<-function(Data,Verbose,Debug,PracticeCodes1,Return.Lists){
-      
-      Match.Fun<-function(A,B){
-        A<-unlist(A)
-        B<-unlist(B)
-        list(A[!A %in% B])
-      }
-      
-      Match.Fun2<-function(A,B,C){
-        A<-unlist(A)
-        B<-unlist(B)
-        C<-unlist(C)
-        list(unique(C[match(A,B)]))
-      }
-      
       BC<-Data$B.Code[1]
       N<-Data[,N]
-      Final.Codes<-Data[,Final.Codes] # Is this redundant?
-      k<-N
+      #Final.Codes<-Data[,Final.Codes] # Is this redundant?
+      #k<-N
       Y<-Data[,c("Final.Codes","N","N.Prac")][,Y.N:=1:.N]
       
       rbindlist(lapply(1:length(N),FUN=function(j){
@@ -531,36 +538,38 @@ Cores<-14
           ][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
           ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
           ][Match>=0 & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
-          
-          Z[,Mulch.Code:=as.character("")][,Mulch.Flag:=F]
-          
-          Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
-          
-          Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-          ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-          ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
-          
-          
-        }else{
-          
-          # Here we are working from the logic of looking at what other treatments can treatment[i] be a control for?
+          }else{
+            # Here we are working from the logic of looking at what other treatments can treatment[i] be a control for?
           Z<-Y[N!=i][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
           ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
           ]
           
           # Keep instances for which this treatment can be a control for other treatments
           Z<-Z[Match>=length(X) & NoMatch>0] 
-          
-          # There was a bug here where Control.Code was set to :=list(X), but if X was the same length as nrow(Z) this led to issues
+          }
+        
+        if(nrow(Z)>0){
+
           Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
           
           Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
           ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
+          ][,Linked.Tab_prac:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
           ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
           
-        }
-        
-        if(nrow(Z)>0){
+          # Allow for control practices that are in the animal tab being compared to other practices in the animal tab
+          # to have different A.Level.Names
+          
+          X<-Z[grepl("Animals.Out",Linked.Tab) & grepl("Animals.Out",Linked.Tab_prac),unlist(Linked.Col)]
+          X<-list(X[X!="A.Level.Name"])
+          Z[grepl("Animals.Out",Linked.Tab) & grepl("Animals.Out",Linked.Tab_prac),Linked.Col:=X]
+          
+          X<-Z[grepl("Animals.Out",Linked.Tab) & grepl("Animals.Out",Linked.Tab_prac),unlist(Linked.Tab)]
+          X<-list(X[X!="Animals.Out"])
+          Z[grepl("Animals.Out",Linked.Tab) & grepl("Animals.Out",Linked.Tab_prac),Linked.Tab:=X]
+          
+          Z[,Linked.Tab_prac:=NULL]
+          
           Z$Level.Check<-lapply(1:nrow(Z),FUN=function(ii){
             if(length(unlist(Z[ii,Linked.Tab]))==0){
               !is.na(unlist(Z$Prac.Code)[ii])
@@ -617,106 +626,55 @@ Cores<-14
       CW<-match(apply(Data.Sub[,..CompareWithin], 1, paste,collapse = "-"),apply(CW, 1, paste,collapse = "-"))
       Data.Sub[,Group:=CW]
       
-      rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
+      results<-rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
         if(Verbose){print(paste0(BC," Subgroup = ", i))}
-        
         Compare.Fun(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F,PracticeCodes1=master_codes$prac,Return.Lists=F)
-        
-      }))
+        }))
+      
+      return(results)
       
     })
 
   Comparisons<-unique(rbindlist(Comparisons))
-    
-    # Basic: Validation - list studies with no comparisons at all (could be studies with system or aggregated outcomes) ####
-    error_dat<-DATA[!B.Code %in% Comparisons[,B.Code],.(value=paste(unique(T.Name),collapse = "/")),by=B.Code
+  
+  error_dat<-DATA[!B.Code %in% Comparisons[,B.Code] & A.Feed.Add.C!="Yes" & A.Feed.Sub.C!="Yes",.(value=paste(unique(T.Name),collapse = "/")),by=B.Code
                     ][,table:="MT.Out"
                       ][,field:="T.Name"
                         ][,issue:="No Comparisons available in treatments that have no addition or substitution role (i.e. will not be used in comparisons)."]
   
     errors<-c(errors,list(error_dat))
     
-    
-
-    # Basic: Restructure and save
-    # Remove NA values
+    # Restructure and save
     Comparisons<-Comparisons[!is.na(Control.For)
     ][,Len:=length(unlist(Control.For)),by=N]
     
     Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
     
-    
-    Cols<-c("ED.Treatment","ED.Int","ED.Rot")
-    Cols1<-c(CompareWithin,Cols)
+    Cols<-c("T.Name")
+    Cols1<-c(CompareWithin,"T.Name")
     
     Comparisons1<-Data.Out.No.Agg[match(Comparisons[,N],N),..Cols1]
     Comparisons1[,Control.For:=Comparisons[,Control.For]]
     Comparisons1[,Control.N:=Comparisons[,N]]
-    Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
-    setnames(Comparisons1,"ED.Treatment","Control.Trt")
-    setnames(Comparisons1,"ED.Int","Control.Int")
-    setnames(Comparisons1,"ED.Rot","Control.Rot")
-    
-    Comparisons1[,Compare.Trt:=Data.Out.No.Agg[match(Control.For,N),ED.Treatment]]
-    Comparisons1[,Compare.Int:=Data.Out.No.Agg[match(Control.For,N),ED.Int]]
-    Comparisons1[,Compare.Rot:=Data.Out.No.Agg[match(Control.For,N),ED.Rot]]
-    
-    # fwrite(Comparisons1,paste0(choose.dir(),"\\Basic_Comparisons_V1.8.csv"),row.names = F)
-    
+    setnames(Comparisons1,"T.Name","Control.Trt")
+
+    Comparisons1[,Compare.Trt:=Data.Out.No.Agg[match(Control.For,N),T.Name]]
+    Comparisons1$Analysis.Function<-"Simple"
     Comparison.List<-list(Simple=Comparisons1)
     
+  # 2.5) Save Errors #####
+    errors<-rbindlist(errors)
+    error_list<-error_tracker(errors=errors,
+                              filename = paste0("comparison_logic_errors"),
+                              error_dir=error_dir,
+                              error_list = list())
+    
 # 3) Combine Data ####
-Comparison.List$Simple$Analysis.Function<-"Simple"
-Comparison.List$Animal.NoDietSub$Analysis.Function<-"NoDietSub"
-Comparison.List$Animal.DietSub$Analysis.Function<-"DietSub"
-Comparison.List$Animal.NoDietSub.Agg$Analysis.Function<-"NoDietSub.Agg"
-
-
-# Get Columns
-B<-Comparison.List$Sys.Int.vs.Mono
-B<-B[Level.Match==T][,Codes.Match:=NULL][,Level.Match:=NULL]
-COLS<-colnames(B)
-COLS<-COLS[!grepl("Structure|ED.Comparison",COLS)]
-
-# Subset Int/Rot vs Mono to Match.Levels = T
-Comparison.List$Sys.Rot.vs.Mono<- Comparison.List$Sys.Rot.vs.Mono[Level.Match==T]
-Comparison.List$Sys.Int.vs.Mono<- Comparison.List$Sys.Int.vs.Mono[Level.Match==T]
-
-Comparisons<-rbindlist(lapply(Comparison.List,FUN=function(X){X[,..COLS]}),use.names = T,fill=T)
-Comparisons[Mulch.Code %in% c("Int System","ROT System"),Mulch.Code:=NA]
-rm(B,COLS,Comparisons1)
+  Comparisons<-rbindlist(Comparison.List)
 
 # 4) Prepare Main Dataset ####
-Data<-Data.Out
-  # 4.1) Ignore Aggregated Observations for now ####
-  # Data<-Data.Out[-grep("[.][.][.]",T.Name)]
-  # 4.2) Ignore outcomes aggregated over rot/int entire sequence or system ####
-  #Data<-Data[!is.na(T.Name)]
-  
-  # 4.3) Combine all Practice Codes together & remove h-codes ####
-  Join.T<-function(A,B,C,D){
-    X<-c(A,B,C,D)
-    X<-unlist(strsplit(X,"-"))
-    X<-unique(X[!is.na(X)])
-    if(length(X)==0){list(NA)}else{list(X)}
-  }
-  
-  # Simple/Animal/Aggregated
-  X<-Data[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
-  Data[,Final.Codes:=X$Final.Codes]
-  
-  # Intercrop System
-  X<-Data[is.na(T.Name) & !is.na(ED.Int),list(Final.Codes=Join.T(IN.T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
-  Data[is.na(T.Name) & !is.na(ED.Int),Final.Codes:=X$Final.Codes]
-  
-  # Rotation System
-  X<-Data[is.na(T.Name) & is.na(ED.Int) & !is.na(ED.Rot),list(Final.Codes=Join.T(R.T.Codes.Sys,R.IN.Codes.Sys,R.Res.Codes.Sys,R.Code)),by="N"]
-  Data[is.na(T.Name) & is.na(ED.Int) & !is.na(ED.Rot),Final.Codes:=X$Final.Codes]
-  
-  rm(X)
-  
+  Data<-Data.Out
   # 4.4) Add filler cols ####
-  
   Data$LatM<-NA # All values converted to DD in excel
   Data$LatS<-NA # All values converted to DD in excel
   Data$LatH<-NA # All values converted to DD in excel
@@ -745,11 +703,10 @@ Data<-Data.Out
           NA
         }}}
   }))]
-  Data[Season==1 | is.na(Season),MSP:=Site.MSP.S1]
-  Data[Season==2 | is.na(Season),MSP:=Site.MSP.S2]
+  Data[Season==1|is.na(Season),MSP:=Site.MSP.S1]
+  Data[Season==2,MSP:=Site.MSP.S2]
   
   # 4.6) Soils ####
-  #Soil.Out$Soil.pH.Method<-NA # Bug in Excels that needs fixing
   Soil.Out[,Depth.Interval:=Soil.Upper-Soil.Lower]
   Soil.Out[Depth.Interval==0,Depth.Interval:=1]
   X<-Soil.Out[,list(SOC=round(weighted.mean(Soil.SOC,Depth.Interval,na.rm=T),2),Lower=max(Soil.Lower),Upper=min(Soil.Upper),SOC.Unit=unique(Soil.SOC.Unit),
@@ -767,23 +724,6 @@ Data<-Data.Out
   Data[,Soil.pH:=X[N.Match,Soil.pH]]
   Data[,Soil.pH.Method:=X[N.Match,Soil.pH.Method]]
   rm(N.Match,X,Y)
-  
-  # 4.7.1) Update treatment names for intercrop and rotation ####
-  
-  # Component of Intercrop without rotation
-  Data[!is.na(T.Name) & !is.na(ED.Int) & is.na(ED.Rot),T.Name:=paste0(T.Name,">>",ED.Int)]
-  # Component of Rotation without Intercrop
-  Data[!is.na(T.Name) & is.na(ED.Int) & !is.na(ED.Rot),T.Name:=paste0(T.Name,"<<",ED.Rot)]
-  # Component of Intercrop in Rotation
-  Data[!is.na(T.Name) & !is.na(ED.Int) & !is.na(ED.Rot),T.Name:=paste0(T.Name,">>",ED.Int,"<<",ED.Rot)]
-  
-  # Intercrop only
-  Data[is.na(T.Name) & !is.na(ED.Int) & is.na(ED.Rot),T.Name:=ED.Int]
-  # Rotation only
-  Data[is.na(T.Name) & is.na(ED.Int) & !is.na(ED.Rot),T.Name:=ED.Rot]
-  # Intercrop part of rotation 
-  Data[is.na(T.Name) & !is.na(ED.Int) & !is.na(ED.Rot),T.Name:=paste0(ED.Int,"<<",ED.Rot)]
-  
   # 4.7.2) Create TID code ####
   Data[,TID:=paste0("T",as.numeric(as.factor(T.Name))),by="B.Code"]
   
@@ -809,57 +749,20 @@ Data<-Data.Out
   # TO DO - Which studies have >11 practices - Consider simplifying residues codes when Int/Rot are present (as per Basic Comparisons)
   Data[apply(X,1,FUN=function(Y){sum(!is.na(Y))})>10]
   
-  if(!"C10" %in%colnames(Data)){
-    Data[,C10:=NA]
-  }
-  
     # 4.8.1) How many C columns are there? ####
   NCols<-sum(paste0("C",1:30) %in% colnames(Data))
   
-  # 4.9) Add Rotation Seq & Intercropping Species ####
-  N.R<-match(paste0(Data$B.Code,Data$R.Level.Name),paste0(Rot.Seq.Summ$B.Code,Rot.Seq.Summ$R.Level.Name))
-  Data[,R.Seq:=Rot.Seq.Summ[N.R,Seq]]
-  rm(N.R)
-  # Intercropping
-  N.I<-match(Data[is.na(R.Seq),paste0(B.Code,ED.Int)],paste0(Int.Out$B.Code,Int.Out$IN.Level.Name))
-  Data[is.na(R.Seq),R.Seq:=Int.Out[N.I,IN.Prod]]
-  rm(N.I)
-  # Reformat sequence
-  Data[,R.Seq:=gsub("[*][*][*]","-",R.Seq)][,R.Seq:=gsub("[|][|][|]","/",R.Seq)]
+  if(NCols<10){
+    cols<-paste0("C",(NCols+1):10)
+    Data[,(cols):=NA]
+  }
+  
+  NCols<-sum(paste0("C",1:30) %in% colnames(Data))
   
   # 4.10) Add in Trees ####
-  # Trees in rotation sequence
-  X<-Rot.Out[,list(P.List=unlist(strsplit(R.Prod.Seq,"[|][|][|]"))),by=N]
-  X<-X[,list(P.List=list(unlist(strsplit(unlist(P.List),"[.][.]")))),by=N]
-  Rot.Out[,Trees:=lapply(X$P.List,FUN=function(X){
-    X<-unlist(X)
-    Y<-unique(X[X %in% TreeCodes$Product.Simple])
-    Y<-c(Y,unique(X[X %in% EUCodes[Tree=="Yes",Product.Simple]]))
-    Y<-c(Y,unique(X[X %in% EUCodes[Tree=="Yes",Latin.Name]]))
-    
-    if(length(Y)==0){
-      NA
-    }else{
-      Y
-    }
-  })]
-  
-  # Trees in intercropping
-  X<-Int.Out[,list(P.List=unlist(strsplit(IN.Prod,"[*][*][*]"))),by=N]
-  X<-X[,list(P.List=list(unlist(strsplit(unlist(P.List),"[.][.]")))),by=N]
-  Int.Out[X$N,Trees:=lapply(X$P.List,FUN=function(X){
-    unlist(X)
-    Y<-unique(X[X %in% TreeCodes$Product.Simple])
-    Y<-c(Y,unique(X[X %in% EUCodes[Tree=="Yes",Product.Simple]]))
-    Y<-c(Y,unique(X[X %in% EUCodes[Tree=="Yes",Latin.Name]]))
-    
-    if(length(Y)==0){
-      NA
-    }else{
-      Y
-    }
-  })]
-  
+  # Trees in animal feeds
+  # PICK UP FROM HERE! adding trees to feeds #####
+
   # Add Trees to Data
   X<-match(Data[,paste(B.Code,ED.Int)],Int.Out[,paste(B.Code,IN.Level.Name)])
   Data[!is.na(X),Int.Tree:=Int.Out[X[!is.na(X)],Trees]]
