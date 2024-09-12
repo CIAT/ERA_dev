@@ -389,7 +389,7 @@ if(file_status){
                            Site.Type == "Researcher Managed & Research Facility" &
                            !grepl("[.][.]",Site.ID_raw)
     ][,.(value=paste(Site.ID_raw,collapse = "/")),by=B.Code
-    ][,table:=table_name
+    ][,table:="Site.Out"
     ][,field:="Site.ID"
     ][,issue:="No match for facility in era_master_sheet site_list tab (inc. synonyms or harmonization fields)."]
     
@@ -1984,13 +1984,15 @@ if(file_status){
   h_tasks1<-results$h_tasks
   Chems.Out<-results$data
   
+  # NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
+  if(F){
   mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name")[!is.na(C.Type)][,check:=T]
   
   h_tasks2<-setnames(merge(Chems.Out[,list(B.Code,C.Type,C.Name)],mergedat,all.x = T)[is.na(check)][,check:=NULL],"C.Name","value")[,field:="C.Name"][,field_alt:="C.Name.2020"][,table:="Chem.Out"][,master_tab:="chem"]
   
   errors7<-unique(h_tasks2[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect or simply missing from chem tab in master sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
   h_tasks2<-h_tasks2[C.Type %in% mergedat$C.Type]
-  
+  }
     # 3.12.3) Chems.AI ####
   col_names2<-col_names[25:31]
   col_names2[grep("C.Type",col_names2)]<-"C.Type2"
@@ -3243,6 +3245,10 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   # 4.x) What about structure? #####
   
   # 4.4) Combine aggregated treatments #####
+  
+  # NOTE this section differs substantially from import_majestic_hippo ####
+  # Unclear why this differs from line 1972 in that script, fields T.Agg.Levels3 used in comparison script are not generated here ####
+  
   N<-grep("[.][.]",MT.Out$T.Name)
   
   Fields<-data.table(Levels=c("T.Residue.Prev",names(code_cols),"P.Level.Name","O.Level.Name","PD.Level.Name"),
@@ -3596,7 +3602,7 @@ errors4<-Int.Out[!grepl("__",IN.Level.Name),.(value=paste(IN.Level.Name)),by=B.C
 # Update order of components
 Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=unlist(tstrsplit(IN.Level.Name,"__",keep = 2))][,IN.Comp3:=unlist(tstrsplit(IN.Level.Name,"__",keep = 3))][,IN.Comp4:=unlist(tstrsplit(IN.Level.Name,"__",keep = 4))]
 
-  # 5.1) Update Aggregated Treatment Delimiters #####
+  # 5.1) Update aggregated treatment delimiters #####
   col_names<-c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")
   
   Int.Out[, (col_names) := lapply(.SD, split_trimws, delim = ".."), .SDcols = col_names]
@@ -3888,7 +3894,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
     # Add b38 code to shared col
     Int.Out[N,IN.T.Codes.Shared:=paste(sort(c(unlist(strsplit(IN.T.Codes.Shared[1],"-")),"b38")),collapse="-"),by=IN.T.Codes.Shared]
   
-  # 5.5) Combine Products #####
+  # 5.5) Combine products #####
   # A duplicate of In.Prods.All column, but using a "-" delimiter that distinguishes products that contribute to a system outcome from products aggregated 
   # in the Products tab (results aggregated across products) which use a ".." delim.
   
@@ -3903,7 +3909,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
     }
     rm(Int.Out.Missing.Prod)
   
-  # 5.6) Update Intercropping Delimiters ####
+  # 5.6) Update intercropping delimiters ####
     Int.Out$IN.Level.Name2<-apply(Int.Out[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")],1,FUN=function(X){
       X<-paste0(X[!is.na(X)],collapse = "***")
     })
@@ -3977,7 +3983,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
     }
   
   
-  # 5.8) Residues in System Outcomes ####
+  # 5.8) Residues in system outcomes ####
     Recode.Res<-function(X){
       A<-unlist(strsplit(unlist(X),"-"))
       if(is.na(A[1])){
@@ -4111,7 +4117,7 @@ col_names<-colnames(data[[1]])
   # Remove duplicated rows
   Rot.Out<-Rot.Out[!duplicated(Rot.Out[,.(B.Code,R.Level.Name)])]
   
-  # 6.3) Rot.Seq Processing #####
+  # 6.3) Rot.Seq processing #####
     # 6.3.1) Update delimiters #####
     Rot.Seq[, R.Treatment:= split_trimws(R.Treatment,delim = "..")]
     Rot.Seq[,R.Treatment:=gsub("[.][.]","...",R.Treatment)]
@@ -4180,7 +4186,7 @@ col_names<-colnames(data[[1]])
     # Add in fallow codes
     Rot.Seq[R.Treatment == "Natural or Bare Fallow",R.T.Codes:="h24"]
     
-    # 6.3.4) Update Residue codes based on previous season ######
+    # 6.3.4) Update residue codes based on previous season ######
   
     # Merge in info from Rot.Out
     Rot.Seq<-merge(Rot.Seq,
@@ -4322,7 +4328,7 @@ col_names<-colnames(data[[1]])
     Rot.Seq[grep("[.][.][.]",R.Treatment),R.Residues.Codes:=X1agg[grep("[.][.][.]",Rot.Seq$R.Treatment)]]
   
     
-    # 6.3.5) Add Rotation Codes ######
+    # 6.3.5) Add rotation codes ######
   
     Rot.Seq<-merge(Rot.Seq,Rot.Out[,.(R.Level.Name,B.Code,R.Code)],by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
     
@@ -4350,7 +4356,7 @@ col_names<-colnames(data[[1]])
     Rot.Seq[,R.Structure:=Join.Fun(Structure.Comb[1],IN.Structure[1]),by=.(Structure.Comb,IN.Structure)]
     rm(Join.Fun)
   
-  # 6.4) Rot.Out Processing #####
+  # 6.4) Rot.Out processing #####
     # 6.4.1) Update/add fields from Rot.Seq ######
       # R.T.Codes.All 
         # Would it be better to have Agg Treats by component split with a "|||" as well as Cmn Trts? and retaining NA values
@@ -4508,7 +4514,7 @@ col_names<-colnames(data[[1]])
     Rot.Out<-merge(Rot.Out,Rot.Seq.Summ,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
     
     
-  # 6.5) Other Validation ######
+  # 6.5) Other validation ######
         # Check for sequences that have a rotation code, but no rotation in the sequence presented
         # Only improved fallow should be able to have a sequence with no change in product.
         Rot.Seq[,n_crops:=length(unique(R.Prod)),by=.(B.Code,R.Level.Name)]
@@ -5039,7 +5045,7 @@ col_names<-colnames(data[[800]])
     
     errors<-c(errors,list(error_dat))
     
-    # 8.5.7) Add Product Codes ######
+    # 8.5.7) Add product codes ######
       # 8.5.7.1) Check product components #######
       
       # Update okra fruits to okra pods
@@ -5367,13 +5373,13 @@ col_names<-colnames(data[[800]])
         Rot.Out[B.Code==results$B.Code[i] & R.Level.Name==results$R.Level.Name[i]]
       }
       
-    # 8.4.12) Add Climate & Time ######
+    # 8.4.12) Add climate & time ######
       Data.Out<-merge(Data.Out,unique(Times.Out[,!c("check")]),by=c("B.Code","Time"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
       
       Data.Out<-merge(Data.Out,unique(Times.Clim[!is.na(Site.ID) & !is.na(Time)]),by=c("B.Code","Site.ID","Time"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
-    # 8.4.13) Add Dates ######
+    # 8.4.13) Add dates ######
       # Create function to merge on time and site id taking into account all sites and all times values
       merge_time_site<-function(data,
                                 Data.Out,
@@ -5406,7 +5412,7 @@ col_names<-colnames(data[[800]])
         return(mergedat)
       }
       
-      # 8.4.13.1) Add Planting Dates #######
+      # 8.4.13.1) Add planting dates #######
       variable<-c("Planting","Transplanting")
       data<-PD.Out[PD.Variable %in% variable,.(B.Code,Site.ID,PD.Variable,Time,PD.Date.Start,PD.Date.End)]
       
@@ -5428,7 +5434,7 @@ col_names<-colnames(data[[800]])
       Data.Out<-cbind(Data.Out,mergedat[,!c("B.Code","Time","Site.ID")])
       
       # ***TO DO*** Bring in any planting dates from aggregated years/sites ####
-      # 8.4.13.1) Add Harvest Dates #######
+      # 8.4.13.1) Add harvest dates #######
       variable<-c("Harvesting")
       data<-PD.Out[PD.Variable %in% variable,.(B.Code,Site.ID,Time,PD.Date.Start,PD.Date.End,PD.Date.DAS,PD.Date.DAP)]
       
@@ -5441,7 +5447,7 @@ col_names<-colnames(data[[800]])
       
       Data.Out<-cbind(Data.Out,mergedat[,!c("B.Code","Time","Site.ID")])
       
-    # 8.5.14) Update Start Year & Season #####
+    # 8.5.14) Update start year & season #####
     # ***ISSUE*** NEEDS LOGIC FOR ROT/INT as "Base"? / CONSIDER LOGIC FOR ONLY USING INT/ROT YEAR IF THEY ARE NOT BASE PRACTICES ####
       
       Data.Out[,Final.Start.Year:=
@@ -5459,7 +5465,7 @@ col_names<-colnames(data[[800]])
         }},by=.(R.Start.Year,IN.Start.Year,T.Start.Year)]
       
       
-    # 8.5.15) Add Base Practices #####
+    # 8.5.15) Add base practices #####
     Data.Out<-merge(Data.Out,Base.Out,by="B.Code",all.x=T,sort=F)
     stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
     # 8.5.16) Update Structure Fields to reflect Level name rather than "Yes" or "No" ####
