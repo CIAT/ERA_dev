@@ -134,12 +134,14 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
                          mode="public-read")
       
       # 1.3.2) compiled data #######
+      project<-era_projects$skinny_cow_2022
+      
       folder_local<-era_dirs$era_masterdata_dir
       s3_bucket<-era_dirs$era_masterdata_s3
       
-      files<-list.files(folder_local,"industrious_elephant_2023",full.names = T,recursive=T)
+      files<-list.files(folder_local,project,full.names = T,recursive=T)
       
-      upload_files_to_s3(files = output_zip_file,
+      upload_files_to_s3(files = files,
                          selected_bucket=s3_bucket,
                          max_attempts = 3,
                          overwrite=T,
