@@ -2058,18 +2058,19 @@ if(file_status){
   
   h_tasks3<-results$h_tasks
   Chems.AI<-results$data
-  
-  mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name.AI")[!is.na(C.Type)][,check:=T][,C.Name.AI:=tolower(C.Name.AI)]
-  h_tasks4<-setnames(merge(Chems.AI[!is.na(C.Name.AI),list(B.Code,C.Type,C.Name.AI)][,C.Name.AI:=tolower(C.Name.AI)],mergedat,all.x = T)[is.na(check)][,check:=NULL],"C.Name.AI","value")
-  h_tasks4<-h_tasks4[,list(B.Code=paste0(unique(B.Code),collapse="/")),by=list(C.Type,value)
-                     ][,field:="C.Name.AI"
-                       ][,field_alt:="C.Name.2020"
-                         ][,table:="Chems.AI"
-                           ][,master_tab:="chems"]
-                           
-  errors6<-unique(h_tasks4[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect, or simply missing from Master Sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
-  h_tasks4<-h_tasks4[C.Type %in% mergedat$C.Type]
-  
+  # NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
+  if(F){
+    mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name.AI")[!is.na(C.Type)][,check:=T][,C.Name.AI:=tolower(C.Name.AI)]
+    h_tasks4<-setnames(merge(Chems.AI[!is.na(C.Name.AI),list(B.Code,C.Type,C.Name.AI)][,C.Name.AI:=tolower(C.Name.AI)],mergedat,all.x = T)[is.na(check)][,check:=NULL],"C.Name.AI","value")
+    h_tasks4<-h_tasks4[,list(B.Code=paste0(unique(B.Code),collapse="/")),by=list(C.Type,value)
+                       ][,field:="C.Name.AI"
+                         ][,field_alt:="C.Name.2020"
+                           ][,table:="Chems.AI"
+                             ][,master_tab:="chems"]
+                             
+    errors6<-unique(h_tasks4[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect, or simply missing from Master Sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
+    h_tasks4<-h_tasks4[C.Type %in% mergedat$C.Type]
+  }
     # 3.12.4) Add/check herbicide codes ######
     
     # Add C.Code to Chems.Code tab
@@ -3127,8 +3128,10 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
                              ][,field:="T.Name"
                                ][,issue:="Identical treatments, look at names to see if this could be an error (e.g. a missing field)."]
 
+  write.table(error_dat,"clipboard-256000",row.names = F,sep="\t")
   
-  error_list<-error_tracker(errors=duplicates,filename = "treatment_duplicates",error_dir=error_dir,error_list = error_list)
+  
+  error_list<-error_tracker(errors=error_dat,filename = "treatment_duplicates",error_dir=error_dir,error_list = error_list)
   
   
   # Convert T.Start.Year and T.Reps fields to integers
@@ -3159,6 +3162,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
              ][,c("P.Mulched","P.Incorp","P.Unknown.Fate"):=NULL]
   
   # 4.2) Merge in practice data #####
+  stop("Has issue with V.Level.Name being derived from harmonized field that also needs to be harmonzied in MT.Out been fixed?")
   unique(MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(B.Code,P.Product,T.Name)])
   # Create list of data table to merge with MT.Out treatment table
   mergedat<-list(V.Level.Name=Var.Out,
@@ -5563,6 +5567,6 @@ fwrite(tracking_summary,file.path(error_dir,"error_summary.csv"))
 
 
 tracking_files2<-tracking_files[grepl("_other_errors",tracking_files)]
-rbindlist(lapply(tracking_files2,fread),use.names = T,fill = T)
+tracking_tab<-rbindlist(lapply(tracking_files2,fread),use.names = T,fill = T)
 
 
