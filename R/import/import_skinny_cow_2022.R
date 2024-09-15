@@ -735,7 +735,7 @@ Var.Out[,c("V.New.Var","V.New.Crop","V.New.Species","V.New.SubSpecies","...20","
 results<-validator(data=Var.Out,
                    numeric_cols=c("V.Maturity"),
                    zero_cols = c("V.Var","V.Species","V.Subspecies","V.Animal.Practice","V.Base",
-                                 "V.Type","V.Maturity","V.Code.Crop","V.Code.Animal",
+                                 "V.Type","V.Maturity","V.Code.Crop","V.Code.Animal","V.Crop.Practice",
                                  "V.Codes"),
                    tabname=table_name,
                    duplicate_field = "V.Var",
@@ -745,24 +745,34 @@ errors<-c(errors,list(results$errors))
 
 Var.Out<-results$data
 
+
+ # 3.6.1) Harmonization #####
 # Save original variety name as this is a keyfield used in the MT.Out tab, if it is changed then this causes issues
 Var.Out[,V.Level.Name:=Join]
+setnames(Var.Out,"Join","V.Level.Name_raw")
 
 # Check & fix for where Animal Practices has been entered in Crop Practice, remove crop related cols
 Var.Out[!is.na(V.Crop.Practice) & V.Crop.Practice!=V.Animal.Practice]
 Var.Out<-Var.Out[!is.na(V.Crop.Practice) & V.Crop.Practice!=V.Animal.Practice,V.Animal.Practice:=V.Crop.Practice
-        ][,c("V.Crop.Practice","V.Code.Crop","V.Code.Animal","V.Maturity"):=NULL]
-
-# Replace V.Var with Join and remove join
-Var.Out[,V.Var:=Join][,Join:=NULL]
+][,c("V.Crop.Practice","V.Code.Crop","V.Code.Animal","V.Maturity"):=NULL]
 
 # Update Variety Naming and Codes
 merge_dat<-master_codes$vars_animals[,list(V.Product,V.Var,V.Var1,V.Animal.Practice)]
 setnames(merge_dat,"V.Animal.Practice","V.Animal.Practice1")
 
-Var.Out<-merge(Var.Out,merge_dat,all.x=T,by=c("V.Product","V.Var"))
-Var.Out[!is.na(V.Var1),V.Var:=V.Var1
-][!is.na(V.Animal.Practice1),V.Animal.Practice:=V.Animal.Practice1]
+# Check for duplicate names in codes
+error_dat<-copy(merge_dat)[,N:=.N,by=list(V.Product,V.Var)][N>1][,.(value=paste0(V.Product,":",V.Var)),by=.(V.Product,V.Var)
+][,B.Code:=NA
+][,table:=table_name
+][,field:="V.Product:V.Var"
+][,issue:="More than one description of same variety in master codes/var tab."
+][,c("V.Product","V.Var"):=NULL]
+errors<-c(errors,list(error_dat))
+
+# Merge codes to Var.out
+Var.Out<-merge(Var.Out,merge_dat,all.x=T,by.x=c("V.Product","V.Level.Name"),by.y=c("V.Product","V.Var"))
+Var.Out[!is.na(V.Var1),V.Level.Name:=V.Var1
+][!is.na(V.Animal.Practice1),V.Animal.Practice:=V.Animal.Practice1][,V.Animal.Practice1:=NULL]
 
 # Update V.Codes
 Var.Out[,unique(V.Animal.Practice)]
@@ -771,9 +781,9 @@ Var.Out[,V.Codes:=master_codes$prac[match(Var.Out$V.Animal.Practice,master_codes
 # Errors
 error_dat<-unique(Var.Out[(V.Type %in% c("Local","Landrace")) & V.Animal.Practice != "Unimproved Breed",!c("V.Base","V.Codes")])
 error_dat<-error_dat[,.(value=paste(unique(V.Var),collapse = "/")),by=B.Code
-                     ][,table:=table_name
-                       ][,field:="V.Var"
-                         ][,issue:="V.Type is local, but V.Animal.Practice is not Unimproved Breed"]
+][,table:=table_name
+][,field:="V.Var"
+][,issue:="V.Type is local, but V.Animal.Practice is not Unimproved Breed"]
 
 errors<-c(errors,list(error_dat))
 
@@ -785,66 +795,39 @@ error_dat<-error_dat[,.(value=paste(unique(V.Var),collapse = "/")),by=B.Code
 
 errors<-c(errors,list(error_dat))
 
- # 3.6.1) Harmonization #####
-# Update fields associated with varieties
-mvars<-unique(master_codes$vars[!is.na(V.Animal.Practice),list(V.Product,V.Var,V.Animal.Practice,V.Type)])[,N:=.N,by=list(V.Product,V.Var)]
-error_dat<-mvars[N>1][,.(value=paste0(V.Product,":",V.Var)),by=.(V.Product,V.Var)
-                      ][,B.Code:=NA
-                        ][,table:=table_name
-                          ][,field:="V.Product:V.Var"
-                            ][,issue:="More than one description of same variety in master codes/var tab."
-                              ][,c("V.Product","V.Var"):=NULL]
+# Update fields associated with varieties (this is not a duplicate of the above, here we are match on the V.Var1 not V.Var column in the Mastercode vars tab)
+mvars<-unique(master_codes$vars[!is.na(V.Animal.Practice),
+                                list(V.Product,V.Var1,V.Animal.Practice,V.Type)])
 
-errors<-c(errors,list(error_dat))
+mvars[,N:=.N,by=list(V.Product,V.Var1)
+      ][N==1
+        ][,N:=NULL]
 
-mergedat<-merge(Var.Out[,list(V.Product,V.Var)],mvars,by=c("V.Product","V.Var"),all.x=T,sort=F)
+mergedat<-merge(Var.Out[,list(V.Product,V.Level.Name)],mvars,by.x=c("V.Product","V.Level.Name"),by.y=c("V.Product","V.Var1"),all.x=T,sort=F)
 
-Var.Out[!is.na(mergedat$V.Animal.Practice),V.Crop.Practice:=mergedat[!is.na(V.Animal.Practice),V.Animal.Practice]
+Var.Out[!is.na(mergedat$V.Animal.Practice),V.Animal.Practice:=mergedat[!is.na(V.Animal.Practice),V.Animal.Practice]
 ][!is.na(mergedat$V.Type),V.Type:=mergedat[!is.na(V.Type),V.Type]]
 
-# Update varietal by matching to master_codes
-mvars<-unique(master_codes$vars[!is.na(V.Var1) & !is.na(V.Var) & !is.na(V.Animal.Practice),
-                                list(V.Product,V.Var,V.Var1)])[,N:=.N,by=list(V.Product,V.Var)]
-error_dat<-mvars[N>1][,.(value=paste0(V.Product,":",V.Var)),by=.(V.Product,V.Var)
-                      ][,B.Code:=NA
-                        ][,table:=table_name
-                          ][,field:="V.Product:V.Var"
-                            ][,issue:="More than one description of same variety in master codes"
-                              ][,c("V.Product","V.Var"):=NULL]
-errors<-c(errors,list(error_dat))
-
-mvars<-mvars[N==1][,N:=NULL]
-
-mergedat<-merge(Var.Out[,list(V.Product,V.Var)],mvars,by=c("V.Product","V.Var"),all.x=T,sort=F)
-
-Var.Out[!is.na(mergedat$V.Var1),V.Var:=mergedat[!is.na(V.Var1),V.Var1]]
-
 # Non-matching varieties
-h_dat<- Var.Out[is.na(V.Var1) & !is.na(V.Var) & !grepl("local|unspecified|unimproved|[*][*][*]",V.Var,ignore.case=T),
+error_dat<- Var.Out[is.na(V.Var1) & !is.na(V.Var) & !grepl("local|unspecified|unimproved|[*][*][*]",V.Var,ignore.case=T),
 ][,.(value=paste0(V.Product,":",V.Var)),by=B.Code
-][,master_tab:="vars"
 ][,table:="Var.Out"
 ][,field:="V.Var"
-][,table_alt:=NA
-][,field_alt:=NA]
+][,issue:="No match for variety in era_master_sheet vars tab."]
 
 mvars[,value:=paste0(V.Product,":",V.Var1)][,check:=T]
-h_dat<-merge(h_dat,mvars[,.(value,check)],by="value",all.x=T,sort=F)
-h_dat<-h_dat[is.na(check)][,check:=NULL]
+error_dat<-merge(error_dat,mvars[,.(value,check)],by="value",all.x=T,sort=F)
+error_dat<-error_dat[is.na(check)][,check:=NULL]
 
-h_tasks<-list(h_dat)
+errors<-c(errors,list(error_dat))
 
-# Remove harmonization columns
-Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
-  
- # 3.6.2) Save errors & harmonization #######
+# Rejig column names to match what is need for merging with MT.Out
+Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Level.Name_raw:=NULL]
+
+ # 3.6.2) Save errors #######
   errors<-rbindlist(errors,use.names = T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
 
-  h_tasks<-rbindlist(h_tasks,use.names = T)[order(B.Code)][order(value)]
-  
-  harmonization_list<-error_tracker(errors=h_tasks,filename = paste(table_name,"_harmonization"),error_dir=harmonization_dir,error_list = harmonization_list)
-  
 # 3.7) Diet ####
   # 3.7.1) Animals.Out ######
   table_name<-"Animals.Out"
@@ -877,8 +860,7 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
               "A.Feed.Sub.C","A.Feed.Pro.1","A.Feed.Pro.2","A.Feed.Pro.3","A.Manure.Man","A.Pasture.Man","A.Aquasilvaculture")
   setnames(Animals.Out,paste0("P",1:14),p_names)
   
-  # Tidy control cols
-  Animals.Out[is.na(A.Feed.Sub.C),A.Feed.Sub.C:="No"][is.na(A.Feed.Add.C),A.Feed.Add.C:="No"]
+
   
   zero_cols<-c(p_names,"A.Notes","A.Grazing","A.Hay")
   
@@ -890,7 +872,7 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   
   errors<-c(errors,list(results$errors))
   Animals.Out<-results$data
-  
+
   # All NA rows 
   N<-apply(Animals.Out[,!c("A.Level.Name","B.Code")],1,FUN = function(x){all(is.na(x))})
   error_dat<-Animals.Out[N,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
@@ -933,6 +915,9 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
                 ][,issue:="Possible error, an animal diet has no associated practices."]
     
     errors<-c(errors,list(error_dat))
+    
+    # Tidy control cols
+    Animals.Out<-Animals.Out[is.na(A.Feed.Sub.C),A.Feed.Sub.C:="No"][is.na(A.Feed.Add.C),A.Feed.Add.C:="No"]
 
   # 3.7.2) Animal.Diet ####
   table_name<-"Animals.Diet"
@@ -982,8 +967,11 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
   
   Animals.Diet<-results$data
   
-  # Remove \n and \r
+    # Remove \n and \r
   Animals.Diet[,D.Item:=gsub("\r\n"," ",D.Item,fixed = T)]
+  
+  # Change "NA" to NA
+  Animals.Diet[D.Item=="NA",D.Item:=NA]
   
   # Tidy diet process field
   Animals.Diet[,D.Process:=trimws(D.Process)
@@ -1034,7 +1022,8 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
                                                D.Item.Proc_Major,
                                                D.Item.Proc_Minor,
                                                D.Item.Comp,
-                                               B.Code)]
+                                               D.Item.AOM
+                                               )]
     
     vals<-strsplit(mergedat$D.Item,";")
     vals_rep_rows<-rep(1:length(vals),unlist(lapply(vals,length)))
@@ -1043,10 +1032,10 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
                                 ][,D.Item:=trimws(tolower(D.Item))])
       
     # Find non-unique diet items that will cause matching issues
-    error_dat<-unique(mergedat[,!"B.Code"])[,N:=.N,by=D.Item][N>1]
+    error_dat<-mergedat[,N:=.N,by=D.Item][N>1]
     excluded_items<-error_dat[,unique(D.Item)]
     error_dat<-error_dat[,D.Item2:=D.Item
-              ][,B.Code:=mergedat[mergedat$D.Item==D.Item2[1],paste(unique(unlist(strsplit(B.Code,"/"))),collapse="/")],by=D.Item2
+              ][,B.Code:=Animals.Diet.Comp[D.Item==D.Item2[1],paste(unique(B.Code),collapse = "/")],by=D.Item2
                 ][,value:=paste(D.Item,"-",D.Item.Root.Comp.Proc_Major)
                   ][,.(B.Code,value)
                     ][,table:="era_master_sheet/ani_diets"
@@ -1055,7 +1044,7 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
     
     errors<-c(errors,list(error_dat))
     
-    mergedat<-unique(mergedat[,!"B.Code"])[,N:=.N,by=D.Item][N==1][,N:=NULL]
+    mergedat<-unique(mergedat)[,N:=.N,by=D.Item][N==1][,N:=NULL]
     
     # Make fields lower case to improve odds of matching
     Animals.Diet[,D.ItemxProcess_low:=tolower(D.ItemxProcess)]
@@ -1105,8 +1094,32 @@ Var.Out[,c("V.Var1","V.Animal.Practice1"):=NULL]
     
     
     # write.table(h_dat[,.(value,B.Code)],"clipboard-256000",row.names = F,sep="\t",col.names = F)
-    
     Animals.Diet[,check:=NULL]
+    
+    # 3.7.2.2) Merge AOM Diet Summary with Animals.Out  #######
+    
+    # Merge relevant AOM columns
+    cols<-c("AOM","Scientific Name",paste0("L",1:10))
+    merge_dat<-master_codes$AOM[AOM %in% Animals.Diet$D.Item.AOM &!is.na(AOM),..cols]
+    setnames(merge_dat,"Scientific Name","AOM.Scientific.Name")
+    merge_dat[,AOM.Terms:=apply(merge_dat[,!"AOM"],1,FUN=function(x){
+      x<-as.vector(na.omit(x))
+      paste(x,collapse="/")})
+    ][,AOM.Terms:=unlist(tstrsplit(AOM.Terms,"Feed Ingredient/",keep=2))]
+    
+    merge_dat<-unique(merge_dat[,.(AOM,AOM.Terms,AOM.Scientific.Name)])
+    
+    Animals.Diet<-merge(Animals.Diet,merge_dat,by.x="D.Item.AOM",by.y="AOM",all.x=T,sort=F)
+    
+    Animals.Diet[,D.Item.Is.Tree:=F][grepl("Forage Trees",AOM.Terms),D.Item.Is.Tree:=T]
+
+    # Summarize 
+    Animals.Diet.Summary<-Animals.Diet[,.(A.Diet.Trees=paste0(sort(unique(AOM.Scientific.Name[D.Item.Is.Tree & !D.Is.Group])),collapse=";"),
+                                          A.Diet.Other=paste0(sort(unique(basename(AOM.Terms)[!D.Item.Is.Tree & !D.Is.Group])),collapse=";")),
+                                       by=.(B.Code,A.Level.Name)]
+    
+    Animals.Out<-merge(Animals.Out,Animals.Diet.Summary,by=c("B.Code","A.Level.Name"),all.x=T,sort=F)
+    Animals.Out[A.Diet.Trees=="",A.Diet.Trees:=NA][A.Diet.Other=="",A.Diet.Trees:=NA]
     
   # 3.7.3) Animals.Diet.Comp ######
   table_name<-"Animals.Diet.Comp"
@@ -1428,7 +1441,7 @@ error_dat<-validator(data=Chems.Code,
 errors<-c(errors,list(error_dat))
 
   # 3.9.2) Chem    
-    # 3.9.2.1) Harmonization #######s.Out ####
+    # 3.9.2.1) Harmonization #######
 col_names2<-col_names[4:17]
 table_name<-"Chems.Out"
 
@@ -1682,7 +1695,7 @@ MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.
   # 4.1) Merge in practice data #####
   unique(MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(B.Code,P.Product,T.Name)])
   # Create list of data table to merge with MT.Out treatment table
-  mergedat<-list(V.Level.Name=Var.Out,
+  mergedat<-list(V.Level.Name=copy(Var.Out),
                  AF.Level.Name=AF.Out,
                  C.Level.Name=Chems.Code,
                  A.Level.Name=Animals.Out,
@@ -1700,7 +1713,10 @@ MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.
       data<-merge(data,mergedat[[i]],
                   by.x=c("B.Code","P.Product",keyfield),
                   by.y=c("B.Code","V.Product",keyfield),
-                  all.x=T)
+                  all.x=T,
+                  sort=F)
+      data[,V.Level.Name:=V.Level.Name_new][,V.Level.Name_new:=NULL]
+      
     }else{
       data<-merge(data,mergedat[[i]],by=c("B.Code",keyfield),all.x=T)
     }
@@ -1710,6 +1726,9 @@ MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.
       cat(" ! Warning: nrow(output) = ",nrow(data),"vs nrow(input)",nrow(MT.Out),"\n")
     }
   }
+  
+  # Update Var.Out now that merge has been done with MT.Out table
+  Var.Out[,V.Level.Name_raw:=V.Level.Name][,V.Level.Name:=V.Level.Name_new][,V.Level.Name_new:=NULL]
 
   # Add in Base.Out
   data<-merge(data,Base.Out,by="B.Code",all.x=T)
@@ -1883,6 +1902,7 @@ MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.
     x
   }), .SDcols = col_names]
   
+  # TO DO ADD BASE PRACTICE DATA? #####
   # 4.5) Save errors  ######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
                             filename = paste0(table_name,"_errors"),
@@ -1966,6 +1986,10 @@ Out.Out[, Out.Subind := stringr::str_replace_all(Out.Subind, replacement_map)]
 Out.Out[, Out.Code.Joined := stringr::str_replace_all(Out.Code.Joined, replacement_map)]
 
 Out.Out[,c("x","N"):=NULL]
+  
+  # 5.2) Harmonization #####
+  # Harmonize Out.WG.Days 
+  Out.Out[Out.WG.Days==488]  
 
   # 5.1) Save errors  ######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
@@ -1976,7 +2000,7 @@ Out.Out[,c("x","N"):=NULL]
 # 6) Enter Data (Data.Out) ####
 table_name<-"Data.Out"
 data<-lapply(XL,"[[",table_name)
-col_names<-colnames(data[[1]])
+col_names<-colnames(data[[100]])
 col_names<-col_names[!col_names %in% c("ED.Int","ED.Rot","ED.I.Amount","ED.I.Unit","ED.Plant.Start","ED.Plant.End","ED.Harvest.Start","ED.Harvest.End","ED.Harvest.DAS")]
 
 Data.Out<-lapply(1:length(data),FUN=function(i){
