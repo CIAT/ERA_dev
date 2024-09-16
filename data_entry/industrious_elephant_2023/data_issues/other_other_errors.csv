@@ -74,7 +74,6 @@ SA0028,L-T1/L-T2/L-T3/L-T4/L-T5/L-T6/L-T7,Other.Out,O.Level.Name,">1 other pract
 SA0032,4_CA/3_CA_W/5_CA_W,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 SA0041,1_L/2_L/3_L/4_L/5_L/6_L/7_L,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 SA0043,1_L/2_L/3_L/4_L/5_L/6_L,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
-SA0048,TGP/UGP/LGP/MGP,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 SA0051,1-CONw/2-NPKw/3-NPKw/4-NPKw/5-NPKw/6-NPKw/7-NPKw,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 SA0054.1,1_TGPw/2_TGPw/3_TGPw/4_TGPw/5_TGPw/1_UGPw/2_UGPw/3_UGPw/4_UGPw/5_UGPw,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 SA0054.2,1_MGPw/2_MGPw/3_MGPw/4_MGPw/5_MGPw/1_LGPw/2_LGPw/3_LGPw/4_LGPw/5_LGPw,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""

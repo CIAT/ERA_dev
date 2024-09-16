@@ -2,5 +2,4 @@ value,B.Code,table,master_table,field,issue,issue_addressed,addressed_by_whom,no
 Cover Crop/Grazing Vetch,NM0045,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Legumes/Common Vetch,JO0063,Prod.Out,prod,P.Product.Subtype/P.Product,No match for crop product in master codes Product tab,FALSE,"",""
 Tree/Faidherbia albida,AC0033/JO0027/JO0189/JS0199,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,"",""
-Tree/Inga edulis..Cordia alliodora..Juglans steyermarkii..Quercus constaricensis,SP0022,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,""
 Tree/Unspecified,AC0039,Prod.Out,trees,P.Product,No match for tree in master codes tree tab,FALSE,Jabesh,Unspecified tree

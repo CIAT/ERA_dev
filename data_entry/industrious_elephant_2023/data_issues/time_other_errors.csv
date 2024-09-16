@@ -1,8 +1,9 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
 AC0035,year1/year2/year1or2/year2or3,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
 AC0065,year1/year1 or year2,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
+AC0124,2010.1/2010.2/2010,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
 CJ0003,2016/2017,Times.Clim,Time,"Duplicate rows exist in table for cols: Site.ID, Time, B.Code.",FALSE,"",""
-CJ0081,Year 1/Year 2/Year 3/Year 1 or 2/Year 2 or 3/Year 3 or 4,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
+CJ0081,Year 1/Year 2/Year 3/Year 2 or 3/Year 3 or 4,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
 CJ0126,B N1..B N2..B N3..B N4..B N5..B N6..B N7..B N8..B N9/BS W1..BS W2..BS W3..BS W4..BS W5..BS W6..BS W7..BS W8..BS W9,Times.Clim,Site.ID,A Site.ID used does not match the Site tab.,FALSE,"",""
 CJ0138,Year 1,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
 CJ0141,YEAR 1/YEAR 2,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
@@ -21,5 +22,4 @@ NN0418,Chinguluwe Extension Planning Area ..Tembwe Extension Planning Area/Manya
 NN0549,9999 year 1/9999 year 2,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
 SA0035,Year 1/Year 2/Year 3/Year 4/Year 5/Year 6,Time.Out,Time.Start.Year & Time.End.Year,"Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence.",FALSE,"",""
 SA0047,2019-MZ/2019-CP,Times.Clim,Time,"Duplicate rows exist in table for cols: Site.ID, Time, B.Code.",FALSE,"",""
-SP0040,2017/18,Times.Clim,Time,"Duplicate rows exist in table for cols: Site.ID, Time, B.Code.",FALSE,"",""
 SP0048,2018,Times.Clim,Time,"Duplicate rows exist in table for cols: Site.ID, Time, B.Code.",FALSE,"",""
