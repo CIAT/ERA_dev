@@ -14,6 +14,7 @@ pacman::p_load(data.table,
                future.apply,
                progressr,
                pbapply, 
+               stringr,
                ggplot2,
                miceadds,
                openxlsx,
@@ -22,7 +23,6 @@ pacman::p_load(data.table,
                tidyr,
                arrow,
                viridis)
-
 
   # 0.2) Create Functions #####
 
@@ -831,195 +831,225 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
 # Set directory containing AEZ zone data "HChoice.csv"
 #AEZDir<-paste0(getwd(),"/Other Linked Datasets/")
 
-# 1.4) Read in and prepare ERA datasets ####
-# Check if .R object, if not read in xlsx file and convert to R
-
-  # 1.4.1) 2018 ######
-  era_2018<-data.table(arrow::read_parquet(filename18))
-
-  # Fix bug with joined M.Year missing last 0 in 2018 data
-  era_2018[nchar(M.Year)==8,M.Year:=paste0(M.Year,0)]
+  # 1.4) Read in and prepare ERA datasets ####
+  # Check if .R object, if not read in xlsx file and convert to R
   
-  # Reject invalid comparisons and remove column from 2018
-  era_2018<-era_2018[Invalid.Comparison!="Y"][,Invalid.Comparison:=NULL]
+    # 1.4.1) 2018 ######
+    era_2018<-data.table(arrow::read_parquet(filename18))
   
-  # Add Analysis function column to 2018
-  era_2018[,Analysis.Function:="Manual"]
-  
-  # Add Version
-  era_2018[,Version:=2018]
-  
-  # 1.4.1.x) FIX THE RAW DATASET - Fix encoding issue with Site.ID ######
-  install.packages("gsubfn")
-  library(gsubfn)
-  
-  decode_hex_entities <- function(text) {
-    gsubfn("<([0-9A-Fa-f]{2})>", function(hex) {
-      rawToChar(as.raw(strtoi(hex, 16L)))
-    }, text)
-  }
-  
-  era_2018[, Site.ID := decode_hex_entities(Site.ID[1]),by=Site.ID]
-  
-  # Check encoding issue has disappeared
-  print(era_2018$Site.ID[942])  
-  
-    # 1.4.1.1) Recode residue/mulch codes in diversified systems (residues/mulch from more than just the crop can be present) ####
-  Dpracs<-c("Crop Rotation","Intercropping","Improved Fallow","Green Manure","Agroforestry Fallow","Intercropping or Rotation")
-  PC<-PracticeCodes[Practice %in% Dpracs,Code]
-  PC1<-PracticeCodes[Practice %in% c("Agroforestry Pruning"),Code]
-  PC2<-PracticeCodes[Practice %in% c("Mulch","Crop Residue","Crop Residue Incorporation"),Code] 
-
-  FunX<-function(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10){
-    return(list(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10)))
-  }
-  era_2018[,C.Codes:=list(FunX(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10)),by=Index]
-  era_2018[,T.Codes:=list(FunX(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10)),by=Index]
-  era_2018[,Div:=any(unlist(T.Codes) %in% PC),by=Index]
-  
-  Recode<-function(PC1,PC2,Codes){
-    Codes<-unlist(Codes)
-    X<-Codes %in% PC1
+    # Fix bug with joined M.Year missing last 0 in 2018 data
+    era_2018[nchar(M.Year)==8,M.Year:=paste0(M.Year,0)]
     
-    if(sum(X)>0){
-      Codes[X]<-gsub("a17","a15",Codes[X])
-      Codes[X]<-gsub("a16","a15",Codes[X])
-    }
+    # Reject invalid comparisons and remove column from 2018
+    era_2018<-era_2018[Invalid.Comparison!="Y"][,Invalid.Comparison:=NULL]
     
-    X<-Codes %in% PC2
+    # Add Analysis function column to 2018
+    era_2018[,Analysis.Function:="Manual"]
     
-    if(sum(X)>0){
-      Y<-unlist(strsplit(Codes[X],"[.]"))
-      Codes[X]<-Y[nchar(Y)>1]
-    }
+    # Add Version
+    era_2018[,Version:=2018]
     
-    return(unique(Codes))
-    
-  }
-
-  # Enable progressr
-  progressr::handlers(global = TRUE)
-  progressr::handlers("txtprogressbar")
-  
-  # Prepare indices
-  indices <- unique(era_2018[Div == TRUE, Index])
-  
-  # Set up parallel processing
-  plan(multisession, workers = cores)
-  
-  # Recode in parallel with progress reporting
-  with_progress({
-    # Define the progress bar
-    progress <- progressr::progressor(along = indices)
-    
-    DataX<-rbindlist(future_lapply(indices,function(i){
-    # DataX<-rbindlist(pblapply(era_2018[Div==T,Index],FUN=function(i){
-
-    progress()
-    
-    Z<-era_2018[Index==i]
-    C.Codes<-unlist(Z[,C.Codes])
-    T.Codes<-unlist(Z[,T.Codes])
-    
-    if(any(T.Codes %in% PC)){
-      
-      T.Codes<-Recode(PC1,PC2,T.Codes)
-      T.Codes<-c(T.Codes,rep("",10-length(T.Codes)))
-      C.Codes<-Recode(PC1,PC2,C.Codes)
-      C.Codes<-c(C.Codes,rep("",10-length(C.Codes)))
-      
-      Z<-data.frame(Z)
-      Z[,paste0("C",1:10)]<-C.Codes
-      Z[,paste0("T",1:10)]<-T.Codes
-      Z<-data.table(Z)
-      
-    }
-    
-    progress()
-    Z
-  }))
-  
-  })
-
-  era_2018<-rbind(era_2018[Div!=T],DataX)[,T.Codes:=NULL][,C.Codes:=NULL][,Div:=NULL]
-  
-  rm(PC1,PC2,Recode,DataX)
-  
-    # 1.4.1.2) Update units in  dataset ####
-  N<-match(era_2018[,Units],UnitHarmonization[,Out.Unit])
-  era_2018[!is.na(N),Units:=UnitHarmonization[N[!is.na(N)],Out.Unit.Correct]]
-  
-  error_dat<-era_2018[!Units %in% UnitHarmonization[,Out.Unit.Correct] & Units!="" & !is.na(Units),.(value=paste0(unique(Units),collapse = "|")),by=Code
-                      ][,dataset:=era_projects$v1.0_2018
-                        ][,field:="Units"
-                          ][,issue:="No match for unit in era_master_table/unit_harmonization table."]
-  
-  errors<-list(units_2018=error_dat)
-
-    # 1.4.1.3) Recode 232.3, 232.4, 232.5 outcomes to 232.1 (Water Use) #######
-    era_2018[grep("232.3|232.4|232.5",Outcome),Outcome:=232.1]
-    # 1.4.1.3) Change Aggregated Site & Country Delimiter from . to .. #######
-    era_2018[,Site.ID:=gsub("[.] ",".",Site.ID)]
-    era_2018[,Site.ID:=gsub("site.1","Site 1",Site.ID)]
-    era_2018[,Site.ID:=gsub("[.]","..",Site.ID)]
-    era_2018[,Country:=gsub("[.]","..",Country)]
-    # 1.4.1.4) set soil texture to lowercase #######
+    # Set soil texture to lowercase
     era_2018[,Soil.Texture:=tolower(Soil.Texture)]
-    # 2018: Check for duplicate row indices ####
+    
+    # Set date to columns to correct class
+    era_2018[,Harvest.Start:=as.Date(Harvest.Start,"%d.%m.%Y")
+             ][,Harvest.End:=as.Date(Harvest.End,"%d.%m.%Y")
+               ][,Plant.Start:=as.Date(Plant.Start,"%d.%m.%Y")
+                 ][,Plant.End:=as.Date(Plant.End,"%d.%m.%Y")]
+    
+    # Check for duplicate row indices
     error_dat<-era_2018[,.(N=.N,Code=unique(Code)),by=Index
-                        ][N>1,.(value=paste(unique(Index),collapse="/")),by=Code
-                          ][,table:=era_projects$v1.0_2018
-                            ][,field:="Index"
-                              ][,issue:="Duplicate index value(s)."]
+    ][N>1,.(value=paste(unique(Index),collapse="/")),by=Code
+    ][,dataset:=era_projects$v1.0_2018
+    ][,field:="Index"
+    ][,issue:="Duplicate index value(s)."]
     
     if(nrow(error_dat)>0){
       errors$duplicate_indices_2018<-error_dat
       warning("Duplicate row indices in 2018 dataset.")
     }
+    # 1.4.1.x) FIX THE RAW DATASET - Fix encoding issue with Site.ID ######
+    install.packages("gsubfn")
+    library(gsubfn)
     
-    # 1.4.1.5) remove SRI b15 ####
-    X<-grepl("b15",era_2018[,N:=1:.N][,list(TCols=paste(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10),collapse="-")),by=N][,TCols])
-    
-    SRI.Present<-unique(era_2018[X,list(Index,Code,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10)])
-    if(nrow(SRI.Present)>0){
-      warning(paste0("SRI present in ",nrow(SRI.Present)," rows of era_2018. These codes will be removed."))
+    decode_hex_entities <- function(text) {
+      gsubfn("<([0-9A-Fa-f]{2})>", function(hex) {
+        rawToChar(as.raw(strtoi(hex, 16L)))
+      }, text)
     }
     
-    error_dat<-era_2018[X,.(value=paste(unique(T.Descrip),collapse="/")),by=Code
-    ][,table:=era_projects$v1.0_2018
-    ][,field:="T.Descrip"
-    ][,issue:="SRI codes are present, can these be converted into component practices?."]
+    era_2018[, Site.ID := decode_hex_entities(Site.ID[1]),by=Site.ID]
     
-    # Remove SRI rows
-    era_2018<-era_2018[!X]
-    era_2018[,N:=NULL]
+    # Check encoding issue has disappeared
+    print(era_2018$Site.ID[942])  
     
-  # 1.4.2) 2020 ######
-  era_2020<-data.table(arrow::read_parquet(filename20))
-  # How many C/T columns are in the 2020 dataset?
-  N.Cols<-sum(paste0("C",1:30) %in% colnames(era_2020))
+      # 1.4.1.1) Recode residue/mulch codes in diversified systems (residues/mulch from more than just the crop can be present) ####
+    Dpracs<-c("Crop Rotation","Intercropping","Improved Fallow","Green Manure","Agroforestry Fallow","Intercropping or Rotation")
+    PC<-PracticeCodes[Practice %in% Dpracs,Code]
+    PC1<-PracticeCodes[Practice %in% c("Agroforestry Pruning"),Code]
+    PC2<-PracticeCodes[Practice %in% c("Mulch","Crop Residue","Crop Residue Incorporation"),Code] 
   
-  # Add Index to 2020
-  era_2020[,Index:=(era_2018[,max(Index)]+1):(era_2018[,max(Index)]+nrow(era_2020))]
-  era_2020[,Version:=2020]
+    FunX<-function(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10){
+      return(list(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10)))
+    }
+    era_2018[,C.Codes:=list(FunX(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10)),by=Index]
+    era_2018[,T.Codes:=list(FunX(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10)),by=Index]
+    era_2018[,Div:=any(unlist(T.Codes) %in% PC),by=Index]
+    
+    Recode<-function(PC1,PC2,Codes){
+      Codes<-unlist(Codes)
+      X<-Codes %in% PC1
+      
+      if(sum(X)>0){
+        Codes[X]<-gsub("a17","a15",Codes[X])
+        Codes[X]<-gsub("a16","a15",Codes[X])
+      }
+      
+      X<-Codes %in% PC2
+      
+      if(sum(X)>0){
+        Y<-unlist(strsplit(Codes[X],"[.]"))
+        Codes[X]<-Y[nchar(Y)>1]
+      }
+      
+      return(unique(Codes))
+      
+    }
   
-  # Check for NA values in T1 field, if values are present this indicates an issue with the excel extraction script. In the past issues have been caused by non-matches in concept or harmonization sheets due to character encoding issues.
-  era_2020[,list(Len=sum(is.na(T1))),by=list(Code)][Len>0]
+    # Enable progressr
+    progressr::handlers(global = TRUE)
+    progressr::handlers("txtprogressbar")
+    
+    # Prepare indices
+    indices <- unique(era_2018[Div == TRUE, Index])
+    
+    # Set up parallel processing
+    plan(multisession, workers = cores)
+    
+    # Recode in parallel with progress reporting
+    with_progress({
+      # Define the progress bar
+      progress <- progressr::progressor(along = indices)
+      
+      DataX<-rbindlist(future_lapply(indices,function(i){
+      # DataX<-rbindlist(pblapply(era_2018[Div==T,Index],FUN=function(i){
   
-  # 1.4.3) 2022 ######
-  era_2022<-data.table(arrow::read_parquet(filename22))
- 
-  # Update tree field name
-  setnames(era_2022,c("Tree.AF","Tree.AF.Clean"),c("Tree","Tree.Clean"))
-
-  # Add Index to 2022
-  era_2022[,Index:=(era_2020[,max(Index)]+1):(era_2020[,max(Index)]+nrow(era_2022))]
-  era_2022[,Version:=era_projects$skinny_cow_2022]
-
-  # Check for NA values in T1 field, if values are present this indicates an issue with the excel extraction script. In the past issues have been caused by non-matches in concept or harmonization sheets due to character encoding issues.
-  era_2022[,list(Len=sum(is.na(T1))),by=list(Code)][Len>0]
-
-# 1.5) Match & add missing cols to 2018/2022 ####
+      progress()
+      
+      Z<-era_2018[Index==i]
+      C.Codes<-unlist(Z[,C.Codes])
+      T.Codes<-unlist(Z[,T.Codes])
+      
+      if(any(T.Codes %in% PC)){
+        
+        T.Codes<-Recode(PC1,PC2,T.Codes)
+        T.Codes<-c(T.Codes,rep("",10-length(T.Codes)))
+        C.Codes<-Recode(PC1,PC2,C.Codes)
+        C.Codes<-c(C.Codes,rep("",10-length(C.Codes)))
+        
+        Z<-data.frame(Z)
+        Z[,paste0("C",1:10)]<-C.Codes
+        Z[,paste0("T",1:10)]<-T.Codes
+        Z<-data.table(Z)
+        
+      }
+      
+      progress()
+      Z
+    }))
+    
+    })
+  
+    era_2018<-rbind(era_2018[Div!=T],DataX)[,T.Codes:=NULL][,C.Codes:=NULL][,Div:=NULL]
+    
+    rm(PC1,PC2,Recode,DataX)
+    
+      # 1.4.1.2) Update units in  dataset ####
+    N<-match(era_2018[,Units],UnitHarmonization[,Out.Unit])
+    era_2018[!is.na(N),Units:=UnitHarmonization[N[!is.na(N)],Out.Unit.Correct]]
+    
+    error_dat<-era_2018[!Units %in% UnitHarmonization[,Out.Unit.Correct] & Units!="" & !is.na(Units),.(value=paste0(unique(Units),collapse = "|")),by=Code
+                        ][,dataset:=era_projects$v1.0_2018
+                          ][,field:="Units"
+                            ][,issue:="No match for unit in era_master_table/unit_harmonization table."]
+    
+    errors<-list(units_2018=error_dat)
+  
+      # 1.4.1.3) Recode 232.3, 232.4, 232.5 outcomes to 232.1 (Water Use) #######
+      era_2018[grep("232.3|232.4|232.5",Outcome),Outcome:=232.1]
+      # 1.4.1.4) Change aggregated site & country delimiter from . to .. #######
+      era_2018[,Site.ID:=gsub("[.] ",".",Site.ID)]
+      era_2018[,Site.ID:=gsub("site.1","Site 1",Site.ID)]
+      era_2018[,Site.ID:=gsub("[.]","..",Site.ID)]
+      era_2018[,Country:=gsub("[.]","..",Country)]
+      # 1.4.1.5) Remove SRI b15 ####
+      X<-grepl("b15",era_2018[,N:=1:.N][,list(TCols=paste(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10),collapse="-")),by=N][,TCols])
+      
+      SRI.Present<-unique(era_2018[X,list(Index,Code,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10)])
+      if(nrow(SRI.Present)>0){
+        warning(paste0("SRI present in ",nrow(SRI.Present)," rows of era_2018. These codes will be removed."))
+      }
+      
+      error_dat<-era_2018[X,.(value=paste(unique(T.Descrip),collapse="/")),by=Code
+      ][,dataset:=era_projects$v1.0_2018
+      ][,field:="T.Descrip"
+      ][,issue:="SRI codes are present, can these be converted into component practices?."]
+      
+      # Remove SRI rows
+      era_2018<-era_2018[!X]
+      era_2018[,N:=NULL]
+      
+      # 1.4.1.6) Update outcomes ####
+      # Check cost outcomes with costs per kg or similar
+      if(F){
+        unique(era_2018[Outcome %in% c(150,151,152,152.1) & grepl("/kg|/m3|/sack",Units),list(Code,Outcome,Units,DataLoc)])
+      }
+      
+      # Check & update biomass yield outcomes 
+      era_2018[Outcome==102,EUX:=EU
+           ][Outcome==102,Product.Subtype:=EUCodes[match(unlist(strsplit(EUX,"[.]")),EU),paste(unique(Product.Subtype),collapse = ".")],by=EUX
+             ][Outcome==102,Product.Simple:=EUCodes[match(unlist(strsplit(EUX,"[.]")),EU),paste(unique(Product.Simple),collapse = ".")],by=EUX]
+      
+      # Change outcomes that are only for fodders to biomass yield
+      unique(era_2018[Outcome==102 & Product.Subtype=="Fodders",list(Product.Subtype,Product.Simple)])
+      era_2018[Outcome==102 & Product.Subtype=="Fodders",Outcome:=101.1]
+      
+      era_2018[,c("Product.Subtype","Product.Simple","EUX"):=NULL]
+      
+    # 1.4.2) 2020 ######
+    era_2020<-data.table(arrow::read_parquet(filename20))
+    # How many C/T columns are in the 2020 dataset?
+    N.Cols<-sum(paste0("C",1:30) %in% colnames(era_2020))
+    
+    # Add Index to 2020
+    era_2020[,Index:=(era_2018[,max(Index)]+1):(era_2018[,max(Index)]+nrow(era_2020))]
+    era_2020[,Version:=2020]
+    
+    # Check for NA values in T1 field, if values are present this indicates an issue with the excel extraction script. In the past issues have been caused by non-matches in concept or harmonization sheets due to character encoding issues.
+    era_2020[,list(Len=sum(is.na(T1))),by=list(Code)][Len>0]
+    
+    # Convert excel date format to R date class
+    # https://stackoverflow.com/questions/43230470/how-to-convert-excel-date-format-to-proper-date-in-r/62334132
+    era_2020[,Plant.End:=as.Date(Plant.End, origin = "1899-12-30")
+             ][,Plant.Start:=as.Date(Plant.Start, origin = "1899-12-30")
+               ][,Harvest.Start:=as.Date(Harvest.Start, origin = "1899-12-30")
+                 ][,Harvest.End:=as.Date(Harvest.End, origin = "1899-12-30")]
+    
+    # 1.4.3) 2022 ######
+    era_2022<-data.table(arrow::read_parquet(filename22))
+   
+    # Update tree field name
+    setnames(era_2022,c("Tree.AF","Tree.AF.Clean"),c("Tree","Tree.Clean"))
+  
+    # Add Index to 2022
+    era_2022[,Index:=(era_2020[,max(Index)]+1):(era_2020[,max(Index)]+nrow(era_2022))]
+    era_2022[,Version:=era_projects$skinny_cow_2022]
+  
+    # Check for NA values in T1 field, if values are present this indicates an issue with the excel extraction script. In the past issues have been caused by non-matches in concept or harmonization sheets due to character encoding issues.
+    era_2022[,list(Len=sum(is.na(T1))),by=list(Code)][Len>0]
+  
+  # 1.5) Match & add missing cols to 2018/2022 ####
 # Missing cols in 2018 vs 2020
 missing_cols<-colnames(era_2020)[!colnames(era_2020) %in% colnames(era_2018)]
 era_2018[,(missing_cols):=as.character("")]
@@ -1043,98 +1073,38 @@ era_2020[,(missing_cols):=as.character("")]
 }
   
 
-# 2018 & 2020: Fix format of dates ####
-# https://stackoverflow.com/questions/43230470/how-to-convert-excel-date-format-to-proper-date-in-r/62334132
-Data2[,Plant.End:=as.Date(Plant.End, origin = "1899-12-30")
-      ][,Plant.Start:=as.Date(Plant.Start, origin = "1899-12-30")
-        ][,Harvest.Start:=as.Date(Harvest.Start, origin = "1899-12-30")
-          ][,Harvest.End:=as.Date(Harvest.End, origin = "1899-12-30")]
+  # 1.6) Remove papers in more recent extractions from old extractions #####
+  codes_2020<-era_2020[,unique(Code)]
+  codes_2022<-era_2022[,unique(Code)]
+  era_2018<-era_2018[!Code %in% c(codes_2020,codes_2022)]
+  era_2020<-era_2020[!Code %in% codes_2022 & !Analysis.Function %in% c("NoDietSub","DietSub")]
+  # 1.7) Join Datasets ####
+  era_merged<-rbindlist(list(era_2018,era_2020,era_2022),use.names = T)
+  
+  # Use Clean Columns (where various fields in 2018 have been tidied using scripts)
+  era_merged[T.Descrip.Clean=="",T.Descrip.Clean:=T.Descrip]
+  era_merged[C.Descrip.Clean=="",C.Descrip.Clean:=C.Descrip]
+  era_merged[Variety.Clean=="",Variety.Clean:=Variety]
+  era_merged[Tree.Clean=="",Variety.Clean:=Tree]
+  era_merged[Diversity.Clean=="",Variety.Clean:=Diversity]
+  
+  era_merged[,c("T.Descrip.Clean","C.Descrip.Clean","Variety.Clean","Tree.Clean","Diversity.Clean"):=NULL]
+  
+  era_merged[is.na(C13),C13:=""]
 
-Data[,Harvest.Start:=as.Date(Harvest.Start,"%d.%m.%Y")
-][,Harvest.End:=as.Date(Harvest.End,"%d.%m.%Y")
-][,Plant.Start:=as.Date(Plant.Start,"%d.%m.%Y")
-][,Plant.End:=as.Date(Plant.End,"%d.%m.%Y")]
+  # 1.8) Add Irrigation Present Columns #####
+  CCols<-paste0("C",1:13)
+  TCols<-paste0("T",1:13)
+  
+  era_merged[,Irrigation.C:=as.logical(apply(era_merged[,..CCols],1,FUN=function(X){sum(grepl("b37|b54|b34|b72|b36|b53|h7",X))}))]
+  era_merged[,Irrigation.T:=as.logical(apply(era_merged[,..TCols],1,FUN=function(X){sum(grepl("b37|b54|b34|b72|b36|b53|h7",X))}))]
 
-# 2018: Update outcomes ####
-# Check cost outcomes with costs per kg or similar
-if(F){
-unique(Data[Outcome %in% c(150,151,152,152.1) & grepl("/kg|/m3|/sack",Units),list(Code,Outcome,Units,DataLoc)])
-}
-
-# Check & update biomass yield outcomes 
-Data[Outcome==102,EUX:=EU
-     ][Outcome==102,Product.Subtype:=EUCodes[match(unlist(strsplit(EUX,"[.]")),EU),paste(unique(Product.Subtype),collapse = ".")],by=EUX
-       ][Outcome==102,Product.Simple:=EUCodes[match(unlist(strsplit(EUX,"[.]")),EU),paste(unique(Product.Simple),collapse = ".")],by=EUX]
-
-# Change outcomes that are only for fodders to biomass yield
-unique(Data[Outcome==102 & Product.Subtype=="Fodders",list(Product.Subtype,Product.Simple)])
-Data[Outcome==102 & Product.Subtype=="Fodders",Outcome:=101.1]
-
-if(F){
-  X<-unique(Data[Outcome==102,list(Code,Outcome,Units,EU,Product.Subtype,Product.Simple)])
-  write.table(X,"clipboard-256000",row.names = F,sep=",")
-  }
-
-Data[,c("Product.Subtype","Product.Simple","EUX"):=NULL]
-
-# Join Datasets ####
-Data<-rbindlist(list(Data,Data2),use.names = T)
-
-# Remove any all NA rows
-Data<-Data[apply(Data,1,function(X){!all(is.na(X))}),]
-
-# Use Clean Columns (where various fields in 2018 have been tidied using scripts)
-Data[T.Descrip.Clean=="",T.Descrip.Clean:=T.Descrip]
-Data[C.Descrip.Clean=="",C.Descrip.Clean:=C.Descrip]
-Data[Variety.Clean=="",Variety.Clean:=Variety]
-Data[Tree.Clean=="",Variety.Clean:=Tree]
-Data[Diversity.Clean=="",Variety.Clean:=Diversity]
-
-Clean<-colnames(Data)[grep("Clean",colnames(Data))]
-if(length(Clean)>0){
-  Data<-data.frame(Data)
-  Replace.Col<-gsub(".Clean","",Clean)
-  Data[,Replace.Col]<-Data[,Clean]
-  Data[,Clean]<-NULL
-  Data<-data.table(Data)
-}
-rm(Clean,Data2)
-
-Data[is.na(C13),C13:=""]
-
-# Check for absence of t codes ####
-View(Data[is.na(T1),list(Code,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13)])
-
-Data<-Data[!is.na(T1)]
-
-# Add Irrigation Present Columns ####
-CCols<-paste0("C",1:13)
-TCols<-paste0("T",1:13)
-
-Data[,Irrigation.C:=as.logical(apply(Data[,..CCols],1,FUN=function(X){sum(grepl("b37|b54|b34|b72|b36|b53|h7",X))}))]
-Data[,Irrigation.T:=as.logical(apply(Data[,..TCols],1,FUN=function(X){sum(grepl("b37|b54|b34|b72|b36|b53|h7",X))}))]
-
-# Remove t and s codes from EUCodes and move to Diversity/Tree fields respectively ####
+  # 1.9) Remove t and s codes from EUCodes and move to Diversity/Tree fields respectively #####
 
 # If biomass outcome with s/t code exclude observation
-Data<-Data[!(grepl("s|t",EU) & Outcome %in% c(101,102,103))]
+era_merged<-era_merged[!(grepl("s|t",EU) & Outcome %in% c(101,102,103))]
 
-# check tree and diversity cols
-Trees<-Data[(is.na(Tree)|Tree=="") & grepl("t",EU),list(Code,EU,Outcome)][,EU]
-
-Trees<-rbindlist(lapply(unique(Trees),FUN=function(TREES){
-  X<-unlist(strsplit(TREES,"[.]"))
-  X<-grep("t",X,value = T)
-  data.table(Code=TREES,Tree.Col=paste(TreeCodes[match(X,EU),Product],collapse="-"))
-}))
-
-if(nrow(Trees)>0){
-  for(i in 1:nrow(Trees)){
-    Data[grepl(Trees[i,Code],EU) & !grepl(Trees[i,Tree.Col],Tree),Tree:=paste(Tree,Trees[i,Tree.Col])]
-  }
-}
-
-CoverCrops<-Data[(is.na(Diversity)|Diversity=="") & grepl("s",EU),list(Code,EU,Outcome)][,EU]
+CoverCrops<-era_merged[(is.na(Diversity)|Diversity=="") & grepl("s",EU),list(Code,EU,Outcome)][,EU]
 
 CoverCrops<-rbindlist(lapply(unique(CoverCrops),FUN=function(CC){
   X<-unlist(strsplit(CC,"[.]"))
@@ -1145,9 +1115,8 @@ CoverCrops<-rbindlist(lapply(unique(CoverCrops),FUN=function(CC){
   }
 }))
 
-
 for(i in 1:nrow(CoverCrops)){
-  Data[grepl(CoverCrops[i,Code],EU) & !grepl(CoverCrops[i,Div.Col],Diversity),Diversity:=paste(Diversity,CoverCrops[i,Div.Col])]
+  era_merged[grepl(CoverCrops[i,Code],EU) & !grepl(CoverCrops[i,Div.Col],Diversity),Diversity:=paste(Diversity,CoverCrops[i,Div.Col])]
 }
 
 # remove t & s codes
@@ -1165,41 +1134,35 @@ RemoveEUCode<-function(X,Code){
   return(X)
 }
 
-Data[,EU:=RemoveEUCode(X=EU,Code="t|s"),by=EU]
+era_merged[,EU:=RemoveEUCode(X=EU[1],Code="t|s"),by=EU]
 
-OnlyTSCodes<-Data[is.na(EU)|EU==""|nchar(EU)==0,list(Code,EU,Tree,Diversity,DataLoc,Outcome)]
-View(OnlyTSCodes)
+error_dat<-era_merged[is.na(EU)|EU==""|nchar(EU)==0
+                      ][,.(value=paste(unique(T.Descrip),collapse="/"),dataset=Version[1]),by=Code
+                        ][,field:="T.Descrip"
+                          ][,issue:="No product (EU) code present after removing t or s codes."]
+errors$no_eu_after_ts_removal<-error_dat
 
-Data<-Data[!(is.na(EU)|EU==""|nchar(EU)==0)]
+era_merged<-era_merged[!(is.na(EU)|EU==""|nchar(EU)==0)]
 
-# Restructure Irrigation Practices ####
+  # 1.10) Restructure Irrigation Practices #####
 pasteNA<-function(X){paste(X[!is.na(X)],collapse="-")}
 
-Data[,C.Codes:=paste(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13),collapse = "-"),by=Index]
+era_merged[,C.Codes:=paste(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13),collapse = "-"),by=Index]
 
-Data[grep("b34",C.Codes),Irrig.Meth.C1:="Drip Irrigation"
-][grep("b36",C.Codes),Irrig.Meth.C2:="Alternate Partial Rootzone Irrigation"
-][grep("b72",C.Codes),Irrig.Meth.C3:="Sprinkler Irrigation"
-][grep("b53",C.Codes),Irrig.Meth.C4:="Irrigation (Other)"
+era_merged[grep("b34",C.Codes),Irrig.Meth.C1:=PracticeCodes[Code=="b34",Subpractice]
+][grep("b36",C.Codes),Irrig.Meth.C2:=PracticeCodes[Code=="b36",Subpractice]
+][grep("b72",C.Codes),Irrig.Meth.C3:=PracticeCodes[Code=="b72",Subpractice]
+][grep("b53",C.Codes),Irrig.Meth.C4:=PracticeCodes[Code=="b53",Subpractice]
 ][,Irrig.Meth.C:=pasteNA(c(Irrig.Meth.C1,Irrig.Meth.C2,Irrig.Meth.C3,Irrig.Meth.C4)),by=Index
-][,Irrig.Meth.C1:=NULL
-][,Irrig.Meth.C2:=NULL
-][,Irrig.Meth.C3:=NULL
-][,Irrig.Meth.C4:=NULL
-][,C.Codes:=NULL]
+][,c("Irrig.Meth.C1","Irrig.Meth.C2","Irrig.Meth.C3","Irrig.Meth.C4","C.Codes"):=NULL]
 
-Data[,T.Codes:=paste(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13),collapse = "-"),by=Index]
+era_merged[,T.Codes:=paste(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13),collapse = "-"),by=Index]
 
-Data[grep("b34",T.Codes),Irrig.Meth.C1:="Drip Irrigation"
-][grep("b36",T.Codes),Irrig.Meth.C2:="Alternate Partial Rootzone Irrigation"
-][grep("b72",T.Codes),Irrig.Meth.C3:="Sprinkler Irrigation"
-][grep("b53",T.Codes),Irrig.Meth.C4:="Irrigation (Other)"  
-][,Irrig.Meth.T:=pasteNA(c(Irrig.Meth.C1,Irrig.Meth.C2,Irrig.Meth.C3,Irrig.Meth.C4)),by=Index
-][,Irrig.Meth.C1:=NULL
-][,Irrig.Meth.C2:=NULL
-][,Irrig.Meth.C3:=NULL
-][,Irrig.Meth.C4:=NULL
-][,T.Codes:=NULL]
+era_merged[grep("b34",T.Codes),Irrig.Meth.C1:=PracticeCodes[Code=="b34",Subpractice]
+][grep("b36",T.Codes),Irrig.Meth.C2:=PracticeCodes[Code=="b36",Subpractice]
+][grep("b72",T.Codes),Irrig.Meth.C3:=PracticeCodes[Code=="b72",Subpractice]
+][grep("b53",T.Codes),Irrig.Meth.C4:=PracticeCodes[Code=="b53",Subpractice]
+][,c("Irrig.Meth.C1","Irrig.Meth.C2","Irrig.Meth.C3","Irrig.Meth.C4","T.Codes"):=NULL]
 
 # Remove Codes 
 TC.Cols<-paste0(c("T","C"),rep(1:13,2))
@@ -1209,355 +1172,364 @@ RemoveIrrigCode<-function(X){
   return(X)
 }
 
-Data[,(TC.Cols):=lapply(.SD, RemoveIrrigCode),.SDcols=TC.Cols]
+era_merged[,(TC.Cols):=lapply(.SD, RemoveIrrigCode),.SDcols=TC.Cols]
 
-# Recode Cost Benefit Ratios to Benefit Cost Ratios ####
-X<-data.table(In=c(126,126.1,126.2,126.3),Out=c(125,125.1,125.2,125.3))
-
-for(i in 1:nrow(X)){
-  Data[Outcome==X[i,In],MeanC:=1/MeanC
-  ][Outcome==X[i,In],MeanT:=1/MeanT
-  ][Outcome==X[i,In],Outcome:=X[i,Out]]
-}
-# Inconsistent or Missing NI/NO numeric 0s ####
+  # 1.11) Recode Cost Benefit Ratios to Benefit Cost Ratios ####
+  X<-data.table(In=c(126,126.1,126.2,126.3),Out=c(125,125.1,125.2,125.3))
+  
+  for(i in 1:nrow(X)){
+    era_merged[Outcome==X[i,In],MeanC:=1/MeanC
+    ][Outcome==X[i,In],MeanT:=1/MeanT
+    ][Outcome==X[i,In],Outcome:=X[i,Out]]
+  }
+  # 1.12) Inconsistent or Missing NI/NO numeric 0s ####
 # This is where there is inconsistency between a N fertilizer code and columns indicating the amount of N added
 # Remove Inconsistent Practices
 NI.Pracs<-c("b17|b23")
 NO.Pracs<-c("b29|b30|b75|b73|b67")
 
-Data[,C.Codes:=trimws(paste(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13),collapse=" ")),by=list(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13)]
-Data[,T.Codes:=trimws(paste(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13),collapse=" ")),by=list(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13)]
+era_merged[,C.Codes:=trimws(paste(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13),collapse=" ")),by=list(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13)]
+era_merged[,T.Codes:=trimws(paste(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13),collapse=" ")),by=list(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13)]
 
-Data[,C.NI:=as.numeric(C.NI)
+era_merged[,C.NI:=as.numeric(C.NI)
 ][,T.NI:=as.numeric(T.NI)
 ][,C.NO:=as.numeric(C.NO)
 ][,T.NO:=as.numeric(T.NO)]
 
-# 2020: T.NI or C.NI has inorganic fertilizer added, but there are no fertilizer codes in the T/C cols
-unique(Data[!grepl(NI.Pracs,C.Codes) & C.NI>0 & Version==2020,list(Code)])
-unique(Data[!grepl(NI.Pracs,T.Codes) & T.NI>0 & Version==2020,list(Code)])
+# T.NI or C.NI has inorganic fertilizer added, but there are no fertilizer codes in the T/C cols
+error_dat<-era_merged[!grepl(NI.Pracs,C.Codes) & C.NI>0,.(value=paste(unique(T.Descrip),collapse="/"),Version=Version[1]),by=Code
+                      ][,field:="T.Descrip"
+                        ][,issue:="C.NI has inorganic fertilizer added, but there are no fertilizer codes in the C cols"]
 
-# 2018: T.NI or C.NI has inorganic fertilizer added, but there are no fertilizer codes in the T/C cols
-write.table(unique(Data[!grepl(NI.Pracs,C.Codes) & C.NI>0 & Version==2018,list(Code,DataLoc,C.NI,C.Descrip,C.Codes)]),"clipboard-256000",sep="\t",row.names = F)
-write.table(unique(Data[!grepl(NI.Pracs,T.Codes) & T.NI>0 & Version==2018,list(Code,DataLoc,T.NI,T.Descrip,T.Codes)]),"clipboard-256000",sep="\t",row.names = F)
+error_dat<-rbind(error_dat,era_merged[!grepl(NI.Pracs,T.Codes) & T.NI>0,.(value=paste(unique(T.Descrip),collapse="/"),Version=Version[1]),by=Code
+][,field:="T.Descrip"
+][,issue:="T.NI has inorganic fertilizer added, but there are no fertilizer codes in the T cols"])
 
-# 2020: T.NO or C.NO has a value, but there are no organic input codes in the T/C cols
-unique(Data[!grepl(NO.Pracs,C.Codes) & C.NO>0 & Version==2020,list(Code)])
-unique(Data[!grepl(NO.Pracs,T.Codes) & T.NO>0 & Version==2020,list(Code)])
+# T.NO or C.NO has a value, but there are no organic input codes in the T/C cols
+error_dat<-rbind(error_dat,era_merged[!grepl(NO.Pracs,C.Codes) & C.NO>0,.(value=paste(unique(T.Descrip),collapse="/"),Version=Version[1]),by=Code
+][,field:="T.Descrip"
+][,issue:="C.NO has a value, but there are no organic input codes in the C cols"])
 
-# 2018: T.NI or C.NI has inorganic fertilizer added, but there are no fertilizer codes in the T/C cols
-write.table(unique(Data[!grepl(NO.Pracs,C.Codes) & C.NO>0 & Version==2018,list(Code,DataLoc,C.NO,C.Descrip,C.Codes)]),"clipboard-256000",sep="\t",row.names = F)
-write.table(unique(Data[!grepl(NO.Pracs,T.Codes) & T.NO>0 & Version==2018,list(Code,DataLoc,T.NO,T.Descrip,T.Codes)]),"clipboard-256000",sep="\t",row.names = F)
+error_dat<-rbind(error_dat,era_merged[!grepl(NO.Pracs,T.Codes) & T.NO>0,.(value=paste(unique(T.Descrip),collapse="/"),Version=Version[1]),by=Code
+][,field:="T.Descrip"
+][,issue:="T.NO has a value, but there are no organic input codes in the Tcols"])
+
+errors$fert_amount_no_code<-error_dat
 
 # Remove rows with inconsistencies (Temporary solution until QC on potential errors is complete)
-Remove.Indices<-c(Data[!grepl(NI.Pracs,C.Codes) & C.NI>0,Index],
-                  Data[!grepl(NI.Pracs,T.Codes) & T.NI>0,Index],
-                  Data[!grepl(NO.Pracs,C.Codes) & C.NO>0,Index],
-                  Data[!grepl(NO.Pracs,T.Codes) & T.NO>0,Index])
+Remove.Indices<-c(era_merged[!grepl(NI.Pracs,C.Codes) & C.NI>0,Index],
+                  era_merged[!grepl(NI.Pracs,T.Codes) & T.NI>0,Index],
+                  era_merged[!grepl(NO.Pracs,C.Codes) & C.NO>0,Index],
+                  era_merged[!grepl(NO.Pracs,T.Codes) & T.NO>0,Index])
 
 length(Remove.Indices)
-Data<-Data[!Index %in% Remove.Indices]
+era_merged<-era_merged[!Index %in% Remove.Indices]
 
 # Update missing NI or NO codes for crop yield outcomes
-Data[!grepl(NI.Pracs,C.Codes) & is.na(C.NI) & Outcome %in% c(101,102),C.NI:=0]
-Data[!grepl(NI.Pracs,T.Codes) & is.na(T.NI) & Outcome %in% c(101,102),T.NI:=0]
+#era_merged[!grepl(NI.Pracs,C.Codes) & is.na(C.NI) & Outcome %in% c(101,102),C.NI:=0]
+#era_merged[!grepl(NI.Pracs,T.Codes) & is.na(T.NI) & Outcome %in% c(101,102),T.NI:=0]
+#era_merged[!grepl(NO.Pracs,C.Codes) & is.na(C.NO) & Outcome %in% c(101,102),C.NO:=0]
+#era_merged[!grepl(NO.Pracs,T.Codes) & is.na(T.NO) & Outcome %in% c(101,102),T.NO:=0]
 
-Data[!grepl(NO.Pracs,C.Codes) & is.na(C.NO) & Outcome %in% c(101,102),C.NO:=0]
-Data[!grepl(NO.Pracs,T.Codes) & is.na(T.NO) & Outcome %in% c(101,102),T.NO:=0]
+era_merged[,C.Codes:=NULL][,T.Codes:=NULL]
 
-Data[,C.Codes:=NULL][,T.Codes:=NULL]
+  # 1.13) Currency Harmonization #####
+# Remove existing cols
+era_merged[,c("USD2010.C","USD2010.T"):=NULL]
 
-# Currency Harmonization  ====
-# Read in PPP, XRAT and CPI datasets ####
+# Set target year
 year_target<-2010
 
-ppp_file<-paste0("./Currency Conversion Tables/PA.NUS.PPP.csv")
-if(!file.exists(ppp_file)){
-  ppp_data <- data.table(wbstats::wb_data("PA.NUS.PPP", country="countries_only"))
-  fwrite(ppp_data,file=ppp_file)
-}else{
-  ppp_data<-fread(ppp_file)
-}
+# Read and Process FAO Deflators
+fao_deflators_raw <- fread(era_dirs$era_currency_files$deflators)
 
-xrat_file<-paste0("./Currency Conversion Tables/PA.NUS.FCRF.csv")
-if(!file.exists(xrat_file)){
-  exchange_rates <- data.table(wbstats::wb_data("PA.NUS.FCRF",country="countries_only"))
-  fwrite(exchange_rates,file=xrat_file)
-}else{
-  exchange_rates<-fread(xrat_file)
-}
+# Clean and process the FAO deflators data
+fao_deflators <- fao_deflators_raw[
+  Item == "Value Added Deflator (Agriculture, forestry and fishery)" &
+    Element == "Value US$, 2015 prices", 
+  .(`Area Code`, Area, Year, Value)
+]
 
-cpi_file<-paste0("./Currency Conversion Tables/FP.CPI.TOTL.csv")
-if(!file.exists(cpi_file)){
-  cpi_data <- data.table(wbstats::wb_data("FP.CPI.TOTL", country="countries_only"))
-  fwrite(cpi_data,file=cpi_file)
-}else{
-  cpi_data<-fread(cpi_file)
-}
+# Convert Area.Code to ISO3 country codes
+fao_deflators[, ISO3 := countrycode::countrycode(
+  `Area Code`, origin = "fao", destination = "iso3c", warn = TRUE
+)]
 
-# List Indices for Currency Harmonization
-PPP.N<-Data[grepl(paste(exchange_rates[,unique(`iso3c`)],collapse = "|"),ISO.3166.1.alpha.3) &
-              Outcome %in% OutcomeCodes[Subpillar=="Economics"|Code %in% c(242,243,133),Code] &
-              !is.na(M.Year.Start) & 
-              !grepl("[.]",ISO.3166.1.alpha.3) &
-              !Units %in% c("%",""),Index]
+# Remove rows with missing ISO3 codes
+fao_deflators <- fao_deflators[!is.na(ISO3)]
 
-Data[Index %in% PPP.N,unique(Units)]
+# Keep only necessary columns
+fao_deflators <- fao_deflators[, .(ISO3, Year, Deflator = Value)]
 
-# Subset data
-PPP.Data<-Data[Index %in% PPP.N,list(ISO.3166.1.alpha.3,M.Year.Start,M.Year.End,MeanC,MeanT,Units)]
-PPP.Data[,M.Year:=round((M.Year.Start+M.Year.End)/2,0)]
+# Normalize deflators to the target year
+# First, get deflator values for the target year for each country
+target_deflators <- fao_deflators[Year == year_target, .(ISO3, TargetDeflator = Deflator)]
 
-# Add iso 3 currency codes
-PPP.Data[,currency_iso3:=countrycode::countrycode(ISO.3166.1.alpha.3, origin = 'iso3c', destination = 'iso4217c')
-         ][,curr_match:=grepl(currency_iso3[1],Units[1]),by=list(currency_iso3,Units)
-           ][curr_match==F,currency_iso3:=NA
-             ][grep("USD",Units),currency_iso3:="USD"
-               ][,curr_match:=NULL]
+# Merge target deflators back into the deflators data
+fao_deflators <- merge(
+  fao_deflators, 
+  target_deflators, 
+  by = "ISO3", 
+  all.x = TRUE
+)
 
-# Add historical exchange rate
-PPP.Data<-merge(x=PPP.Data,y=exchange_rates[,list(iso3c,date,PA.NUS.FCRF)],
-                 by.x=c("ISO.3166.1.alpha.3","M.Year"),by.y=c("iso3c","date"),all.x=T)
-setnames(PPP.Data,"PA.NUS.FCRF","xrat_obs")
+# Calculate the adjustment factor for each year
+fao_deflators[, AdjustmentFactor := TargetDeflator / Deflator]
 
-PPP.Data[is.na(currency_iso3),xrat_obs:=NA]
+# Read in PPP and Exchange Rate Data
+# Use wbstats to download the latest data
+ppp_data <- fread(era_dirs$era_currency_files$ppp)
+xrat_data <-  fread(era_dirs$era_currency_files$exchange_rates)
 
-# Set non-USD currency to exchange rate of 1
-PPP.Data[currency_iso3!="USD",xrat_obs:=1]
+# Convert date columns to numeric years
+ppp_data[, date := as.numeric(date)]
+xrat_data[, date := as.numeric(date)]
 
-# Calculate USD equivalent
-PPP.Data[,MeanT_USD:=MeanT][currency_iso3!="USD",MeanT_USD:=MeanT*xrat_obs]
-PPP.Data[,MeanC_USD:=MeanC][currency_iso3!="USD",MeanC_USD:=MeanC*xrat_obs]
+# Identify Indices for Currency Harmonization
+# Define economic codes based on your OutcomeCodes data
+economic_codes <- OutcomeCodes[
+  Subpillar == "Economics" | Code %in% c(242, 243, 133), Code
+]
 
-# Calculate USD in local currency
-PPP.Data[,MeanT_local:=MeanT][currency_iso3=="USD",MeanT_local:=MeanT*xrat_obs]
-PPP.Data[,MeanC_local:=MeanC][currency_iso3=="USD",MeanC_local:=MeanC*xrat_obs]
-PPP.Data[is.na(currency_iso3),MeanC_local:=NA][is.na(currency_iso3),MeanC_local:=NA]
+# Filter observations for currency harmonization
+PPP_N <- era_merged[
+  ISO.3166.1.alpha.3 %in% unique(xrat_data$iso3c) &
+    Outcome %in% economic_codes &
+    !is.na(M.Year.Start) &
+    !grepl("[.]", ISO.3166.1.alpha.3) &
+    !Units %in% c("%", ""),
+  Index
+]
 
-# Add future exchange rate
-PPP.Data[,xrat_target:=exchange_rates[date==year_target,list(iso3c,PA.NUS.FCRF)][match(PPP.Data$ISO.3166.1.alpha.3,iso3c),PA.NUS.FCRF]]
-PPP.Data[is.na(currency_iso3),xrat_target:=NA]
+# Subset and Prepare Data
+PPP_era_merged <- era_merged[
+  Index %in% PPP_N,
+  .(Index, ISO.3166.1.alpha.3, M.Year.Start, M.Year.End, MeanC, MeanT, Units)
+]
 
-# Add historical CPI
-PPP.Data<-merge(x=PPP.Data,y=cpi_data[,list(iso3c,date,FP.CPI.TOTL)],
-                 by.x=c("ISO.3166.1.alpha.3","M.Year"),by.y=c("iso3c","date"),all.x = T)
-setnames(PPP.Data,"FP.CPI.TOTL","cpi_obs")
-PPP.Data[is.na(currency_iso3),cpi_obs:=NA]
+# Calculate median year for each observation
+PPP_era_merged[, M.Year := round((M.Year.Start + M.Year.End) / 2)]
 
-# Add future CPI
-PPP.Data[,cpi_target:=cpi_data[date==year_target,list(iso3c,FP.CPI.TOTL)][match(PPP.Data$ISO.3166.1.alpha.3,iso3c),FP.CPI.TOTL]]
-PPP.Data[is.na(currency_iso3),cpi_target:=NA]
+# Add currency codes
+PPP_era_merged[, currency_iso3 := countrycode(
+  ISO.3166.1.alpha.3, origin = 'iso3c', destination = 'iso4217c'
+)]
 
-# Add future PPP
-PPP.Data[,ppp_target:=ppp_data[date==year_target,list(iso3c,PA.NUS.PPP)][match(PPP.Data$ISO.3166.1.alpha.3,iso3c),PA.NUS.PPP]]
-PPP.Data[is.na(currency_iso3),ppp_target:=NA]
+# Handle cases where Units indicate USD
+PPP_era_merged[grepl("USD", Units, ignore.case = TRUE), currency_iso3 := "USD"]
 
-# Calculate inflation adjusted values for future period
-PPP.Data[,MeanT_local_target:=(MeanT_local/cpi_obs)*cpi_target]
-PPP.Data[,MeanC_local_target:=(MeanC_local/cpi_obs)*cpi_target]
+# Merge Observed Exchange Rates
+PPP_era_merged <- merge(
+  PPP_era_merged,
+  xrat_data[, .(iso3c, date, xrat_obs = PA.NUS.FCRF)],
+  by.x = c("ISO.3166.1.alpha.3", "M.Year"),
+  by.y = c("iso3c", "date"),
+  all.x = TRUE
+)
 
-# Calculate int $ equivalent
-PPP.Data[,MeanT_target_ppp_intusd:=MeanT_local_target/ppp_target]
-PPP.Data[,MeanC_target_ppp_intusd:=MeanC_local_target/ppp_target]
+# Set exchange rate to 1 for USD currencies
+PPP_era_merged[currency_iso3 == "USD", xrat_obs := 1]
 
-# Calculate USD equivalent future
-PPP.Data[,MeanT_target_usd:=MeanT_local_target/xrat_target]
-PPP.Data[,MeanC_target_usd:=MeanC_local_target/xrat_target]
+# Convert MeanT and MeanC to USD Using Observed Exchange Rates
+PPP_era_merged[, MeanT_USD := MeanT / xrat_obs]
+PPP_era_merged[, MeanC_USD := MeanC / xrat_obs]
 
-# Add transformed values back to dataset
-Data[,USD2010.C:=NA]
-Data[,USD2010.T:=NA]
+# Merge FAO Deflators and Calculate Adjustment Factors
+# Merge deflators for the observation years
+PPP_era_merged <- merge(
+  PPP_era_merged,
+  fao_deflators[, .(ISO3, Year, AdjustmentFactor)],
+  by.x = c("ISO.3166.1.alpha.3", "M.Year"),
+  by.y = c("ISO3", "Year"),
+  all.x = TRUE
+)
 
-Data[Index %in% PPP.N,USD2010.C:=PPP.Data[,MeanC_target_usd]]
-Data[Index %in% PPP.N,USD2010.T:=PPP.Data[,MeanT_target_usd]]
+# Handle missing adjustment factors (if any)
+PPP_era_merged[is.na(AdjustmentFactor), AdjustmentFactor := 1]
 
-# Harmonize data location names ####
-if(T){
-  Data[,DataLoc:=gsub("fig","Fig",DataLoc)]
-  Data[,DataLoc:=gsub("tab","Tab",DataLoc)]
-  Data[,DataLoc:=gsub("Table","Tab",DataLoc)]
-  Data[,DataLoc:=gsub("Figure","Fig",DataLoc)]
-  Data[,DataLoc:=gsub("txt","Text",DataLoc)]
-  Data[,DataLoc:=gsub(" ","",DataLoc)]
-  Data[,DataLoc:=gsub("Tab","Tab ",DataLoc)]
-  Data[,DataLoc:=gsub("A","a",DataLoc)]
-  Data[,DataLoc:=gsub("B","b",DataLoc)]
-  Data[,DataLoc:=gsub("C","c",DataLoc)]
-  Data[,DataLoc:=gsub("D","d",DataLoc)]
-  Data[,DataLoc:=gsub("E","e",DataLoc)]
-  Data[,DataLoc:=gsub("G","g",DataLoc)]
-  Data[,DataLoc:=gsub("H","h",DataLoc)]
-  Data[,DataLoc:=gsub("[[]","",DataLoc)]
-  Data[,DataLoc:=gsub("[]]","",DataLoc)]
-  Data[,DataLoc:=gsub("fib","Fig",DataLoc)]
-  Data[,DataLoc:=gsub("fi1","Fig 1",DataLoc)]
-  Data[,DataLoc:=gsub("V","v",DataLoc)]
-  Data[,DataLoc:=gsub("I","i",DataLoc)]
-  Data[,DataLoc:=gsub("X","x",DataLoc)]
-  Data[,DataLoc:=gsub(",",".",DataLoc)]
-  Data[,DataLoc:=gsub("&",".",DataLoc)]
-  Data[,DataLoc:=gsub("Fig","Fig ",DataLoc)]
-  Data[DataLoc==0,DataLoc:=NA]
-  Data[,DataLoc:=gsub("page3"," Page 3",DataLoc)]
-  
-  # Data[,unique(DataLoc)]
-  
-}
+# Adjust MeanT_USD and MeanC_USD to Target Year Using FAO Deflators
+PPP_era_merged[, MeanT_USD_Target := round(MeanT_USD * AdjustmentFactor,2)]
+PPP_era_merged[, MeanC_USD_Target := round(MeanC_USD * AdjustmentFactor,2)]
 
-# Remove duplicates ####
+# Update the Main Dataset
+# Initialize new columns
+new_cols<-paste0("USD",year_target,".",c("C","T"))
+era_merged[, (new_cols) := NA_real_]
+
+# Update era_merged with the adjusted values
+era_merged[PPP_era_merged, on = .(Index), (new_cols) := .(i.MeanC_USD_Target, i.MeanT_USD_Target)]
+
+  # 1.14) Harmonize data location names #####
+
+patterns <- c(
+  "fig", "tab", "Table", "Figure", "txt", " ", "Tab", 
+  "A", "B", "C", "D", "E", "G", "H", "\\[", "\\]", 
+  "fib", "fi1", "V", "I", "X", ",", "&", "Fig", "page3"
+)
+replacements <- c(
+  "Fig", "Tab", "Tab", "Fig", "Text", "", "Tab ", 
+  "a", "b", "c", "d", "e", "g", "h", "", "", 
+  "Fig", "Fig 1", "v", "i", "x", ".", ".", "Fig ", " Page 3"
+)
+
+substitutions <- setNames(replacements, patterns)
+
+era_merged[, DataLoc := stringr::str_replace_all(DataLoc[1], substitutions),by=DataLoc]
+era_merged[DataLoc==0,DataLoc:=NA]
+
+# era_merged[,unique(DataLoc)]
+
+  # 1.15) Remove duplicates ####
 
 # List partial duplicates
 Partial.Dup<-Duplicates[CompleteDuplicate=="No",paste(B.Code2,DataLoc2)]
 Partial.Dup2<-Duplicates[CompleteDuplicate=="No",list(B.Code2,DataLoc2)]
 # Any non-matches?
-NonMatch<-Partial.Dup2[!Partial.Dup %in% Data[,paste(Code,DataLoc)]]
+NonMatch<-Partial.Dup2[!Partial.Dup %in% era_merged[,paste(Code,DataLoc)]]
 
 # List full paper duplicates
 Full.Dup<-Duplicates[CompleteDuplicate=="Yes",B.Code2]
 # Any non-matches?
-Full.Dup[!Full.Dup %in% Data[,Code]]
+Full.Dup[!Full.Dup %in% era_merged[,Code]]
 
 # Remove complete partial duplicate data
-unique(Data[Code %in% NonMatch[,B.Code2],list(Code,DataLoc)])
-Data<-Data[!paste(Code,DataLoc) %in% Partial.Dup]
+unique(era_merged[Code %in% NonMatch[,B.Code2],list(Code,DataLoc)])
+era_merged<-era_merged[!paste(Code,DataLoc) %in% Partial.Dup]
 
 # Remove complete paper duplicates
-Data<-Data[!Code %in% Full.Dup]
+era_merged<-era_merged[!Code %in% Full.Dup]
 
 # Tidy up
 rm(Full.Dup,Partial.Dup,Partial.Dup2,NonMatch)
 
 
-# Simplify complex rotation and intercropping codes ####
-Cols<-c(paste0(rep(c("C","T"),each=N.Cols),1:N.Cols))
-
-# Complex Rotation - b44 - All are legume/non-legume sequences ####
-FunX<-function(X){gsub("b44","b43",X)}
-Z<-Data[,lapply(.SD,FunX),.SDcols=Cols]
-
-# Partial Intercrop - Rotation code is already dealt with so we just need to change intercropping code
-FunX<-function(X){gsub("b55.1","b25",X)}
-Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
-FunX<-function(X){gsub("b55.2","b50.1",X)}
-Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
-FunX<-function(X){gsub("b55.3","b50.2",X)}
-Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
-# Intercrop Rotation & Complex Intercrop Rotation -  Not used
-
-# Update h-codes ####
-# Simplify rotation and intercropping controls ####
-FunX<-function(X){gsub("h38","h2",X)}
-Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
-
-Dpracs<-c("Crop Rotation","Intercropping","Green Manure","Agroforestry Fallow","Intercropping or Rotation")
-PC<-PracticeCodes[Practice %in% Dpracs,Code]
-
-# *** SLOW MAKE PARALLEL*** h2 & h23 codes ####
-# Could be made faster by giving all unique rows an ID and using data.table by? 
-FunX<-function(X){
-  X<-unlist(X)
-  # Add missing control "h2" code if rotation/intercropping/alleycropping present in treatment and absent in control
-  if(any(X[(N.Cols+1):length(X)] %in% PC[!grepl("h",PC)]) & !"h2" %in% X[1:N.Cols] & !any(X[1:N.Cols] %in% PC[!grepl("h",PC)])){
-    X[which(X[1:N.Cols]=="")[1]]<-"h2"
-  }
-  # Add h23 deficit irrigation code where missing from control (mostly 2020 data)
-  if(any(X[(N.Cols+1):length(X)]=="b54") & all(X[1:N.Cols]!="b54") & !any(X[1:N.Cols]=="h23")){
-    X[which(X[1:N.Cols]=="")[1]]<-"h23"
-  }
-  
-  return(data.table(t(X)))
-}
-
-# Enable below to debug issues.
-if(F){
-  lapply(1:nrow(Z),FUN=function(i){
-    X<-Z[i]
-    print(i)
-    FunX(X)
+  # 1.16) Process practice codes #####
+    # 1.16.1) Simplify complex rotation and intercropping codes ######
+    Cols<-c(paste0(rep(c("C","T"),each=N.Cols),1:N.Cols))
     
-  })
-}
+    # 1.16.2) Complex Rotation - b44 - All are legume/non-legume sequences ######
+    FunX<-function(X){gsub("b44","b43",X)}
+    Z<-era_merged[,lapply(.SD,FunX),.SDcols=Cols]
+    
+    # Partial Intercrop - Rotation code is already dealt with so we just need to change intercropping code
+    FunX<-function(X){gsub("b55.1","b25",X)}
+    Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
+    FunX<-function(X){gsub("b55.2","b50.1",X)}
+    Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
+    FunX<-function(X){gsub("b55.3","b50.2",X)}
+    Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
+    # Intercrop Rotation & Complex Intercrop Rotation -  Not used
+    
+    # 1.16.3) Update h-codes ######
+    # 1.16.5) Simplify rotation and intercropping controls ######
+    FunX<-function(X){gsub("h38","h2",X)}
+    Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
+    
+    Dpracs<-c("Crop Rotation","Intercropping","Green Manure","Agroforestry Fallow","Intercropping or Rotation")
+    PC<-PracticeCodes[Practice %in% Dpracs,Code]
+    PC_no_h<-PC[!grepl("h",PC)]
+    
+    # 1.16.6) h2 & h23 codes ######
+    
+    FunX<-function(data,PC_no_h,verbose){
+      X<-data
+      
+      if(verbose){
+        cat('\r                                                                                                                                          ')
+        cat('\r',paste0("Processing ",paste(data,collapse = "-")))
+        flush.console()
+      }
+      
+      # Add missing control "h2" code if rotation/intercropping/alleycropping present in treatment and absent in control
+      dat1<-X[1:N.Cols]
+      dat2<-X[(N.Cols+1):length(X)]
+      if(any(dat2 %in% PC_no_h) & !"h2" %in% dat1 & ! any(dat1 %in% PC_no_h)){
+        X[which(PC_no_h=="")[1]]<-"h2"
+      }
+      # Add h23 deficit irrigation code where missing from control (mostly 2020 data)
+      if(any(dat2=="b54") & all(dat1!="b54") & !any(dat1=="h23")){
+        X[which(dat1=="")[1]]<-"h23"
+      }
+      return(as.data.table(as.list(unlist(X))))
+    }
+    
+    Z[,code2:=apply(Z,1,paste,collapse="-")]
+    Z1<-unique(Z)
+    Z1[,Code:=apply(Z1[,!c("code2")],1,list)]
+    result<-pblapply(Z1[,Code],function(x){FunX(data=x,PC_no_h=PC_no_h,verbose=F)})
+    result<-rbindlist(result)
+    result[,code2:=Z1$code2]
+    
+    Z<-merge(Z[,"code2"],result,by="code2",all.x=T,sort=F)[,code2:=NULL]
+    
+    # 1.16.7) Remove h1, h10 & h10.2 codes ######
+    # h1 - Non-CSA codes
+    # h10 - Conventional input (fertilizer) control (vs recommended rate)
+    # h10.2 - Addition of recommended amount of fertilizer following soil tests
+    
+    FunX<-function(X,Cols){
+      X[X %in% c("h1","h10","h10.2")]<-""
+      X
+    }
+    Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
+    
+    # 1.16.8) h7 deficit irrigation code ######
+    # Here we are checking the control is present where it should be
+    FunX<-function(X){
+      any(X[(N.Cols+1):length(X)]=="b37") & all(X[1:N.Cols]!="b37") & !any(X[1:N.Cols]=="h7")
+    }
+    
+    Z1<-apply(Z,1,FunX)
+    error_dat<-unique(era_merged[Z1 & Code!="EO0134",list(Code,DataLoc,T.Descrip,C.Descrip,Version)])
+    if(nrow(error_dat)>0){
+      View(error_dat)
+    }
+    # remove any duplicate h codes
+    
+    CCols<-paste0("C",1:13)
+    TCols<-paste0("T",1:13)
+    
+    CC<-pbapply(Z[,..CCols],1,FUN=function(X){
+      X<-unique(X[X!=""])
+      if(length(X)<length(CCols)){
+        X<-c(X,rep("",length(CCols)-length(X)))
+      }
+      X
+    })
+    
+    TT<-pbapply(Z[,..TCols],1,FUN=function(X){
+      X<-unique(X[X!=""])
+      if(length(X)<length(TCols)){
+        X<-c(X,rep("",length(TCols)-length(X)))
+      }
+      X
+    })
+    
+    Z<-data.table(t(CC),t(TT))
+    colnames(Z)<-Cols
+    
+    # 1.16.9) Combine datasets back together ######
+    era_merged<-cbind(era_merged[,!(..Cols)],Z)
+    
+    rm(Z,FunX,Cols,Dpracs,PC,CC,TT)
+    
+  # 1.17) Carbon change outcomes - change % to proportion #####
+  era_merged[Outcome == 224.1 & Units=="%",MeanC:=(100+MeanC)/100]
+  era_merged[Outcome == 224.1 & Units=="%",MeanT:=(100+MeanT)/100]
+  era_merged[Outcome == 224.1 & Units=="%",Units:="Proportion"]
+  
+  # 1.18) Remove product = n1 (Soil) #####
+  era_merged[,EU:=gsub("-n1","",EU)]
+  era_merged[,EU:=gsub("n1-","",EU)]
+  era_merged[,EU:=gsub("n1","",EU)]
 
-Z<-rbindlist(pbapply(Z,1,FunX))
-
-# Simplify intercrop rotation control - h18 ####
-FunX<-function(X){any(grepl("h18|h50",X[1:N.Cols]))}
-
-Z1<-apply(Z,1,FunX)
-write.table(unique(Data[Z1,list(Code,DataLoc,T.Descrip,C.Descrip)]),"clipboard-256000",row.names = F,sep = "\t")
-rm(Z1)
-
-# Remove h1, h10 & h10.2 codes ####
-# h1 - Non-CSA codes
-# h10 - Conventional input (fertilizer) control (vs recommended rate)
-# h10.2 - Addition of recommended amount of fertilizer following soil tests
-
-FunX<-function(X,Cols){
-  X[X %in% c("h1","h10","h10.2")]<-""
-  X
-}
-Z<-Z[,lapply(.SD,FunX),.SDcols=Cols]
-
-# h7 deficit irrigation code ####
-# Here we are checking the control is present where it should be
-FunX<-function(X){
-  any(X[(N.Cols+1):length(X)]=="b37") & all(X[1:N.Cols]!="b37") & !any(X[1:N.Cols]=="h7")
-}
-
-Z1<-apply(Z,1,FunX)
-Issue.With.2020.Deficit.Irrig<-unique(Data[Z1 & Code!="EO0134",list(Code,DataLoc,T.Descrip,C.Descrip,Version)])
-if(nrow(Issue.With.2020.Deficit.Irrig)>0){
-  View(Issue.With.2020.Deficit.Irrig)
-}
-rm(Z1,Issue.With.2020.Deficit.Irrig)
-
-
-# remove any duplicate h codes
+  # 1.19) Check for Practice in control not in treatment #####
 
 CCols<-paste0("C",1:13)
 TCols<-paste0("T",1:13)
 
-CC<-pbapply(Z[,..CCols],1,FUN=function(X){
-  X<-unique(X[X!=""])
-  if(length(X)<length(CCols)){
-    X<-c(X,rep("",length(CCols)-length(X)))
-  }
-  X
-})
-
-TT<-pbapply(Z[,..TCols],1,FUN=function(X){
-  X<-unique(X[X!=""])
-  if(length(X)<length(TCols)){
-    X<-c(X,rep("",length(TCols)-length(X)))
-  }
-  X
-})
-
-Z<-data.table(t(CC),t(TT))
-colnames(Z)<-Cols
-
-# Combine datasets back together ####
-Data<-cbind(Data[,!(..Cols)],Z)
-
-rm(Z,FunX,Cols,Dpracs,PC,CC,TT)
-
-# Carbon change outcomes - change % to proportion ####
-Data[Outcome == 224.1 & Units=="%",MeanC:=(100+MeanC)/100]
-Data[Outcome == 224.1 & Units=="%",MeanT:=(100+MeanT)/100]
-Data[Outcome == 224.1 & Units=="%",Units:="Proportion"]
-
-# Remove product = n1 (Soil)
-Data[,EU:=gsub("-n1","",EU)]
-Data[,EU:=gsub("n1-","",EU)]
-Data[,EU:=gsub("n1","",EU)]
-
-# Check for Practice in control not in treatment ####
-
-CCols<-paste0("C",1:13)
-TCols<-paste0("T",1:13)
-
-#DataX<-Data[!Analysis.Function %in% c("DietSub","Sys.Rot.vs.Mono","Ratios") & is.na(Invalid.Comparison)] # unhash if Invalid.Comparison field is present
-DataX<-Data[!Analysis.Function %in% c("DietSub","Sys.Rot.vs.Mono","Ratios")]
+#DataX<-era_merged[!Analysis.Function %in% c("DietSub","Sys.Rot.vs.Mono","Ratios") & is.na(Invalid.Comparison)] # unhash if Invalid.Comparison field is present
+DataX<-era_merged[!Analysis.Function %in% c("DietSub","Sys.Rot.vs.Mono","Ratios")]
 
 X<-cbind(DataX[,..CCols],DataX[,..TCols])
 
@@ -1568,28 +1540,23 @@ NotInT<-pbapply(X,1,FUN=function(Y){
   if(length(Y)>0){paste(Y,collapse="-")}else{NA}
 })
 
-ERA.in.C.not.in.T<-unique(DataX[!is.na(NotInT),list(Code,Version,Analysis.Function)])
-
 Cols<-c("Index","Code","Version","Analysis.Function","C.Descrip","T.Descrip","Outcome","M.Year",CCols,TCols)
-ERA.in.C.not.in.T2<-DataX[!is.na(NotInT),..Cols][,NotInT:=NotInT[!is.na(NotInT)]]
+error_dat<-DataX[!is.na(NotInT),..Cols][,NotInT:=NotInT[!is.na(NotInT)]][,.(value=paste(unique(paste0(Outcome,":",T.Descrip," vs ",C.Descrip," NotInT = ",NotInT)),collapse = "/"),dataset=paste0(Version[1],"-",Analysis.Function[1])),by=Code
+][,field:="Outcode:T.Descrip vs C.Descrip"][,issue:="Practice is present in control that is not present in treatment."]
 
-if(nrow(ERA.in.C.not.in.T)>1){
-  View(ERA.in.C.not.in.T)
-  write.table(ERA.in.C.not.in.T,"clipboard",row.names = F,sep = "\t")
-  write.table(ERA.in.C.not.in.T2,"clipboard-256000",row.names = F,sep = "\t")
-}
+errors$cprac_not_in_tpracs<-error_dat
 
-Data<-Data[!Index %in% ERA.in.C.not.in.T2[,Index]]
+era_merged<-era_merged[!Index %in% ERA.in.C.not.in.T2[,Index]]
 
 
-# ***Compile ERA*** ####
-#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+# 2) Compile ERA ####
+
 system.time(
   DataZ<-CompileCompendiumWide(Data=Data,
                                OutcomeCodes=OutcomeCodes,
                                EUCodes=EUCodes,
                                PracticeCodes=PracticeCodes,
-                               Folder=FilenameCombined,
+                               Folder= era_dirs$era_masterdata_dir,
                                SaveName="ERA Wide",
                                cores=cores,
                                SaveCsv=F,
