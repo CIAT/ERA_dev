@@ -139,7 +139,7 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
       folder_local<-era_dirs$era_masterdata_dir
       s3_bucket<-era_dirs$era_masterdata_s3
       
-      files<-list.files(folder_local,project,full.names = T,recursive=T)
+      files<-tail(list.files(folder_local,project,full.names = T,recursive=T),1)
       
       upload_files_to_s3(files = files,
                          selected_bucket=s3_bucket,
@@ -159,7 +159,6 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
                          max_attempts = 3,
                          overwrite=F,
                          mode="private")
-      
 
   # 1.4) 2020 majestic_hippo ######
       # 1.4.1) Upload pdfs #######
