@@ -1096,7 +1096,7 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
     # write.table(h_dat[,.(value,B.Code)],"clipboard-256000",row.names = F,sep="\t",col.names = F)
     Animals.Diet[,check:=NULL]
     
-    # 3.7.2.2) Merge AOM Diet Summary with Animals.Out  #######
+    # 3.7.2.2) Merge AOM Diet Summary with Animals.Out (.inc Trees)  #######
     
     # Merge relevant AOM columns
     cols<-c("AOM","Scientific Name",paste0("L",1:10))
@@ -1119,7 +1119,7 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
                                        by=.(B.Code,A.Level.Name)]
     
     Animals.Out<-merge(Animals.Out,Animals.Diet.Summary,by=c("B.Code","A.Level.Name"),all.x=T,sort=F)
-    Animals.Out[A.Diet.Trees=="",A.Diet.Trees:=NA][A.Diet.Other=="",A.Diet.Trees:=NA]
+    Animals.Out[A.Diet.Trees=="",A.Diet.Trees:=NA][A.Diet.Other=="",A.Diet.Other:=NA]
     
   # 3.7.3) Animals.Diet.Comp ######
   table_name<-"Animals.Diet.Comp"
@@ -1941,7 +1941,7 @@ out_name_changes<-data.table(old_values=c("Nitrogen [(]Apparent Efficiency[)]","
                              new_values=c('Nitrogen (Apparent Efficiency Animals Feed)',"Carbon Dioxide Emissions","Aboveground Carbon Biomass"))
 
 parent<-master_codes$out[,list(Subindicator)][,Out.Subind:=Subindicator]
-error_dat<-Out.Out[!Out.Out$Out.Subind %in% parent$Out.Subind & !Out.Subind %in% outname_name_changes$old_old_values
+error_dat<-Out.Out[!Out.Out$Out.Subind %in% parent$Out.Subind & !Out.Subind %in% out_name_changes$old_values
 ][,value:=Out.Subind
 ][,list(B.Code=paste(B.Code,collapse = "/")),by=value
 ][,table:="Out.Out"
