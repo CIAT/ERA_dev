@@ -26,34 +26,51 @@ data_dir_local<-era_dirs$era_masterdata_dir
 data_dir_s3<-era_dirs$era_masterdata_s3
 
 # 1) Load data ####
-  # 1.1) Load compiled excel data #####
+  # 1.1) Load era vocab #####
+  # Get names of all sheets in the workbook
+  sheet_names <- readxl::excel_sheets(era_vocab_local)
+  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
+  
+  # Read each sheet into a list
+  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
+  
+  # Read in codes and harmonization datasets
+  EUCodes<-master_codes$prod
+  MasterLevels<-master_codes$lookup_levels
+  PracticeCodes<-master_codes$prac
+  PracticeCodes1<-master_codes$prac
+  TreeCodes<-master_codes$trees
+  # 1.2) Load compiled excel data #####
   (files<-list.files(data_dir_local,project,full.names = T))
   (files_s3<-grep(project,s3$dir_ls(data_dir_s3),value=T))
   
+  file_local<-tail(grep("RData",files,value=T),1)
+  file_s3<-tail(grep("RData",files_s3,value=T),1)
+    
+
   # If most recent compilation of the livestock is not available locally download it from the s3
-  if(basename(tail(files,1))!=basename(tail(files_s3,1))){
-    local_path<-gsub(data_dir_s3,data_dir_local,tail(files_s3,1))
-    s3$file_download(tail(files_s3,1),local_path)
+  if(basename(file_local)!=basename(file_s3)){
+    local_path<-gsub(data_dir_s3,data_dir_local,file_s3)
+    s3$file_download(file_s3,local_path)
     files<-list.files(data_dir_local,project,full.names = T)
-  }
-  
-  compiled_dataset<-tail(files,1)
+    file_local<-tail(grep("RData",files,value=T),1)
+      }
 
   # Load data
-  data_list<-miceadds::load.Rdata2(file=basename(compiled_dataset),path=dirname(compiled_dataset))
+  data_list<-miceadds::load.Rdata2(file=basename(file_local),path=dirname(file_local))
   
   AF.Out<-data_list$AF.Out
   Animals.Out<-data_list$Animals.Out
   Animals.Diet<-data_list$Animals.Diet
   Animals.Diet.Comp<-data_list$Animals.Diet.Comp
-  Animals.Diet.Comp<-data_list$Animals.Diet.Digest
+  Animals.Diet.Digest<-data_list$Animals.Diet.Digest
   Data.Out<-data_list$Data.Out[,N:=1:.N]
   MT.Out<-data_list$MT.Out
   Site.Out<-data_list$Site.Out
   Soil.Out<-data_list$Soil.Out
   Var.Out<-data_list$Var.Out
   
-   # 1.1.2) Prepare Data.Out ######
+   # 1.2.1) Prepare Data.Out ######
   # Remove h-codes from T.Codes
   rm_code_fun<-function(x,delim,remove_pattern){
     x<-unlist(strsplit(x,delim))
@@ -85,21 +102,6 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   # Change site buffer name
   setnames(Data.Out,"Buffer.Manual","Site.Buffer.Manual")
   
-  # 1.2) Load era vocab #####
-  # Get names of all sheets in the workbook
-  sheet_names <- readxl::excel_sheets(era_vocab_local)
-  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
-  
-  # Read each sheet into a list
-  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
-
-  # Read in codes and harmonization datasets
-  EUCodes<-master_codes$prod
-  MasterLevels<-master_codes$lookup_levels
-  PracticeCodes<-master_codes$prac
-  PracticeCodes1<-master_codes$prac
-  TreeCodes<-master_codes$trees
-
 # 2) Automated Comparison of Control vs Treatments ####
   Comparison.List<-list()
   Verbose<-F
@@ -701,7 +703,7 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   # Check for any funny business with very many comparisons -  JS0290
   Comparisons$Control.For.N<-unlist(lapply(Comparisons$Control.For,function(x){length(unlist(strsplit(x,"//")))}))
   unique(Comparisons[Control.For.N>10,.(B.Code,Analysis.Function,Control.For.N)])
-  
+
 # 3) Prepare Main Dataset ####
   Data<-Data.Out
   # 3.1) Add filler cols ####
@@ -794,7 +796,7 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   # Trees from AF.Tab
   merge_dat<-AF.Out[,.(Trees=paste(sort(unique(trimws(unlist(strsplit(AF.Tree[!is.na(AF.Tree)],"[.][.]|;"))))),collapse = ";")),by=c("AF.Level.Name","B.Code")]
   Data<-merge(Data,merge_dat,by=c("AF.Level.Name","B.Code"),all.x=T,sort=F)
-  # Join with trees from animal diet
+  # Trees from animal diet
   Data[A.Diet.Trees=="",A.Diet.Trees:=NA]
   Data[,Trees_both:=paste(sort(unique(c(unlist(strsplit(A.Diet.Trees[1],";")),unlist(strsplit(Trees[1],";"))))),collapse=";"),by=.(Trees,A.Diet.Trees)]
   
@@ -958,6 +960,28 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   
 Verbose<-F
 
+Knit.V1<-function(Control.N,Control.For,Data,Analysis.Function,NCols,C.Data.Cols,T.Data.Cols){
+  Control.N<-as.numeric(Control.N)
+  
+  Ctrl<-Data[N==Control.N,..C.Data.Cols]
+  
+  colnames(Ctrl)<-names(C.Data.Cols)
+  
+  Control.For<-as.numeric(unlist(strsplit(as.character(Control.For),"[/][/]")))
+  
+  Trt<-rbindlist(lapply(Control.For,FUN=function(i){
+    X<-Data[N==i,..T.Data.Cols]
+    colnames(X)<-names(T.Data.Cols)
+    X
+  }))
+  
+  Ctrl<-Ctrl[rep(1,nrow(Trt))]
+  X<-cbind(Ctrl,Trt)
+  X[,Analysis.Function:=Analysis.Function]
+  X
+  
+}
+
 ERA.Reformatted <-rbindlist(
       pblapply(1:nrow(Comparisons), function(i) {
       if (Verbose) {
@@ -1008,7 +1032,7 @@ ERA.Reformatted[,.(N.Obs=.N),by=.(Code,CID,Outcome,Units,Partial.Outcome.Name)][
   }
 
 # 5) Save Output ####
-save_name<-gsub("[.]RData","_comparisons.RData",compiled_dataset)
-fwrite(ERA.Reformatted,save_name,row.names = F)
+save_name<-gsub("[.]RData","_comparisons.parquet",file_local)
+arrow::write_parquet(ERA.Reformatted,save_name)
   
   
