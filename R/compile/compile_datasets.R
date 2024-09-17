@@ -26,377 +26,88 @@ pacman::p_load(data.table,
 
   # 0.2) Create Functions #####
 
-CompileCompendiumWide<-function(Data,
-                                PracticeCodes,
-                                OutcomeCodes,
-                                EUCodes,
-                                SaveName=NA, # Specify a save name, set to NA to use default file naming (Folder/Folder-Clean-Full-Wide.filetype)
-                                cores,       # Number of cores to use for parallel processing
-                                SaveCsv,    # Save compiled dataset (T/F)?
-                                SaveR,       # Save as .RData (T) or .csv (F)
-                                Folder,      # Save Folder
-                                VERBOSE=F,
-                                AddText=T,   # Add descriptive outcome and practice names as fields? (T/F) 
-                                delim="-",   # Specify delimiter using in outcome and practice names (default = "-")
-                                Keep.hcode=F, # Consider non-CSA h-codes in practice naming? (T/F)
-                                AddBuffer=T, # Harmonize latitude and longitude and add spatial uncertainty? (T/F), Note if Buffer.Manual field is not blank these values will be used.
-                                Keep.No.Spatial=T, # Keep observations with no latitude or longitude (T/F)
-                                N.Cols, # The number of practice columns
-                                DoWide=F # Add logical columns for presence of each practices in plist?
-){
+compile_era<-function(Data,
+                      PracticeCodes,
+                      OutcomeCodes,
+                      EUCodes,
+                      cores,       # Number of cores to use for parallel processing
+                      VERBOSE=F,
+                      AddText=T,   # Add descriptive outcome and practice names as fields? (T/F) 
+                      delim="-",   # Specify delimiter using in outcome and practice names (default = "-")
+                      Keep.hcode=F, # Consider non-CSA h-codes in practice naming? (T/F)
+                      AddBuffer=T, # Harmonize latitude and longitude and add spatial uncertainty? (T/F), Note if Buffer.Manual field is not blank these values will be used.
+                      Keep.No.Spatial=T # Keep observations with no latitude or longitude (T/F)
+                      ){
   
   if(colnames(EUCodes)[1]!="EU"){colnames(EUCodes)[1]<-"EU"}
   Data<-as.data.table(Data)
   
-  # Create Functions ####
-  # Function to harmonize CSA compendium spatial locations into decimal degrees and spatial uncertainty into a buffer radius in meters . 
-  # Arguments:
-  # Data = "raw" uncompiled meta-dataset with the fields #LatD, LatM, LatS, LatH, LonD, LonM, LonS, LonH, LatDiff, Buffer.Manual. These fields are 
-  # used to append Latitude (numeric decimal degrees), Longitude (numeric decimal degrees) and buffer (numeric, m) fields to the supplied "Data"
-  # object. The supplied fields are removed from the returned object. (dataframe or data.table).
-  # SaveError = Save a file detailing sites with missing spatial information (logical T/F)
-  # Folder = Where to save Error file (NA or location of folder as character string)
-  # Keep.No.Spatial (T/F) = keep observation with missing spatial in the returned object? (logical T/F)
-  
-  BufferCalc<-function(Data,SaveError=T,Folder,Keep.No.Spatial=T){
-    options(scipen=999)
-    Data<-as.data.frame(Data)
-    # Note & exclude observations with no spatial information
-    MissingXY<-Data[(is.na(Data$LatD)|is.na(Data$LonD)),]
-    
-    Data<-Data[!(is.na(Data$LatD)|is.na(Data$LonD)),]
-    
-    # Set Lat/Lon fields to numeric
-    Data$LatD<-as.numeric(as.character(Data$LatD))
-    Data$LonD<-as.numeric(as.character(Data$LonD))
-    
-    X<-which(
-      grepl("[.]",as.character(Data$LatD)) & (!is.na(Data$LatM) | !is.na(Data$LatS))
-      |
-        grepl("[.]",as.character(Data$LonD)) & (!is.na(Data$LonM) | !is.na(Data$LonS))
-    )
-    if(length(X)>0){
-      Data[X,c("LatM","LatS","LonM","LonS")]<-NA
-    }
-    
-    # Create lat/lon columns for use in analysis
-    Data$Latitude<-Data$LatD
-    Data$Longitude<-Data$LonD
-    # Create Buffer Column:
-    Data$Buffer<-as.numeric("")
-    Data$BufferLa<-as.numeric("")
-    Data$BufferLo<-as.numeric("")
-    
-    # Calculate Accuracy from Decimal Degree spatial locations:
-    DD<-grep("[.]",as.character(Data$LatD))
-    DecimalPlaces<-nchar(unlist(strsplit(as.character(Data$LatD[DD]),"[.]"))[seq(2,length(unlist(strsplit(as.character(Data$LatD[DD]),"[.]"))),2)])
-    DecimalPlaces[DecimalPlaces==1]<-11000/2
-    DecimalPlaces[DecimalPlaces==2]<-1100/2
-    DecimalPlaces[DecimalPlaces>=3 & DecimalPlaces<=10]<-500/2
-    Data$BufferLa[DD]<-DecimalPlaces
-    
-    DD2<-grep("[.]",as.character(Data$LonD))
-    DecimalPlaces<-nchar(unlist(strsplit(as.character(Data$LonD[DD2]),"[.]"))[seq(2,length(unlist(strsplit(as.character(Data$LonD[DD2]),"[.]"))),2)])
-    DecimalPlaces[DecimalPlaces==1]<-11000/2
-    DecimalPlaces[DecimalPlaces==2]<-1100/2
-    DecimalPlaces[DecimalPlaces>=3 & DecimalPlaces<=10]<-500/2  # Minimum radius of unvalidated locations (i.e. those without a manual buffer estimation) = 500 m
-    Data$BufferLo[DD2]<-DecimalPlaces
-    
-    # Convert DMS to DD and calculate accuracy from DMS spatial locations:
-    # Degrees Only: No decimal point for DD, no minutes and no seconds recorded
-    Data$BufferLa[!grepl("[.]",as.character(Data$LatD)) & is.na(Data$LatM) & is.na(Data$LatS)]<-110000/2
-    Data$BufferLo[!grepl("[.]",as.character(Data$LonD)) & is.na(Data$LonM) & is.na(Data$LonS)]<-110000/2
-    
-    # Minutes Only:
-    Minute<-round(0.5*110000/60) # 1/60th of a degree = diameter (half of this is the radius)
-    
-    X<-which(!is.na(Data$LatM) & is.na(Data$LatS))
-    if(length(X)>0){
-      Data$BufferLa[X]<-Minute
-      Data$Latitude[X]<-Data$LatD[X]+Data$LatM[X]/60
-    }
-    
-    X<-which(!is.na(Data$LonM) & is.na(Data$LonS))
-    if(length(X)>0){
-      Data$BufferLo[X]<-Minute
-      Data$Longitude[X]<-Data$LonD[X]+Data$LonM[X]/60  
-    }
-    
-    # Minutes and Seconds:
-    Second<-500/2 # Minimum radius of unvalidated locations (i.e. those without a manual buffer estimation) = 500 m
-    
-    X<-which(!is.na(Data$LatM) & !is.na(Data$LatS))
-    if(length(X)>0){
-      Data$BufferLa[X]<-Second
-      Data$Latitude[X]<-Data$LatD[X]+Data$LatM[X]/60+Data$LatS[X]/60^2
-    }
-    X<-which(!is.na(Data$LonM) & !is.na(Data$LonS))
-    if(length(X)>0){
-      Data$BufferLo[X]<-Second
-      Data$Longitude[X]<-Data$LonD[X]+Data$LonM[X]/60+Data$LonS[X]/60^2
-    }
-    
-    # Situations where lat and lon are recorded in inconsistent formats
-    DD3<-which(!grepl("[.]",as.character(Data$LatD)) & is.na(Data$LatM) & is.na(Data$LatS))
-    DD4<-which(!grepl("[.]",as.character(Data$LonD)) & is.na(Data$LonM) & is.na(Data$LonS))
-    
-    X<-unique(c(DD[is.na(match(DD,DD2))],DD2[is.na(match(DD2,DD))],DD3[is.na(match(DD3,DD4))],DD4[is.na(match(DD4,DD3))]))
-    
-    # Choose minimum buffer width (assume where accuracy is lower for one value it's a rounding issue)
-    Data$Buffer<-apply(cbind(Data$BufferLa,Data$BufferLo),1,min,na.rm=TRUE)
-    
-    # Set decimal degrees to correct hemispheres:
-    X<-which(Data$LatH=="S" & Data$Latitude>0)
-    if(length(X)>0){
-      Data$Latitude[X]<-Data$Latitude[X]*-1
-    }
-    
-    X<-which(Data$LonH=="W" & Data$Longitude>0)
-    if(length(X)>0){
-      Data$Longitude[X]<-Data$Longitude[X]*-1
-    }
-    
-    # Add in accuracy where locations are averaged, this should be in minutes
-    Data$Lat.Diff<-as.numeric(Data$Lat.Diff)/60
-    Data$Buffer[!is.na(Data$Lat.Diff)]<-1500*Data$Lat.Diff[!is.na(Data$Lat.Diff)]/2 # Divided by two as this is the diameter not the radius
-    
-    #Round locational accuracy to a sensible number of decimal places
-    Data$Latitude<-round(Data$Latitude,5)
-    Data$Longitude<-round(Data$Longitude,5)
-    
-    # Round buffer
-    Data$Buffer<-as.integer(round(Data$Buffer))
-    
-    # Replace Calculated values with Manual values?
-    if(!is.null(Data$Buffer.Manual)){
-      Data$Buffer[!is.na(Data$Buffer.Manual)]<-Data$Buffer.Manual[!is.na(Data$Buffer.Manual)]
-      Data$Buffer.Manual<-NULL
-      if(nrow(MissingXY)>0){
-        MissingXY$Buffer.Manual<-NULL
-      }
-    }
-    
-    # Remove unecessary fields
-    Data[,c("LatD","LatM","LatS","LatH","LonD","LonM","LonS","LonH","Lat.Diff","BufferLa","BufferLo")]<-NULL
-    
-    # Save "Error" data & add back in sites with missing spatial data?
-    if(nrow(MissingXY)>0){
-      if(SaveError){
-        if(!dir.exists(paste0(Folder,"/Errors"))){
-          dir.create(paste0(Folder,"/Errors"),recursive = T)
-        }
-        fwrite(unique(MissingXY[,c("Code","Site.ID","Country","LatD","LatM","LatS","LatH","LonD","LonM","LonS","LonH","Lat.Diff")]),file=paste0(Folder,"/Errors/",Folder,"-MissingXY.csv"))
-      }
-      
-      if(Keep.No.Spatial){
-        MissingXY[,c("LatD","LatM","LatS","LatH","LonD","LonM","LonS","LonH","Lat.Diff")]<-NULL
-        MissingXY[,c("Latitude","Longitude","Buffer")]<-NA
-        Data<-rbind(Data,MissingXY)
-      }
-    }
-    
-    
-    Data<-data.table(Data)
-    return(Data)
-  }
-  
-  # Function to add descripts of outcomes and practices
-  # Possibly more efficient to use something like dplyr::left_join(DataZ,EUCodes[,c("EU","Product.Type","Product.Subtype","Product.Simple")],by = "EU"))
-  
-  Code.2.Text<-function(Data,OutcomeCodes,PracticeCodes,EUCodes,Keep.hcode,AddCodes=F){
-    
-    
-    AddNames<-function(Data.Code,Master.Name,Master.Code,delim){
-      paste(sort(unique(Master.Name[match(Data.Code,Master.Code)])),collapse=delim)
-    }
-    
-    RmHCodes<-function(Codes,Delim){
-      X<-unlist(strsplit(Codes,"-"))  
-      X<-X[!grepl("h",X)]
-      paste(sort(X),collapse = "-")
-    }
-    
-    # Outcomes
-    Data[,Outcode:=as.character(Outcode)]
-    delim<-"-"
-    Data[,Out.Pillar:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Pillar],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-    Data[,Out.SubPillar:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Subpillar],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-    Data[,Out.Ind:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Indicator],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-    Data[,Out.SubInd:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Subindicator],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-    
-    if(AddCodes){
-      Data[,Out.SubInd.S:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Subindicator.Short],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-      delim<-"/"
-      Data[,Out.Pillar.Code:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Pillar.Code],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-      Data[,Out.SubPillar.Code:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Subpillar.Code],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-      Data[,Out.Ind.Code:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Indicator.Code],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-      Data[,Out.SubInd.Code:=AddNames(Data.Code=unlist(strsplit(Outcode[1],"-")),Master.Name = OutcomeCodes[,Subindicator.Code],Master.Code = OutcomeCodes[,Code],delim=delim),by=Outcode]
-    }
-    
-    # Practices
-    if(!Keep.hcode){
-      Data[,plist:=RmHCodes(plist,"-"),by=plist]
-      Data[,base.list:=RmHCodes(base.list,"-"),by=base.list]
-    }
-    
-    delim<-"-"
-    Data[,SubPrName:=AddNames(Data.Code=unlist(strsplit(plist[1],"-")),Master.Name = PracticeCodes[,Subpractice.S],Master.Code = PracticeCodes[,Code],delim=delim),by=plist]
-    Data[,PrName:=AddNames(Data.Code=unlist(strsplit(plist[1],"-")),Master.Name = PracticeCodes[,Practice],Master.Code = PracticeCodes[,Code],delim=delim),by=plist]
-    Data[,Theme:=AddNames(Data.Code=unlist(strsplit(plist[1],"-")),Master.Name = PracticeCodes[,Theme],Master.Code = PracticeCodes[,Code],delim=delim),by=plist]
-   
-    if(AddCodes){
-      delim<-"/"
-      Data[,SubPrName.Code:=AddNames(Data.Code=unlist(strsplit(plist[1],"-")),Master.Name = PracticeCodes[,Subpractice.Code],Master.Code = PracticeCodes[,Code],delim=delim),by=plist]
-      Data[,PrName.Code:=AddNames(Data.Code=unlist(strsplit(plist[1],"-")),Master.Name = PracticeCodes[,Practice.Code],Master.Code = PracticeCodes[,Code],delim=delim),by=plist]
-      Data[,Theme.Code:=AddNames(Data.Code=unlist(strsplit(plist[1],"-")),Master.Name = PracticeCodes[,Theme.Code],Master.Code = PracticeCodes[,Code],delim=delim),by=plist]
-    }
-    
-    if(!is.null(Data$base.list)){
-      delim<-"-"
-      Data[,SubPrName.Base:=AddNames(Data.Code=unlist(strsplit(base.list[1],"-")),Master.Name = PracticeCodes[,Subpractice.S],Master.Code = PracticeCodes[,Code],delim=delim),by=base.list]
-      Data[,PrName.Base:=AddNames(Data.Code=unlist(strsplit(base.list[1],"-")),Master.Name = PracticeCodes[,Practice],Master.Code = PracticeCodes[,Code],delim=delim),by=base.list]
-      Data[,Theme.Base:=AddNames(Data.Code=unlist(strsplit(base.list[1],"-")),Master.Name = PracticeCodes[,Theme],Master.Code = PracticeCodes[,Code],delim=delim),by=base.list]
-     
-      if(AddCodes){
-        delim<-"/"
-        Data[,SubPrName.Base.Code:=AddNames(Data.Code=unlist(strsplit(base.list[1],"-")),Master.Name = PracticeCodes[,Subpractice.Code],Master.Code = PracticeCodes[,Code],delim=delim),by=base.list]
-        Data[,PrName.Base.Code:=AddNames(Data.Code=unlist(strsplit(base.list[1],"-")),Master.Name = PracticeCodes[,Practice.Code],Master.Code = PracticeCodes[,Code],delim=delim),by=base.list]
-        Data[,Theme.Base.Code:=AddNames(Data.Code=unlist(strsplit(base.list[1],"-")),Master.Name = PracticeCodes[,Theme.Code],Master.Code = PracticeCodes[,Code],delim=delim),by=base.list]
-      }
-        }
-    
-    # Products
-    delim<-"-"
-    Data[,Product:=AddNames(Data.Code=unlist(strsplit(EUlist[1],"-")),Master.Name = EUCodes[,Product],Master.Code = EUCodes[,EU],delim=delim),by=EUlist]
-    Data[,Product.Type:=AddNames(Data.Code=unlist(strsplit(EUlist[1],"-")),Master.Name = EUCodes[,Product.Type],Master.Code = EUCodes[,EU],delim=delim),by=EUlist]
-    Data[,Product.Subtype:=AddNames(Data.Code=unlist(strsplit(EUlist[1],"-")),Master.Name = EUCodes[,Product.Subtype],Master.Code = EUCodes[,EU],delim=delim),by=EUlist]
-    Data[,Product.Simple:=AddNames(Data.Code=unlist(strsplit(EUlist[1],"-")),Master.Name = EUCodes[,Product.Simple],Master.Code = EUCodes[,EU],delim=delim),by=EUlist]
-    
-    if(AddCodes){
-      delim<-"/"
-      Data[,Product.Type.Code:=AddNames(Data.Code=unlist(strsplit(EUlist[1],"-")),Master.Name = EUCodes[,Product.Type.Code],Master.Code = EUCodes[,EU],delim=delim),by=EUlist]
-      Data[,Product.Subtype.Code:=AddNames(Data.Code=unlist(strsplit(EUlist[1],"-")),Master.Name = EUCodes[,Product.Subtype.Code],Master.Code = EUCodes[,EU],delim=delim),by=EUlist]
-      Data[,Product.Simple.Code:=AddNames(Data.Code=unlist(strsplit(EUlist[1],"-")),Master.Name = EUCodes[,Product.Simple.Code],Master.Code = EUCodes[,EU],delim=delim),by=EUlist]
-    }
-    
-    return(Data)
-  }
-  
-  SplitProd<-function(X){
-    X<-unlist(strsplit(X,"[.]"))
-    Y<-X[1]
-    if(length(X)>1){
-      for(i in 2:length(X)){
-        if(nchar(X[i])==1){
-          Y[i-1]<-paste0( Y[i-1],".",X[i])
-        }else{
-          Y<-c(Y,X[i])
-        }
-      }
-    }
-    Y
-    
-  }
-  
+  N.Cols<-sum(paste0("T",1:30) %in% colnames(Data))
   # Error Checking ####
+  STEP<-1
+  print(paste0("Step ",STEP,": Running validation checks"))
+  STEP<-STEP+1
   
-  # Create Error Save Directory
-  if(!dir.exists(paste0(Folder,"/Errors"))){
-    dir.create(paste0(Folder,"/Errors"),recursive = T)
-  }
-  
-  Codes<-PracticeCodes$Code
-  
+  errors<-list()
+
   # Check T/C codes match PracticeCodes$Codes
-  P.Error<-lapply(c("T","C"),FUN=function(X){
-    Y<-lapply(1:N.Cols,FUN=function(x){
-      i<-paste0(X,x)
-      T.Code<-unlist(Data[,..i])
-      N<-which((!T.Code %in% Codes) & !is.na(T.Code))
+  error_dat<-rbindlist(lapply(c("T","C"),FUN=function(X){
+    Y<-rbindlist(lapply(1:N.Cols,FUN=function(j){
+      column_name<-paste0(X,j)
+      T.Code<-unlist(Data[,..column_name])
+      N<-which((!T.Code %in% PracticeCodes$Code) & !is.na(T.Code) & !T.Code=="")
       T.Code<-T.Code[N]
-      names(T.Code)<-N
-      T.Code
-    })
-    
-    names(Y)<-paste0(X,1:N.Cols)
-    Y<-Y[unlist(lapply(Y,length))>0]
+      data.table(field=column_name,Index=N,non_match=T.Code)
+    }))
     Y
-  })
+  }))
   
-  if(length(P.Error[[1]])>0){
-    if(VERBOSE){
-      View(P.Error[[1]])
-    }
-    fwrite(data.frame(Code = unique(unlist(P.Error[[1]]))),file=paste0(Folder,"/Errors/ T.Codes do not match Master Practice Codes.csv"))
-  }
-  
-  if(length(P.Error[[2]])>0){
-    if(VERBOSE){
-      View(P.Error[[2]])
-    }
-    fwrite(data.frame(Code = unique(unlist(P.Error[[2]]))),file=paste0(Folder,"/Errors/ C.Codes do not match Master Practice Codes.csv"))
-  }
-  
+  error_dat<-merge(error_dat,Data[,.(Index,Code,T.Descrip,Version)],by="Index",all.x=T)[,.(value=paste(unique(paste0(T.Descrip,"-",field,"-",non_match)),collapse="/"),dataset=Version[1]),by=Code
+                                                                                        ][,field:="T.Descrip-code field-non matching code"
+                                                                                          ][,issue:="A practice code does not match the era_master_codes."]
+  errors$practice_code_non_match<-error_dat
+
   # Check EU codes against EUCodes$Codes
-  Codes<-EUCodes$EU
-  EU<-SplitProd(as.character(Data$EU))
+  Data[, EU_split := lapply(as.character(EU), SplitProd)]
+  Data[,EU_error:=unlist(lapply(EU_split,function(x){paste(x[!x %in% EUCodes$EU],collapse="/")}))]
   
-  EU.Error<-lapply(EU,FUN=function(x){
-    x<-x[!x %in% Codes]
-    x
-  })
-  names(EU.Error)<-1:length(EU.Error)
-  EU.Error<-EU.Error[unlist(lapply(EU.Error,length))>0]
-  EU.Error<-unique(unlist(EU.Error))
+  error_dat<-Data[EU_error!="",.(value=paste0(unique(EU_error),collapse="/"),dataset=Version[1]),by=Code
+                ][,field:="EU"
+                  ][,issue:="An EU code does not match the era_master_codes."]
   
-  if(length(EU.Error)>0){
-    if(VERBOSE){
-      View(EU.Error)
-    }
-    fwrite(data.frame(EU.Error),file=paste0(Folder,"/Errors/ EU Codes do not match Master EU Codes.csv"))
-  }
+  errors$prod_code_non_match<-error_dat
   
-  # Data$EU <-as.factor(Data$EU)
-  
+  Data[,c("EU_split","EU_error"):=NULL]
+
   # Check outcome codes against OutcomeCodes$Codes
-  Codes<-OutcomeCodes[,Code]
+  error_dat<-Data[!Outcome %in% OutcomeCodes$Code,.(value=paste(unique(Outcome),collapse="/"),dataset=Version[1]),by=Code
+  ][,field:="Outcome"
+  ][,issue:="An outcome code does not match the era_master_codes."]
   
-  if(length(which(!Data$Outcode %in% Codes))>0){
-    N<-which(!Data$Outcode %in% Codes)
-    O.Error<-Data$Outcode[N]
-    names(O.Error)<-N
-    if(VERBOSE){
-      View(unique(O.Error))
-    }
-    fwrite(data.frame(unique(O.Error)),file=paste0(Folder,"/Errors/Outcome Codes do not match Master Outcomes Codes.csv"))
-  }
+  errors$outcome_code_non_match<-error_dat
   
   # Check no codes are NA
   NACols<-c("Code","Author","Date","Journal","Country","EU","T1","C1","T.Descrip","C.Descrip","CID","TID","Site.ID")
   Z<-apply(Data[,..NACols],1,FUN=function(X){any(is.na(X)|X==" ")})
-  if(any(Z)){
-    Y<-Data[Z,..NACols]
-    if(VERBOSE){
-      print(paste("Note observations with missing critical data present"))
-    }
-    fwrite(Y,file=paste0(Folder,"/Errors/Observations missing critical information.csv"))
-  }
+  error_dat<-Data[Z,.(value=paste(unique(paste(T.Descrip,"-",Analysis.Function)),collapse="/"),dataset=Version[1]),by=Code
+                  ][,field:="T.Descrip-Analysis.Function"
+                    ][,issue:=paste0("Missing critical data in one of these fields: ",paste(NACols,collapse=", "))]
+  
+  errors$crit_field_missing<-error_dat
   
   #Create a unique numeric id for each study
   Data[,ID:=as.numeric(factor(Code))]
   
   # Compile Data ####
   #Calculate number of observations from each study and outcome per study, creates new column obs_count and out_count
-  STEP<-1
   print(paste0("Step ",STEP,": Calculating number of observations from each study and outcome per study"))
   STEP<-STEP+1
   
   Data<-Data[,`:=`(obs_count=.N,out_count=length(unique(Outcome))),by=ID]
   
   # Deal with characters in numeric columns ####
-  
-  Cols<-c("LonD","LatD","LatS","LatD","LatM","LatS","MeanT","MeanC","Rep")
-  Errors<-lapply(Cols,FUN=function(i){
+  Cols<-c("LonD","LonM","LonS","LatD","LatM","LatS","MeanT","MeanC","Rep")
+  error_dat<-rbindlist(lapply(Cols,FUN=function(i){
     
     A<-unlist(Data[,..i])
     N1<-is.na(A)
@@ -404,48 +115,40 @@ CompileCompendiumWide<-function(Data,
     N<-which(N1!=N2)
     
     if(length(N)>0){
-      N
+      data.table(Index=N,Field=i)
     }else{
-      
+      NULL
     }
     
-  })
+  }))
   
-  names(Errors)<-Cols
-  Errors<-Errors[unlist(lapply(Errors,length))>0]
+  error_dat<-rbindlist(lapply(error_dat[,unique(Cols)],function(COL){
+    subset_Cols<-c("Code","Version","T.Descrip",COL)
+    result<-unique(Data[Index %in% error_dat[Field==COL,unique(Index)],..subset_Cols][,field:=COL])
+    setnames(result,COL,"value")
+    result
+  }))
   
-  if(length(Errors)>0 ){
-    if(VERBOSE){
-      View(Errors,row.names=F)
-    }
-    for(i in 1:length(Errors)){
-      fwrite(Data[Errors[[i]],],paste0(Folder,"/Errors/Rows containing character observations in numeric columns - ",names(Errors)[i],".csv"))
-    }
-  }
+  error_dat<-error_dat[,.(value=paste(field,paste0(unique(paste0(T.Descrip," val=",value)),collapse="|")),dataset=Version[1]),by=.(Code,field)]
+  error_dat[,field:=NULL
+            ][,field:="Column T.Descrip Value"
+              ][,issue:="Non-numeric value in numeric field?"]
   
-  Data[,LonD:=as.numeric(as.character(LonD))]
-  Data[,LonM:=as.numeric(as.character(LonM))]
-  Data[,LonS:=as.numeric(as.character(LonS))]
-  Data[,LatD:=as.numeric(as.character(LatD))]
-  Data[,LatM:=as.numeric(as.character(LatM))]
-  Data[,LatS:=as.numeric(as.character(LatS))]
-  Data[,MeanT:=as.numeric(as.character(MeanT))]
-  Data[,MeanC:=as.numeric(as.character(MeanC))]
-  Data[,Rep:=as.numeric(as.character(Rep))]
+  errors$non_numeric_vals<-error_dat
   
+  Data[, (Cols) := lapply(.SD, function(x) as.numeric(as.character(x))), .SDcols = Cols]
+
   # Convert to DMS locations to decimal degrees ####
   Data[,Lat:=LatD + ((LatS/60)+LatM)/60]
   Data[,Lon:=LonD + ((LonS/60)+LonM)/60]
-  
   Data[LatH=='S',Lat:=Lat*-1]
   Data[LonH=='W',Lon:=Lon*-1]
   
-  # C alculate effect size (% change) ####
+  # Calculate effect size (% change) ####
   #if no reps are given, assume no replication (e.g. a replication of 1)
   Data[is.na(Rep),Rep:=1]
   Data[,yi:=suppressWarnings(log(MeanT/MeanC))] #yi is the response ratio
   Data[,pc:=100*(MeanT - MeanC)/MeanC]  #pc is the percent change
-  # Data[,w:=(Rep^2/(2*Rep))/obs_count] #w is the weighting
   
   # Deal with LER outcomes
   Data[Outcome==103 & is.na(MeanC),yi:=log(MeanT)]
@@ -457,114 +160,28 @@ CompileCompendiumWide<-function(Data,
   # Function either outputs a list, using parallel processing and lapply, or a vector, using apply.
   # Cores are the number of cores to use in parallel processing, it's a good idea to leave at least one free (so total system cores -1)
   
-  ExtractTreatment<-function(Data,cores,N.Cols,LIST=T){
-    Data<-data.frame(Data)
-    if(LIST==T){
-      cl<-makeCluster(cores)
-      clusterEvalQ(cl, library(data.table))
-      clusterExport(cl,list("Data","N.Cols"))
-      registerDoSNOW(cl)
-      
-      # Parallel function when list output is needed
-      Data$plist<-parLapply(cl,1:nrow(Data),function(i){
-        cset<-Data[i,paste0("C",1:N.Cols)]
-        tset<-Data[i,paste0("T",1:N.Cols)]
-        cset<-cset[!is.na(cset)]
-        tset<-tset[!is.na(tset)]
-        Y<-as.character(unlist(setdiff(tset, cset)))
-        Y[!Y==""]
-      })
-      
-      Data$base.list<-unlist(parLapply(cl,1:nrow(Data),function(X){
-        cset<-Data[X,paste0("C",1:N.Cols)]
-        tset<-Data[X,paste0("T",1:N.Cols)]
-        cset<-cset[!is.na(cset)]
-        tset<-tset[!is.na(tset)]
-        Y<-as.character(unlist(intersect(tset, cset)))
-        Y<-Y[!(Y=="" | is.na(Y))]
-        paste(Y,collapse = "-")
-      })
-      )
-      
-      stopCluster(cl)
-    }else{
-      # Alternative function if a vector output is needed
-      Data$plist<-apply(Data,1,FUN=function(X){
-        cset<-X[paste0("C",1:N.Cols)]
-        tset<-X[paste0("T",1:N.Cols)]
-        cset<-cset[!is.na(cset)]
-        tset<-tset[!is.na(tset)]
-        Y<-as.character(setdiff(tset, cset))
-        Y[!Y==""]
-      })
-      
-      Data$base.list<-unlist(parLapply(cl,1:total,function(X){
-        cset<-Data[X,paste0("C",1:N.Cols)]
-        tset<-Data[X,paste0("T",1:N.Cols)]
-        cset<-cset[!is.na(cset)]
-        tset<-tset[!is.na(tset)]
-        Y<-as.character(unlist(intersect(tset, cset)))
-        Y<-Y[!(Y=="" | is.na(Y))]
-        paste(Y,collapse = "-")
-      })
-      )
-    }
-    
-    return(data.table(Data))
-  }
-  
   print(paste0("Step ",STEP,": Extracting treatments by comparing the treatment codes to the control codes"))
   STEP<-STEP+1
   
   Data<-ExtractTreatment(Data,cores,N.Cols,LIST=T)
   
-  DataZ<-Data # Redundant?
-  
-  setnames(DataZ,"Outcome","Outcode")
-  # Make treatments wide? ####
-  if(DoWide){
-    print(paste0("Step ",STEP,": Making Treatments Wide"))
-    STEP<-STEP+1
-    
-    # Get unique treatment codes from plist
-    U.A<-DataZ[,sort(unique(unlist(plist)))]
-    
-    # Convert plist to a matrix
-    A<-as.data.frame(t(sapply(DataZ[,plist], `length<-`, max(lengths(DataZ[,plist])))))
-    
-    # Create logical T/F column for each treatment code with +/- parallel functionality
-    if(cores>1){
-      cl<-makeCluster(cores)
-      clusterExport(cl,list("A","U.A"),envir=environment())
-      registerDoSNOW(cl)
-      Z<-parLapply(cl,1:length(U.A),fun=function(X){
-        Reduce(`|`,lapply(A, function(x) x %in% U.A[X]))
-      })
-      stopCluster(cl)
-    }else{
-      Z<-lapply(1:length(U.A),FUN=function(X){
-        Reduce(`|`,lapply(A, function(x) x %in% U.A[X]))
-      })
-    }
-    
-    Z<-as.data.table(Z)
-    colnames(Z)<-U.A
-    DataZ<-cbind(DataZ,Z)
-  }
+  setnames(Data,"Outcome","Outcode")
   
   # Unlist lists
   print(paste0("Step ",STEP,": Unlisting Lists"))
   STEP<-STEP+1
   
-  DataZ[,N:=1:.N
+  Data[,N:=1:.N
   ][,plist:=paste(unlist(plist),collapse="-"),by=N
   ][,N:=NULL]
   
-  DataZ$plist<-unlist(DataZ$plist)
+  Data$plist<-unlist(Data$plist)
   
   # Add products ####
-  DataZ[,EUlist:=paste(sort(unlist(SplitProd(EU))),collapse="-"),by=EU]
+  print(paste0("Step ",STEP,": Adding descriptive names for products"))
+  STEP<-STEP+1
   
+  Data[,EUlist:=paste(sort(unlist(SplitProd(EU))),collapse="-"),by=EU]
   
   # Add Text ####
   
@@ -572,7 +189,7 @@ CompileCompendiumWide<-function(Data,
   STEP<-STEP+1
   
   if(AddText){
-    DataZ<-Code.2.Text(Data=DataZ,OutcomeCodes,PracticeCodes,EUCodes,Keep.hcode)
+    Data<-Code.2.Text(Data=Data,OutcomeCodes,PracticeCodes,EUCodes,Keep.hcode,delim=delim)
   }
   
   # Add Buffer ####
@@ -580,182 +197,545 @@ CompileCompendiumWide<-function(Data,
   STEP<-STEP+1
   
   if(AddBuffer){
-    DataZ<-BufferCalc(Data=DataZ,SaveError=F,Folder,Keep.No.Spatial=T)
+    Data<-BufferCalc(Data=Data,SaveError=F,Folder,Keep.No.Spatial=T)
   }
   
   # Use Lat, Long and Buffer to create a folder name and a unique spatial ID ####
-  DataZ[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer),by=list(Latitude,Longitude,Buffer)]
+  Data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer),by=list(Latitude,Longitude,Buffer)]
   
   # Harmonize lat/long of any sites with duplicate Site.Keys (differ at 5dp but not 4)
-  X<-table(unique(DataZ[,list(Site.Key,Latitude,Longitude,Buffer)])[,Site.Key])
+  X<-table(unique(Data[,list(Site.Key,Latitude,Longitude,Buffer)])[,Site.Key])
   X<-names(X[X>1])
   
-  unique(DataZ[Site.Key %in% X,list(Site.Key,Latitude,Longitude,Buffer)])
+  unique(Data[Site.Key %in% X,list(Site.Key,Latitude,Longitude,Buffer)])
   
-  DataZ[,Latitude:=round(mean(unique(Latitude)),5),by=Site.Key]
-  DataZ[,Longitude:=round(mean(unique(Longitude)),5),by=Site.Key]
+  Data[,Latitude:=round(mean(unique(Latitude)),5),by=Site.Key]
+  Data[,Longitude:=round(mean(unique(Longitude)),5),by=Site.Key]
   
-  # Save Data ####
-  
-  if(SaveCsv){
-    NAME<-paste0(if(is.na(SaveName)){paste0(Folder,"/",Folder,"-Clean-Full-Wide.csv")}else{paste0(Folder,"/",SaveName,".csv")})
-    print(paste0("Final Step: Saving Wide dataset as ",NAME))
-    fwrite(DataZ, file=NAME)
-  }
-  
-  if(SaveR){
-    NAME<-paste0(if(is.na(SaveName)){paste0(Folder,"/",Folder,"-Clean-Full-Wide.R.Data")}else{paste0(Folder,"/",SaveName,".RData")})
-    print(paste0("Final Step: Saving Wide dataset as ",NAME))
-    save(DataZ,file=NAME)
-  }
-  
-  return(DataZ)
+  return(list(Data=Data,Errors=errors))
 }
 
-# Site Buffer Function
-BufferCalc<-function(Data,SaveError=T,Folder,Keep.No.Spatial=T){
-  options(scipen=999)
-  Data<-as.data.frame(Data)
-  # Note & exclude observations with no spatial information
-  MissingXY<-Data[(is.na(Data$LatD)|is.na(Data$LonD)),]
+# Calculate buffer distances and process spatial coordinates in a dataset
+BufferCalc <- function(Data, SaveError = TRUE, Folder, Keep.No.Spatial = TRUE) {
+  options(scipen = 999)  # Disable scientific notation for numbers
   
-  Data<-Data[!(is.na(Data$LatD)|is.na(Data$LonD)),]
+  # Convert Data to a data frame if it's not already
+  Data <- as.data.frame(Data)
   
-  X<-which(
-    grepl("[.]",as.character(Data$LatD)) & (!is.na(Data$LatM) | !is.na(Data$LatS))
-    |
-      grepl("[.]",as.character(Data$LonD)) & (!is.na(Data$LonM) | !is.na(Data$LonS))
+  # Identify and separate observations with missing spatial information
+  MissingXY <- Data[is.na(Data$LatD) | is.na(Data$LonD), ]
+  
+  # Exclude observations with missing spatial data from the main Data
+  Data <- Data[!(is.na(Data$LatD) | is.na(Data$LonD)), ]
+  
+  # Handle cases where decimal degrees are mixed with minutes or seconds
+  X <- which(
+    (grepl("[.]", as.character(Data$LatD)) & (!is.na(Data$LatM) | !is.na(Data$LatS))) |
+      (grepl("[.]", as.character(Data$LonD)) & (!is.na(Data$LonM) | !is.na(Data$LonS)))
   )
-  if(length(X)>0){
-    Data[X,c("LatM","LatS","LonM","LonS")]<-NA
+  if (length(X) > 0) {
+    # Remove minutes and seconds if decimal degrees are present
+    Data[X, c("LatM", "LatS", "LonM", "LonS")] <- NA
   }
   
-  # Create lat/lon columns for use in analysis
-  Data$Latitude<-Data$LatD
-  Data$Longitude<-Data$LonD
-  # Create Buffer Column:
-  Data$Buffer<-as.numeric("")
-  Data$BufferLa<-as.numeric("")
-  Data$BufferLo<-as.numeric("")
+  # Initialize Latitude and Longitude columns for analysis
+  Data$Latitude <- Data$LatD
+  Data$Longitude <- Data$LonD
   
-  # Calculate Accuracy from Decimal Degree spatial locations:
-  DD<-grep("[.]",as.character(Data$LatD))
-  DecimalPlaces<-nchar(unlist(strsplit(as.character(Data$LatD[DD]),"[.]"))[seq(2,length(unlist(strsplit(as.character(Data$LatD[DD]),"[.]"))),2)])
-  DecimalPlaces[DecimalPlaces==1]<-11000/2
-  DecimalPlaces[DecimalPlaces==2]<-1100/2
-  DecimalPlaces[DecimalPlaces>=3 & DecimalPlaces<=10]<-500/2
-  Data$BufferLa[DD]<-DecimalPlaces
+  # Initialize Buffer columns
+  Data$Buffer <- as.numeric("")
+  Data$BufferLa <- as.numeric("")
+  Data$BufferLo <- as.numeric("")
   
-  DD2<-grep("[.]",as.character(Data$LonD))
-  DecimalPlaces<-nchar(unlist(strsplit(as.character(Data$LonD[DD2]),"[.]"))[seq(2,length(unlist(strsplit(as.character(Data$LonD[DD2]),"[.]"))),2)])
-  DecimalPlaces[DecimalPlaces==1]<-11000/2
-  DecimalPlaces[DecimalPlaces==2]<-1100/2
-  DecimalPlaces[DecimalPlaces>=3 & DecimalPlaces<=10]<-500/2  # Minimum radius of unvalidated locations (i.e. those without a manual buffer estimation) = 500 m
-  Data$BufferLo[DD2]<-DecimalPlaces
+  # Calculate accuracy (buffer) from decimal degree spatial locations
+  # Find indices of observations with decimal degrees in latitude
+  DD <- grep("[.]", as.character(Data$LatD))
+  # Get number of decimal places after the decimal point
+  DecimalPlaces <- nchar(unlist(strsplit(as.character(Data$LatD[DD]), "[.]"))[seq(2, length(unlist(strsplit(as.character(Data$LatD[DD]), "[.]"))), 2)])
+  # Assign buffer distances based on number of decimal places
+  DecimalPlaces[DecimalPlaces == 1] <- 11000 / 2  # Approximate accuracy in meters
+  DecimalPlaces[DecimalPlaces == 2] <- 1100 / 2
+  DecimalPlaces[DecimalPlaces >= 3 & DecimalPlaces <= 10] <- 500 / 2
+  Data$BufferLa[DD] <- DecimalPlaces
   
-  # Convert DMS to DD and calculate accuracy from DMS spatial locations:
-  # Degrees Only: No decimal point for DD, no minutes and no seconds recorded
-  Data$BufferLa[!grepl("[.]",as.character(Data$LatD)) & is.na(Data$LatM) & is.na(Data$LatS)]<-110000/2
-  Data$BufferLo[!grepl("[.]",as.character(Data$LonD)) & is.na(Data$LonM) & is.na(Data$LonS)]<-110000/2
+  # Repeat the same process for longitude
+  DD2 <- grep("[.]", as.character(Data$LonD))
+  DecimalPlaces <- nchar(unlist(strsplit(as.character(Data$LonD[DD2]), "[.]"))[seq(2, length(unlist(strsplit(as.character(Data$LonD[DD2]), "[.]"))), 2)])
+  DecimalPlaces[DecimalPlaces == 1] <- 11000 / 2
+  DecimalPlaces[DecimalPlaces == 2] <- 1100 / 2
+  DecimalPlaces[DecimalPlaces >= 3 & DecimalPlaces <= 10] <- 500 / 2
+  Data$BufferLo[DD2] <- DecimalPlaces
   
-  # Minutes Only:
-  Minute<-round(0.5*110000/60) # 1/60th of a degree = diameter (half of this is the radius)
+  # Calculate accuracy from Degrees, Minutes, Seconds (DMS) spatial locations
+  # Degrees Only: No decimal point, no minutes, no seconds
+  Data$BufferLa[!grepl("[.]", as.character(Data$LatD)) & is.na(Data$LatM) & is.na(Data$LatS)] <- 110000 / 2
+  Data$BufferLo[!grepl("[.]", as.character(Data$LonD)) & is.na(Data$LonM) & is.na(Data$LonS)] <- 110000 / 2
   
-  X<-which(!is.na(Data$LatM) & is.na(Data$LatS))
-  if(length(X)>0){
-    Data$BufferLa[X]<-Minute
-    Data$Latitude[X]<-Data$LatD[X]+Data$LatM[X]/60
+  # Minutes Only (no seconds)
+  Minute <- round(0.5 * 110000 / 60)  # Approximate buffer for minute precision
+  # Latitude with minutes but no seconds
+  X <- which(!is.na(Data$LatM) & is.na(Data$LatS))
+  if (length(X) > 0) {
+    Data$BufferLa[X] <- Minute
+    Data$Latitude[X] <- Data$LatD[X] + Data$LatM[X] / 60
+  }
+  # Longitude with minutes but no seconds
+  X <- which(!is.na(Data$LonM) & is.na(Data$LonS))
+  if (length(X) > 0) {
+    Data$BufferLo[X] <- Minute
+    Data$Longitude[X] <- Data$LonD[X] + Data$LonM[X] / 60  
   }
   
-  X<-which(!is.na(Data$LonM) & is.na(Data$LonS))
-  if(length(X)>0){
-    Data$BufferLo[X]<-Minute
-    Data$Longitude[X]<-Data$LonD[X]+Data$LonM[X]/60  
+  # Minutes and Seconds
+  Second <- 500 / 2  # Minimum buffer for second precision
+  # Latitude with minutes and seconds
+  X <- which(!is.na(Data$LatM) & !is.na(Data$LatS))
+  if (length(X) > 0) {
+    Data$BufferLa[X] <- Second
+    Data$Latitude[X] <- Data$LatD[X] + Data$LatM[X] / 60 + Data$LatS[X] / 3600
+  }
+  # Longitude with minutes and seconds
+  X <- which(!is.na(Data$LonM) & !is.na(Data$LonS))
+  if (length(X) > 0) {
+    Data$BufferLo[X] <- Second
+    Data$Longitude[X] <- Data$LonD[X] + Data$LonM[X] / 60 + Data$LonS[X] / 3600
   }
   
-  # Minutes and Seconds:
-  Second<-500/2 # Minimum radius of unvalidated locations (i.e. those without a manual buffer estimation) = 500 m
+  # Handle inconsistent formats where latitude and longitude are recorded differently
+  DD3 <- which(!grepl("[.]", as.character(Data$LatD)) & is.na(Data$LatM) & is.na(Data$LatS))
+  DD4 <- which(!grepl("[.]", as.character(Data$LonD)) & is.na(Data$LonM) & is.na(Data$LonS))
   
-  X<-which(!is.na(Data$LatM) & !is.na(Data$LatS))
-  if(length(X)>0){
-    Data$BufferLa[X]<-Second
-    Data$Latitude[X]<-Data$LatD[X]+Data$LatM[X]/60+Data$LatS[X]/60^2
-  }
-  X<-which(!is.na(Data$LonM) & !is.na(Data$LonS))
-  if(length(X)>0){
-    Data$BufferLo[X]<-Second
-    Data$Longitude[X]<-Data$LonD[X]+Data$LonM[X]/60+Data$LonS[X]/60^2
-  }
+  X <- unique(c(DD[is.na(match(DD, DD2))], DD2[is.na(match(DD2, DD))], DD3[is.na(match(DD3, DD4))], DD4[is.na(match(DD4, DD3))]))
+  # Note: The variable 'X' is identified but not utilized further in this context
   
-  # Situations where lat and lon are recorded in inconsistent formats
-  DD3<-which(!grepl("[.]",as.character(Data$LatD)) & is.na(Data$LatM) & is.na(Data$LatS))
-  DD4<-which(!grepl("[.]",as.character(Data$LonD)) & is.na(Data$LonM) & is.na(Data$LonS))
+  # Choose minimum buffer width between latitude and longitude buffers
+  Data$Buffer <- apply(cbind(Data$BufferLa, Data$BufferLo), 1, min, na.rm = TRUE)
   
-  X<-unique(c(DD[is.na(match(DD,DD2))],DD2[is.na(match(DD2,DD))],DD3[is.na(match(DD3,DD4))],DD4[is.na(match(DD4,DD3))]))
-  
-  # Choose minimum buffer width (assume where accuracy is lower for one value it's a rounding issue)
-  Data$Buffer<-apply(cbind(Data$BufferLa,Data$BufferLo),1,min,na.rm=TRUE)
-  
-  # Set decimal degrees to correct hemispheres:
-  X<-which(Data$LatH=="S" & Data$Latitude>0)
-  if(length(X)>0){
-    Data$Latitude[X]<-Data$Latitude[X]*-1
+  # Adjust sign for southern and western hemispheres
+  X <- which(Data$LatH == "S" & Data$Latitude > 0)
+  if (length(X) > 0) {
+    Data$Latitude[X] <- Data$Latitude[X] * -1
   }
   
-  X<-which(Data$LonH=="W" & Data$Longitude>0)
-  if(length(X)>0){
-    Data$Longitude[X]<-Data$Longitude[X]*-1
+  X <- which(Data$LonH == "W" & Data$Longitude > 0)
+  if (length(X) > 0) {
+    Data$Longitude[X] <- Data$Longitude[X] * -1
   }
   
-  # Add in accuracy where locations are averaged, this should be in minutes
-  Data$Lat.Diff<-as.numeric(Data$Lat.Diff)/60
-  Data$Buffer[!is.na(Data$Lat.Diff)]<-1500*Data$Lat.Diff[!is.na(Data$Lat.Diff)]/2 # Divided by two as this is the diameter not the radius
+  # Add accuracy where locations are averaged; 'Lat.Diff' should be in minutes
+  Data$Lat.Diff <- as.numeric(Data$Lat.Diff) / 60  # Convert minutes to degrees
+  Data$Buffer[!is.na(Data$Lat.Diff)] <- 1500 * Data$Lat.Diff[!is.na(Data$Lat.Diff)] / 2  # Calculate buffer
   
-  #Round locational accuracy to a sensible number of decimal places
-  Data$Latitude<-round(Data$Latitude,5)
-  Data$Longitude<-round(Data$Longitude,5)
+  # Round Latitude and Longitude to a sensible number of decimal places
+  Data$Latitude <- round(Data$Latitude, 5)
+  Data$Longitude <- round(Data$Longitude, 5)
   
-  # Round buffer
-  Data$Buffer<-as.integer(round(Data$Buffer))
+  # Round buffer values to integers
+  Data$Buffer <- as.integer(round(Data$Buffer))
   
-  # Replace Calcuated values with Manual values?
-  if(!is.null(Data$Buffer.Manual)){
-    Data$Buffer[!is.na(Data$Buffer.Manual)]<-Data$Buffer.Manual[!is.na(Data$Buffer.Manual)]
-    Data$Buffer.Manual<-NULL
-    if(nrow(MissingXY)>0){
-      MissingXY$Buffer.Manual<-NULL
+  # Replace calculated buffer values with manual values if available
+  if (!is.null(Data$Buffer.Manual)) {
+    Data$Buffer[!is.na(Data$Buffer.Manual)] <- Data$Buffer.Manual[!is.na(Data$Buffer.Manual)]
+    Data$Buffer.Manual <- NULL
+    if (nrow(MissingXY) > 0) {
+      MissingXY$Buffer.Manual <- NULL
     }
   }
   
-  # Remove unecessary fields
-  Data[,c("LatD","LatM","LatS","LatH","LonD","LonM","LonS","LonH","Lat.Diff","BufferLa","BufferLo")]<-NULL
+  # Remove unnecessary fields from Data
+  Data[, c("LatD", "LatM", "LatS", "LatH", "LonD", "LonM", "LonS", "LonH", "Lat.Diff", "BufferLa", "BufferLo")] <- NULL
   
-  # Use Lat, Long and Buffer to create a folder name and a unique spatial29* ID
-  Data$Site.Key<-paste0(sprintf("%07.4f",Data$Latitude)," ",sprintf("%07.4f",Data$Longitude)," B",Data$Buffer)
+  # Create a unique Site Key using Latitude, Longitude, and Buffer
+  Data$Site.Key <- paste0(sprintf("%07.4f", Data$Latitude), " ", sprintf("%07.4f", Data$Longitude), " B", Data$Buffer)
   
-  # Save "Error" data & add back in sites with missing spatial data?
-  if(nrow(MissingXY)>0){
-    if(SaveError){
-      if(!dir.exists(paste0(Folder,"/Errors"))){
-        dir.create(paste0(Folder,"/Errors"),recursive = T)
+  # Save error data and optionally add back in sites with missing spatial data
+  if (nrow(MissingXY) > 0) {
+    if (SaveError) {
+      # Create the Errors directory if it doesn't exist
+      if (!dir.exists(paste0(Folder, "/Errors"))) {
+        dir.create(paste0(Folder, "/Errors"), recursive = TRUE)
       }
-      fwrite(unique(MissingXY[,c("Code","Site.ID","Country","LatD","LatM","LatS","LatH","LonD","LonM","LonS","LonH","Lat.Diff")]),file=paste0(Folder,"/Errors/",Folder,"-MissingXY.csv"))
+      # Save the missing spatial data to a CSV file
+      fwrite(
+        unique(MissingXY[, c("Code", "Site.ID", "Country", "LatD", "LatM", "LatS", "LatH", "LonD", "LonM", "LonS", "LonH", "Lat.Diff")]),
+        file = paste0(Folder, "/Errors/", Folder, "-MissingXY.csv")
+      )
     }
     
-    if(Keep.No.Spatial){
-      MissingXY[,c("LatD","LatM","LatS","LatH","LonD","LonM","LonS","LonH","Lat.Diff")]<-NULL
-      MissingXY[,c("Latitude","Longitude","Buffer","Site.Key")]<-NA
-      Data<-rbind(Data,MissingXY)
+    if (Keep.No.Spatial) {
+      # Remove unnecessary fields from MissingXY
+      MissingXY[, c("LatD", "LatM", "LatS", "LatH", "LonD", "LonM", "LonS", "LonH", "Lat.Diff")] <- NULL
+      # Set spatial fields to NA
+      MissingXY[, c("Latitude", "Longitude", "Buffer", "Site.Key")] <- NA
+      # Combine MissingXY back into Data
+      Data <- rbind(Data, MissingXY)
     }
   }
   
+  # Convert Data back to a data.table
+  Data <- data.table(Data)
   
-  Data<-data.table(Data)
+  # Return the processed Data
   return(Data)
 }
+
+# Helper function to map data codes to master name, used in Code.2.Text function
+AddNames <- function(Data.Code, Master.Name, Master.Code, delim) {
+  # Match Data.Code to Master.Code and retrieve corresponding Master.Name
+  names <- Master.Name[match(Data.Code, Master.Code)]
+  # Return unique, sorted names concatenated with the delimiter
+  paste(sort(unique(names)), collapse = delim)
+}
+
+# Helper function to remove 'h' codes from code strings, used in Code.2.Text
+RmHCodes <- function(Codes, Delim) {
+  # Split the codes by delimiter
+  X <- unlist(strsplit(Codes, Delim))
+  # Remove codes that contain 'h'
+  X <- X[!grepl("h", X)]
+  # Reassemble the codes with the delimiter
+  paste(sort(X), collapse = Delim)
+}
+
+# Map coded variables in a dataset to descriptive text labels for outcomes, practices, and products
+Code.2.Text <- function(Data, OutcomeCodes, PracticeCodes, EUCodes, Keep.hcode, AddCodes = FALSE,delim) {
+  
+  # Process Outcome Codes
+  Data[, Outcode := as.character(Outcode)]
+  delim <- "-"
+  
+  # Map outcome codes to their respective Pillar, Subpillar, Indicator, and Subindicator names
+  Data[, Out.Pillar := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                Master.Name = OutcomeCodes[, Pillar],
+                                Master.Code = OutcomeCodes[, Code],
+                                delim = delim),
+       by = Outcode]
+  
+  Data[, Out.SubPillar := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                   Master.Name = OutcomeCodes[, Subpillar],
+                                   Master.Code = OutcomeCodes[, Code],
+                                   delim = delim),
+       by = Outcode]
+  
+  Data[, Out.Ind := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                             Master.Name = OutcomeCodes[, Indicator],
+                             Master.Code = OutcomeCodes[, Code],
+                             delim = delim),
+       by = Outcode]
+  
+  Data[, Out.SubInd := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                Master.Name = OutcomeCodes[, Subindicator],
+                                Master.Code = OutcomeCodes[, Code],
+                                delim = delim),
+       by = Outcode]
+  
+  # If AddCodes is TRUE, map additional code information
+  if (AddCodes) {
+    Data[, Out.SubInd.S := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                    Master.Name = OutcomeCodes[, Subindicator.Short],
+                                    Master.Code = OutcomeCodes[, Code],
+                                    delim = delim),
+         by = Outcode]
+    
+    delim <- "/"
+    
+    Data[, Out.Pillar.Code := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                       Master.Name = OutcomeCodes[, Pillar.Code],
+                                       Master.Code = OutcomeCodes[, Code],
+                                       delim = delim),
+         by = Outcode]
+    
+    Data[, Out.SubPillar.Code := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                          Master.Name = OutcomeCodes[, Subpillar.Code],
+                                          Master.Code = OutcomeCodes[, Code],
+                                          delim = delim),
+         by = Outcode]
+    
+    Data[, Out.Ind.Code := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                    Master.Name = OutcomeCodes[, Indicator.Code],
+                                    Master.Code = OutcomeCodes[, Code],
+                                    delim = delim),
+         by = Outcode]
+    
+    Data[, Out.SubInd.Code := AddNames(Data.Code = unlist(strsplit(Outcode[1], "-")),
+                                       Master.Name = OutcomeCodes[, Subindicator.Code],
+                                       Master.Code = OutcomeCodes[, Code],
+                                       delim = delim),
+         by = Outcode]
+  }
+  
+  # Process Practice Codes
+  if (!Keep.hcode) {
+    # Remove 'h' codes from plist and base.list
+    Data[, plist := RmHCodes(plist[1], "-"), by = plist]
+    Data[, base.list := RmHCodes(base.list[1], "-"), by = base.list]
+  }
+  
+  delim <- "-"
+  
+  # Map practice codes to their respective Subpractice, Practice, and Theme names
+  Data[, SubPrName := AddNames(Data.Code = unlist(strsplit(plist[1], "-")),
+                               Master.Name = PracticeCodes[, Subpractice.S],
+                               Master.Code = PracticeCodes[, Code],
+                               delim = delim),
+       by = plist]
+  
+  Data[, PrName := AddNames(Data.Code = unlist(strsplit(plist[1], "-")),
+                            Master.Name = PracticeCodes[, Practice],
+                            Master.Code = PracticeCodes[, Code],
+                            delim = delim),
+       by = plist]
+  
+  Data[, Theme := AddNames(Data.Code = unlist(strsplit(plist[1], "-")),
+                           Master.Name = PracticeCodes[, Theme],
+                           Master.Code = PracticeCodes[, Code],
+                           delim = delim),
+       by = plist]
+  
+  # If AddCodes is TRUE, map additional practice code information
+  if (AddCodes) {
+    delim <- "/"
+    
+    Data[, SubPrName.Code := AddNames(Data.Code = unlist(strsplit(plist[1], "-")),
+                                      Master.Name = PracticeCodes[, Subpractice.Code],
+                                      Master.Code = PracticeCodes[, Code],
+                                      delim = delim),
+         by = plist]
+    
+    Data[, PrName.Code := AddNames(Data.Code = unlist(strsplit(plist[1], "-")),
+                                   Master.Name = PracticeCodes[, Practice.Code],
+                                   Master.Code = PracticeCodes[, Code],
+                                   delim = delim),
+         by = plist]
+    
+    Data[, Theme.Code := AddNames(Data.Code = unlist(strsplit(plist[1], "-")),
+                                  Master.Name = PracticeCodes[, Theme.Code],
+                                  Master.Code = PracticeCodes[, Code],
+                                  delim = delim),
+         by = plist]
+  }
+  
+  # Process Base Practice Codes if available
+  if (!is.null(Data$base.list)) {
+    delim <- "-"
+    
+    Data[, SubPrName.Base := AddNames(Data.Code = unlist(strsplit(base.list[1], "-")),
+                                      Master.Name = PracticeCodes[, Subpractice.S],
+                                      Master.Code = PracticeCodes[, Code],
+                                      delim = delim),
+         by = base.list]
+    
+    Data[, PrName.Base := AddNames(Data.Code = unlist(strsplit(base.list[1], "-")),
+                                   Master.Name = PracticeCodes[, Practice],
+                                   Master.Code = PracticeCodes[, Code],
+                                   delim = delim),
+         by = base.list]
+    
+    Data[, Theme.Base := AddNames(Data.Code = unlist(strsplit(base.list[1], "-")),
+                                  Master.Name = PracticeCodes[, Theme],
+                                  Master.Code = PracticeCodes[, Code],
+                                  delim = delim),
+         by = base.list]
+    
+    if (AddCodes) {
+      delim <- "/"
+      
+      Data[, SubPrName.Base.Code := AddNames(Data.Code = unlist(strsplit(base.list[1], "-")),
+                                             Master.Name = PracticeCodes[, Subpractice.Code],
+                                             Master.Code = PracticeCodes[, Code],
+                                             delim = delim),
+           by = base.list]
+      
+      Data[, PrName.Base.Code := AddNames(Data.Code = unlist(strsplit(base.list[1], "-")),
+                                          Master.Name = PracticeCodes[, Practice.Code],
+                                          Master.Code = PracticeCodes[, Code],
+                                          delim = delim),
+           by = base.list]
+      
+      Data[, Theme.Base.Code := AddNames(Data.Code = unlist(strsplit(base.list[1], "-")),
+                                         Master.Name = PracticeCodes[, Theme.Code],
+                                         Master.Code = PracticeCodes[, Code],
+                                         delim = delim),
+           by = base.list]
+    }
+  }
+  
+  # Process Product Codes
+  delim <- "-"
+  
+  Data[, Product := AddNames(Data.Code = unlist(strsplit(EUlist[1], "-")),
+                             Master.Name = EUCodes[, Product],
+                             Master.Code = EUCodes[, EU],
+                             delim = delim),
+       by = EUlist]
+  
+  Data[, Product.Type := AddNames(Data.Code = unlist(strsplit(EUlist[1], "-")),
+                                  Master.Name = EUCodes[, Product.Type],
+                                  Master.Code = EUCodes[, EU],
+                                  delim = delim),
+       by = EUlist]
+  
+  Data[, Product.Subtype := AddNames(Data.Code = unlist(strsplit(EUlist[1], "-")),
+                                     Master.Name = EUCodes[, Product.Subtype],
+                                     Master.Code = EUCodes[, EU],
+                                     delim = delim),
+       by = EUlist]
+  
+  Data[, Product.Simple := AddNames(Data.Code = unlist(strsplit(EUlist[1], "-")),
+                                    Master.Name = EUCodes[, Product.Simple],
+                                    Master.Code = EUCodes[, EU],
+                                    delim = delim),
+       by = EUlist]
+  
+  if (AddCodes) {
+    delim <- "/"
+    
+    Data[, Product.Type.Code := AddNames(Data.Code = unlist(strsplit(EUlist[1], "-")),
+                                         Master.Name = EUCodes[, Product.Type.Code],
+                                         Master.Code = EUCodes[, EU],
+                                         delim = delim),
+         by = EUlist]
+    
+    Data[, Product.Subtype.Code := AddNames(Data.Code = unlist(strsplit(EUlist[1], "-")),
+                                            Master.Name = EUCodes[, Product.Subtype.Code],
+                                            Master.Code = EUCodes[, EU],
+                                            delim = delim),
+         by = EUlist]
+    
+    Data[, Product.Simple.Code := AddNames(Data.Code = unlist(strsplit(EUlist[1], "-")),
+                                           Master.Name = EUCodes[, Product.Simple.Code],
+                                           Master.Code = EUCodes[, EU],
+                                           delim = delim),
+         by = EUlist]
+  }
+  
+  # Return the modified Data
+  return(Data)
+}
+
+#Split a product code into components, merging single-character elements with preceding elements
+SplitProd <- function(X) {
+  # Split the input string by periods into a character vector
+  X <- unlist(strsplit(X, "[.]"))
+  
+  # Initialize the result vector Y with the first element of X
+  Y <- X[1]
+  
+  # If there are more elements, process them
+  if (length(X) > 1) {
+    for (i in 2:length(X)) {
+      if (nchar(X[i]) == 1) {
+        # If the current element is a single character,
+        # append it to the previous element in Y with a period
+        Y[i - 1] <- paste0(Y[i - 1], ".", X[i])
+      } else {
+        # If the current element has more than one character,
+        # add it as a new element in Y
+        Y <- c(Y, X[i])
+      }
+    }
+  }
+  
+  # Return the processed vector Y
+  return(Y)
+}
+
+#Extracts unique treatment codes not present in control codes and identifies common codes between treatments and controls for each row in the dataset.
+ExtractTreatment <- function(Data, cores, N.Cols, LIST = TRUE) {
+  # Ensure Data is a data.table
+  Data <- as.data.table(Data)
+  
+  # Set up the future plan for parallel processing
+  if (cores > 1) {
+    # Use multisession plan for parallel execution across multiple R sessions
+    plan(multisession, workers = cores)
+  } else {
+    # Use sequential plan if only one core is specified
+    plan(sequential)
+  }
+  
+  if (LIST) {
+    # If LIST is TRUE, we want the output in list format
+    
+    # Extract the treatment codes not present in control for each row
+    Data[, plist := future_lapply(.I, function(i) {
+      # Get control codes for row i
+      cset <- unlist(Data[i, paste0("C", 1:N.Cols), with = FALSE])
+      # Get treatment codes for row i
+      tset <- unlist(Data[i, paste0("T", 1:N.Cols), with = FALSE])
+      # Remove NA values and empty strings from cset and tset
+      cset <- cset[!is.na(cset) & cset != ""]
+      tset <- tset[!is.na(tset) & tset != ""]
+      # Find codes present in treatment but not in control
+      Y <- setdiff(tset, cset)
+      # Exclude empty strings
+      Y[Y != ""]
+    }, future.seed = TRUE)]
+    
+    # Extract the common codes between control and treatment for each row
+    Data[, base.list := unlist(future_lapply(.I, function(i) {
+      # Get control codes for row i
+      cset <- unlist(Data[i, paste0("C", 1:N.Cols), with = FALSE])
+      # Get treatment codes for row i
+      tset <- unlist(Data[i, paste0("T", 1:N.Cols), with = FALSE])
+      # Remove NA values and empty strings
+      cset <- cset[!is.na(cset) & cset != ""]
+      tset <- tset[!is.na(tset) & tset != ""]
+      # Find common codes between control and treatment
+      Y <- intersect(tset, cset)
+      Y <- Y[Y != ""]
+      # Concatenate common codes with '-' separator
+      paste(Y, collapse = "-")
+    }, future.seed = TRUE))]
+    
+  } else {
+    # If LIST is FALSE, we want the output in vector format
+    
+    # Extract the treatment codes not present in control for each row
+    Data[, plist := future_sapply(.I, function(i) {
+      # Get control codes for row i
+      cset <- unlist(Data[i, paste0("C", 1:N.Cols), with = FALSE])
+      # Get treatment codes for row i
+      tset <- unlist(Data[i, paste0("T", 1:N.Cols), with = FALSE])
+      # Remove NA values and empty strings
+      cset <- cset[!is.na(cset) & cset != ""]
+      tset <- tset[!is.na(tset) & tset != ""]
+      # Find codes present in treatment but not in control
+      Y <- setdiff(tset, cset)
+      Y <- Y[Y != ""]
+      # Concatenate unique treatment codes with ',' separator
+      paste(Y, collapse = ",")
+    }, future.seed = TRUE)]
+    
+    # Extract the common codes between control and treatment for each row
+    Data[, base.list := future_sapply(.I, function(i) {
+      # Get control codes for row i
+      cset <- unlist(Data[i, paste0("C", 1:N.Cols), with = FALSE])
+      # Get treatment codes for row i
+      tset <- unlist(Data[i, paste0("T", 1:N.Cols), with = FALSE])
+      # Remove NA values and empty strings
+      cset <- cset[!is.na(cset) & cset != ""]
+      tset <- tset[!is.na(tset) & tset != ""]
+      # Find common codes between control and treatment
+      Y <- intersect(tset, cset)
+      Y <- Y[Y != ""]
+      # Concatenate common codes with '-' separator
+      paste(Y, collapse = "-")
+    }, future.seed = TRUE)]
+  }
+  
+  # Reset the future plan to sequential
+  plan(sequential)
+  
+  # Return the updated Data table
+  return(Data)
+}
+
   # 0.3) Set Cores for Parallel #####
 # Detect the number of cores in your system & set number for parallel processing 
 cores<-max(1, parallel::detectCores() - 1)
+
+  # 0.4) Set error dir ####
 
 # 1) Load data ####
   # 1.1) Load era vocab #####
@@ -798,11 +778,7 @@ master_codes$
 UnitHarmonization<-master_codes$unit_harmonization
 UnitHarmonization[Out.Unit.Correct==""|is.na(Out.Unit.Correct),Out.Unit.Correct:=Out.Unit]
 
-# Download AEZ code mappings
-#AEZ.Mappings<-data.table::fread("Concept Scheme/AEZ_Mappings.csv",header=T,strip.white=F,encoding="Latin-1")
-AEZ.Mappings<-master_codes$aez
-
-  # 1.3) Set era dataset locations ####
+  # 1.3) REMOVE? Set era dataset locations ####
 # Find most recent 2018 dataset
 filename18<-grep(".parquet",tail(list.files(era_dirs$era_masterdata_dir,"v1[.]0",recursive = F,full.names = T),1),value=T)
 filename18_simple<-gsub("era_data_|[.]parquet","",basename(filename18))
@@ -818,18 +794,17 @@ filename22_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basen
 # Create combined file name (this is the name used to save the compiled dataset)
 filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filename22_simple),collapse="-")
 
-# !!Remove: Set climate information locations ####
-#era_geodata_dir<-era_dirs$era_geodata_dir
-
-# Note that data in the below Climate, Soil and AEZ  directories are extracted for ERA sites using another script
-# Set climate directory containing "AEZ_MAP_MAT.RData"
-#ClimateDir<-paste0(getwd(),"/Climate/Climate Past/")
-
-# Set soils directory containing "SoilGrids Data.csv"
-#SoilsDir<-paste0(getwd(),"/Soils/")
-
-# Set directory containing AEZ zone data "HChoice.csv"
-#AEZDir<-paste0(getwd(),"/Other Linked Datasets/")
+    #era_geodata_dir<-era_dirs$era_geodata_dir
+    
+    # Note that data in the below Climate, Soil and AEZ  directories are extracted for ERA sites using another script
+    # Set climate directory containing "AEZ_MAP_MAT.RData"
+    #ClimateDir<-paste0(getwd(),"/Climate/Climate Past/")
+    
+    # Set soils directory containing "SoilGrids Data.csv"
+    #SoilsDir<-paste0(getwd(),"/Soils/")
+    
+    # Set directory containing AEZ zone data "HChoice.csv"
+    #AEZDir<-paste0(getwd(),"/Other Linked Datasets/")
 
   # 1.4) Read in and prepare ERA datasets ####
   # Check if .R object, if not read in xlsx file and convert to R
@@ -869,7 +844,7 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
       errors$duplicate_indices_2018<-error_dat
       warning("Duplicate row indices in 2018 dataset.")
     }
-    # 1.4.1.x) FIX THE RAW DATASET - Fix encoding issue with Site.ID ######
+      # 1.4.1.x) BETTER TO FIX THE RAW DATASET - Fix encoding issue with Site.ID ######
     install.packages("gsubfn")
     library(gsubfn)
     
@@ -1550,125 +1525,81 @@ era_merged<-era_merged[!Index %in% ERA.in.C.not.in.T2[,Index]]
 
 
 # 2) Compile ERA ####
-
-system.time(
-  DataZ<-CompileCompendiumWide(Data=Data,
-                               OutcomeCodes=OutcomeCodes,
-                               EUCodes=EUCodes,
-                               PracticeCodes=PracticeCodes,
-                               Folder= era_dirs$era_masterdata_dir,
-                               SaveName="ERA Wide",
-                               cores=cores,
-                               SaveCsv=F,
-                               SaveR=F,
-                               VERBOSE=F,  
-                               AddText=T,
-                               delim="-",
-                               AddBuffer=T,
-                               Keep.No.Spatial=T,
-                               Keep.hcode=F,
-                               N.Cols=N.Cols,
-                               DoWide=F)
-)
-
-
-DataZ[Product.Simple=="NA",Product.Simple:=NA]
-
-# Compare 2020 vs 2018 ####
-if(F){
-  DataZ.1820<-DataZ[Code %in% unique(DataZ[Version==2018,Code][DataZ[Version==2018,Code] %in% DataZ[Version==2020,Code]])]
-  DataZ.1820[,EUlist:=as.character(paste(EUlist,collapse = "-")),by=Index][,EUlist:=as.character(EUlist)]
-  DataZ.1820[,plist:=as.character(paste(plist,collapse = "-")),by=Index]
-  DataZ.1820[,base.list:=as.character(paste(base.list,collapse = "-")),by=Index]
+  system.time(
+    result<-compile_era(Data=era_merged,
+                       OutcomeCodes=OutcomeCodes,
+                       EUCodes=EUCodes,
+                       PracticeCodes=PracticeCodes,
+                       cores=cores,
+                       VERBOSE=F,  
+                       AddText=T,
+                       delim="-",
+                       AddBuffer=T,
+                       Keep.No.Spatial=T,
+                       Keep.hcode=F)
+    )
   
-  write.table(DataZ.1820,"clipboard-256000",row.names = F,sep="\t")
-  
-  X<-DataZ.1820[,list(Obs=.N),by=list(Code,Version,Out.SubInd)][,Version:=paste0("V",Version)]
-  X<-dcast(X,Code+Out.SubInd~Version,value.var = "Obs")[is.na(V2020),V2020:=0]
-  X[,Diff:=V2020-V2018]
-  write.table(X,"clipboard",row.names = F,sep="\t")
-}
+  ERA.Compiled<-result$Data
+  errors$compilation_validation_checks<-rbindlist(result$Errors)
+  ERA.Compiled[Product.Simple=="NA",Product.Simple:=NA][,Buffer:=as.numeric(Buffer)]
 
-#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #
+# 3) Add biophysical data ####
+  # 3.1) Prepare data ####
+  # Note that environmental data scripts must have been run on the compiled ERA dataset, see ERA_dev/R/add_geodata
+    # 3.1.1) Load environmental data
+    Env.Data<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_others.parquet"))
+    POWER<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"POWER_ltavg.parquet"))
+    Soils<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet"))
+    
+    # !!!!NEED TO CREATE CHIRPS.LT.RData File ####
+    # CHIRPS<-data.table(load.Rdata2("CHIRPS.LT.RData",path=paste0(ClimateDir,"CHIRPS/")))
+    CHIRPS<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"CHIRPS.parquet"))
+    CHIRPS<-CHIRPS[,N:=.N,by=.(Site.ID,Latitude,Longitude,Buffer,Year)
+                   ][N>=365
+                     ][,.(Total.Rain=sum(Rain,na.rm=T),Mean.Annual.Temp=mean(Temp.Mean,na.rm=T)),by=.(Site.ID,Latitude,Longitude,Buffer,Year)
+                       ][,.(Total.Rain=mean(Total.Rain,na.rm=T),Mean.Annual.Temp=mean(Mean.Annual.Temp,na.rm=T)),by=.(Site.ID,Latitude,Longitude,Buffer)
+                         ][,Site.Key:=paste0(sprintf("%07.4f", Latitude[1]), " ", sprintf("%07.4f", Longitude[1]), " B", Buffer[1]),by=.(Latitude,Longitude,Buffer)]
+    
+    # Initialize AEZ mappings from era_master_table
+    AEZ.Mappings<-master_codes$aez
+    
+    # Subset Data to Site.Keys
+    Climate<-unique(ERA.Compiled[!is.na(Site.Key),"Site.Key"])
+    
+    # 3.1.2) Prepare climate data ######
+    # Add AEZ
+    Climate[,AEZCode:=Env.Data[match(Climate[,Site.Key],Site.Key),'SSA-aez09.Mode']]
+    Climate[,AEZ16simple:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ.TempHumid.Name]]
+    Climate[,AEZ16:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ16.Name]]
+    Climate[,AEZCode:=Env.Data[match(Climate[,Site.Key],Site.Key),"AEZ5_CLAS--SSA.Mode"]]
+    Climate[,AEZ5:=AEZ.Mappings[match(Climate[,AEZCode],AEZ5.Value),AEZ5.Name]]
+    Climate[,AEZCode:=NULL]
+    
+    # Add CHIRPS
+    Climate[,Mean.Annual.Precip:=CHIRPS[match(Climate[,Site.Key],Site.Key),Total.Rain]]
+    
+    # Add POWER
+    Climate[,Mean.Annual.Temp:=POWER[match(Climate[,Site.Key],Site.Key),Temp.Mean.Mean]]
+    
+    # Save climate file
+    fwrite(Climate,file=file.path(era_dirs$era_geodata_dir,paste0("AEZ_MAP_MAT-",Sys.Date(),".csv")))
+    
+    # 3.1.3) Prepare soil data  ######
+    # Calulate weighted mean soil parameter values weighted by depth interval
+    Soils<-Soils[stat=="mean" & variable %in% c("clay.tot.psa","sand.tot.psa","silt.tot.psa")
+                 ][,interval:=mean(as.numeric(unlist(strsplit(gsub("cm","",depth[1]),"-")))),by=depth
+                   ][,.(value=round(weighted.mean(value,interval),1)),by=.(Site.Key,variable)
+                     ][,variable:=gsub("[.]tot[.]psa","",variable)]
+    
+    Soils<-data.table(dcast(Soils,Site.Key~variable))
+    
+    col_mappings<-c(sand="SND",silt="SLT",clay="CLY")
+    
+    setnames(Soils,names(col_mappings),col_mappings)
+    
+  # 3.2) Merge biophysical data ######
+    ERA.Compiled<-cbind(ERA.Compiled,Climate[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"],Soils[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"])
 
-# Remove 2018 papers in 2020 version ####
-ERA.Compiled<-DataZ[!(Version==2018 & Code %in% unique(DataZ[Version==2018,Code][DataZ[Version==2018,Code] %in% DataZ[Version==2020,Code]]))]
-
-# Remove non-comparisons ###
-ERA.Compiled[,N.Prac:=length(unlist(strsplit(plist,"-"))),by=plist]
-
-# Validation: Check for where no ERA practices are present
-No.Comparisons<-ERA.Compiled[N.Prac==0]
-if(nrow(No.Comparisons)>0){
-  View(unique(No.Comparisons[,list(Code,plist,Version,CID,TID,Out.SubInd,DataLoc)]))
-  fwrite(No.Comparisons,paste0(FilenameCombined,"/Errors/Check Practice Codes - No diff btw C & T or only h code differs.csv"))
-}
-
-ERA.Compiled<-ERA.Compiled[!N.Prac==0][,N.Prac:=NULL]
-rm(No.Comparisons)
-
-# Add Environmental Data ####
-# Note that environmental data scripts must have been run on the compiled ERA dataset prior to the below
-# Load environmental data
-Env.Data<-data.table::fread("Other Linked Datasets/Other Linked Datasets 2022-04-04.csv")
-CHIRPS<-data.table(load.Rdata2("CHIRPS.LT.RData",path=paste0(ClimateDir,"CHIRPS/")))
-POWER<-data.table(load.Rdata2("POWER.LT.RData",path=paste0(ClimateDir,"POWER/")))
-Soils<-data.table::fread("Soils/SoilGrids Data.csv")
-
-# Subset Data to Site.Keys
-Climate<-unique(ERA.Compiled[!is.na(Site.Key),"Site.Key"])
-
-# Add climate data ####
-# Add AEZ
-Climate[,AEZCode:=Env.Data[match(Climate[,Site.Key],Site.Key),'SSA-aez09.Mode']]
-Climate[,AEZ16simple:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ.TempHumid.Name]]
-Climate[,AEZ16:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ16.Name]]
-Climate[,AEZCode:=Env.Data[match(Climate[,Site.Key],Site.Key),"AEZ5_CLAS--SSA.Mode"]]
-Climate[,AEZ5:=AEZ.Mappings[match(Climate[,AEZCode],AEZ5.Value),AEZ5.Name]]
-Climate[,AEZCode:=NULL]
-
-# Add CHIRPS
-Climate[,Mean.Annual.Precip:=CHIRPS[match(Climate[,Site.Key],Site.Key),Total.Rain]]
-
-# Add POWER
-Climate[,Mean.Annual.Temp:=POWER[match(Climate[,Site.Key],Site.Key),Temp.Mean.Mean]]
-
-# Save climate file ####
-fwrite(Climate,file=paste0(ClimateDir,"AEZ_MAP_MAT.csv"))
-
-# Add soil data  ####
-Cols<-c("Site.Key",grep("Mean",colnames(Soils),invert = F,value = T))
-Soils<-Soils[,..Cols]
-
-VARS<-c("SND","SLT","CLY")
-
-# Calulate weighted mean soil parameter values across depths sl1 (0-5cm),sl2 (5-15cm) & sl3 (15-30cm)
-Soils<-rbindlist(lapply(VARS,FUN=function(VAR){
-  COLS<-c("Site.Key",colnames(Soils)[grepl(VAR,colnames(Soils))])
-  X<-data.table(melt(Soils[,..COLS],"Site.Key"))
-  X[,Variable:=VAR]
-  X[grepl("sl1",variable),Weight:=5/30]
-  X[grepl("sl2",variable),Weight:=10/30]
-  X[grepl("sl3",variable),Weight:=15/30]
-  X
-}))
-
-Soils<-Soils[,weighted.mean(value,Weight),by=c("Variable","Site.Key")]
-Soils<-data.table(dcast(Soils,Site.Key~Variable))
-
-rm(Cols,VARS)
-
-# Check for absence of practice comparison ####
-ERA.Compiled[is.na(plist)|plist==""|length(plist)==0]
-
-# Check outcomes with NA MeanC values ####
-ERA.Compiled[is.na(MeanC) & Out.SubPillar != "Efficiency" & Out.SubInd=="Crop Yield" & !grepl("LER",Units),list(Code,Index,DataLoc,MeanC,MeanT,Out.SubInd)]
-ERA.Compiled[is.na(MeanC) & Out.SubPillar != "Efficiency" & Out.SubInd=="Soil Organic Carbon" & !grepl("LER",Units),list(Code,Index,DataLoc,MeanC,MeanT,Out.SubInd)]
-
-ERA.Compiled<-data.table(ERA.Compiled,Climate[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"],Soils[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"])
-
-ERA.Compiled[is.na(MeanC) & Out.SubPillar != "Efficiency",list(C.Descrip,T.Descrip,MeanT,MeanC,C1,C2,C3,T1,T2,T3,Out.SubInd)]
-ERA.Compiled[is.na(MeanC) & Out.SubPillar != "Efficiency" & !Out.SubInd %in% c("Crop Yield","Soil Organic Carbon"),unique(Out.SubInd)]
 
 # Attempt to standardize text encoding
 
@@ -1684,30 +1615,42 @@ TextStand<-function(Data){
 ERA.Compiled[,C.Descrip:=TextStand(C.Descrip)]
 ERA.Compiled[,T.Descrip:=TextStand(T.Descrip)]
 
-# Split off Economic outcomes with no comparison ####
-
+# 4) Split off Economic outcomes with no comparison ####
 ERA.Compiled.Econ<-ERA.Compiled[is.na(MeanC) & Out.SubPillar != "Efficiency" & !Out.SubInd %in% c("Crop Yield","Soil Organic Carbon"),]
-
 ERA.Compiled<-ERA.Compiled[!Index %in% ERA.Compiled.Econ[,Index]]
 
-unique(ERA.Compiled.Econ[,list(Code,C1,C2,C3,Version)])
+# 4.1) Validation  #####
+  # 4.1.1) Check for where no ERA practices are present ######
+  error_dat<-ERA.Compiled[plist=="",.(Index=paste(Index,collapse=","),Version=Version[1]),by=.(Code,C.Descrip,T.Descrip)][,issue:="No practices in plist (no valid comparison found)?."]
+  unique(error_dat[,.(Code,Version)])
+  
+  error_file<-file.path(era_dirs$era_masterdata_dir,paste0(filename_comb,"_no_comparions.csv"))
+  fwrite(error_dat,error_file)
 
-# Save Data ####
-SaveDir<-paste0(getwd(),"/",FilenameCombined,"/")
-if(!dir.exists(SaveDir)){
-  dir.create(SaveDir)
-}
+  # 4.1.2) Check for residual outcomes with NA MeanC values ######
+  error_dat<-ERA.Compiled[is.na(MeanC) & 
+                            Out.SubPillar != "Efficiency" & 
+                            !Out.SubInd %in% c(OutcomeCodes[Subpillar=="Economics",Subindicator],"Fuel Savings","Labour Person Hours"),
+                          .(value=paste(unique(C.Descrip),collapse="/"),
+                            Version=Version[1]),by=.(Code)
+  ][,issue:="No value is present in MeanC"]
+  
+  errors$no_value_in_MeanC<-error_dat
+  
+  
+  # 4.2) Remove no comparisons
+  ERA.Compiled<-ERA.Compiled[plist!=""]
 
 
-save(ERA.Compiled,file=paste0(SaveDir,"ERA Wide.RData"))
-save(ERA.Compiled.Econ,file=paste0(SaveDir,"ERA Wide Econ Only.RData"))
+  # 4.1.3) Check for missing climate data ######
+  unique(ERA.Compiled[is.na(AEZ16simple) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,Version)])
+  unique(ERA.Compiled[!is.na(M.Year) & is.na(CLY) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,Version)])
+  unique(ERA.Compiled[!is.na(M.Year) & M.Year!="NA" & is.na(Mean.Annual.Precip) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,M.Year,Version)])
+  unique(ERA.Compiled[!is.na(M.Year) & M.Year!="NA" & is.na(Mean.Annual.Temp) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,M.Year,Version)])
+  
+# 5) Save results ####
+save_file<-file.path(era_dirs$era_masterdata_dir,paste0(filename_comb,".csv"))
+fwrite(ERA.Compiled,save_file)
 
-
-ERA.Compiled[,Buffer:=as.numeric(Buffer)]
-
-View(unique(ERA.Compiled[is.na(AEZ16simple) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key)]))
-
-# Tidy up
-rm(Soils,Climate,POWER,CHIRPS,Env.Data)
-
-`
+save_file<-file.path(era_dirs$era_masterdata_dir,paste0(gsub("era_compiled-","era_compiled_econ_only-",filename_comb),".csv"))
+fwrite(ERA.Compiled.Econ,save_file)
