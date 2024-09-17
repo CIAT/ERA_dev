@@ -12,6 +12,7 @@ pacman::p_load(data.table,
                countrycode,
                future,
                future.apply,
+               gsubfn,
                progressr,
                pbapply, 
                stringr,
@@ -748,37 +749,31 @@ cores<-max(1, parallel::detectCores() - 1)
 
   # 1.2) Read in concept and harmonization sheets ######
 # Outcomes
-#OutcomeCodes<-data.table::fread("Concept Scheme/Outcomes.csv",header=T,strip.white=F,encoding="Latin-1")
 OutcomeCodes<-master_codes$out
 if(sum(table(OutcomeCodes[,Code])>1)){print("Duplicate codes present in outcomes")}
 
 # Practice Codes
-#PracticeCodes<-data.table::fread("Concept Scheme/Practices.csv",header=T,strip.white=F,encoding="Latin-1")
 PracticeCodes<-master_codes$prac
 if(sum(table(PracticeCodes[,Code])>1)){print("Duplicate codes present in practices")}
 
 # Products
-#EUCodes<-data.table::fread("Concept Scheme/EU.csv",header=T,strip.white=F,encoding="Latin-1")[,1:18]
 EUCodes<-master_codes$prod
 if(sum(table(EUCodes[,EU])>1)){print("Duplicate codes present in products")}
 
 # Trees
-#TreeCodes<-data.table::fread("Concept Scheme/Trees.csv",header=T,strip.white=F,encoding="Latin-1")
 TreeCodes<-master_codes$trees
 setnames(TreeCodes, "Tree.Latin.Name", "Latin.Name")
 TreeCodes<-na.omit(TreeCodes, cols=c("EU"))
 
 # Duplicate Papers (entered in both 2020 and 2018, or some other reason)
-#Duplicates<-data.table::fread("Concept Scheme/Harmonization/Duplicates.csv",header=T,strip.white=F,encoding="Latin-1")
 Duplicates<-master_codes$dups
 master_codes$
 
 # Unit Harmonization
-#UnitHarmonization<-data.table::fread("Concept Scheme/Harmonization/Unit_Lists.csv",header=T,strip.white=F,encoding="Latin-1")
 UnitHarmonization<-master_codes$unit_harmonization
 UnitHarmonization[Out.Unit.Correct==""|is.na(Out.Unit.Correct),Out.Unit.Correct:=Out.Unit]
 
-  # 1.3) REMOVE? Set era dataset locations ####
+  # 1.3) Set era dataset locations ####
 # Find most recent 2018 dataset
 filename18<-grep(".parquet",tail(list.files(era_dirs$era_masterdata_dir,"v1[.]0",recursive = F,full.names = T),1),value=T)
 filename18_simple<-gsub("era_data_|[.]parquet","",basename(filename18))
@@ -794,21 +789,7 @@ filename22_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basen
 # Create combined file name (this is the name used to save the compiled dataset)
 filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filename22_simple),collapse="-")
 
-    #era_geodata_dir<-era_dirs$era_geodata_dir
-    
-    # Note that data in the below Climate, Soil and AEZ  directories are extracted for ERA sites using another script
-    # Set climate directory containing "AEZ_MAP_MAT.RData"
-    #ClimateDir<-paste0(getwd(),"/Climate/Climate Past/")
-    
-    # Set soils directory containing "SoilGrids Data.csv"
-    #SoilsDir<-paste0(getwd(),"/Soils/")
-    
-    # Set directory containing AEZ zone data "HChoice.csv"
-    #AEZDir<-paste0(getwd(),"/Other Linked Datasets/")
-
   # 1.4) Read in and prepare ERA datasets ####
-  # Check if .R object, if not read in xlsx file and convert to R
-  
     # 1.4.1) 2018 ######
     era_2018<-data.table(arrow::read_parquet(filename18))
   
@@ -845,9 +826,6 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
       warning("Duplicate row indices in 2018 dataset.")
     }
       # 1.4.1.x) BETTER TO FIX THE RAW DATASET - Fix encoding issue with Site.ID ######
-    install.packages("gsubfn")
-    library(gsubfn)
-    
     decode_hex_entities <- function(text) {
       gsubfn("<([0-9A-Fa-f]{2})>", function(hex) {
         rawToChar(as.raw(strtoi(hex, 16L)))
@@ -1011,7 +989,7 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
                ][,Harvest.Start:=as.Date(Harvest.Start, origin = "1899-12-30")
                  ][,Harvest.End:=as.Date(Harvest.End, origin = "1899-12-30")]
     
-    # 1.4.3) 2022 ######
+    # 1.4.3) skinny_cow_2022 ######
     era_2022<-data.table(arrow::read_parquet(filename22))
    
     # Update tree field name
@@ -1023,7 +1001,7 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
   
     # Check for NA values in T1 field, if values are present this indicates an issue with the excel extraction script. In the past issues have been caused by non-matches in concept or harmonization sheets due to character encoding issues.
     era_2022[,list(Len=sum(is.na(T1))),by=list(Code)][Len>0]
-  
+    
   # 1.5) Match & add missing cols to 2018/2022 ####
 # Missing cols in 2018 vs 2020
 missing_cols<-colnames(era_2020)[!colnames(era_2020) %in% colnames(era_2018)]
@@ -1032,6 +1010,11 @@ era_2018[,(missing_cols):=as.character("")]
 # Missing cols in 2022 vs 2020
 missing_cols<-colnames(era_2020)[!colnames(era_2020) %in% colnames(era_2022)]
 era_2022[,(missing_cols):=as.character("")]
+
+era_2022[,Plant.End:=as.Date(Plant.End, origin = "1899-12-30")
+][,Plant.Start:=as.Date(Plant.Start, origin = "1899-12-30")
+][,Harvest.Start:=as.Date(Harvest.Start, origin = "1899-12-30")
+][,Harvest.End:=as.Date(Harvest.End, origin = "1899-12-30")]
 
 # Missing cols in 2018 vs 2022
 missing_cols<-colnames(era_2022)[!colnames(era_2022) %in% colnames(era_2018)]
@@ -1521,8 +1504,7 @@ error_dat<-DataX[!is.na(NotInT),..Cols][,NotInT:=NotInT[!is.na(NotInT)]][,.(valu
 
 errors$cprac_not_in_tpracs<-error_dat
 
-era_merged<-era_merged[!Index %in% ERA.in.C.not.in.T2[,Index]]
-
+era_merged<-era_merged[!Index %in% DataX[!is.na(NotInT),Index]]
 
 # 2) Compile ERA ####
   system.time(
@@ -1600,21 +1582,6 @@ era_merged<-era_merged[!Index %in% ERA.in.C.not.in.T2[,Index]]
   # 3.2) Merge biophysical data ######
     ERA.Compiled<-cbind(ERA.Compiled,Climate[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"],Soils[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"])
 
-
-# Attempt to standardize text encoding
-
-TextStand<-function(Data){
-  Xenc<-uchardet::detect_str_enc(Data) 
-  for(FROM in unique(Xenc[!is.na(Xenc) & Xenc!="UTF-8"])){
-    N<-which(Xenc==FROM)
-    Data[N]<-iconv(Data[N],from=FROM,to="UTF-8")
-  }
-  return(Data)
-}
-
-ERA.Compiled[,C.Descrip:=TextStand(C.Descrip)]
-ERA.Compiled[,T.Descrip:=TextStand(T.Descrip)]
-
 # 4) Split off Economic outcomes with no comparison ####
 ERA.Compiled.Econ<-ERA.Compiled[is.na(MeanC) & Out.SubPillar != "Efficiency" & !Out.SubInd %in% c("Crop Yield","Soil Organic Carbon"),]
 ERA.Compiled<-ERA.Compiled[!Index %in% ERA.Compiled.Econ[,Index]]
@@ -1651,6 +1618,7 @@ ERA.Compiled<-ERA.Compiled[!Index %in% ERA.Compiled.Econ[,Index]]
 # 5) Save results ####
 save_file<-file.path(era_dirs$era_masterdata_dir,paste0(filename_comb,".csv"))
 fwrite(ERA.Compiled,save_file)
+arrow::write_parquet(ERA.Compiled,gsub("[.]csv",".parquet",save_file))
 
 save_file<-file.path(era_dirs$era_masterdata_dir,paste0(gsub("era_compiled-","era_compiled_econ_only-",filename_comb),".csv"))
 fwrite(ERA.Compiled.Econ,save_file)
