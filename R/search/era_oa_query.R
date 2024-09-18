@@ -22,6 +22,10 @@
 #'   c("goats", "sheep", "cattle"),
 #'   c("rations", "feeds", "diets")
 #' )
+#' 
+#' This represents the boolean logic:
+#' (animal performance OR ADG OR average daily gain) AND (goats OR sheep OR cattle") AND (rations OR feeds OR diets)
+#' 
 #' results <- run_openalex_query_single(search_terms = search_terms, from_year = 2020, to_year = 2023)
 #'
 #' # Example with a preformatted boolean-encoded string
