@@ -41,6 +41,30 @@ head(ERAg::ERA_Bibliography)
 # This is linked to the ERA.Compiled table by the publication code
 ERA_Bibliography[ERACODE==ERA.Compiled$Code[7231]]
 
+# 1.1) List the names of feed practices that are involved in agroforestry 
+PracticeCodes[,unique(Theme)]
+PracticeCodes[Theme=="Animals",unique(Practice)]
+PracticeCodes[Practice %in% c("Feed Addition","Feed Substitution"),Subpractice]
+(focal_pracs<-PracticeCodes[Practice %in% c("Feed Addition","Feed Substitution") 
+                            & grepl("Agrofor",Subpractice),Code])
+
+# This is the normal source of information for ERA (stored in the ERAg package)
+data<-ERA.Compiled[grepl(paste(focal_pracs,collapse = "|"),plist)]
+
+# 1.2) Subset to cattle and small ruminants #####
+EUCodes[,unique(Product.Type)]
+EUCodes[Product.Type=="Animal",unique(Product.Simple)]
+
+focal_prods<-c("Cattle","Goat","Sheep")
+
+data<-data[Product.Simple %in% focal_prods]
+
+# 1.3) Subset to outcomes of interest  #####
+OutcomeCodes[Pillar=="Productivity",Subindicator]
+focal_out<-c("Meat Yield","Weight Gain","Milk Yield")
+
+data<-data[Out.SubInd %in% focal_out]
+
 # 2) Download most recent Alpha version of ERA livestock data ####
 # This is data we have recently compiled from a more comprehensive extraction of livestock data,it is stored in our S3 bucket
 s3<-s3fs::S3FileSystem$new(anonymous = T)
@@ -75,33 +99,8 @@ data_new[,.(N.Studies=length(unique(Code))),by=PrName][order(N.Studies,decreasin
 # The newer dataset on the s3 should be superior to old dataset so let's use it
 data<-data_new
 
-# 3) Investigate data ####
-  # 3.1) Subset data to experiments using tree fodders #####
-  PracticeCodes[,unique(Theme)]
-  PracticeCodes[Theme=="Animals",unique(Practice)]
-  PracticeCodes[Practice %in% c("Feed Addition","Feed Substitution"),Subpractice]
-  (focal_pracs<-PracticeCodes[Practice %in% c("Feed Addition","Feed Substitution") 
-                              & grepl("Agrofor",Subpractice),Code])
-  
-  # This is the normal source of information for ERA (stored in the ERAg package)
-  data<-ERA.Compiled[grepl(paste(focal_pracs,collapse = "|"),plist)]
-  
-  # 3.2) Subset to cattle and small ruminants #####
-  EUCodes[,unique(Product.Type)]
-  EUCodes[Product.Type=="Animal",unique(Product.Simple)]
-  
-  focal_prods<-c("Cattle","Goat","Sheep")
-  
-  data<-data[Product.Simple %in% focal_prods]
-  
-  # 3.3) Subset to outcomes of interest  #####
-  OutcomeCodes[Pillar=="Productivity",Subindicator]
-  focal_out<-c("Meat Yield","Weight Gain","Milk Yield")
-  
-  data<-data[Out.SubInd %in% focal_out]
-  
-  # 3.4) Explore subset results  #####
-  
+# 3) Summarize data availability, subset to analytical focus  #####
+
   # Subpractice Level
   data[,.(no_studies=length(unique(Code)),
           no_observations=.N,
@@ -138,14 +137,14 @@ data<-data_new
                             no_countries=length(unique(Country))),by=.(Product.Simple,Out.SubInd)
   ][order(no_studies,decreasing=T)]
   
-  # 3.5) Example of how to access values #####
+  # 3.1) Example of how to access values #####
   data_subset<-data[Product.Simple=="Goat" & Out.SubInd=="Weight Gain" & tree_fodder_sub==T,.(PrName,Code,Country,Site.ID,TID,T.Descrip,CID,C.Descrip,MeanC,MeanC.Error,MeanT,MeanT.Error,Mean.Error.Type,Rep,Units,Duration,Tree.Feed,Diversity,Variety)]
   
-  # 3.6) Harmonize units #####
+  # 3.2) Harmonize units #####
   data_subset[Units=="kg" & !is.na(Duration),c("MeanT","MeanC","Units"):=.(round(1000*MeanT/(365*Duration),2),round(1000*MeanC/(365*Duration),2),"g/individual/day")
               ][Units=="kg/individual/day",c("MeanT","MeanC","Units"):=.(round(1000*MeanT,2),round(1000*MeanC,2),"g/individual/day")]
   
-  # 3.7) Explore tree forages #####
+  # 3.3) Explore tree forages #####
   data_subset[,.(no_studies=length(unique(Code))),by=Tree.Feed][order(no_studies,decreasing = T)]
   data[,.(no_studies=length(unique(Code))),by=Tree.Feed][order(no_studies,decreasing = T)]
   
@@ -153,7 +152,7 @@ data<-data_new
   unique(data[is.na(Tree.Feed),.(Code,T.Descrip)])
   tree_missing<-data[is.na(Tree.Feed),unique(Code)]
   
-  # 3.8) Explore errors #####
+  # 3.4) Explore errors #####
   data_subset[Mean.Error.Type=="",Mean.Error.Type:=NA]
   tail(data_subset[!is.na(MeanC.Error),.(PrName,C.Descrip,MeanC,MeanC.Error,T.Descrip,MeanT,MeanT.Error,Mean.Error.Type)])
   # What % of different error types
