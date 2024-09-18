@@ -12,6 +12,9 @@
 #'
 #' @return A `data.table` containing the downloaded search results.
 #' 
+#' @import data.table
+#' @importFrom openalexR oa_query oa_request oa2df
+#' 
 #' @details This function can either generate a boolean-encoded search string from a list of vectors (where each level is combined with `AND` and terms within each vector are combined with `OR`), or it can take a preformatted search string. The function queries the OpenAlex API and returns the result.
 #'
 #' @examples
@@ -49,17 +52,6 @@ era_oa_query<- function(search_terms,
   
   if(from_date>to_date){
     stop("from_date>to_date")
-  }
-  
-  # Helper function to add quotes around multi-word terms
-  add_quotes <- function(vector) {
-    sapply(vector, function(term) {
-      if (grepl("\\s", term)) {
-        return(shQuote(term, type = "cmd"))
-      } else {
-        return(term)
-      }
-    }, USE.NAMES = FALSE)
   }
   
   # If search_terms is a list, generate a boolean search string
@@ -121,7 +113,7 @@ era_oa_query<- function(search_terms,
         cat("Running query - title & doi only")
     }
     hits <- oa_request(query_url = api_endpoint)
-    hits_tab <- data.table(oa2df(hits, entity = "works"))
+    hits_tab <- data.table(oa2df(hits, entity = "works",verbose = F))
     
     if (full) {
       hits_tab <- hits_tab[, .(id, display_name, author, ab, doi, url, relevance_score, 
@@ -138,12 +130,43 @@ era_oa_query<- function(search_terms,
       }))][, author := NULL]
     }
     
-
-    
     return(list(results=hits_tab,meta_data=meta_data))
     
   }else{
     meta_data$search_hits<-search_hits
     return(meta_data)
   }
+}
+#' @title Add Quotes to Multi-word Terms
+#'
+#' @description This function adds quotes around terms that contain spaces, 
+#' which is often necessary when constructing boolean search queries. 
+#' If a term contains one or more spaces, it will be wrapped in quotes. 
+#' Single-word terms will be returned without modification.
+#'
+#' @param vector A character vector containing search terms.
+#'
+#' @return A character vector where multi-word terms are quoted using the appropriate syntax for the system.
+#'
+#' @details This function is useful when preparing terms for search queries, where terms with spaces must be enclosed in quotes to ensure correct interpretation.
+#'
+#' @importFrom utils shQuote
+#'
+#' @examples
+#' terms <- c("animal performance", "ADG", "average daily gain", "milk yield")
+#' quoted_terms <- add_quotes(terms)
+#' # quoted_terms will return:
+#' # c("\"animal performance\"", "ADG", "\"average daily gain\"", "\"milk yield\"")
+#'
+#' @export
+add_quotes <- function(vector) {
+  # Apply to each term in the vector
+  sapply(vector, function(term) {
+    # If term contains a space, quote it
+    if (grepl("\\s", term)) {
+      return(shQuote(term, type = "cmd"))  # shQuote ensures proper quoting
+    } else {
+      return(term)  # If no spaces, return the term as is
+    }
+  }, USE.NAMES = FALSE)
 }
