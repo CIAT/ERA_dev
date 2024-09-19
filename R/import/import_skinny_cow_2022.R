@@ -966,6 +966,7 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
   errors<-c(errors,list(error_dat))
   
   Animals.Diet<-results$data
+  Animals.Diet[,D.Item.Raw:=D.Item]
   
     # Remove \n and \r
   Animals.Diet[,D.Item:=gsub("\r\n"," ",D.Item,fixed = T)]
@@ -1173,7 +1174,7 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
   errors<-c(errors,list(error_dat))
   
   Animals.Diet.Comp<-results$data
-  
+
   # Set non-numerics cols to character
   non_numeric_cols<-colnames(Animals.Diet.Comp)[!colnames(Animals.Diet.Comp) %in% numeric_cols]
   non_numeric_cols<-non_numeric_cols[!non_numeric_cols %in% c("is_group","is_entire_diet")]
@@ -1192,11 +1193,11 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
     # 3.7.3.1) Harmonization #######
 
   # Merge in updated name from Animals.Diet table
-  merge_dat<-unique(Animals.Diet[,.(D.Item,B.Code,D.Item.Root.Other.Comp.Proc_All)])
+  merge_dat<-unique(Animals.Diet[,.(D.Item.Raw,B.Code,D.Item.Root.Other.Comp.Proc_All)])
   # Remove any duplicate rows (see error "Multiple matches between D.Item in Composition table and Diet Description table.")
-  merge_dat<-merge_dat[!duplicated(merge_dat[,.(B.Code,D.Item)])][,check:=T]
+  merge_dat<-merge_dat[!duplicated(merge_dat[,.(B.Code,D.Item.Raw)])][,check:=T]
   
-  Animals.Diet.Comp<-merge(Animals.Diet.Comp,merge_dat,by=c("D.Item","B.Code"),all.x=T,sort=F)
+  Animals.Diet.Comp<-merge(Animals.Diet.Comp,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
   
   # Check for non-matches
   error_dat<-Animals.Diet.Comp[!(is_group) & 
@@ -1309,7 +1310,7 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
   
     # 3.7.4.1) Harmonization #######
 
-  Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by=c("D.Item","B.Code"),all.x=T,sort=F)
+  Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
   
   # Check for non-matches
   error_dat<-Animals.Diet.Digest[!(is_group) & !(is_entire_diet) & is.na(check),.(B.Code,D.Item)][,.(value=paste(D.Item,collapse = "/")),by=B.Code
