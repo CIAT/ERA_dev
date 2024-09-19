@@ -186,15 +186,71 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
       download.file(era_vocab_url, era_vocab_local, mode = "wb")  # Download and write in binary mode
     }  
     
+  # 2.4) Worldbank/FAO economic data #####
+    currency_dir<-file.path(era_dirs$ancillary_dir,"currency_conversions")
+    if(!dir.exists(currency_dir)){
+      dir.create(currency_dir)
+    }
+    
+    update<-F
+    
+    file_path<-file.path(currency_dir,"PA.NUS.PPP.csv")
+    if(!file.exists(file_path)|update){
+      ppp_data <- data.table(wbstats::wb_data("PA.NUS.PPP", country="countries_only"))
+      fwrite(ppp_data,file=file_path)
+      rm(ppp_data)
+    }
+    era_dirs$era_currency_files$ppp<-file_path
+    
+    file_path<-file.path(currency_dir,"PA.NUS.FCRF.csv")
+    if(!file.exists(file_path)|update){
+      exchange_rates <- data.table(wbstats::wb_data("PA.NUS.FCRF",country="countries_only"))
+      fwrite(exchange_rates,file=file_path)
+      rm(exchange_rates)
+    }
+    era_dirs$era_currency_files$exchange_rates<-file_path
+    
+    
+    file_path<-file.path(currency_dir,"FP.CPI.TOTL.csv")
+    if(!file.exists(file_path)|update){
+      cpi_data <- data.table(wbstats::wb_data("FP.CPI.TOTL", country="countries_only"))
+      fwrite(cpi_data,file=file_path)
+      rm(cpi_data)
+    }
+    era_dirs$era_currency_files$cpi_data<-file_path
+    
+    file_path<-file.path(currency_dir,"Deflators_E_All_Data_(Normalized).csv")
+    if (!file.exists(file_path)|update) {
+      # Define the URL and set the save path
+      url <- "https://fenixservices.fao.org/faostat/static/bulkdownloads/Deflators_E_All_Data_(Normalized).zip"
+      zip_file_path <- gsub("[.]csv",".zip",file_path)
+      
+      # Download the file
+      download.file(url, zip_file_path, mode = "wb")
+      
+      # Unzip the file
+      unzip(zip_file_path, exdir = dirname(zip_file_path))
+      
+      # Delete the ZIP file
+      unlink(zip_file_path)
+    }
+    
+    era_dirs$era_currency_files$deflators<-file_path
+    
 # 3) Create table of unique locations (for use with geodata functions) ####
     data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
     
     # Add in other era extractions
-    data<-miceadds::load.Rdata2(path=era_dirs$era_masterdata_dir,filename= list.files(era_dirs$era_masterdata_dir,"skinny_cow"))
-    data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual,Country)]
-    setnames(data,c("Site.LatD","Site.LonD","Site.Buffer.Manual"),c("Latitude","Longitude","Buffer"))
-    data<-data[!(is.na(Latitude)|is.na(Longitude))]
+    data<-miceadds::load.Rdata2(path=era_dirs$era_masterdata_dir,filename= tail(grep(".RData",list.files(era_dirs$era_masterdata_dir,"skinny_cow"),value=T),1))
+    data<-data$Site.Out[!grepl("[.][.]",Site.ID),list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
+    setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
+    data<-data[!(is.na(Latitude)|is.na(Longitude))
+               ][,Latitude:=as.numeric(Latitude)
+                 ][,Longitude:=as.numeric(Longitude)
+                   ][,Buffer:=as.numeric(Buffer)
+                     ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
+                       ][,Site.Lon.Unc:=as.integer(Site.Lon.Unc)]
     data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
     # Assign 5km buffer to missing buffer values
     data<-data[!(is.na(Buffer)|Buffer==0)]
