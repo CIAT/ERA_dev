@@ -15,6 +15,8 @@ if(!require(ERAg)){
   library(ERAg)
 }
 
+# options(arrow.unsafe_metadata=TRUE)
+
 # 1) Explore ERA ####
 # See these vignettes to understand more about the ERAg package 
 browseVignettes("ERAg")
