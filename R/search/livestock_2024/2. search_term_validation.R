@@ -4,7 +4,7 @@ pacman::p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokeni
 
 # 1) Set-up workspace ####
   # 1.1) Set directories #####
-project<-era_projects$livestock_2024
+project<-era_projects$courageous_camel_2024
 search_data_dir<-file.path(era_dirs$era_search_dir,project)
 search_data_dir_prj<-file.path(era_dirs$era_search_prj,project)
 
