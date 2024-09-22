@@ -58,7 +58,7 @@ files <- files[!file.info(files)$isdir]
 upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
-                   overwrite=F,
+                   overwrite=T,
                    mode="public-read")
 
 # 1.2) Upload 2023 extraction files to s3 #####
@@ -161,29 +161,22 @@ upload_files_to_s3(files = files,
     # 1.2.3.2) Upload excels #######
     
     
-# 1.3) Upload livestock 2024 search to s3 #####
-folder<-"data_entry/data_entry_2024/search_history/livestock_2024"
-
-s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$livestock_2024)
+  # 1.2.4) 2024 Livestock ######
+    # 1.2.4.1) Upload search data #######
+folder<-file.path(era_dirs$era_search_dir,era_projects$courageous_camel_2024)
+s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
 
 files<-list.files(folder,full.names = T,recursive=T)
-files<-files[!grepl("zip$",files)]
 
-# Specify the output zip file path
-output_zip_file <- file.path(folder,paste0(basename(folder),".zip"))
-
-# Create the zip archive
-zip::zipr(zipfile = output_zip_file, files = files)
-
-files<-c(output_zip_file,files)
-
-files<-grep("zip$|openalex",files,value=T)
+files<-grep("final",files,value=T)
 
 upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,
                    mode="public-read")
+
+s3_dir_ls(s3_bucket)
 
 # 1.4) Upload environmental data ####
   # 1.4.1) Aspect, slope, elevation ######
