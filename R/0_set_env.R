@@ -84,7 +84,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
                      majestic_hippo_2020="majestic_hippo_2020",
                      skinny_cow_2022="skinny_cow_2022",
                      industrious_elephant_2023="industrious_elephant_2023",
-                     livestock_2024="livestock_2024")
+                     courageous_camel_2024="courageous_camel_2024")
   
   # 1.4) Create ERA output dirs#####
   era_dirs<-list()
@@ -178,7 +178,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
       }
     }
 
-  # 2.3) ERA master_codes #####
+  # 2.3) Vocab - era_master_sheet.xlsx #####
     era_vocab_local<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
     
     update<-T
