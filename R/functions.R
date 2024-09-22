@@ -958,6 +958,7 @@ check_hilow <- function(data, hilo_pairs, tabname) {
 #' @param site_data A data frame or data table containing valid `Site.ID` entries. Defaults to `NULL`.
 #' @param time_data A data frame or data table containing valid `Time` entries. Defaults to `NULL`.
 #' @param ignore_values A vector of values to be ignored during the checks. Defaults to `NULL`.
+#' @param allowed_values A data frame or data table containing the fields `allowed_values` (this should be a list containing a vector of the allowed values), `parent_tab_name` (a character value of where the allowed values come from), and `field` (the name of the field in `data` to be checked).
 #' @param trim_ws A logical value indicating whether to trim whitespace from character columns. Defaults to `FALSE`.
 #' @param do_site A logical value indicating whether to check `Site.ID`. Defaults to `TRUE`.
 #' @param do_time A logical value indicating whether to check `Time`. Defaults to `TRUE`.
@@ -966,6 +967,7 @@ check_hilow <- function(data, hilo_pairs, tabname) {
 #' @param duplicate_ignore_fields A vector of column names indicating any columns that should be excluded when checking for duplicate rows. Defaults to `NULL`.
 #' @param find_duplicates A logical value indicating whether to check the data for exact duplicate rows. Defaults to `TRUE`. Only applies if `duplicate_field` is not set to `NULL.`
 #' @param rm_duplicates A logical value indicating whether to remove exact duplicate rows/ Defaults to `TRUE`. Only applies if `duplicate_field` is not set to `NULL.`
+#' @param template_cols A character vector of columns against which the columns names in data are checked again. Defaults to `NULL`.
 #'
 #' @return A list with two elements:
 #' \describe{
@@ -998,22 +1000,55 @@ validator <- function(data,
                       trim_ws = FALSE,
                       do_site = TRUE,
                       do_time = TRUE,
-                      check_keyfields=NULL,
                       convert_NA_strings = FALSE,
                       duplicate_field=NULL,
                       duplicate_ignore_fields=NULL,
                       find_duplicates=TRUE,
+                      template_cols=NULL,
+                      allowed_values=NULL,
+                      check_keyfields=NULL,
                       rm_duplicates=TRUE) {
   
   errors <- list()
   n <- 1
   
-  if (convert_NA_strings) {
+  if(!is.null(template_cols)){
+    a<-colnames(data) %in% template_cols
+    a<-a[!a]
+    
+    if(length(a)>0){
+      errors1 <- data.table(value = paste(a, collapse = "/"), 
+                            B.Code = NA,
+                            table = tabname,
+                            field = NA,
+                            issue = "Column names in excel that do not match the master template.")
+      
+      errors[[n]] <- errors1
+      n <- n + 1
+    }
+    
+    a<-template_cols %in% colnames(data)
+    a<-a[!a]
+    
+    if(length(a)>0){
+      errors1 <- data.table(value = paste(a, collapse = "/"), 
+                            B.Code = NA,
+                            table = tabname,
+                            field = NA,
+                            issue = "Column names in excel that do not match the master template.")
+      
+      errors[[n]] <- errors1
+      n <- n + 1
+    }
+  }
+  
+  if(convert_NA_strings){
     data <- convert_NA_strings_SD(data)
   }
   
   # zero cols
   if (!is.null(zero_cols)) {
+    zero_cols<-zero_cols[zero_cols %in% colnames(data)]
     data <- data[, (zero_cols) := lapply(.SD, replace_zero_with_NA), .SDcols = zero_cols]
   }
   
@@ -1062,6 +1097,9 @@ validator <- function(data,
   
   # Substitute , for . in numeric columns
   if (!is.null(numeric_cols)) {
+    numeric_cols<-numeric_cols[numeric_cols %in% colnames(data)]
+    
+    
     data[, (numeric_cols) := lapply(.SD, function(x) gsub(",|·", ".", x)), .SDcols = numeric_cols]
     # Remove spaces in numeric columns
     data[, (numeric_cols) := lapply(.SD, function(x) gsub(" ", "", x)), .SDcols = numeric_cols]
@@ -1072,11 +1110,6 @@ validator <- function(data,
     errors1 <- find_non_numeric(data = data, numeric_cols = numeric_cols, tabname = tabname)
     errors1 <- errors1[, list(value = paste(value, collapse = "/")), by = list(B.Code, table, field)
     ][, issue := "Non-numeric value in numeric field."]
-    
-    if(!is.null(numeric_ignore_vals)){
-      errors1<-errors1[!grepl(paste0(numeric_ignore_vals,collapse = "|"),value,ignore.case = T)]
-    }
-    
     errors[[n]] <- errors1
     n <- n + 1
     # Convert numeric fields to being numeric
@@ -1106,15 +1139,41 @@ validator <- function(data,
   if(!is.null(check_keyfields)){
     errors1<-rbindlist(lapply(1:nrow(check_keyfields),FUN=function(i){
       result<-check_key(parent=check_keyfields$parent_tab[[i]],
-                child=data,
-                tabname=table_name,
-                tabname_parent=check_keyfields$parent_tab_name[i],
-                keyfield=check_keyfields$keyfield[i],
-                collapse_on_code=T)[,table:=paste0(parent_table,"/",table)][,parent_table:=NULL]
+                        child=data,
+                        tabname=table_name,
+                        tabname_parent=check_keyfields$parent_tab_name[i],
+                        keyfield=check_keyfields$keyfield[i],
+                        collapse_on_code=T)[,table:=paste0(parent_table,"/",table)][,parent_table:=NULL]
       return(result)
     }))
     errors[[n]]<-errors1
     n<-n+1
+  }
+  
+  # Check if any non-allowed values are present
+  # We may want to consider allowing trim_ws to act within this function
+  if(!is.null(allowed_values)){
+    errors1<-rbindlist(lapply(1:nrow(allowed_values), function(i){
+      focal_cols<-c("B.Code",allowed_values[i,field])
+      a_vals<-unlist(allowed_values[i,allowed_values])
+      dat<-data[,..focal_cols]
+      setnames(dat,focal_cols[2],"values")
+      dat<-unique(dat[!is.na(values)])
+      
+      if(nrow(dat)>0){
+        dat<-dat[,.(value=unique(unlist(strsplit(values,";")))),by=B.Code][!value %in% a_vals]
+        errors1<-dat[,.(value=paste(unique(value),collapse = "/")),by=B.Code
+        ][, table := allowed_values[i,parent_tab_name]
+        ][, field := allowed_values[i,field]
+        ][, issue := "Values found in field that are not present in lookup values."]
+        return(errors1)
+      }else{
+        return(NULL)
+      }
+    }))
+    
+    errors[[n]] <- errors1
+    n <- n + 1
   }
   
   # Convert date cols to date format
@@ -1146,7 +1205,7 @@ validator <- function(data,
   }
   
   # Check for non-matches between site.id and time fields and their parent tables
-  if (any(c("Site.ID", "Time") %in% colnames(data)) & tabname != "Site.Out") {
+  if (any(c("Site.ID", "Time") %in% colnames(data)) & tabname != "Site.Out" & (do_site|do_time)) {
     if (is.null(ignore_values)) {
       ignore_values <- c("All Times", "Unspecified", "Not specified", "All Sites")
     }
@@ -1168,27 +1227,23 @@ validator <- function(data,
   if(find_duplicates & !is.null(duplicate_field)){
     if(!is.null(duplicate_ignore_fields)){
       keep_cols<-colnames(data)[!colnames(data) %in% duplicate_ignore_fields]
-      issue_text<-paste0("Duplicate rows exist in table for cols: ",paste(keep_cols,collapse = ", "),".")
-      dup_n<-duplicated(data[,..keep_cols])
+      errors1<-data[duplicated(data[,..keep_cols])]
       }else{
-      dup_n<-duplicated(data)
-      issue_text<-"Exact duplicate rows exist in table."
-      }
-    
-    errors1<-data[dup_n]
+      errors1<-data[duplicated(data)]
+    }
 
     if(nrow(errors1)>0){
       setnames(errors1,duplicate_field,"value")
       errors1<-errors1[,list(value=paste0(unique(value),collapse = "/")),by=B.Code
                          ][, table := tabname
                          ][, field := duplicate_field
-                         ][, issue :=issue_text]
+                         ][, issue := "Exact Duplicate rows in table"]
       errors[[n]] <- errors1
       n<-n+1
       }
       
       if(rm_duplicates){
-        data<-data[!dup_n]
+        data<-data[!duplicated(data)]
       }
     }
   
@@ -1218,16 +1273,15 @@ validator <- function(data,
 #' @import data.table
 check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL) {
   n_col <- c("B.Code", keyfield)
-  
-  mergetab <- unique(merge(child[, ..n_col], parent[, ..n_col][, check := TRUE], all.x = TRUE)[is.na(check)][, check := NULL])
+  parent<-parent[, ..n_col][, check := TRUE]
+  child<-child[, ..n_col]
+  mergetab <- unique(merge(child, parent, all.x = TRUE)[is.na(check)][, check := NULL])
   setnames(mergetab, keyfield, "value")
   
-  mergetab<-mergetab[!is.na(value)]
-  
   if (collapse_on_code) {
-    mergetab <- mergetab[, .(value = paste(unique(value), collapse = "/")), by = list(B.Code)]
+    mergetab <- mergetab[, list(value = paste(unique(value), collapse = "/")), by = list(B.Code)]
   } else {
-    mergetab <- mergetab[, .(B.Code, value)]
+    mergetab <- mergetab[, list(B.Code, value)]
   }
   
   mergetab[, table := tabname
@@ -1240,109 +1294,54 @@ check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE,
   
   return(mergetab)
 }
-#' Check if Coordinates Fall Within Specified Country Boundaries
+#' Check Coordinates
 #'
-#' This function checks whether the geographic coordinates (longitude and latitude) in a dataset 
-#' fall within the boundaries of the corresponding country, as specified by the ISO 3166-1 alpha-3 country code.
-#' It uses the country boundaries from the `rnaturalearth` package and ensures that the coordinates
-#' are within valid country polygons.
+#' This function checks if the coordinates (longitude and latitude) in the data are within the boundaries of the specified countries.
 #'
-#' @param data A `data.frame` or `data.table` containing geographic coordinates and country ISO codes.
-#' @param xy_cols A named vector specifying the column names for longitude, latitude, and ISO 3166-1 alpha-3 country codes. 
-#'                Defaults to `c(lon = "Site.LonD", lat = "Site.LatD", iso3 = "ISO.3166.1.alpha.3")`.
-#' @return A logical vector indicating whether each row's coordinates fall within the country boundary 
-#'         (TRUE if within the boundary, FALSE if not, and NA if the country code is not found).
+#' @param data A data frame or data table containing the coordinates and country ISO codes. The data should have columns `Site.LonD` for longitude, `Site.LatD` for latitude, and `ISO.3166.1.alpha.3` for country ISO codes.
+#'
+#' @return A logical vector indicating whether each coordinate is within the boundaries of the specified country. `NA` is returned if the country code is not found.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.frame(Site.LonD = c(10, 20, 30), Site.LatD = c(50, 60, 70), ISO.3166.1.alpha.3 = c("USA", "CAN", "MEX"))
+#' check_coordinates(data)
+#' }
 #' @importFrom rnaturalearth ne_countries
 #' @importFrom sf st_transform st_make_valid st_as_sf st_within
 #' @importFrom dplyr filter
-#' @import data.table
-#' @examples
-#' \dontrun{
-#'   data <- data.frame(Site.LonD = c(-77.0369, 13.4125),
-#'                      Site.LatD = c(38.9072, 52.5200),
-#'                      ISO.3166.1.alpha.3 = c("USA", "DEU"))
-#'   result <- check_coordinates(data)
-#'   print(result)
-#' }
-#' @export
-check_coordinates <- function(data, xy_cols = c(lon = "Site.LonD", lat = "Site.LatD", iso3 = "ISO.3166.1.alpha.3")) {
-  
-  # Convert the input data to a data.frame if it isn't already
-  data <- data.table(data)
-  setnames(data,old=xy_cols,new=names(xy_cols))
-  
-  # Enforce numeric remove NAs
-  data<-data[,c("lon","lat"):=.(as.numeric(lon),as.numeric(lat))]
-  
-  N<-data[,which(is.na(lon) & is.na(lat))]
-  if(length(N)>0){
-    stop(paste0("Non-numeric values in lat/lon columns, ",length(N)," pls fix rows (",paste(N,collapse = ","),")."))
-  }
-  
-  # Load country boundaries using the rnaturalearth package
+check_coordinates <- function(data) {
+  # Load country boundaries
   countries <- rnaturalearth::ne_countries(scale = "large", returnclass = "sf")
   
-  # Ensure the coordinate reference system (CRS) is set to WGS84 (EPSG:4326)
-  countries <- sf::st_transform(countries, crs = 4326)
+  # Ensure CRS (Coordinate Reference System) is set to WGS84 (EPSG:4326)
+  countries <- st_transform(countries, crs = 4326)
   
-  # Ensure country polygons are valid geometries
+  # Make geometries valid
   countries <- sf::st_make_valid(countries)  
   
-  # Convert the input data to an sf object with coordinates from the specified columns
-  data_sf <- sf::st_as_sf(data, coords = c("lon", "lat"), crs = 4326, remove = FALSE)
+  # Convert data to sf object
+  data_sf <- sf::st_as_sf(data, coords = c("Site.LonD", "Site.LatD"), crs = 4326, remove = FALSE)
   
-  # Initialize a logical vector to store whether each point is within the correct country boundary
+  # Initialize result vector
   is_within_country <- logical(nrow(data))
   
-  # Loop over unique ISO country codes in the dataset
-  for (iso3 in unique(data[, iso3])) {
-    
-    # Filter the country boundary data for the current ISO country code
-    country_boundary <- dplyr::filter(countries, iso_a3 == iso3)
+  # Iterate over unique ISO codes in the data
+  for (iso3 in unique(data$ISO.3166.1.alpha.3)) {
+    # Filter country boundaries for the current ISO code
+    country_boundary <- countries %>% filter(iso_a3 == iso3)
     
     if (nrow(country_boundary) > 0) {
-      # Check if points are within the country boundary for the current ISO code
-      points_in_country <- sf::st_within(data_sf, country_boundary, sparse = FALSE)
+      # Check if points are within the country boundary
+      points_in_country <- st_within(data_sf, country_boundary, sparse = FALSE)
       
-      # Update the logical vector with results for the current ISO code
-      is_within_country[data[, iso3] == iso3] <- apply(points_in_country, 1, any)[data[, iso3] == iso3]
+      # Store results
+      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- apply(points_in_country, 1, any)[data$ISO.3166.1.alpha.3 == iso3]
     } else {
-      # If the ISO code is not found in the country boundaries, assign NA
-      is_within_country[data[, iso3] == iso3] <- NA
+      # Assign NA if country code not found
+      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- NA
     }
   }
   
-  # Return the vector indicating whether coordinates are within the country boundaries
   return(is_within_country)
-}
-#' Split values in a column based on a delimiter
-#'
-#' This function takes a data frame or data table, and splits values in the 
-#' specified column by a delimiter, creating new rows for each split value.
-#'
-#' @param data A `data.frame` or `data.table` to process.
-#' @param split_col The name of the column to be split (as a string).
-#' @param delim The delimiter used to split the column values.
-#' @return A `data.table` with the split column values expanded into new rows.
-#' @import data.table
-#' @export
-#'
-#' @examples
-#' df <- data.frame(id = 1:3, values = c("a,b", "c,d,e", "f"))
-#' split_syn(df, "values", ",")
-split_syn <- function(data, split_col, delim) {
-  # Convert to data.table if not already
-  data <- data.table(data)
-  
-  # Split the column values by the delimiter
-  vals <- strsplit(unlist(data[, ..split_col]), delim)
-  
-  # Replicate rows based on the number of split values for each row
-  vals_rep_rows <- rep(1:length(vals), unlist(lapply(vals, length)))
-  
-  # Replace the split column with the unlisted split values and return unique rows
-  data <- unique(data[vals_rep_rows][, (split_col) := unlist(vals)])
-  
-  # Return the modified data.table
-  return(data)
 }
