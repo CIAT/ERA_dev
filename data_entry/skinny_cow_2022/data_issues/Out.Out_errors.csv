@@ -1,6 +1,4 @@
 value,B.Code,table,field,issue,issue_addressed,addressed_by_whom,notes
-Aboveground Biomass,JS0374/NN0352,Out.Out,Out.Subind,Outcome not found in master codes.,FALSE,"",""
-Carbon dioxide emissions,JS0326/JS0326,Out.Out,Out.Subind,Outcome not found in master codes.,FALSE,"",""
 Feed Intake..g/d/individual,JS0177,Out.Out,Out.Code.Joined,Duplicate value in unique field.,FALSE,"",""
 Feed Intake..g/d/individual,JS0177,Out.Out,Out.Code.Joined,Exact duplicate rows exist in table.,FALSE,"",""
 Feed Intake..g/day/individual,NN0201,Out.Out,Out.Code.Joined,Duplicate value in unique field.,FALSE,"",""
