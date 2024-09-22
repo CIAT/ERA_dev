@@ -1,22 +1,17 @@
-# *****Comparison logic***** =====
+# Make sure you have set the era working directory using the 0_set_env.R script ####
+# This script requires the compiled dataset created in import/import_industrious_elephant_2023.R ####
 
-# Required packages ####
-require(data.table)
-require(miceadds)
-require(doSNOW)
-require(pbapply)
+# 0) Install and load packages ####
+pacman::p_load(data.table,miceadds,doSNOW,pbapply)
+
 
 Cores<-14
 
-# Read in data ####
+# 1) Read in data ####
+data_dir<-era_dirs$era_masterdata_dir
+data<-miceadds::load.Rdata2(filename=tail(list.files(data_dir,"industrious_elephant"),1),data_dir)
 
-# Read imported excel data
-Tables_2020<-miceadds::load.Rdata2(file="ERA V1.1 Tables 2023-06-22.RData",path="Data/Compendium Master Database")
 
-AF.Out<-Tables_2020$AF.Out
-Animals.Out<-Tables_2020$Animals.Out
-Animals.Diet<-Tables_2020$Animals.Diet
-Animals.Diet.Comp<-Tables_2020$Animals.Diet.Comp
 Data.Out<-Tables_2020$Data.Out
 Fert.Method<-Tables_2020$Fert.Method
 Fert.Out<-Tables_2020$Fert.Out
