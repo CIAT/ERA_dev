@@ -29,10 +29,11 @@ workers<-parallel::detectCores()-2
 project<-era_projects$courageous_camel_2024
 
 # Working folder where extraction excel files are stored during in active data entry
-excel_dir<-"G:/My Drive/Data Entry 2024"
+#excel_dir<-"G:/My Drive/Data Entry 2024"
+#excel_dir<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/My Drive/Data Entry 2024"
 
 # Where extraction excel files are stored longer term
-if(F){
+if(T){
   excel_dir<-file.path(era_dirs$era_dataentry_dir,project,"excel_files")
   if(!dir.exists(excel_dir)){
     dir.create(excel_dir,recursive=T)
@@ -120,7 +121,7 @@ if(file_status){
   
   # 2.3) List extraction excel files #####
   Files<-list.files(excel_dir,".xlsm$",full.names=T,recursive = "T")
-  Files<-grep("Extracted/|QCed/",Files,value=T)
+  #Files<-grep("Extracted/|QCed/",Files,value=T)
   
   # 2.4) Check for duplicate files #####
   FNames<-unlist(tail(tstrsplit(Files,"/"),1))
@@ -131,7 +132,7 @@ if(file_status){
   FNames<-gsub("..",".",FNames,fixed=T)
   
   excel_files<-data.table(filename=Files,era_code=FNames)
-  excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
+  #excel_files[,status:="qced"][grepl("/Extracted/",filename),status:="not_qced"]
   
   # Flag any naming issues
   excel_files[grepl("_",era_code)]
@@ -142,15 +143,13 @@ if(file_status){
   excel_files[N>1][order(era_code)]
   
   # Remove not qced duplicates
-  excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
+  #excel_files<-excel_files[!(N==2 & status=="not_qced")][,N:=.N,by=era_code]
   excel_files[N>1][order(era_code)]
   
   excel_files<-excel_files[!N>1][,N:=NULL]
   excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
   
   # 2.5) Read in data from excel files #####
-
-  
    i<-1
   
     File <- excel_files$filename[i]
@@ -231,195 +230,198 @@ Pub.Out<-results$data
 h_tasks<-list(results$h_task)
 
 
-# 3.2) Site.Out #####
-table_name<-"Site.Out"
-Site.Out<-excel_dat[[table_name]]
-template_cols<-c(master_template_cols[[table_name]],"B.Code")
-Site.Out$B.Code<-Pub.Out$B.Code
-Site.Out<-Site.Out[!is.na(Site.ID)]
-
-if(nrow(Site.Out)==0){
-  error_dat<-data.table(B.Code=B.Code,value=NA,table=table_name,field="Site.ID",issue="No Site.ID exists")
-  errors<-c(errors,list(error_dat))
-  }
-
-# Fix LatD/LonD 0's that should be NAs
-Site.Out[Site.LatD==0 & Site.LonD==0,c("Site.LatD","Site.LonD"):=NA]
-
-# Read in data excluding files with non-match structure
-results<-validator(data=Site.Out,
-                   zero_cols=colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
-                   numeric_cols=c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2"),
-                   compulsory_cols = c(Site.ID="Site.Type",Site.ID="Country",Site.ID="Site.LatD",Site.ID="Site.LonD"),
-                   extreme_cols=list(Site.MAT=c(10,35),
-                                     Site.MAP=c(40,4000),
-                                     Site.MSP.S1=c(20,3000),
-                                     Site.MSP.S2=c(20,3000),
-                                     Site.Elevation=c(0,4000),
-                                     Site.Slope.Perc=c(0,50),
-                                     Site.Slope.Degree=c(0,45)),
-                   template_cols = template_cols,
-                   unique_cols = "Site.ID",
-                   date_cols=NULL,
-                   trim_ws=T,
-                   tabname=table_name)
-
-Site.Out<-results$data
-error_dat<-results$errors
-# remove aggregated sites from error list
-error_dat<-error_dat[!grepl("[.][.]",value)]
-errors<-c(errors,list(error_dat))
-
-error_dat<-Site.Out[(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manual) & !grepl("[.][.]",Site.ID)
-][,list(value=paste0(unique(Site.ID),collapse = "/")),by=list(B.Code)
-][,table:=table_name
-][,field:="Site.ID"
-][,issue:="Missing value in compulsory field location uncertainty."]
-
-errors<-c(errors,list(error_dat))
-
-# Add ISO.3166.1.alpha.3
-c_dat<-master_codes$countries[,list(Country,`ISO.3166-1.alpha-3`)]
-colnames(c_dat)[2]<-"ISO.3166.1.alpha.3"
-Site.Out<-merge(Site.Out,c_dat,all.x=T)
-
-dat<-Site.Out[!(is.na(Site.LatD)|is.na(Site.LonD)|is.na(ISO.3166.1.alpha.3))]
-error_dat<-check_coordinates(data=dat[,list(Site.LatD,Site.LonD,ISO.3166.1.alpha.3)])
-error_dat<-dat[!error_dat][,list(value=paste0(paste0(Country,"-",Site.ID,": lat ",Site.LatD," lon ",Site.LonD),collapse="/")),by=B.Code
-][,table:=table_name
-][,field:="Site.LonD/Site.LatD"
-][,issue:="Co-ordinates may not be in the country specified."]
-errors<-c(errors,list(error_dat))
-
-  # 3.2.1) Harmonization ######
-  h_params<-data.table(h_table=table_name,
-                       h_field=c("Site.Admin","Site.Start.S1","Site.End.S1","Site.Start.S2","Site.End.S2","Site.Type","Site.Soil.Texture"),
-                       h_table_alt=c(NA,"Site.Out","Site.Out","Site.Out","Site.Out",NA,"Site.Out"),
-                       h_field_alt=c(NA,"Site.Seasons","Site.Seasons","Site.Seasons","Site.Seasons",NA,"Soil.Texture"))
+  # 3.2) Site.Out #####
+  table_name<-"Site.Out"
+  Site.Out<-excel_dat[[table_name]]
+  template_cols<-c(master_template_cols[[table_name]],"B.Code")
+  Site.Out$B.Code<-Pub.Out$B.Code
+  Site.Out<-Site.Out[!is.na(Site.ID)]
   
-  results<-harmonizer_wrap(data=Site.Out,
-                           h_params=h_params,
-                           master_codes = master_codes)
+  if(nrow(Site.Out)==0){
+    error_dat<-data.table(B.Code=Site.Out$B.Code,value=NA,table=table_name,field="Site.ID",issue="No Site.ID exists")
+    errors<-c(errors,list(error_dat))
+    }
+  
+  # Fix LatD/LonD 0's that should be NAs
+  Site.Out[Site.LatD==0 & Site.LonD==0,c("Site.LatD","Site.LonD"):=NA]
+  
+  # Read in data excluding files with non-match structure
+  results<-validator(data=Site.Out,
+                     zero_cols=colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
+                     numeric_cols=c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2"),
+                     compulsory_cols = c(Site.ID="Site.Type",Site.ID="Country",Site.ID="Site.LatD",Site.ID="Site.LonD"),
+                     extreme_cols=list(Site.MAT=c(10,35),
+                                       Site.MAP=c(40,4000),
+                                       Site.MSP.S1=c(20,3000),
+                                       Site.MSP.S2=c(20,3000),
+                                       Site.Elevation=c(0,4000),
+                                       Site.Slope.Perc=c(0,50),
+                                       Site.Slope.Degree=c(0,45)),
+                     template_cols = template_cols,
+                     unique_cols = "Site.ID",
+                     date_cols=NULL,
+                     trim_ws=T,
+                     tabname=table_name)
   
   Site.Out<-results$data
-  h_task<-results$h_tasks
-  h_tasks<-c(h_tasks,list(h_task))
-  
-  h_task<-val_checker(data=Site.Out[grepl("Station",Site.Type) & !grepl("[.][.]",Site.ID)],
-                        tabname=table_name,
-                        master_codes=master_codes,
-                        master_tab="site_list",
-                        h_field="Site.ID",
-                        h_field_alt=NA)
-  
-  h_tasks<-c(h_tasks,list(h_task))
-  
-  h_task<-val_checker(data=Site.Out,
-                        tabname=table_name,
-                        master_codes=master_codes,
-                        master_tab="countries",
-                        h_field="Country",
-                        h_field_alt=NA)
-  
-  h_tasks<-c(h_tasks,list(h_task))
-  
-  # 3.2.2) Harmonize Site.ID field #######
-  master_sites<-master_codes$site_list[!(is.na(Synonyms) & is.na(Harmonization)),.(Site.ID,Country,Synonyms,Harmonization)
-  ][,old_name:=Synonyms
-  ][is.na(old_name),old_name:=Harmonization
-  ][!is.na(Synonyms) & !is.na(Harmonization),old_name:=paste(c(Synonyms[1],Harmonization[1]),collapse=";"),by=.(Site.ID,Country,Synonyms,Harmonization)
-  ][,c("Synonyms","Harmonization"):=NULL]
-  
-  master_sites<-unique(rbindlist(lapply(1:nrow(master_sites),FUN=function(i){
-    old_names<-master_sites[i,unlist(strsplit(old_name,";"))]
-    data.table(new_names=master_sites$Site.ID[i],Country=master_sites$Country[i],Site.ID=old_names)
-  })))[,site_code_new:=paste0(Country,"|||",new_names)][,site_code:=paste0(Country,"|||",Site.ID)]
-  
-  Site.Out$Site.ID_raw<-Site.Out$Site.ID
-  
-  for(i in 1:nrow(Site.Out)){
-    country<-Site.Out$Country[i]
-    site_id<-Site.Out$Site.ID_raw[i]
-    site_id<-trimws(unlist(strsplit(site_id,"[.][.]")))
-    site_codes<-paste0(country,"|||",site_id)
-    
-    site_codes_new<-master_sites[match(site_codes,site_code),site_code_new]
-    site_codes[!is.na(site_codes_new)]<-site_codes_new[!is.na(site_codes_new)]
-    
-    site_ids_new<-unlist(tstrsplit(site_codes,"[|][|][|]",keep=2))
-    site_ids_new<-paste0(site_ids_new,collapse="..")
-    
-    Site.Out$Site.ID[i]<-site_ids_new
-  }
-  
-  # Check for missing facilities in era_master_sheet
-  master_site_list<-c(master_codes$site_list[,paste0(Country,"|||",Site.ID)],
-                      master_codes$site_list[!is.na(Synonyms),paste0(Country,"|||",unlist(strsplit(Synonyms,";")))],
-                      master_codes$site_list[!is.na(Harmonization),paste0(Country,"|||",unlist(strsplit(Harmonization,";")))])
-  
-  error_dat<-Site.Out[,.(B.Code,Country,Site.ID_raw,Site.Type)][,Code:=paste0(Country,"|||",Site.ID_raw)]
-  error_dat<-error_dat[!Code %in% master_site_list & 
-                      Site.Type == "Researcher Managed & Research Facility" &
-                      !grepl("[.][.]",Site.ID_raw)
-                   ][,.(value=paste(Site.ID_raw,collapse = "/")),by=B.Code
-                     ][,table:=table_name
-                       ][,field:="Site.ID"
-                         ][,issue:="No match for facility in era_master_sheet site_list tab (inc. synonyms or harmonization fields)."]
-
+  error_dat<-results$errors
+  # remove aggregated sites from error list
+  error_dat<-error_dat[!grepl("[.][.]",value)]
   errors<-c(errors,list(error_dat))
   
-  # 3.2.3) Create Aggregated Site Rows #######
-  mergedat<-Site.Out[grep("[.][.]",Site.ID)]
+  error_dat<-Site.Out[(is.na(Site.Lat.Unc)|is.na(Site.Lon.Unc)) & is.na(Buffer.Manual) & !grepl("[.][.]",Site.ID)
+  ][,list(value=paste0(unique(Site.ID),collapse = "/")),by=list(B.Code)
+  ][,table:=table_name
+  ][,field:="Site.ID"
+  ][,issue:="Missing value in compulsory field location uncertainty."]
   
-  if(nrow(mergedat)>0){
-  result<-pblapply(1:nrow(mergedat),FUN=function(i){
-    site_id<-mergedat$Site.ID[i]
-    site_id<-trimws(unlist(strsplit(site_id,"[.][.]")))
-    b_code<-mergedat[i,B.Code]
-    agg_dat<-Site.Out[B.Code==b_code]
-    N<-agg_dat[,match(site_id,Site.ID)]
+  errors<-c(errors,list(error_dat))
+  
+  # Add ISO.3166.1.alpha.3
+  c_dat<-master_codes$countries[,list(Country,`ISO.3166-1.alpha-3`)]
+  colnames(c_dat)[2]<-"ISO.3166.1.alpha.3"
+  Site.Out<-merge(Site.Out,c_dat,all.x=T)
+  
+  dat<-Site.Out[!(is.na(Site.LatD)|is.na(Site.LonD)|is.na(ISO.3166.1.alpha.3))]
+  error_dat<-check_coordinates(data=dat[,list(Site.LatD,Site.LonD,ISO.3166.1.alpha.3)])
+  error_dat<-dat[!error_dat][,list(value=paste0(paste0(Country,"-",Site.ID,": lat ",Site.LatD," lon ",Site.LonD),collapse="/")),by=B.Code
+  ][,table:=table_name
+  ][,field:="Site.LonD/Site.LatD"
+  ][,issue:="Co-ordinates may not be in the country specified."]
+  errors<-c(errors,list(error_dat))
+  
+    # 3.2.1) Harmonization ######
+    h_params<-data.table(h_table=table_name,
+                         h_field=c("Site.Admin","Site.Start.S1","Site.End.S1","Site.Start.S2","Site.End.S2","Site.Type","Site.Soil.Texture"),
+                         h_table_alt=c(NA,"Site.Out","Site.Out","Site.Out","Site.Out",NA,"Site.Out"),
+                         h_field_alt=c(NA,"Site.Seasons","Site.Seasons","Site.Seasons","Site.Seasons",NA,"Soil.Texture"))
     
-    if(any(is.na(N))){
-      cat("\n Non-match in aggregated site name",i,b_code,":",site_id[is.na(N)],"\n")
-      list(error=data.table(B.Code=b_code,
-                            value=paste0(mergedat$Site.ID[i],"||",paste(site_id[is.na(N)],collapse="/")),
-                            table=table_name,
-                            field="Site.ID",
-                            issue="Value in used in aggregated site name not matching."))
-    }else{
-      agg_dat<-agg_dat[N]
+    results<-harmonizer_wrap(data=Site.Out,
+                             h_params=h_params,
+                             master_codes = master_codes)
+    
+    Site.Out<-results$data
+    h_task<-results$h_tasks
+    h_tasks<-c(h_tasks,list(h_task))
+    
+    h_task<-val_checker(data=Site.Out[grepl("Station",Site.Type) & !grepl("[.][.]",Site.ID)],
+                          tabname=table_name,
+                          master_codes=master_codes,
+                          master_tab="site_list",
+                          h_field="Site.ID",
+                          h_field_alt=NA)
+    
+    h_tasks<-c(h_tasks,list(h_task))
+    
+    h_task<-val_checker(data=Site.Out,
+                          tabname=table_name,
+                          master_codes=master_codes,
+                          master_tab="countries",
+                          h_field="Country",
+                          h_field_alt=NA)
+    
+    h_tasks<-c(h_tasks,list(h_task))
+    
+    # 3.2.2) Harmonize Site.ID field #######
+    master_sites<-master_codes$site_list[!(is.na(Synonyms) & is.na(Harmonization)),.(Site.ID,Country,Synonyms,Harmonization)
+    ][,old_name:=Synonyms
+    ][is.na(old_name),old_name:=Harmonization
+    ][!is.na(Synonyms) & !is.na(Harmonization),old_name:=paste(c(Synonyms[1],Harmonization[1]),collapse=";"),by=.(Site.ID,Country,Synonyms,Harmonization)
+    ][,c("Synonyms","Harmonization"):=NULL]
+    
+    master_sites<-unique(rbindlist(lapply(1:nrow(master_sites),FUN=function(i){
+      old_names<-master_sites[i,unlist(strsplit(old_name,";"))]
+      data.table(new_names=master_sites$Site.ID[i],Country=master_sites$Country[i],Site.ID=old_names)
+    })))[,site_code_new:=paste0(Country,"|||",new_names)][,site_code:=paste0(Country,"|||",Site.ID)]
+    
+    Site.Out$Site.ID_raw<-Site.Out$Site.ID
+    
+    for(i in 1:nrow(Site.Out)){
+      country<-Site.Out$Country[i]
+      site_id<-Site.Out$Site.ID_raw[i]
+      site_id<-trimws(unlist(strsplit(site_id,"[.][.]")))
+      site_codes<-paste0(country,"|||",site_id)
       
-      result <- agg_dat[, lapply(.SD, function(x) {
-        paste(unique(x), collapse = "..")
-      }), .SDcols = colnames(agg_dat)]
+      site_codes_new<-master_sites[match(site_codes,site_code),site_code_new]
+      site_codes[!is.na(site_codes_new)]<-site_codes_new[!is.na(site_codes_new)]
       
-      list(data=result)
+      site_ids_new<-unlist(tstrsplit(site_codes,"[|][|][|]",keep=2))
+      site_ids_new<-paste0(site_ids_new,collapse="..")
+      
+      Site.Out$Site.ID[i]<-site_ids_new
     }
-  })
+    
+    # Check for missing facilities in era_master_sheet
+    master_site_list<-c(master_codes$site_list[,paste0(Country,"|||",Site.ID)],
+                        master_codes$site_list[!is.na(Synonyms),paste0(Country,"|||",unlist(strsplit(Synonyms,";")))],
+                        master_codes$site_list[!is.na(Harmonization),paste0(Country,"|||",unlist(strsplit(Harmonization,";")))])
+    
+    error_dat<-Site.Out[,.(B.Code,Country,Site.ID_raw,Site.Type)][,Code:=paste0(Country,"|||",Site.ID_raw)]
+    error_dat<-error_dat[!Code %in% master_site_list & 
+                        Site.Type == "Researcher Managed & Research Facility" &
+                        !grepl("[.][.]",Site.ID_raw)
+                     ][,.(value=paste(Site.ID_raw,collapse = "/")),by=B.Code
+                       ][,table:=table_name
+                         ][,field:="Site.ID"
+                           ][,issue:="No match for facility in era_master_sheet site_list tab (inc. synonyms or harmonization fields)."]
   
-  mergedat<-rbindlist(lapply(result,"[[","data"))
-  error_dat<-rbindlist(lapply(result,"[[","error"))
-  errors<-c(errors,list(error_dat))
+    errors<-c(errors,list(error_dat))
+    
+    # 3.2.3) Create Aggregated Site Rows #######
+    mergedat<-Site.Out[grep("[.][.]",Site.ID)]
+    
+    if(nrow(mergedat)>0){
+    result<-pblapply(1:nrow(mergedat),FUN=function(i){
+      site_id<-mergedat$Site.ID[i]
+      site_id<-trimws(unlist(strsplit(site_id,"[.][.]")))
+      b_code<-mergedat[i,B.Code]
+      agg_dat<-Site.Out[B.Code==b_code]
+      N<-agg_dat[,match(site_id,Site.ID)]
+      
+      if(any(is.na(N))){
+        cat("\n Non-match in aggregated site name",i,b_code,":",site_id[is.na(N)],"\n")
+        list(error=data.table(B.Code=b_code,
+                              value=paste0(mergedat$Site.ID[i],"||",paste(site_id[is.na(N)],collapse="/")),
+                              table=table_name,
+                              field="Site.ID",
+                              issue="Value in used in aggregated site name not matching."))
+      }else{
+        agg_dat<-agg_dat[N]
+        
+        result <- agg_dat[, lapply(.SD, function(x) {
+          paste(unique(x), collapse = "..")
+        }), .SDcols = colnames(agg_dat)]
+        
+        list(data=result)
+      }
+    })
+    
+    mergedat<-rbindlist(lapply(result,"[[","data"))
+    error_dat<-rbindlist(lapply(result,"[[","error"))
+    errors<-c(errors,list(error_dat))
+    
+    # Replace aggregated site rows
+    Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)[order(B.Code,Site.ID)]
+    }
   
-  # Replace aggregated site rows
-  Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)[order(B.Code,Site.ID)]
-  }
-
 # 3.3) Soil (Soil.Out) #####
 table_name<-"Soils.Out"
 Soil.Out<-excel_dat[[table_name]]
 Soil.Out$B.Code<-Pub.Out$B.Code
 Soil.Out<-Soil.Out[!is.na(Site.ID)]
 
-# Correct duplicate column names
-colnames(Soil.Out)[grep("Soil.N.Unit",colnames(Soil.Out))]<-c("Soil.TN.Unit","Soil.AN.Unit")
+col_names<-colnames(Soil.Out)
+col_names<-col_names[!grepl("[.][.][.]|0[.]",col_names)]
+unit_cols<-grep("Unit",col_names,value=T)
+num_cols<-gsub("[.]Unit","",unit_cols)
 
-# Set zero_cols
-master_codes$lookup_levels[Table=="Soil.Out",unique(Field)]
+Soil.Out<-Soil.Out[,..col_names]
 
-zero_cols<-c("SND","SLT","CLY","Soil.Lower","Soil.BD","Soil.TC","Soil.SOC","Soil.SOM","Soil.pH","Soil.CEC","Soil.EC","Soil.FC","Soil.TN","Soil.NH4","Soil.NO3","Soil.AN",
-             "SND.Unit","SLT.Unit","CLY.Unit","Soil.BD.Unit","Soil.TC.Unit","Soil.FC.Unit","Soil.SOC.Unit","Soil.SOM.Unit","Soil.CEC.Unit","Soil.EC.Unit","Soil.TN.Unit","Soil.NH4.Unit","Soil.NO3.Unit",
-             "Soil.AN.Unit","Soil.SOC.Method","Soil.SOM.Method","Soil.pH.Method")
+Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
+
+# Copy down units
+copy_down_cols<-c(unit_cols)
+Soil.Out <- Soil.Out[, (copy_down_cols) := lapply(.SD,function(x){x[1]}), .SDcols = copy_down_cols]
 
 # Update Site ID
 Soil.Out[,Site.ID_new:=Site.Out$Site.ID[match(Soil.Out$Site.ID,Site.Out$Site.ID_raw)]
@@ -427,9 +429,14 @@ Soil.Out[,Site.ID_new:=Site.Out$Site.ID[match(Soil.Out$Site.ID,Site.Out$Site.ID_
 ][,Site.ID:=Site.ID_new
 ][,Site.ID_new:=NULL]
 
+unit_pairs<-data.table(unit=unit_cols,
+                       var=num_cols,
+                       name_field=num_cols)
+
 results<-validator(data=Soil.Out,
-                   zero_cols =zero_cols,
-                   numeric_cols=c("Soil.Upper","Soil.Lower","Soil.BD","Soil.TC","Soil.SOC","Soil.SOM","Soil.pH","Soil.CEC","Soil.EC","Soil.FC","Soil.TN","Soil.NH4","Soil.NO3","Soil.AN"),
+                   hilo_pairs = data.table(low_col="Soil.Upper",high_col="Soil.Lower",name_field="Site.ID"),
+                   unit_pairs = unit_pairs,
+                   numeric_cols= num_cols,
                    tabname=table_name,
                    trim_ws = T,
                    site_data=Site.Out)
@@ -438,9 +445,19 @@ error_dat<-results$errors
 errors<-c(errors,list(error_dat))
 
 Soil.Out<-results$data
-Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
 
   # 3.3.1) Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
+  if(!"SND" %in% colnames(Soil.Out)){
+    Soil.Out[,SND:=NA]
+  }  
+
+  if(!"SLT" %in% colnames(Soil.Out)){
+    Soil.Out[,SLT:=NA]
+  }  
+  
+  if(!"CLY" %in% colnames(Soil.Out)){
+    Soil.Out[,CLY:=NA]
+  }
 
   # Keep rows with 2 or more observations
   Soil.Out.Texture<-copy(Soil.Out)[,N:=is.na(CLY)+is.na(SLT)+is.na(SND)][N<2]
@@ -580,8 +597,8 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
 
 # 3.5) Herd (Herd.Out) ####
   table_name<-"Herd.Out"
-   Herd.Out<-excel_dat[[table_name]][,1:19]
-   template_cols<-c(master_template_cols[[table_name]][1:19],"B.Code")
+   Herd.Out<-excel_dat[[table_name]][,1:20]
+   template_cols<-c(master_template_cols[[table_name]][1:20],"B.Code")
    Herd.Out$B.Code<-Pub.Out$B.Code
    Herd.Out<-Herd.Out[!is.na(Herd.Level.Name)]
    
@@ -589,7 +606,7 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
    template_cols[template_cols=="Herd.Time"]<-"Time"
    
    if(nrow(Herd.Out)==0){
-     error_dat<-data.table(B.Code=B.Code,value=NA,table=table_name,field="Herd.Level.Name",issue="No Herd.Level.Name exists")
+     error_dat<-data.table(B.Code=Pub.Out$B.Code,value=NA,table=table_name,field="Herd.Level.Name",issue="No Herd.Level.Name exists")
      errors<-c(errors,list(error_dat))
    }
    
@@ -599,12 +616,13 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
    
    results<-validator(data=Herd.Out,
                       tabname=table_name,
-                      time_data = Time.Out,
+                      time_data = Times.Out,
                       compulsory_cols = c(Herd.Level.Name="V.Product.Sci.Name",Herd.Level.Name="Herd.Rep"),
                       hilo_pairs = data.table(low_col="Herd.Start.Age",high_col="Herd.End.Age",name_field="Herd.Row.ID"),
                       unique_cols = c("Herd.Level.Name"),
                       numeric_cols = c("Herd.Start.Age","Herd.End.Age","Herd.Start.Weight","Herd.N","Herd.Rep"),
                       unit_pairs = unit_pairs,
+                      template_cols = template_cols,
                       trim_ws = T)
    
    
@@ -637,20 +655,19 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
    Animals.Out<-excel_dat[[table_name]][,1:21]
    template_cols<-c(master_template_cols[[table_name]][1:21],"B.Code")
    Animals.Out$B.Code<-Pub.Out$B.Code
-   Animals.Out<-Animals.Out[!is.na( A.Level.Name...2)]
 
-   setnames(Animals.Out,c("M.Year...4","A.Herd","A.Level.Name...2"),c("Time","Herd.Row.ID","A.Level.Name"),skip_absent=T)
+   setnames(Animals.Out,c("M.Year...3","A.Level.Name...1"),c("Time","A.Level.Name"),skip_absent=T)
    template_cols <- dplyr::recode(
      template_cols,
-     "M.Year...4"       = "Time",
-     "A.Herd"           = "Herd.Row.ID",
-     "A.Level.Name...2" = "A.Level.Name",
+     "M.Year...3"       = "Time",
+     "A.Level.Name...1" = "A.Level.Name",
      .default = template_cols  # Keeps original names if no match
    )
    
+   Animals.Out<-Animals.Out[!is.na( A.Level.Name)]
    
    if(nrow(Animals.Out)==0){
-     error_dat<-data.table(B.Code=B.Code,value=NA,table=table_name,field="A.Level.Name",issue="No A.Level.Name exists")
+     error_dat<-data.table(B.Code=Pub.Out$B.Code,value=NA,table=table_name,field="A.Level.Name",issue="No A.Level.Name exists")
      errors<-c(errors,list(error_dat))
    }
   
@@ -680,9 +697,6 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
                        unique_cols = "A.Level.Name",
                        allowed_values=allowed_values,      
                        hilo_pairs = data.table(low_col="D.Day.Start",high_col="D.Day.End",name_field="A.Level.Name"),
-                       check_keyfields=data.table(parent_tab=list(Herd.Out),
-                                                parent_tab_name=c("Herd.Out"),
-                                                keyfield=c("Herd.Row.ID")),
                        time_data = Times.Out,
                        trim_ws = T,
                        tabname=table_name)
@@ -691,7 +705,7 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
   Animals.Out<-results$data
 
   # All NA rows 
-  N<-apply(Animals.Out[,!c("Herd.Row.ID","A.Level.Name","B.Code")],1,FUN = function(x){all(is.na(x))})
+  N<-apply(Animals.Out[,!c("A.Level.Name","B.Code")],1,FUN = function(x){all(is.na(x))})
   error_dat<-Animals.Out[N,.(value=paste(A.Level.Name,collapse = "/")),by=B.Code
   ][,table:=table_name
   ][,field:="A.Level.Name"
@@ -901,24 +915,39 @@ Soil.Out[is.na(Soil.Lower),Soil.Upper:=NA]
 
     
 # 3.9) Animals.Diet.Comp ######
-  # 3.9.1) Variables
   table_name<-"Nutrition.Out"
-  Animal.Diet.Vars<-excel_dat[[table_name]][,3:7]
-  template_cols<-c(master_template_cols[[table_name]][(3:7)],"B.Code")
+  Animal.Diet.Comp<-excel_dat[[table_name]]
+  col_names<-colnames(Animal.Diet.Comp)
+  col_names<-col_names[!grepl("[.][.][.]|0[.]",col_names)]
+  unit_cols<-grep("Unit",col_names,value=T)
+  num_cols<-gsub("[.]Unit","",unit_cols)
+
+  Animal.Diet.Comp<-Animal.Diet.Comp[,..col_names]
   
-  Animal.Diet.Vars$B.Code<-Pub.Out$B.Code[1]
+  # Copy down units and methods
+  copy_down_cols<-c(unit_cols)
+  Animal.Diet.Comp <- Animal.Diet.Comp[, (copy_down_cols) := lapply(.SD,function(x){x[1]}), .SDcols = copy_down_cols]
   
-  Animal.Diet.Vars<-Animal.Diet.Vars[!is.na(DC.Variable)]
+  # Add study code
+  Animal.Diet.Comp$B.Code<-Pub.Out$B.Code[1]
   
-  unit_pairs<-data.table(unit=c("DC.Unit"),
-                         var=c("DC.Variable"),
-                         name_field="DC.Variable")
+  Animal.Diet.Comp<-Animal.Diet.Comp[!is.na(D.Item)]
   
-results<-validator(data=Animal.Diet.Vars,
-                   zero_cols =colnames(Animals.Diet.Comp),
-                   numeric_cols=numeric_cols,
+  unit_pairs<-data.table(unit=unit_cols,
+                         var=num_cols,
+                         name_field=num_cols)
+  
+  item_options<-as.vector(na.omit(unique(c(Animals.Out$A.Level.Name,Animal.Diet$D.Item,Animal.Diet$D.Item.Group))))
+  
+  allowed_values<-data.table(allowed_values=list(item_options),
+                             parent_tab_name=c("Diet.Ingredients"),
+                             field=c("D.Item"))
+  
+results<-validator(data=Animal.Diet.Comp,
+                   numeric_cols=num_cols,
                    unit_pairs = unit_pairs,
                    compulsory_cols = c(D.Item="D.Item"),
+                   allowed_values = allowed_values,
                    duplicate_field="D.Item",
                    trim_ws = T,
                    tabname=table_name)
@@ -995,74 +1024,52 @@ h_tasks<-c(h_tasks,list(results$h_tasks))
 Animals.Diet.Comp<-results$data
 
 # 3.10) Animals.Diet.Digest ######
-table_name<-"Animals.Diet.Digest"
-col_names<-colnames(data[[1]][,127:208])
-col_names[col_names=="D.Item...129"]<-"D.Item"
-col_names<-col_names[!grepl("...",col_names,fixed = T)]
+table_name<-"Digest.Out"
+Animal.Diet.Digest<-excel_dat[[table_name]]
 
-numeric_cols<-col_names[3:21]
-unit_cols<-paste0(numeric_cols,".Unit")
-method_cols<-paste0(numeric_cols,".Method")
-dv_cols<-paste0(numeric_cols,".DorV")
-copy_down_cols<-c(unit_cols,method_cols,dv_cols,"DD.Unit.Is.Dry")
+col_names<-colnames(Animal.Diet.Digest)
+col_names<-col_names[!grepl("[.][.][.]|0[.]",col_names)]
+unit_cols<-grep("Unit",col_names,value=T)
+num_cols<-gsub("[.]Unit","",unit_cols)
+method_cols<-grep("Method",col_names,value=T)
 
-fun1<-function(x){x[1]}
+Animal.Diet.Digest<-Animal.Diet.Digest[,..col_names]
 
-Animals.Diet.Digest<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
-  setnames(X,c("D.Item...129"),c("D.Item"),skip_absent = T)
-  
-  
-  if(!all(col_names %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(error=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with table structure."))
-  }else{
-    X<-X[,..col_names]
-    X<-X[!is.na(D.Item)]
-    if(nrow(X)>0){
-      X <- X[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }
-  }})
+# Copy down units and methods
+copy_down_cols<-c(unit_cols)
+Animal.Diet.Digest <- Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD,function(x){x[1]}), .SDcols = copy_down_cols]
 
-error_dat<-rbindlist(lapply(Animals.Diet.Digest,"[[","error"))
-errors<-c(errors,list(error_dat))
+# Add study code
+Animal.Diet.Digest$B.Code<-Pub.Out$B.Code[1]
 
-Animals.Diet.Digest<-rbindlist(lapply(Animals.Diet.Digest,"[[","data"))
+Animal.Diet.Digest<-Animal.Diet.Digest[!is.na(D.Item)]
 
-# Run standard validation
-unit_pairs<-data.table(unit=unit_cols,var=numeric_cols,name_field="D.Item")
+unit_pairs<-data.table(unit=unit_cols,
+                       var=num_cols,
+                       name_field=num_cols)
 
-results<-validator(data=Animals.Diet.Digest,
-                   zero_cols =colnames(Animals.Diet.Digest),
-                   numeric_cols=numeric_cols,
+item_options<-as.vector(na.omit(unique(c(Animals.Out$A.Level.Name,Animals.Diet$D.Item,Animals.Diet$D.Item.Group))))
+
+allowed_values<-data.table(allowed_values=list(item_options),
+                           parent_tab_name=c("Diet.Ingredients"),
+                           field=c("D.Item"))
+
+results<-validator(data=Animal.Diet.Digest,
+                   numeric_cols=num_cols,
                    unit_pairs = unit_pairs,
                    compulsory_cols = c(D.Item="D.Item"),
+                   allowed_values = allowed_values,
                    duplicate_field="D.Item",
                    trim_ws = T,
                    tabname=table_name)
 
-errors<-c(errors,list(results$errors))
-Animals.Diet.Digest<-results$data
+error_dat<-results$errors
+errors<-c(errors,list(error_dat))
 
-# Set non-numerics cols to character
-non_numeric_cols<-colnames(Animals.Diet.Digest)[!colnames(Animals.Diet.Digest) %in% numeric_cols]
-Animals.Diet.Digest <- Animals.Diet.Digest[, (non_numeric_cols) := lapply(.SD, as.character), .SDcols = non_numeric_cols]
+Animal.Diet.Digest<-results$data
 
-# Add columns to indicate if a "compound" diet item described by A.Level.Name or Diet.Group 
-diet_groups<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
-setnames(diet_groups,"D.Item.Group","D.Item")
-
-diet_entire<-unique(Animals.Out[,.(B.Code,A.Level.Name)][,is_entire_diet:=T])
-setnames(diet_entire,"A.Level.Name","D.Item")
-
-Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
-Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
-
-  # 3.10.1) Harmonization #######
-
+  # 3.10.1) !!TO DO !! Harmonization #######
+if(F){
 Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
 
 # Check for non-matches
@@ -1102,129 +1109,127 @@ results<-harmonizer_wrap(data=Animals.Diet.Digest,
 
 h_tasks<-c(h_tasks,list(results$h_tasks))
 Animals.Diet.Digest<-results$data
+}
 
-# 3.11) Update D.Item field with harmonized names ######
-Animals.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-Animals.Diet.Comp[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-Animals.Diet.Digest[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-
+# 3.x) !! TO DO !! Update D.Item field with harmonized names ######
+if(F){
+  Animals.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+  Animals.Diet.Comp[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+  Animals.Diet.Digest[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+}
 # 3.8) Agroforestry #####
+# 3.8.1) AF.Out######
 table_name<-"AF.Out"
-data<-lapply(XL,"[[",table_name)
-col_names<-colnames(data[[1]])
+AF.Out<-excel_dat[[table_name]][,c(1:5,7,8)]
+template_cols<-c(master_template_cols[[table_name]][c(1:5,7,8)],"B.Code")
+AF.Out$B.Code<-Pub.Out$B.Code
 
-  # 3.8.1) AF.Out######
-  col_names2<-col_names[c(1:4)]
-  
-  AF.Out<-pblapply(1:length(data),FUN=function(i){
-      X<-data[[i]]
-      B.Code<-Pub.Out$B.Code[i]
-      Filename<-basename(names(XL)[i])
-      
-      if(!all(col_names2 %in% colnames(X))){
-        cat("Structural issue with file",i,B.Code,"\n")
-        list(errors=data.table(B.Code=B.Code,
-                               value=NA,
-                               table=table_name,
-                               field=NA,
-                               issue="Problem with tab structure"))
-      }else{
-        X<-X[,..col_names2]
-        colnames(X)[1]<-"AF.Level.Name"
-        X<-X[!is.na(AF.Level.Name)][,B.Code:=B.Code]
-        list(data=X)
-        }
-    })
-  
-  error_dat<-rbindlist(lapply(AF.Out,"[[","errors"))
-  errors<-list(error_dat)
+setnames(AF.Out,"AF.Level.Name...1","AF.Level.Name")
+template_cols[template_cols=="AF.Level.Name...1"]<-"AF.Level.Name"
 
-  AF.Out<-rbindlist(lapply(AF.Out,"[[","data"))
-  
-  # 3.8.3) Save errors
-  error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
-                            filename = paste0(table_name,"_errors"),
-                            error_dir=error_dir,
-                            error_list = error_list)
-  
+# Temp fix for whitespace issue
+colnames(AF.Out)<-trimws(colnames(AF.Out))
+
+AF.Out<-AF.Out[!is.na(AF.Level.Name)]
+AF.Out<-AF.Out[!(AF.Level.Name=="Base" & is.na(AF.Silvopasture) & is.na(AF.Boundary) & is.na(AF.Aquasilviculture) & is.na(AF.Other) & is.na(AF.Notes))]
+
+results<-validator(data=AF.Out,
+                   tabname=table_name,
+                   time_data = Times.Out,
+                   compulsory_cols = c(AF.Level.Name="B.Code"),
+                   unique_cols = c("AF.Level.Name"),
+                   template_cols = template_cols,
+                   trim_ws = T)
+
+error_dat<-results$errors
+errors<-c(errors,list(error_dat))
+
+AF.Out<-results$data
+
+# 3.8.2) AF.Trees ######
+table_name<-"AF.Out"
+AF.Trees<-excel_dat[[table_name]][,c(10:13)]
+template_cols<-c(master_template_cols[[table_name]][c(10:13)],"B.Code")
+AF.Trees$B.Code<-Pub.Out$B.Code
+table_name<-"AF.Trees"
+
+colnames(AF.Trees)<-unlist(tstrsplit(colnames(AF.Trees),"[.][.][.]",keep=1))
+template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+
+AF.Trees<-AF.Trees[!is.na(AF.Level.Name)]
+
+results<-validator(data=AF.Trees,
+                   tabname=table_name,
+                   compulsory_cols = c(AF.Tree="AF.Level.Name"),
+                   numeric_cols = "AF.Tree.N",
+                   template_cols = template_cols,
+                   unit_pairs<-data.table(unit="AF.Tree.Unit",
+                                          var="AF.Tree.N",
+                                          name_field="AF.Tree.Unit"),
+                   allowed_values = data.table(allowed_values=list(master_codes$trees[,unique(Tree.Latin.Name)]),
+                                               parent_tab_name="master_codes$trees",
+                                               field="AF.Tree"),
+                   trim_ws = T)
+
+error_dat<-results$errors
+errors<-c(errors,list(error_dat))
+
+AF.Trees<-results$data
+
 # 3.9) Chemicals #####
-data<-lapply(XL,"[[","Chems.Out")
-col_names<-colnames(data[[1]])
-table_name<-"Chems.Code"
-
   # 3.9.1) Chems.Code ####
-col_names2<-col_names[1:2]
-
-Chems.Code<-lapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
+  table_name<-"Chems.Out"
+  Chems.Code<-excel_dat[[table_name]][,c(1:3)]
+  template_cols<-c(master_template_cols[[table_name]][c(1:3)],"B.Code")
+  Chems.Code$B.Code<-Pub.Out$B.Code
   
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
-  }else{
-    X<-X[,..col_names2]
-    colnames(X)[1]<-"C.Level.Name"
-    X<-X[!is.na(C.Level.Name)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }else{
-      NULL
-    }
-  }})
+  setnames(Chems.Code,"C.Name","C.Level.Name")
+  Chems.Code<-Chems.Code[!is.na(C.Level.Name)]
+  
+  
+  error_dat<-validator(data=Chems.Code,
+                     unique_cols = "C.Level.Name",
+                     tabname="Chems.Code")$errors
+  
+  errors<-c(errors,list(error_dat))
 
-errors<-list(rbindlist(lapply(Chems.Code,"[[","errors")))
-Chems.Code<-rbindlist(lapply(Chems.Code,"[[","data"))
+  # 3.9.2) Chems.Out ####
+  table_name<-"Chems.Out"
+  Chems.Out<-excel_dat[[table_name]][,c(5:19)]
+  template_cols<-c(master_template_cols[[table_name]][c(5:19)],"B.Code")
+  Chems.Out$B.Code<-Pub.Out$B.Code
+  
+  Chems.Out<-Chems.Out[!is.na(C.Level.Name)]
+  
+  colnames(Chems.Out)<-unlist(tstrsplit(colnames(Chems.Out),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
 
-error_dat<-validator(data=Chems.Code,
-                   unique_cols = "C.Level.Name",
-                   tabname="Chems.Code")$errors
-
-errors<-c(errors,list(error_dat))
-
-  # 3.9.2) Chem    
-    # 3.9.2.1) Harmonization #######
-col_names2<-col_names[4:17]
-table_name<-"Chems.Out"
-
-Chems.Out<-pblapply(1:length(data),FUN=function(i){
-  X<-data[[i]]
-  B.Code<-Pub.Out$B.Code[i]
-
-  if(!all(col_names2 %in% colnames(X))){
-    cat("Structural issue with file",i,B.Code,"\n")
-    list(errors=data.table(B.Code=B.Code,value=NA,table=table_name,field=NA,issue="Problem with tab structure"))
-  }else{
-    X<-X[,..col_names2]
-    colnames(X)[1]<-"C.Level.Name"
-    X<-X[!is.na(C.Level.Name)]
-    if(nrow(X)>0){
-      X[,B.Code:=B.Code]
-      list(data=X)
-    }else{
-      NULL
-    }
-  }})
-
-error_dat<-rbindlist(lapply(Chems.Out,"[[","errors"))
-errors<-c(errors,list(error_dat))
-
-Chems.Out<-rbindlist(lapply(Chems.Out,"[[","data"))
-setnames(Chems.Out,"C.Brand","C.Name")
-Chems.Out[,C.Type:=gsub("Animal - ","",C.Type)]
-
-results<-validator(data=Chems.Out,
-                   zero_cols = colnames(Chems.Out),
+  setnames(Chems.Out,"C.Brand","C.Name")
+  Chems.Out[,C.Type:=gsub("Animal - ","",C.Type)]
+  
+  allowed_values<-data.table(allowed_values=list(unique(c(master_codes$chem[,C.Name],master_codes$chem[,C.Name.AI...16])),
+                                                 master_codes$lookup_levels[Field=="C.App.Method",Values_New],
+                                                 master_codes$lookup_levels[Field=="C.Unit",Values_New]),
+                             parent_tab_name=c("master_codes$chem","master_codes$lookup_levels","master_codes$lookup_levels"),
+                             field=c("C.Name","C.App.Method","C.Unit"))
+  
+  results<-validator(data=Chems.Out,
                    compulsory_cols = c(C.Level.Name="C.Type",C.Level.Name="C.Name"),
-                   numeric_cols=c("C.Amount","C.AI.Amount","C.Applications"),
+                   numeric_cols=c("C.Amount","C.Applications","C.Date.DAP"),
                    numeric_ignore_vals="Unspecified",
-                   unit_pairs = data.table(unit=c("C.AI.Unit","C.Unit"),
-                                           var=c("C.AI.Amount","C.Amount"),
+                   unit_pairs = data.table(unit=c("C.Unit"),
+                                           var=c("C.Amount"),
                                            name_field="C.Level.Name"),
                    check_keyfields=data.table(parent_tab=list(Chems.Code),
                                               parent_tab_name="Chems.Code",
                                               keyfield="C.Level.Name"),
+                   hilo_pairs = data.table(low_col="C.Date.Start",high_col="C.Date.End",name_field="C.Level.Name"),
+                   allowed_values=allowed_values,
+                   time_data = Times.Out,
+                   site_data =  Site.Out,
+                   valid_start = valid_start,
+                   valid_end = valid_end,
+                   date_cols = c("C.Date.Start","C.Date.End"),
                     tabname=table_name,
                    duplicate_field="C.Level.Name",
                    trim_ws = T)
@@ -1233,36 +1238,37 @@ error_dat<-results$errors
 errors<-c(errors,list(error_dat))
 Chems.Out<-results$data
 
+    # 3.9.2.1) !!TO DO: Harmonization #######
 
-# Update C.Names
-Chems.Out<-Chems.Out[C.Name %in% c("Unspecified","unspecified")|is.na(C.Name),C.Name:=paste0("unspecified ",tolower(C.Type))]
-
-merge_dat<-master_codes$chem[!is.na(C.Name.Raw),.(C.Name.Raw,C.Name)]
-colnames(merge_dat)<-c("C.Name","C.Name.New")
-merge_dat<-split_syn(data=merge_dat,split_col="C.Name",delim=";")
-
-Chems.Out<-merge(Chems.Out,merge_dat,by="C.Name",all.x=T,sort=F)
-
-error_dat<-unique(Chems.Out[!C.Name %in% c("Unspecified") & 
-                              !is.na(C.Name) & 
-                              is.na(C.Name.New) & 
-                              !tolower(C.Name) %in% merge_dat$C.Name.New,.(C.Type,C.Name,B.Code)
-                            ][,value:=paste0(C.Type,"-",C.Name)
-                              ][,.(B.Code=paste(B.Code,collapse="/")),by=value
-                                ][,table:=table_name
-                                  ][,field:="C.Name"
-                                    ][,issue:="No match with master codes chems tab."])
-
-errors[["chems_nomatch"]]<-error_dat
-
-Chems.Out[,C.Name_raw:=C.Name][!is.na(C.Name.New),C.Name:=C.Name.New][,C.Name.New:=NULL]
-
-# Merge in chemical information
-merge_dat<-master_codes$chem[!is.na(C.Name.Raw),.(C.Name,C.Type.AI,C.Is.Name.Commercial,C.AI)]
-merge_dat[is.na(C.AI),C.AI:=C.Name]
-
-Chems.Out<-merge(Chems.Out,merge_dat,by="C.Name",all.x=T,sort=F)
-
+if(F){
+  # Update C.Names
+  Chems.Out<-Chems.Out[C.Name %in% c("Unspecified","unspecified")|is.na(C.Name),C.Name:=paste0("unspecified ",tolower(C.Type))]
+  
+  merge_dat<-master_codes$chem[!is.na(C.Name.Raw),.(C.Name.Raw,C.Name)]
+  colnames(merge_dat)<-c("C.Name","C.Name.New")
+  merge_dat<-split_syn(data=merge_dat,split_col="C.Name",delim=";")
+  
+  Chems.Out<-merge(Chems.Out,merge_dat,by="C.Name",all.x=T,sort=F)
+  
+  error_dat<-unique(Chems.Out[!C.Name %in% c("Unspecified") & 
+                                !is.na(C.Name) & 
+                                is.na(C.Name.New) & 
+                                !tolower(C.Name) %in% merge_dat$C.Name.New,.(C.Type,C.Name,B.Code)
+                              ][,value:=paste0(C.Type,"-",C.Name)
+                                ][,.(B.Code=paste(B.Code,collapse="/")),by=value
+                                  ][,table:=table_name
+                                    ][,field:="C.Name"
+                                      ][,issue:="No match with master codes chems tab."])
+  
+  errors[["chems_nomatch"]]<-error_dat
+  
+  Chems.Out[,C.Name_raw:=C.Name][!is.na(C.Name.New),C.Name:=C.Name.New][,C.Name.New:=NULL]
+  
+  # Merge in chemical information
+  merge_dat<-master_codes$chem[!is.na(C.Name.Raw),.(C.Name,C.Type.AI,C.Is.Name.Commercial,C.AI)]
+  merge_dat[is.na(C.AI),C.AI:=C.Name]
+  
+  Chems.Out<-merge(Chems.Out,merge_dat,by="C.Name",all.x=T,sort=F)
 
 # Units
 h_params<-data.table(h_table="Chems.Out",
@@ -1276,16 +1282,53 @@ results<-harmonizer_wrap(data=Chems.Out,
 
 h_tasks<-list(results$h_tasks)
 Chems.Out<-results$data
-  # 3.9.3)Save errors and harmonization tasks ######
-  error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
-                            filename = paste0("chems_errors"),
-                            error_dir=error_dir,
-                            error_list = error_list)
-  
-  harmonization_list<-error_tracker(errors=rbindlist(h_tasks),
-                                    filename = "chems",
-                                    error_dir=harmonization_dir,
-                                    error_list = harmonization_list)
+}
+
+# 3.9.3) Chems.AI ####
+table_name<-"Chems.Out"
+Chems.AI<-excel_dat[[table_name]][,c(21:27)]
+template_cols<-c(master_template_cols[[table_name]][c(21:27)],"B.Code")
+Chems.AI$B.Code<-Pub.Out$B.Code
+table_name<-"Chems.AI"
+
+colnames(Chems.AI)<-unlist(tstrsplit(colnames(Chems.AI),"[.][.][.]",keep=1))
+template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+
+colnames(Chems.AI)[1]<-"C.Name"
+table_name[1]<-"C.Name"
+
+Chems.AI<-Chems.AI[!is.na(C.Name)]
+
+allowed_values<-data.table(allowed_values=list(unique(master_codes$chem[,C.Name.AI...16]),
+                                               master_codes$lookup_levels[Field=="C.Unit",Values_New]),
+                           parent_tab_name=c("master_codes$chem","master_codes$lookup_levels"),
+                           field=c("C.Name.AI","C.AI.Unit"))
+
+results<-validator(data=Chems.AI,
+                   compulsory_cols = c(C.Name="C.Name.AI"),
+                   numeric_cols=c("C.AI.Amount"),
+                   numeric_ignore_vals="Unspecified",
+                   unit_pairs = data.table(unit=c("C.AI.Unit"),
+                                           var=c("C.AI.Amount"),
+                                           name_field="C.Name"),
+                   check_keyfields=data.table(parent_tab=list(Chems.Out),
+                                              parent_tab_name="Chems.Out",
+                                              keyfield="C.Name"),
+                   allowed_values=allowed_values,
+                   tabname=table_name,
+                   duplicate_field="C.Name",
+                   trim_ws = T)
+
+error_dat<-results$errors
+errors<-c(errors,list(error_dat))
+Chems.AI<-results$data
+
+# 3.x) Grazing Management ####
+names(excel_dat)
+# 3.x) Pasture ####
+# 3.x) Planting ####
+# 3.x) Tillage ####
+# 3.x) Fertilizer ####
 
 # 3.10) Other ######
 table_name<-"Other.Out"
