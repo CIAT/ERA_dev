@@ -212,6 +212,36 @@ if(file_status){
   setnames(errors,"era_code2","B.Code")
   error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
   
+  # 2.5.1) Read in feed intake from user input sheet (error in Data.Out) ######
+  future::plan(multisession, workers = workers)
+  
+  enter_data_raw <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
+    File <- excel_files$filename[i]
+    era_code <- excel_files$era_code2[i]
+    
+    tryCatch({
+      cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, "               ")
+      flush.console()
+      X<-data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = "EnterData", trim_ws = FALSE))))
+      
+      
+      X<-X[,1:14]
+      x_cols<-unlist(X[1])
+      X<-X[-1]
+      colnames(X)<-x_cols
+      X<-X[!is.na(ED.Treatment) & !is.na(ED.Site.ID)]
+      X<-X[,-13]
+      X
+      
+    }, error=function(e){
+      cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+      return(NULL)  # Return NULL if there was an error
+    })
+    
+  })
+  
+  enter_data_raw<-rbindlist(enter_data_raw)
+  
 # 3) Process imported data ####
   # 3.1) Publication (Pub.Out) #####
 table_name<-"Pub.Out"
@@ -1036,7 +1066,7 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
     error_dat<-mergedat[,N:=.N,by=D.Item][N>1]
     excluded_items<-error_dat[,unique(D.Item)]
     error_dat<-error_dat[,D.Item2:=D.Item
-              ][,B.Code:=Animals.Diet.Comp[D.Item==D.Item2[1],paste(unique(B.Code),collapse = "/")],by=D.Item2
+              ][,B.Code:=Animals.Diet[D.Item==D.Item2[1],paste(unique(B.Code),collapse = "/")],by=D.Item2
                 ][,value:=paste(D.Item,"-",D.Item.Root.Comp.Proc_Major)
                   ][,.(B.Code,value)
                     ][,table:="era_master_sheet/ani_diets"
@@ -2025,9 +2055,18 @@ Data.Out<-lapply(1:length(data),FUN=function(i){
 errors<-list(rbindlist(lapply(Data.Out,"[[","errors")))
 Data.Out<-rbindlist(lapply(Data.Out,"[[","data"),use.names = T)
 
+
+# Merge in ED.Feed.Item from raw user data
+Data.Out<-Data.Out[,ED.Intake.Item:=NULL]
+enter_data_raw<-enter_data_raw[,!c("ED.Error","ED.Error.Type","ED.Data.Loc","ED.Int","ED.Rot","ED.Product.Comp","ED.Mean.T")]
+Data.Out<-merge(Data.Out,enter_data_raw,
+                by=c("ED.Site.ID","ED.Treatment","ED.Product.Simple","ED.M.Year","ED.Outcome"))
+
+# Update Feed Item Names, Indicate if whole diet, diet group or single ingredient
+
+# Update column names
 setnames(Data.Out,c("ED.Treatment","ED.Site.ID","ED.Outcome","ED.M.Year","ED.Product.Simple"),
          c("T.Name","Site.ID","Out.Code.Joined","Time","P.Product"))
-
 # Update outcome subind names
 Data.Out[, Out.Code.Joined := stringr::str_replace_all(Out.Code.Joined, replacement_map)]
 
