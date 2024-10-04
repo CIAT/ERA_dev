@@ -1345,3 +1345,38 @@ check_coordinates <- function(data) {
   
   return(is_within_country)
 }
+#' Split and Expand Delimited Values into Multiple Rows
+#'
+#' This function splits the entries of a specified column in a data frame based 
+#' on a given delimiter, creating a new row for each split value, while retaining 
+#' the values in the other columns.
+#'
+#' @param data A data frame containing the data to be split.
+#' @param split_col A character string specifying the name of the column to be split.
+#' @param delim A character string specifying the delimiter by which to split the column. 
+#' Default is `";"`.
+#'
+#' @return A data frame where each value in the `split_col` is split into multiple rows, 
+#' with other columns duplicated accordingly.
+#'
+#' @examples
+#' merge_dat <- data.frame(
+#'   C.Name = c("2,4-D;2-4D;2,4-Dichlorophenoxyacetic acid", "Aatrex", "Acetamiprid"),
+#'   C.Name.New = c("2,4-D", "aatrex", "acetamiprid"),
+#'   stringsAsFactors = FALSE
+#' )
+#' 
+#' split_syn(merge_dat, "C.Name", ";")
+#'
+#' @importFrom dplyr mutate
+#' @importFrom tidyr unnest
+#' @export
+split_syn <- function(data, split_col, delim = ";") {
+  
+  # Split the values in split_col and repeat the corresponding C.Name.New for each split value
+  new_data <- data %>%
+    mutate(!!split_col := strsplit(as.character(.data[[split_col]]), delim)) %>%
+    unnest(cols = c(!!split_col))
+  
+  return(new_data)
+}
