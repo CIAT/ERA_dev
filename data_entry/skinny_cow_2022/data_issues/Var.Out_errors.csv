@@ -27,6 +27,7 @@ LM0299,Var.Out,V.Var,Sheep:Blackhead Ogaden,No match for variety in era_master_s
 LM0299,Var.Out,V.Var,Sheep:Hararghe Highland,No match for variety in era_master_sheet vars tab.,FALSE,"",""
 LM0310,Var.Out,V.Var,Crustacean:Indian prawn shrimp,No match for variety in era_master_sheet vars tab.,FALSE,"",""
 NJ0013,Var.Out,V.Var,Local Variety,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
+NJ0052,Var.Out,V.Var,South African Windsnyer,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
 NN0101,Var.Out,V.Var,Unspecified,"V.Type is local, but V.Animal.Practice is not Unimproved Breed",FALSE,"",""
 NN0108,Var.Out,V.Var,Chicken:Hybro broiler type,No match for variety in era_master_sheet vars tab.,FALSE,"",""
 NN0118,Var.Out,V.Var,Fish:Tilapia,No match for variety in era_master_sheet vars tab.,FALSE,"",""
