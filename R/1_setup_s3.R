@@ -117,6 +117,7 @@ upload_files_to_s3(files = files,
                          "excel_files")
     
     # List excel files to be zipped
+    
     files<-list.files(folder_local,full.names = T,recursive=T)
     files<-grep("csv$|RData$|zip$|xlsx$|xlsm$",files,value=T)
     files<- grep("xlsm$",files,value=T)
@@ -136,12 +137,12 @@ upload_files_to_s3(files = files,
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
-    files<-list.files(folder_local,"industrious_elephant_2023",full.names = T,recursive=T)
-    
-    upload_files_to_s3(files = output_zip_file,
+    files<-list.files(folder_local,era_projects$skinny_cow_2022,full.names = T,recursive=T)
+    files<-grep(".RData",files,value=T)
+    upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
-                       overwrite=T,
+                       overwrite=F,
                        mode="public-read")
   
     # 1.2.2.3) upload pdfs #######
