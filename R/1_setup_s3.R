@@ -1,3 +1,4 @@
+# First run R/0_set_env.R
 # 0.1) Load packages #####
 if (!require("pacman")) {
   install.packages("pacman")
@@ -100,7 +101,7 @@ upload_files_to_s3(files = files,
     # 1.2.1.2) Upload pdfs #####
   # 1.2.2) 2022 skinny cow ######
     # 1.2.2.1) excels #######
-    folder_local<-file.path("C:/Users/PSteward/OneDrive - CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
+    folder_local<-file.path("/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
     project<-era_projects$skinny_cow_2022
     folder<-file.path(era_dirs$era_dataentry_dir,
                       project,
@@ -373,6 +374,15 @@ s3_dir_ls(s3_bucket)
     s3_bucket<-era_dirs$era_geodata_s3
     
     files<-list.files(era_dirs$era_geodata_dir,"CHIRPS_",full.names = T)
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+  # 1.4.8) Feedipedia
+    s3_bucket<-era_dirs$ancillary_s3
+    files<-list.files(era_dirs$ancillary_dir,"feedipedia.parquet",full.names = T,recursive=T)
     
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
