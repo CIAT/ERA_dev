@@ -3,8 +3,7 @@
 
 # 0) Set-up workspace ####
 # 0.1) Load packages and create functions #####
-packages<-c("terra","sf","data.table","geodata","exactextractr")
-p_load(char=packages)
+p_load(terra,sf,data.table,geodata,exactextractr,future.apply,progressr)
 
 # 1) Prepare ERA data ####
 SS<-era_locations[Buffer<50000]
@@ -28,14 +27,62 @@ soil_files <- data.table(
   )
 )
 
-soil_files<-rbind(soil_files[,depth:=20],soil_properties[,depth:=50])[,source:="https://rdrr.io/github/rspatial/geodata/man/soil_af_isda.html"]
+soil_files<-rbind(copy(soil_files)[,depth:=20],copy(soil_files)[,depth:=50])[,source:="https://rdrr.io/github/rspatial/geodata/man/soil_af_isda.html"]
 
 fwrite(soil_files,file.path(era_dirs$era_geodata_dir,"soil_af_isda_metadata.csv"))
 
+# Download data in parallel
+n_workers<-5
+# Enable progressr
+progressr::handlers(global = TRUE)
+progressr::handlers("txtprogressbar")
+
+# Set up parallel processing plan
+future::plan(multisession, workers = n_workers)  # Adjust 'workers' based on available cores
+
+# Function to process each row with tryCatch and suppress messages
+process_soil_file <- function(i, soil_files, era_dirs) {
+  attempts <- 0
+  success <- FALSE
+  max_attempts <- 3
+  
+  while (attempts < max_attempts && !success) {
+    attempts <- attempts + 1
+    tryCatch({
+      # Suppress messages from the function call
+      suppressMessages({
+        geodata::soil_af_isda(var = soil_files$var[i], depth = soil_files$depth[i], path = era_dirs$soilgrid_dir)
+        geodata::soil_af_isda(var = soil_files$var[i], depth = soil_files$depth[i], path = era_dirs$soilgrid_dir, error = TRUE)
+      })
+      success <- TRUE  # Set success flag to TRUE if no error occurs
+    }, error = function(e) {
+      if (attempts >= max_attempts) {
+        message("Failed after ", max_attempts, " attempts for row ", i)
+      }
+    })
+  }
+}
+
+# Parallel processing with progressr
+with_progress({
+  # Create progress bar
+  progress <- progressr::progressor(along = 1:nrow(soil_files))
+  
+  future.apply::future_lapply(1:nrow(soil_files), function(i) {
+    # Call the processing function
+    process_soil_file(i, soil_files, era_dirs)
+    # Update progress
+    progress()
+  })
+})
+
+# Non parallel version of the above in case you are experiencing issues
+if(F){
 for(i in 1:nrow(soil_files)){
     geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir)
     geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir,error=T)
-  }
+}
+}
 
 # 3) Extract soil grids data for era buffers ####
 overwrite<-F # Re-extract all data that exists for era sites?
