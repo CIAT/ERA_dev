@@ -1108,6 +1108,11 @@ validator <- function(data,
     
     # Look for instances where a non-numeric value is present in a numeric field
     errors1 <- find_non_numeric(data = data, numeric_cols = numeric_cols, tabname = tabname)
+    
+    if(!is.null(ignore_values)[1]){
+      errors1<-errors1[!value %in% ignore_values]
+    }
+    
     errors1 <- errors1[, list(value = paste(value, collapse = "/")), by = list(B.Code, table, field)
     ][, issue := "Non-numeric value in numeric field."]
     errors[[n]] <- errors1
@@ -1271,12 +1276,16 @@ validator <- function(data,
 #' check_key(parent, child, "child_table", "key_field", TRUE, "parent_table")
 #' }
 #' @import data.table
-check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL) {
+check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL,na_omit=T) {
   n_col <- c("B.Code", keyfield)
   parent<-parent[, ..n_col][, check := TRUE]
   child<-child[, ..n_col]
   mergetab <- unique(merge(child, parent, all.x = TRUE)[is.na(check)][, check := NULL])
   setnames(mergetab, keyfield, "value")
+  
+  if(na_omit){
+    mergetab<-mergetab[!is.na(value)]
+  }
   
   if (collapse_on_code) {
     mergetab <- mergetab[, list(value = paste(unique(value), collapse = "/")), by = list(B.Code)]
@@ -1291,6 +1300,7 @@ check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE,
   if (!is.null(tabname_parent)) {
     mergetab[, parent_table := tabname_parent]
   }
+  
   
   return(mergetab)
 }
