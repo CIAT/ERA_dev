@@ -776,7 +776,6 @@ errors<-c(errors,list(results$errors))
 
 Var.Out<-results$data
 
-
  # 3.6.1) Harmonization #####
 # Save original variety name as this is a keyfield used in the MT.Out tab, if it is changed then this causes issues
 Var.Out[,V.Level.Name:=Join]
@@ -852,9 +851,6 @@ error_dat<-error_dat[is.na(check)][,check:=NULL]
 
 errors<-c(errors,list(error_dat))
 
-# Rejig column names to match what is need for merging with MT.Out
-Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Level.Name_raw:=NULL]
-
  # 3.6.2) Save errors #######
   errors<-rbindlist(errors,use.names = T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = paste0(table_name,"_errors"),error_dir=error_dir,error_list = error_list)
@@ -865,7 +861,7 @@ Var.Out[,V.Level.Name_new:=V.Level.Name][,V.Level.Name:=V.Level.Name_raw][,V.Lev
   data<-lapply(XL,"[[",table_name)
   col_names<-colnames(data[[1]][,1:19])
   
-  Animals.Out<-lapply(1:length(data),FUN=function(i){
+  Animals.Out<-pblapply(1:length(data),FUN=function(i){
     X<-data[[i]]
     setnames(X,"A.Level.Name...1","A.Level.Name",skip_absent = T)
     B.Code<-Pub.Out$B.Code[i]
@@ -2082,17 +2078,16 @@ Data.Out<-lapply(1:length(data),FUN=function(i){
 errors<-list(rbindlist(lapply(Data.Out,"[[","errors")))
 Data.Out<-rbindlist(lapply(Data.Out,"[[","data"),use.names = T)
 
-
 # Merge in ED.Feed.Item from raw user data
 Data.Out<-Data.Out[,ED.Intake.Item:=NULL]
 merge_dat<-enter_data_raw[,!c("ED.Error","ED.Error.Type","ED.Data.Loc","ED.Int","ED.Rot","ED.Product.Comp","ED.Mean.T")]
 Data.Out<-merge(Data.Out,merge_dat,
-                by=c("ED.Site.ID","ED.Treatment","ED.Product.Simple","ED.M.Year","ED.Outcome"))
+                by=c("ED.Site.ID","ED.Treatment","ED.Product.Simple","ED.M.Year","ED.Outcome"),all.x=T,sort=F)
 Data.Out[,ED.Intake.Item:=trimws(ED.Intake.Item)]
 
   # 6.0) Clean and fix ####
     # 6.0.1) Update Feed Item Names, Indicate if whole diet, diet group or single ingredient #####
-    merge_dat<-Animals.Diet[,.(B.Code,D.Item.Raw,D.Item)]
+    merge_dat<-unique(Animals.Diet[,.(B.Code,D.Item.Raw,D.Item)])
     Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","D.Item.Raw"),all.x=T,sort=F)
     Data.Out[,ED.Intake.Item.Raw:=ED.Intake.Item
              ][!is.na(D.Item),ED.Intake.Item:=D.Item]
@@ -2113,7 +2108,13 @@ Data.Out[,ED.Intake.Item:=trimws(ED.Intake.Item)]
     Data.Out[ED.Intake.Item.Raw=="Entire Diet",ED.Intake.Item:=A.Level.Name]
     
     # Check for any instances were we cannot match the intake item back to the diet table
-    Data.Out[!is.na(ED.Intake.Item) & is.na(D.Item) & is_group==F & is_entire_diet==F]
+    error_dat<-Data.Out[!is.na(ED.Intake.Item) & is.na(D.Item) & is_group==F & is_entire_diet==F
+                        ][,.(value=paste(unique(ED.Intake.Item.Raw),collapse = "/")),by=B.Code
+                          ][,table:=table_name
+                            ][,field:="ED.Intake.Item.Raw"
+                              ][,issue:="Feed intake item cannot be matched to diet, diet group, or diet ingredient."]
+    
+    errors<-c(errors,list(error_dat))
     
     # Tidy up
     Data.Out[,c("A.Level.Name","D.Item"):=NULL]
@@ -2340,4 +2341,3 @@ Data.Out[,ED.Intake.Item:=trimws(ED.Intake.Item)]
   )
   
   save(Tables,file=file.path(data_dir,paste0(project,"-",Sys.Date(),".RData")))
-  
