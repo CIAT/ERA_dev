@@ -46,8 +46,7 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   
   file_local<-tail(grep("RData",files,value=T),1)
   file_s3<-tail(grep("RData",files_s3,value=T),1)
-    
-
+   
   # If most recent compilation of the livestock is not available locally download it from the s3
   if(basename(file_local)!=basename(file_s3)){
     local_path<-gsub(data_dir_s3,data_dir_local,file_s3)
@@ -279,11 +278,15 @@ data_dir_s3<-era_dirs$era_masterdata_s3
    
   # list studies with no comparisons
   error_dat<-data.table(B.Code=unique(rbindlist(Comparisons[unlist(lapply(Comparisons, FUN=function(X){all(is.na(X$Control.For))}))])$B.Code))
+  if(nrow(error_dat)>0){
   error_dat<-error_dat[,value:=NA
                        ][,table:="Ani.Out"
                          ][,field:=NA
-                           ][,issue:="Feed addition is present but there appear to be no valid comparisons."]
+                           ][,issue:="Feed addition is present but there appears to be no valid comparisons."]
   errors<-list(error_dat)
+  }else{
+    errors<-list()
+  }
   
   Comparisons<-rbindlist(Comparisons)
   Comparisons<-Comparisons[!is.na(Control.For)
@@ -863,11 +866,14 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   X<-Animals.Diet[,list(Source=unique(D.Source)),by=c("B.Code","A.Level.Name")]
   NX<-match(Data[,paste(B.Code,A.Level.Name)],X[,paste(B.Code,A.Level.Name)])
   Data[,Feed.Source:=X[NX,Source]]
-  # 3.10) TSP & TAP ####
+  # 3.10) TSP & TAP #####
   NX<-match(Data[,paste(B.Code,Site.ID,M.Year)],Times.Out[,paste(B.Code,Site.ID,Time)])
   Data[,TSP:=Times.Out[NX,TSP]]
   Data[,TAP:=Times.Out[NX,TAP]]
   rm(NX)
+  
+  # 3.11) Update DOI field #####
+  Data[is.na(B.DOI),B.DOI:=B.Url]
   
   # X) Aggregate data for averaged site locations -MOVE TO IMPORT SECTION ####
   if(F){
@@ -927,8 +933,6 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   unique(Data[is.na(Site.Buffer.Manual),list(B.Code,Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual)])
   }
   
-  # 4.19) Update DOI field
-  Data[is.na(B.DOI),B.DOI:=B.Url]
 # 4) Reconfigure to ERA v1.0 format ####
   C.Descrip.Col<-"T.Name"
   
