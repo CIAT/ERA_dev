@@ -554,6 +554,7 @@ Soil.Out[,Site.ID_new:=Site.Out$Site.ID[match(Soil.Out$Site.ID,Site.Out$Site.ID_
 
 results<-validator(data=Soil.Out,
                    zero_cols =zero_cols,
+                   hilo_pairs = data.table(low_col="Soil.Upper",high_col="Soil.Lower",name_field="Site.ID"),
                    numeric_cols=c("Soil.Upper","Soil.Lower","Soil.BD","Soil.TC","Soil.SOC","Soil.SOM","Soil.pH","Soil.CEC","Soil.EC","Soil.FC","Soil.TN","Soil.NH4","Soil.NO3","Soil.AN"),
                    tabname=table_name,
                    trim_ws = T,
@@ -1564,7 +1565,7 @@ results<-harmonizer_wrap(data=Chems.Out,
 
 h_tasks<-list(results$h_tasks)
 Chems.Out<-results$data
-  # 3.9.3)Save errors and harmonization tasks ######
+  # 3.9.3) Save errors and harmonization tasks ######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
                             filename = paste0("chems_errors"),
                             error_dir=error_dir,
@@ -1701,10 +1702,17 @@ setnames(MT.Out,c("T.Comp"),c("P.Product"))
 
 MT.Out[,T.Name:=gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",T.Name)]
 
+# Update V.Level.Name
+merge_dat<-Var.Out[,.(B.Code,V.Level.Name,V.Level.Name_raw)]
+colnames(merge_dat)[2:3]<-c("V.Level.Name_new","V.Level.Name")
+MT.Out<-merge(MT.Out,merge_dat,by=c("B.Code","V.Level.Name"),all.x=T,sort=F)
+MT.Out[!is.na(V.Level.Name_new),V.Level.Name:=V.Level.Name_new][,V.Level.Name_new:=NULL]
+
+
 results<-validator(data=MT.Out,
                    numeric_cols = c("T.Reps","T.Animals","T.Start.Year"),
                    unique_cols = "T.Name",
-                   zero_cols=c("T.Start.Year","T.Start.Season","A.Level.Name","AF.Level.Name","C.Level.Name","O.Level.Name","V.Level.Name"),
+                   zero_cols=c("T.Start.Year","T.Start.Season","A.Level.Name","AF.Level.Name","C.Level.Name","O.Level.Name","V.Level.Name","T.Animals","T.Reps"),
                    trim_ws = T,
                    check_keyfields=data.table(parent_tab=list(Animals.Out,AF.Out,Chems.Code,Other.Out,Var.Out),
                                               parent_tab_name=c("Animals.Out","AF.Out","Chems.Code","Other.Out","Var.Out"),
@@ -1715,14 +1723,23 @@ results<-validator(data=MT.Out,
                    rm_duplicates=F,
                    tabname="MT.Out")
 
-error_dat<-results$errors[!(grepl("[.][.]",value) & grepl("Duplicate rows exist",issue))]
+error_dat<-results$errors[!(grepl("[.][.]",value) & grepl("Duplicate rows",issue))]
 errors<-c(errors,list(error_dat))
 
 MT.Out<-results$data
 
 # Convert T.Start.Year and T.Reps fields to integers
 MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.Animals:=as.integer(T.Animals)]
-  
+
+# Explore missing replicate and/or animals per rep data
+error_dat<-MT.Out[is.na(T.Animals),.(T.Name,B.Code,T.Reps,T.Animals)
+                   ][,.(value=paste(unique(T.Name),collapse = "/")),by=B.Code
+                     ][,table:=table_name
+                       ][,field:="T.Rep/T/Animal"
+                         ][,issue:= "Missing value in compulsory fields T.Reps/T.Animals"]
+
+errors<-c(errors,list(error_dat))
+
   # 4.1) Merge in practice data #####
   unique(MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(B.Code,P.Product,T.Name)])
   # Create list of data table to merge with MT.Out treatment table
@@ -1746,8 +1763,6 @@ MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.
                   by.y=c("B.Code","V.Product",keyfield),
                   all.x=T,
                   sort=F)
-      data[,V.Level.Name:=V.Level.Name_new][,V.Level.Name_new:=NULL]
-      
     }else{
       data<-merge(data,mergedat[[i]],by=c("B.Code",keyfield),all.x=T)
     }
@@ -1757,9 +1772,6 @@ MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.
       cat(" ! Warning: nrow(output) = ",nrow(data),"vs nrow(input)",nrow(MT.Out),"\n")
     }
   }
-  
-  # Update Var.Out now that merge has been done with MT.Out table
-  Var.Out[,V.Level.Name_raw:=V.Level.Name][,V.Level.Name:=V.Level.Name_new][,V.Level.Name_new:=NULL]
 
   # Add in Base.Out
   data<-merge(data,Base.Out,by="B.Code",all.x=T)
@@ -1986,25 +1998,17 @@ results<-validator(data=Out.Out,
                    zero_cols = colnames(Out.Out)[3:13],
                    compulsory_cols = c(Out.Code.Joined="Out.Unit"),
                    unit_pairs = data.table(unit="Out.WG.Unit",var="Out.WG.Start",name_field="Out.Code.Joined"),
+                   hilo_pairs = data.table(low_col="Out.Depth.Upper",high_col="Out.Depth.Lower",name_field="Out.Code.Joined"),
                    unique_cols = "Out.Code.Joined",
                    duplicate_field = "Out.Code.Joined",
                    rm_duplicates = T,
                    trim_ws = T,
                    tabname="Out.Out")
 
-error_dat<-results$errors[!grepl("Unspecified",value)]
+error_dat<-results$errors
 errors<-c(errors,list(error_dat))
 
 Out.Out<-results$data
-
-# Incorrect depths
-error_dat<-Out.Out[Out.Depth.Upper>Out.Depth.Lower
-][,list(value=paste0(Out.Code.Joined,collapse="/")),by=B.Code
-][,table:="Out.Out"
-][,field:="Out.Code.Joined"
-][,issue:="Upper depth is greater than lower depth."
-]
-errors<-c(errors,list(error_dat))
 
 # Identical Out.Code.Joined due to Out.WG.Days missing from the text concatenation
 error_dat<-Out.Out[,x:=paste(B.Code,Out.Code.Joined)][,N:=.N,by=x][N>1][,.(value=paste(unique(Out.Code.Joined),collapse="/")),by=B.Code][,table:=table_name][,field:="Out.Code.Joined"][,issue:="Non-unique Out.Code.Joined values due to Out.WG.Days values being missed in Out.Code.Joined name generation."]
@@ -2018,11 +2022,34 @@ Out.Out[, Out.Code.Joined := stringr::str_replace_all(Out.Code.Joined, replaceme
 
 Out.Out[,c("x","N"):=NULL]
   
-  # 5.2) Harmonization #####
+  # 5.1) Harmonization #####
   # Harmonize Out.WG.Days 
   Out.Out[Out.WG.Days==488]  
 
-  # 5.1) Save errors  ######
+  # Intake Units
+  Out.Out.Intake<-Out.Out[Out.Subind=="Feed Intake"]
+  Out.Out.Not.Intake<-Out.Out[Out.Subind!="Feed Intake"]
+
+  h_params<-data.table(h_table=table_name,
+                       h_field=c("Out.Unit"),
+                       ignore_vals=c("Unspecified","unspecified"),
+                       h_field_alt="Out.FI.Unit",
+                       h_table_alt=table_name)
+  
+  results<-harmonizer_wrap(data=Out.Out.Intake,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  Out.Out.Intake<-results$data
+  
+  Out.Out.Intake[,table(Out.Unit)]
+  
+  error_dat<-unique(results$h_tasks)[order(value),.(B.Code,value,table,field)
+                                     ][,issue:="Unexpected units, perhaps error or incomplete, used with feed intake outcome."]
+  
+  errors<-c(errors,list(error_dat))
+
+  # 5.2) Save errors  ######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
                             filename = paste0(table_name,"_errors"),
                             error_dir=error_dir,
@@ -2058,83 +2085,110 @@ Data.Out<-rbindlist(lapply(Data.Out,"[[","data"),use.names = T)
 
 # Merge in ED.Feed.Item from raw user data
 Data.Out<-Data.Out[,ED.Intake.Item:=NULL]
-enter_data_raw<-enter_data_raw[,!c("ED.Error","ED.Error.Type","ED.Data.Loc","ED.Int","ED.Rot","ED.Product.Comp","ED.Mean.T")]
-Data.Out<-merge(Data.Out,enter_data_raw,
+merge_dat<-enter_data_raw[,!c("ED.Error","ED.Error.Type","ED.Data.Loc","ED.Int","ED.Rot","ED.Product.Comp","ED.Mean.T")]
+Data.Out<-merge(Data.Out,merge_dat,
                 by=c("ED.Site.ID","ED.Treatment","ED.Product.Simple","ED.M.Year","ED.Outcome"))
+Data.Out[,ED.Intake.Item:=trimws(ED.Intake.Item)]
 
-# Update Feed Item Names, Indicate if whole diet, diet group or single ingredient
-
-# Update column names
-setnames(Data.Out,c("ED.Treatment","ED.Site.ID","ED.Outcome","ED.M.Year","ED.Product.Simple"),
-         c("T.Name","Site.ID","Out.Code.Joined","Time","P.Product"))
-# Update outcome subind names
-Data.Out[, Out.Code.Joined := stringr::str_replace_all(Out.Code.Joined, replacement_map)]
-
-# Update Site.ID
-Data.Out[,Site.ID_new:=Site.Out$Site.ID[match(gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",trimws(tolower(Data.Out$Site.ID))),tolower(Site.Out$Site.ID_raw))]] 
-Data.Out[is.na(Site.ID_new),Site.ID_new:=Site.ID][,Site.ID:=Site.ID_new][,Site.ID_new:=NULL]
-
-# Remove whitespace from aggregated treatment names
-Data.Out[,T.Name:=gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",T.Name)]
-
-# Update aggregation delimiter
-Data.Out[,T.Name:=gsub("[.][.]","...",T.Name)]
-
-
-# Update error value used
-Data.Out[ED.Error.Type=="SEM (Standard Error of the Mean)",ED.Error.Type:="SE (Standard Error)"]
-
-# Check that sites match
-results<-validator(data=Data.Out,
-                   zero_cols=c("Site.ID","P.Product","Time","T.Name","ED.Error","ED.Product.Comp","ED.Error.Type","ED.Data.Loc","ED.Intake.Item","ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Reps","ED.Animals","ED.Variety","ED.Start.Year","ED.Start.Season","ED.Comparison"),
-                   numeric_cols = c("ED.Mean.T","ED.Error","ED.Reps","ED.Sample.DAS","ED.Animals","ED.Start.Year"),
-                   date_cols = c("ED.Sample.Start","ED.Sample.End"),
-                   compulsory_cols = c(T.Name="Site.ID",T.Name="Out.Code.Joined",T.Name="ED.Mean.T",T.Name="P.Product"),
-                   valid_start = valid_start,
-                   valid_end = valid_end,
-                   unit_pairs = data.table(unit="ED.Error.Type",var="ED.Error",name_field="Out.Code.Joined"),
-                   check_keyfields=data.table(parent_tab=list(Out.Out,MT.Out),
-                                              parent_tab_name=c("Out.Out","MT.Out"),
-                                              keyfield=c("Out.Code.Joined","T.Name")),
-                   ignore_values = "Unspecified",
-                   site_data = Site.Out,
-                   tabname=table_name,
-                   trim_ws = T,
-                   do_time=F,
-                   convert_NA_strings=T)
-
-error_dat<-results$errors[!grepl("Unspecified",value)]
-errors[["validator"]]<-error_dat
-
-Data.Out<-results$data
-
-# Check component names used
-error_dat<-Data.Out[!ED.Product.Comp %in% master_codes$prod_comp$Component & !is.na(ED.Product.Comp)
-][,value:=ED.Product.Comp
-][,list(B.Code=paste(unique(B.Code),collapse = "/")),by=value
-][,table:="Data.Out"
-][,field:="ED.Product.Comp"
-][,issue:="Product component value used does not match master codes prod_comp table."
-][order(B.Code)]
-errors<-c(errors,list(error_dat))
-
-#Check for ratio outcomes that are missing the comparison "control" 
-error_dat<-Data.Out[grepl(master_codes$out[TC.Ratio=="Y",paste0(Subindicator,collapse = "|")],Out.Code.Joined) & is.na(ED.Comparison)
-][,list(value=paste(unique(Out.Code.Joined),collapse = "/")),by=B.Code
-][,table:="Data.Out"
-][,field:="Out.Code.Joined"
-][,issue:="Outcome derived from T vs C (e.g. LER) does not have comparison specified."
-][order(B.Code)]
-errors<-c(errors,list(error_dat))
-
-h_tasks<-list(harmonizer(data=Data.Out, 
-                     master_codes,
-                     master_tab="lookup_levels",
-                     h_table="Data.Out", 
-                     h_field="ED.Error.Type",
-                     h_table_alt="Data.Out", 
-                     h_field_alt="Error.Type")$h_tasks[,issue:="Non-standard error value used."][value!="Unspecified"])
-
+  # 6.0) Clean and fix ####
+    # 6.0.1) Update Feed Item Names, Indicate if whole diet, diet group or single ingredient #####
+    merge_dat<-Animals.Diet[,.(B.Code,D.Item.Raw,D.Item)]
+    Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","D.Item.Raw"),all.x=T,sort=F)
+    Data.Out[,ED.Intake.Item.Raw:=ED.Intake.Item
+             ][!is.na(D.Item),ED.Intake.Item:=D.Item]
+    
+    # Is intake item a group?
+    merge_dat<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
+    Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","D.Item.Group"),all.x=T,sort=F)
+    Data.Out[is.na(is_group),is_group:=F]
+    
+    # Is intake item entire diet?
+    merge_dat<-unique(Animals.Out[,.(B.Code,A.Level.Name)][,is_entire_diet:=T])
+    Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","A.Level.Name"),all.x=T,sort=F)
+    Data.Out[is.na(is_entire_diet),is_entire_diet:=F][ED.Intake.Item.Raw=="Entire Diet",is_entire_diet:=T]
+    
+    # If entire diet substitute the A.Level.Name for the diet
+    merge_dat<-MT.Out[,.(B.Code,T.Name,A.Level.Name)]
+    Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Treatment"),by.y=c("B.Code","T.Name"),all.x=T,sort=F)
+    Data.Out[ED.Intake.Item.Raw=="Entire Diet",ED.Intake.Item:=A.Level.Name]
+    
+    # Check for any instances were we cannot match the intake item back to the diet table
+    Data.Out[!is.na(ED.Intake.Item) & is.na(D.Item) & is_group==F & is_entire_diet==F]
+    
+    # Tidy up
+    Data.Out[,c("A.Level.Name","D.Item"):=NULL]
+    
+    # 6.0.2) Refine name, update key fields, run validation #####
+    # Update column names 
+    setnames(Data.Out,c("ED.Treatment","ED.Site.ID","ED.Outcome","ED.M.Year","ED.Product.Simple"),
+             c("T.Name","Site.ID","Out.Code.Joined","Time","P.Product"))
+    # Update outcome subind names
+    Data.Out[, Out.Code.Joined := stringr::str_replace_all(Out.Code.Joined, replacement_map)]
+    
+    # Update Site.ID
+    Data.Out[,Site.ID_new:=Site.Out$Site.ID[match(gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",trimws(tolower(Data.Out$Site.ID))),tolower(Site.Out$Site.ID_raw))]] 
+    Data.Out[is.na(Site.ID_new),Site.ID_new:=Site.ID][,Site.ID:=Site.ID_new][,Site.ID_new:=NULL]
+    
+    # Remove whitespace from aggregated treatment names
+    Data.Out[,T.Name:=gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",T.Name)]
+    
+    # Update aggregation delimiter
+    Data.Out[,T.Name:=gsub("[.][.]","...",T.Name)]
+    
+    # Update error value used
+    Data.Out[ED.Error.Type=="SEM (Standard Error of the Mean)",ED.Error.Type:="SE (Standard Error)"]
+    
+    # Check that sites match
+    results<-validator(data=Data.Out,
+                       zero_cols=c("Site.ID","P.Product","Time","T.Name","ED.Error","ED.Product.Comp","ED.Error.Type","ED.Data.Loc","ED.Intake.Item","ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Reps","ED.Animals","ED.Variety","ED.Start.Year","ED.Start.Season","ED.Comparison"),
+                       numeric_cols = c("ED.Mean.T","ED.Error","ED.Reps","ED.Sample.DAS","ED.Animals","ED.Start.Year"),
+                       date_cols = c("ED.Sample.Start","ED.Sample.End"),
+                       compulsory_cols = c(T.Name="Site.ID",T.Name="Out.Code.Joined",T.Name="ED.Mean.T",T.Name="P.Product"),
+                       valid_start = valid_start,
+                       valid_end = valid_end,
+                       unit_pairs = data.table(unit="ED.Error.Type",var="ED.Error",name_field="Out.Code.Joined"),
+                       check_keyfields=data.table(parent_tab=list(Out.Out,MT.Out),
+                                                  parent_tab_name=c("Out.Out","MT.Out"),
+                                                  keyfield=c("Out.Code.Joined","T.Name")),
+                       ignore_values = "Unspecified",
+                       site_data = Site.Out,
+                       tabname=table_name,
+                       trim_ws = T,
+                       do_time=F,
+                       convert_NA_strings=T)
+    
+    error_dat<-results$errors[!grepl("Unspecified",value)]
+    errors[["validator"]]<-error_dat
+    
+    Data.Out<-results$data
+    
+    # Check component names used
+    error_dat<-Data.Out[!ED.Product.Comp %in% master_codes$prod_comp$Component & !is.na(ED.Product.Comp)
+    ][,value:=ED.Product.Comp
+    ][,list(B.Code=paste(unique(B.Code),collapse = "/")),by=value
+    ][,table:="Data.Out"
+    ][,field:="ED.Product.Comp"
+    ][,issue:="Product component value used does not match master codes prod_comp table."
+    ][order(B.Code)]
+    errors<-c(errors,list(error_dat))
+    
+    #Check for ratio outcomes that are missing the comparison "control" 
+    error_dat<-Data.Out[grepl(master_codes$out[TC.Ratio=="Y",paste0(Subindicator,collapse = "|")],Out.Code.Joined) & is.na(ED.Comparison)
+    ][,list(value=paste(unique(Out.Code.Joined),collapse = "/")),by=B.Code
+    ][,table:="Data.Out"
+    ][,field:="Out.Code.Joined"
+    ][,issue:="Outcome derived from T vs C (e.g. LER) does not have comparison specified."
+    ][order(B.Code)]
+    errors<-c(errors,list(error_dat))
+    
+    h_tasks<-list(harmonizer(data=Data.Out, 
+                         master_codes,
+                         master_tab="lookup_levels",
+                         h_table="Data.Out", 
+                         h_field="ED.Error.Type",
+                         h_table_alt="Data.Out", 
+                         h_field_alt="Error.Type")$h_tasks[,issue:="Non-standard error value used."][value!="Unspecified"])
+    
   # 6.1) Merge data from linked tables ####
   n_rows<-Data.Out[,.N]
     # 6.1.1) Merge MT.Out ######
