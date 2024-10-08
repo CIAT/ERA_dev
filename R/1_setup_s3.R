@@ -133,12 +133,24 @@ upload_files_to_s3(files = files,
                        overwrite=T,
                        mode="public-read")
     
-    # 1.2.2.2) compiled data #######
+    # 1.2.2.2) imported data #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
     files<-list.files(folder_local,era_projects$skinny_cow_2022,full.names = T,recursive=T)
     files<-grep(".RData",files,value=T)
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
+    # 1.2.2.3) comparisons #######
+    folder_local<-era_dirs$era_masterdata_dir
+    s3_bucket<-era_dirs$era_masterdata_s3
+    
+    files<-list.files(folder_local,era_projects$skinny_cow_2022,full.names = T,recursive=T)
+    files<-grep("comparisons",files,value=T)
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
