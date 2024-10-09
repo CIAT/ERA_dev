@@ -889,7 +889,7 @@ check_units <- function(data, unit_pairs, tabname) {
     
     # Evaluate the condition within the data.table context
     errors <- data[eval(parse(text = condition))
-    ][, list(value = paste(eval(parse(text = condition2)), collapse = "/")), by = B.Code
+    ][, list(value = paste(unique(eval(parse(text = condition2))), collapse = "/")), by = B.Code
     ][, table := tabname
     ][, field := Name_Field
     ][, issue := paste0("Amount is present, but unit is missing for ", Var, ".")
