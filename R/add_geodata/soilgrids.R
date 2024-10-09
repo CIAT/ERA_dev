@@ -31,7 +31,7 @@ soil_files<-rbind(copy(soil_files)[,depth:=20],copy(soil_files)[,depth:=50])[,so
 
 fwrite(soil_files,file.path(era_dirs$era_geodata_dir,"soil_af_isda_metadata.csv"))
 
-# Download data in parallel
+# 2.1) Download data in parallel ####
 n_workers<-5
 # Enable progressr
 progressr::handlers(global = TRUE)
@@ -76,16 +76,32 @@ with_progress({
   })
 })
 
-# Non parallel version of the above in case you are experiencing issues
-if(F){
-for(i in 1:nrow(soil_files)){
-    geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir)
-    geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir,error=T)
-}
+# Check files can be read
+files<-list.files(era_dirs$soilgrid_dir, ".tif$", recursive = TRUE, full.names = TRUE)
+result <- sapply(files, 
+                 FUN = function(file) {
+                   tryCatch({
+                     # Attempt to load the file with `rast()` and perform the operation
+                     rast(file) + 0
+                     TRUE  # Return TRUE if successful
+                   }, error = function(e) {
+                     FALSE  # Return FALSE if there is an error
+                   })
+                 })
+(bad_files<-files[!result])
+unlink(bad_files,recursive = T)
+
+if(length(bad_files)>0){
+  for(i in 1:nrow(soil_files)){
+      geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir)
+    # Note some error files do not exist, so do not worry about download failures regarding these
+      geodata::soil_af_isda(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir,error=T)
+  }
 }
 
+
 # 3) Extract soil grids data for era buffers ####
-overwrite<-F # Re-extract all data that exists for era sites?
+overwrite<-T # Re-extract all data that exists for era sites?
 soil_file<-file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet")
 isda_dir<-file.path(era_dirs$soilgrid_dir,"soil_af_isda")
 
