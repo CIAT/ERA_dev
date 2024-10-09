@@ -767,7 +767,7 @@ TreeCodes<-na.omit(TreeCodes, cols=c("EU"))
 
 # Duplicate Papers (entered in both 2020 and 2018, or some other reason)
 Duplicates<-master_codes$dups
-master_codes$
+
 
 # Unit Harmonization
 UnitHarmonization<-master_codes$unit_harmonization
@@ -825,7 +825,7 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
       errors$duplicate_indices_2018<-error_dat
       warning("Duplicate row indices in 2018 dataset.")
     }
-      # 1.4.1.x) BETTER TO FIX THE RAW DATASET - Fix encoding issue with Site.ID ######
+      # 1.4.1.0) BETTER TO FIX THE RAW DATASET - Fix encoding issue with Site.ID ######
     decode_hex_entities <- function(text) {
       gsubfn("<([0-9A-Fa-f]{2})>", function(hex) {
         rawToChar(as.raw(strtoi(hex, 16L)))
@@ -878,18 +878,16 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
     indices <- unique(era_2018[Div == TRUE, Index])
     
     # Set up parallel processing
-    plan(multisession, workers = cores)
+    future::plan(multisession, workers = cores)
     
     # Recode in parallel with progress reporting
     with_progress({
       # Define the progress bar
       progress <- progressr::progressor(along = indices)
       
-      DataX<-rbindlist(future_lapply(indices,function(i){
-      # DataX<-rbindlist(pblapply(era_2018[Div==T,Index],FUN=function(i){
+      DataX<-rbindlist(future.apply::future_lapply(indices,function(i){
+     # DataX<-rbindlist(pblapply(era_2018[Div==T,Index],FUN=function(i){
   
-      progress()
-      
       Z<-era_2018[Index==i]
       C.Codes<-unlist(Z[,C.Codes])
       T.Codes<-unlist(Z[,T.Codes])
@@ -905,12 +903,12 @@ filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filena
         Z[,paste0("C",1:10)]<-C.Codes
         Z[,paste0("T",1:10)]<-T.Codes
         Z<-data.table(Z)
-        
       }
-      
       progress()
       Z
     }))
+      
+
     
     })
   
@@ -1610,9 +1608,13 @@ ERA.Compiled<-ERA.Compiled[!Index %in% ERA.Compiled.Econ[,Index]]
 
 
   # 4.1.3) Check for missing climate data ######
+  # No AEZ
   unique(ERA.Compiled[is.na(AEZ16simple) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,Version)])
+  # No CLY
   unique(ERA.Compiled[!is.na(M.Year) & is.na(CLY) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,Version)])
+  # No Precip
   unique(ERA.Compiled[!is.na(M.Year) & M.Year!="NA" & is.na(Mean.Annual.Precip) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,M.Year,Version)])
+  # No Temperature
   unique(ERA.Compiled[!is.na(M.Year) & M.Year!="NA" & is.na(Mean.Annual.Temp) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,M.Year,Version)])
   
 # 5) Save results ####
