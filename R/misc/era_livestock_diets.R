@@ -1,5 +1,5 @@
 # Exploring ERA livestock data - tree fodders
-# Author - pete Steward
+# Author - Pete Steward
 
 # 0) Load libraries and functions ####
 # Install and load pacman if not already installed
@@ -8,7 +8,12 @@ if (!require("pacman", character.only = TRUE)) {
   library(pacman)
 }
 
-pacman::p_load(data.table,treemap,s3fs,arrow)
+pacman::p_load(data.table,treemap,s3fs,arrow,devtools)
+
+if(!require(ERAgON)){
+  remotes::install_github(repo="https://github.com/EiA2030/ERAgON",build_vignettes = T)
+  library(ERAgON)
+}
 
 if(!require(ERAg)){
   remotes::install_github(repo="https://github.com/EiA2030/ERAg",build_vignettes = T)
@@ -23,7 +28,7 @@ browseVignettes("ERAg")
 
 # This is the processed ERA dataset: 
 head(ERA.Compiled)
-
+dim(ERA.Compiled)
 # The descriptions of each field in the dataset can be found here"
 ERAg::ERACompiledFields
 
@@ -53,20 +58,20 @@ PracticeCodes[Practice %in% c("Feed Addition","Feed Substitution"),Subpractice]
 # This is the normal source of information for ERA (stored in the ERAg package)
 data<-ERA.Compiled[grepl(paste(focal_pracs,collapse = "|"),plist)]
 
-# 1.2) Subset to cattle and small ruminants #####
-EUCodes[,unique(Product.Type)]
-EUCodes[Product.Type=="Animal",unique(Product.Simple)]
-
-focal_prods<-c("Cattle","Goat","Sheep")
-
-data<-data[Product.Simple %in% focal_prods]
-
-# 1.3) Subset to outcomes of interest  #####
-OutcomeCodes[Pillar=="Productivity",Subindicator]
-focal_out<-c("Meat Yield","Weight Gain","Milk Yield")
-
-data<-data[Out.SubInd %in% focal_out]
-
+  # 1.2) Subset to cattle and small ruminants #####
+  EUCodes[,unique(Product.Type)]
+  EUCodes[Product.Type=="Animal",unique(Product.Simple)]
+  
+  focal_prods<-c("Cattle","Goat","Sheep")
+  
+  data<-data[Product.Simple %in% focal_prods]
+  
+  # 1.3) Subset to outcomes of interest  #####
+  OutcomeCodes[Pillar=="Productivity",Subindicator]
+  focal_out<-c("Meat Yield","Weight Gain","Milk Yield")
+  
+  data<-data[Out.SubInd %in% focal_out]
+  
 # 2) Download most recent Alpha version of ERA livestock data ####
 # This is data we have recently compiled from a more comprehensive extraction of livestock data,it is stored in our S3 bucket
 s3<-s3fs::S3FileSystem$new(anonymous = T)
@@ -74,7 +79,7 @@ era_s3<-"s3://digital-atlas/era"
 
 # List the files in the s3 bucket
 files<-s3$dir_ls(file.path(era_s3,"data"))
-# This is the most recent version of the data era_compiled-v1.0_2018-v1.1_2020-skinny_cow_2022_YYYY_MM_DD.parquet
+# This should be the most recent version of the data era_compiled-v1.0_2018-v1.1_2020-skinny_cow_2022_YYYY_MM_DD.parquet
 files<-tail(grep("parquet",grep("era_compiled",files,value=T),value=T),1)
 
 # Set a save location for the dataset (amend to something more suitable for your needs)
@@ -140,7 +145,8 @@ data<-data_new
   ][order(no_studies,decreasing=T)]
   
   # 3.1) Example of how to access values #####
-  data_subset<-data[Product.Simple=="Goat" & Out.SubInd=="Weight Gain" & tree_fodder_sub==T,.(PrName,Code,Country,Site.ID,TID,T.Descrip,CID,C.Descrip,MeanC,MeanC.Error,MeanT,MeanT.Error,Mean.Error.Type,Rep,Units,Duration,Tree.Feed,Diversity,Variety)]
+  data_subset<-data[Product.Simple=="Goat" & Out.SubInd=="Weight Gain" & tree_fodder_sub==T,
+                    .(PrName,Code,Country,Site.ID,TID,T.Descrip,CID,C.Descrip,MeanC,MeanC.Error,MeanT,MeanT.Error,Mean.Error.Type,Rep,Rep.Animals,Units,Duration,Tree.Feed,Diversity,Variety)]
   
   # 3.2) Harmonize units #####
   data_subset[Units=="kg" & !is.na(Duration),c("MeanT","MeanC","Units"):=.(round(1000*MeanT/(365*Duration),2),round(1000*MeanC/(365*Duration),2),"g/individual/day")
@@ -160,9 +166,13 @@ data<-data_new
   # What % of different error types
   data_subset[,round(100*table(Mean.Error.Type,useNA = "ifany")/.N,1)]
   
-  
+  # 3.5) Explore reps #####
+  data_subset[,Rep.Animals:=as.numeric(Rep.Animals)]
+  data_subset[,.(Code,T.Descrip,Rep,Rep.Animals)]
+  # Substiute average from other studies where n animals is missing
+  avg_animals<-data_subset[!is.na(Rep.Animals),.(value=round(mean(unique(Rep.Animals)),0)),by=Code][,round(mean(value),0)]
+  data_subset[is.na(Rep.Animals),Rep.Animals:=avg_animals]
 # 4) Where to find more information about the diet fed to the animals ####
-
   # 4.1) Download & import data #####
   # First we need to get the detailed dataset containing the management information that relates to the experiment, this is in the Atlas S3 Bucket
   s3<-s3fs::S3FileSystem$new(anonymous = T)
@@ -218,22 +228,23 @@ data<-data_new
   
   # 4.4) How to link an observation to it's meta-data #####
   # Take an example observation
-  data_subset[1]
+  i<-20
+  data_subset[i]
   # We will used the keyfields T.Descrip and Code to link the metadata table that describes what practices are being applied
-  data_subset[1,.(Code,T.Descrip)]
+  data_subset[i,.(Code,T.Descrip)]
   
   # This metadata table describes the treatments
   treatments<-livestock_metadata$MT.Out
   head(treatments)
   
   # It links to the observation on the Code and T.Descrip fields like this:
-  treatments[B.Code==data_subset$Code[1] & T.Name==data_subset$T.Descrip[1]]
+  treatments[B.Code==data_subset$Code[i] & T.Name==data_subset$T.Descrip[i]]
   
   # These are the key fields that link the treatment to descriptions of practices
   grep("[.]Level[.]",colnames(treatments),value=T)
   
   # We are interested in the A.Level.Name field, this links us to the animal diet data
-  (keyfields<-treatments[B.Code==data_subset$Code[1] & T.Name==data_subset$T.Descrip[1],.(B.Code,T.Name,A.Level.Name)])
+  (keyfields<-treatments[B.Code==data_subset$Code[i] & T.Name==data_subset$T.Descrip[i],.(B.Code,T.Name,A.Level.Name)])
   
     # 4.4.1) Explore the overall description of the animal practice ######
     diet_summary[B.Code==keyfields$B.Code & A.Level.Name==keyfields$A.Level.Name,.(B.Code,A.Level.Name,A.Notes,A.Diet.Trees,A.Diet.Other)]
@@ -263,4 +274,8 @@ data<-data_new
     # Is there any digestibility data for this diet? (the lapply code removes any columns with no data from the table)
     digest_dat<-diet_digestibility[B.Code==keyfields$B.Code, lapply(.SD, function(col) if (!all(is.na(col))) col), .SDcols = names(diet_digestibility)] 
     digest_dat
+    
+    # 4.5) Feed intake #####
+    feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,Out.Subind,ED.Intake.Item,ED.Intake.Item.Raw,is_group,is_entire_diet,Out.Unit)]  
+    feed_intake[is.na(ED.Intake.Item)]
     
