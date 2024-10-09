@@ -212,7 +212,7 @@ if(file_status){
   setnames(errors,"era_code2","B.Code")
   error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
   
-  # 2.5.1) Read in feed intake from user input sheet (error in Data.Out) ######
+    # 2.5.1) Read in feed intake from user input sheet (error in Data.Out) ######
   future::plan(multisession, workers = workers)
   
   enter_data_raw <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
@@ -231,6 +231,7 @@ if(file_status){
       colnames(X)<-x_cols
       X<-X[!is.na(ED.Treatment) & !is.na(ED.Site.ID)]
       X<-X[,-13]
+      X$B.Code<-excel_files[i,era_code2]
       X
       
     }, error=function(e){
@@ -2078,12 +2079,46 @@ Data.Out<-lapply(1:length(data),FUN=function(i){
 errors<-list(rbindlist(lapply(Data.Out,"[[","errors")))
 Data.Out<-rbindlist(lapply(Data.Out,"[[","data"),use.names = T)
 
-# Merge in ED.Feed.Item from raw user data
+# Update M.Year & Product 0 to NA
+Data.Out[ED.M.Year=="0",ED.M.Year:=NA][ED.Product.Simple=="0",ED.Product.Simple:=NA]
+
+# Convert mean T to numeric (there are floating point issues in the excel import that are resulting in non-matches)
+Data.Out[,ED.Mean.T_raw:=ED.Mean.T][,ED.Mean.T:=round(as.numeric(ED.Mean.T),2)]
+Data.Out[,ED.Mean.T:=sprintf("%.4f",ED.Mean.T)]
+Data.Out[,ED.M.Year_raw:=ED.M.Year][,ED.M.Year:=round(as.numeric(ED.M.Year),1)]
+Data.Out[,ED.M.Year:=sprintf("%.4f",ED.M.Year)]
+
+merge_dat<-enter_data_raw
+merge_dat[,ED.Mean.T:=round(as.numeric(ED.Mean.T),2)]
+merge_dat[,ED.Mean.T:=sprintf("%.4f",ED.Mean.T)]
+merge_dat[,ED.M.Year_raw:=ED.M.Year][,ED.M.Year:=round(as.numeric(ED.M.Year),1)]
+merge_dat[,ED.M.Year:=sprintf("%.4f",ED.M.Year)]
+
+
+# Remove empty intake item column
 Data.Out<-Data.Out[,ED.Intake.Item:=NULL]
-merge_dat<-enter_data_raw[,!c("ED.Error","ED.Error.Type","ED.Data.Loc","ED.Int","ED.Rot","ED.Product.Comp","ED.Mean.T")]
-Data.Out<-merge(Data.Out,merge_dat,
-                by=c("ED.Site.ID","ED.Treatment","ED.Product.Simple","ED.M.Year","ED.Outcome"),all.x=T,sort=F)
+
+# Merge in ED.Feed.Item from raw user data
+merge_cols<-c("B.Code","ED.Site.ID","ED.Treatment","ED.Product.Simple","ED.M.Year","ED.Outcome","ED.Mean.T")
+merge_dat<-unique(merge_dat[!is.na(ED.Intake.Item),!c("ED.Error","ED.Error.Type","ED.Data.Loc","ED.Int","ED.Rot","ED.Product.Comp")])
+Data.Out<-merge(Data.Out,merge_dat,by=merge_cols,all.x=T,sort=F)
 Data.Out[,ED.Intake.Item:=trimws(ED.Intake.Item)]
+
+# Check for non-matches
+error_dat<-Data.Out[grepl("Feed Intake",ED.Outcome) & is.na(ED.Intake.Item),.(B.Code,ED.Treatment,ED.Outcome,ED.Intake.Item)
+                ][,(value=paste(unique(ED.Treatment),collapse="/")),by=B.Code
+                  ][,table:=table_name
+                    ][,field:="ED.Intake.Item"
+                      ][,issue:="Feed intake outcome without feed intake item specified."]
+
+if(F){
+  # Investigate mismatches
+  check<-"LM0114"
+  merge_dat[B.Code==check & grepl("Feed",ED.Outcome),..merge_cols]
+  Data.Out[B.Code==check & grepl("Feed In",ED.Outcome),..merge_cols]
+  enter_data_raw[B.Code==check & grepl("Feed",ED.Outcome),..merge_cols]
+}
+
 
   # 6.0) Clean and fix ####
     # 6.0.1) Update Feed Item Names, Indicate if whole diet, diet group or single ingredient #####
