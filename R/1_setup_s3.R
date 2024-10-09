@@ -52,15 +52,23 @@ if(F){
   files<-c(list.files(folder,"parquet$",full.names = T),files1new,files2new,files3new)
 }
 
-# List files in new data structure
-files<-list.files(local_dir,full.names = T)
-files <- files[!file.info(files)$isdir]
-
-upload_files_to_s3(files = files,
-                   selected_bucket=s3_bucket,
-                   max_attempts = 3,
-                   overwrite=T,
-                   mode="public-read")
+  # 1.1.1) Compiled datasets
+  files<-list.files(local_dir,"compiled",full.names = T)
+  
+  upload_files_to_s3(files = files,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=F,
+                     mode="public-read")
+  
+  # Code to remove old versions
+  if(F){
+  s3_files<-s3$dir_ls(s3_bucket)
+  s3_files<-grep("compiled",s3_files,value=T)
+  s3_files<-grep("skinny_cow",s3_files,value=T)
+  s3_files<-s3_files[!grepl("_10_09",s3_files)]
+  s3$file_delete(s3_files)
+  }
 
 # 1.2) Upload 2023 extraction files to s3 #####
   # 1.2.1) 2023 industrious elephant ######
@@ -144,7 +152,7 @@ upload_files_to_s3(files = files,
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
-    
+
     # 1.2.2.3) comparisons #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
@@ -156,8 +164,7 @@ upload_files_to_s3(files = files,
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
-  
-    # 1.2.2.3) upload pdfs #######
+        # 1.2.2.3) upload pdfs #######
   # 1.2.3) 2020 majestic_hippo ######
     # 1.2.3.1) Upload pdfs #######
     local_folder<-"C://Users//PSteward//OneDrive - CGIAR//ERA//Bibliography//Reconstructed Search History for Classification Models//ERA Bibliography 2013-18//2013-18 ENL.Data//PDF"
