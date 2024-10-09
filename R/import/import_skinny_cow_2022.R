@@ -2088,12 +2088,11 @@ Data.Out[,ED.Mean.T:=sprintf("%.4f",ED.Mean.T)]
 Data.Out[,ED.M.Year_raw:=ED.M.Year][,ED.M.Year:=round(as.numeric(ED.M.Year),1)]
 Data.Out[,ED.M.Year:=sprintf("%.4f",ED.M.Year)]
 
-merge_dat<-enter_data_raw
+merge_dat<-copy(enter_data_raw)
 merge_dat[,ED.Mean.T:=round(as.numeric(ED.Mean.T),2)]
 merge_dat[,ED.Mean.T:=sprintf("%.4f",ED.Mean.T)]
-merge_dat[,ED.M.Year_raw:=ED.M.Year][,ED.M.Year:=round(as.numeric(ED.M.Year),1)]
+merge_dat[,ED.M.Year:=round(as.numeric(ED.M.Year),1)]
 merge_dat[,ED.M.Year:=sprintf("%.4f",ED.M.Year)]
-
 
 # Remove empty intake item column
 Data.Out<-Data.Out[,ED.Intake.Item:=NULL]
@@ -2119,8 +2118,13 @@ if(F){
   enter_data_raw[B.Code==check & grepl("Feed",ED.Outcome),..merge_cols]
 }
 
+# Reset Data.Out fields
+Data.Out[,c("ED.Mean.T","ED.M.Year"):=NULL]
+setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
 
-  # 6.0) Clean and fix ####
+# TO DO - add logical check to see if Feed Items are present for the A.Level.Name ####
+
+  # 6.0) Clean, rename, validate ####
     # 6.0.1) Update Feed Item Names, Indicate if whole diet, diet group or single ingredient #####
     merge_dat<-unique(Animals.Diet[,.(B.Code,D.Item.Raw,D.Item)])
     Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","D.Item.Raw"),all.x=T,sort=F)
