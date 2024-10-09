@@ -76,7 +76,7 @@ LM0320,Unspecified,Animals.Diet,D.Amount,Non-numeric value in numeric field.,FAL
 LM0329,Unspecified,Animals.Diet,D.Amount,Non-numeric value in numeric field.,FALSE,"",""
 LM0334,NA,Animals.Diet,D.Item,Exact Duplicate rows in table,FALSE,"",""
 LM0351,Unspecified/Unsepcified,Animals.Diet,D.Amount,Non-numeric value in numeric field.,FALSE,"",""
-NJ0025,Base/Base,Animals.Diet,A.Level.Name,"Amount is present, but unit is missing for D.Amount.",FALSE,"",""
+NJ0025,Base,Animals.Diet,A.Level.Name,"Amount is present, but unit is missing for D.Amount.",FALSE,"",""
 NJ0027,Methionine,Animals.Diet,D.Item,Exact Duplicate rows in table,FALSE,"",""
 NJ0027,PX P3 Br Gr with Phytase,Animals.Diet,D.Item,No-match between excel D.Item and era_master_sheet/ani_diet/D.Item,FALSE,"",""
 NJ0027,Soybean meal,Animals.Diet.Comp,D.Item,No matching value in diet description table.,FALSE,"",""
