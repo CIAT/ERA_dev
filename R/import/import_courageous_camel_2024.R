@@ -150,7 +150,7 @@ if(file_status){
   excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
   
   # 2.5) Read in data from excel files #####
-   i<-1
+   i<-2
   
     File <- excel_files$filename[i]
     era_code <- excel_files$era_code2[i]
@@ -610,6 +610,57 @@ Soil.Out<-results$data
      errors<-c(errors,list(error_dat))
    }
    
+   # Create allowed value table
+   
+   # Product
+   a_product<-as.vector(na.omit(aom[L1=="Species" & L2=="Animal",Edge_Value]))
+   # Scientific Name
+   a_sci_names<-as.vector(na.omit(aom[L1=="Species" & L2=="Animal",`Scientific Name`]))
+   # Variety
+   # Practice
+   a_pracs<-PracticeCodes[Practice=="Genetic Improvement",Subpractice]
+   # Sex
+   a_sex<-master_codes$lookup_levels[Field=="Herd.Sex",Values_New]
+   # Stage
+   a_stage<-as.vector(na.omit(aom[L3=="Rearing Stage",unique(Edge_Value)]))
+   # !! Improvement: a_stage should be species dependent ####
+   # Parity
+   a_parity<-master_codes$lookup_levels[Field=="Herd.Parity",Values_New]
+   # Age.Unit
+   a_age_unit<-master_codes$lookup_levels[Field=="Herd.Start.Age.Unit",Values_New]
+   # Weight.Unit
+   a_weight_unit<-master_codes$lookup_levels[Field=="Herd.Start.Weight.Unit",Values_New]
+   # Herd.Unit
+   a_n_unit<-master_codes$lookup_levels[Field=="Herd.N.Unit",Values_New]
+   
+   allowed_values<-data.table(allowed_values=list(a_product,
+                                                  a_sci_names,
+                                                  a_pracs,
+                                                  a_sex,
+                                                  a_stage,
+                                                  a_parity,
+                                                  a_age_unit,
+                                                  a_weight_unit,
+                                                  a_n_unit),
+                              parent_tab_name=c("master_codes$AOM",
+                                                "master_codes$AOM",
+                                                "master_code$prac",
+                                                "mastercode$lookup_levels",
+                                                "mastercode$lookup_levels",
+                                                "mastercode$lookup_levels",
+                                                "mastercode$lookup_levels",
+                                                "mastercode$lookup_levels",
+                                                "mastercode$lookup_levels"),
+                              field=c("V.Product",
+                                      "V.Product.Sci.Name",
+                                      "V.Animal.Practice",
+                                      "Herd.Sex",
+                                      "Herd.Stage",
+                                      "Herd.Parity",
+                                      "Herd.Start.Age.Unit",
+                                      "Herd.Start.Weight.Unit",
+                                      "Herd.N.Unit"))
+   # Create table of unit pairs
    unit_pairs<-data.table(unit=c("Herd.Start.Age.Unit","Herd.Start.Weight.Unit","Herd.N.Unit"),
                           var=c("Herd.Start.Age","Herd.Start.Weight","Herd.N"),
                           name_field="Herd.Level.Name")
@@ -617,7 +668,10 @@ Soil.Out<-results$data
    results<-validator(data=Herd.Out,
                       tabname=table_name,
                       time_data = Times.Out,
-                      compulsory_cols = c(Herd.Level.Name="V.Product.Sci.Name",Herd.Level.Name="Herd.Rep"),
+                      allowed_values = allowed_values,
+                      compulsory_cols = c(Herd.Level.Name="V.Product.Sci.Name",
+                                          Herd.Level.Name="Herd.Rep",
+                                          Herd.Level.Name="V.Animal.Practice"),
                       hilo_pairs = data.table(low_col="Herd.Start.Age",high_col="Herd.End.Age",name_field="Herd.Row.ID"),
                       unique_cols = c("Herd.Level.Name"),
                       numeric_cols = c("Herd.Start.Age","Herd.End.Age","Herd.Start.Weight","Herd.N","Herd.Rep"),
@@ -625,9 +679,6 @@ Soil.Out<-results$data
                       template_cols = template_cols,
                       trim_ws = T)
    
-   
-   # NEED TO CREATE VALIDATION FUNCTION FOR CHECKING KEY FIELD WITH DELIM AGAINST TARGET COL #####
-   # CAN ALSO CREATE A SIMPLER ALLOWED VALUES FUNCTION THAT TAKES A table with field and values cols #####
    error_dat<-results$errors
    errors<-c(errors,list(error_dat))
    
@@ -635,22 +686,12 @@ Soil.Out<-results$data
    
    setnames(Herd.Out,"V.Var...7","V.Var",skip_absent=T)
    
-   # 3.5.1) !!!TO DO!!! Harmonization ######
-   # Product
-   # Scientific Name
-   # Variety
-   # Practice
-   # Sex
-   # Stage
-   # Parity
-   # Age.Unit
-   # Weight.Unit
-   # Herd.Unit
+   # 3.5.1) !!!TO DO!!! Variety Harmonization ######
    
-# !!!!NOTE A MAJOR CHANGE IS THE PROCESS IS THAT THE USER IS NOT DEFINING ADDITION OR SUBSTITION PRACTICES WE WILL NEED TO DEFINE RULES THAT CREATE THESE PRACTICES AND ADD THEM TO THE TABLES TO MATCH ####
-# !!!!WITH THE 2022 EXTRACTION IN SKINNY COW. ####
-
 # 3.7) Animals.Out ######
+   # !!!!NOTE A MAJOR CHANGE IS THE PROCESS IS THAT THE USER IS NOT DEFINING ADDITION OR SUBSTITION PRACTICES WE WILL NEED TO DEFINE RULES THAT CREATE THESE PRACTICES AND ADD THEM TO THE TABLES TO MATCH ####
+   # !!!!WITH THE 2022 EXTRACTION IN SKINNY COW. ####
+   
    table_name<-"Ingredients.Out"
    Animals.Out<-excel_dat[[table_name]][,1:21]
    template_cols<-c(master_template_cols[[table_name]][1:21],"B.Code")
@@ -664,6 +705,10 @@ Soil.Out<-results$data
      .default = template_cols  # Keeps original names if no match
    )
    
+   Animals.Out<-Animals.Out[!grepl("[.][.][.]",col_names(Animals.Out))]
+   template_cols<-template_cols[!grepl("[.][.][.]",template_cols)]
+   
+   # Remove any rows without a keyfield entry
    Animals.Out<-Animals.Out[!is.na( A.Level.Name)]
    
    if(nrow(Animals.Out)==0){
@@ -701,7 +746,8 @@ Soil.Out<-results$data
                        trim_ws = T,
                        tabname=table_name)
   
-  errors<-c(errors,list(results$errors))
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
   Animals.Out<-results$data
 
   # All NA rows 
@@ -714,7 +760,7 @@ Soil.Out<-results$data
   
   errors<-c(errors,list(error_dat))
 
-# 3.8) Animal.Diet ####
+# 3.8) Animal.Diet (Ingredients) ####
   table_name<-"Ingredients.Out"
   Animal.Diet<-excel_dat[[table_name]][,-(1:22)]
   template_cols<-c(master_template_cols[[table_name]][-(1:22)],"B.Code")
@@ -732,14 +778,15 @@ Soil.Out<-results$data
   
   Animal.Diet<-Animal.Diet[!is.na(A.Level.Name)]
   
-  unit_pairs<-data.table(unit=c("D.Amount.Unit"),
-                         var=c("D.Amount"),
+  # Make unit pair table
+  unit_pairs<-data.table(unit=c("D.Amount.Unit","D.Unit.Time","D.Unit.Animals","DC.is.Dry"),
+                         var=c("D.Amount","D.Amount","D.Amount","D.Amount"),
                          name_field="A.Level.Name")
   
+  # List types of ingredient allowed
   ingredient_types<-aom[grepl("Feed Ingredient",Path),unique(unlist(tstrsplit(unlist(tstrsplit(Path,"Feed Ingredient/",keep=2)),"/",keep=1)))]
   ingredient_types<-ingredient_types[!grepl("Ingredient ",ingredient_types)]
   
-  # NOTE NEED TO INTEGRATE HARMONIZATION WITH ALLOWED VALUES TO ALLOW ADDITION OF AOM CODES AND/OR REPLACEMENT OF VALUES WITH NEW (replacement_vals,add_vals,add_vals_name) #####
   allowed_values<-data.table(allowed_values=list(aom[grepl("Mechanical Process",Path),unique(Edge_Value)],
                                                  aom[grepl("Cheimcal Process",Path),unique(Edge_Value)],
                                                  aom[grepl("Biological Process",Path),unique(Edge_Value)],
@@ -755,7 +802,6 @@ Soil.Out<-results$data
   field=c("D.Process.Mech","D.Process.Chem","D.Process.Bio","D.Process.Therm","D.Process.Dehy","D.Unit.Amount","D.Unit.Time","D.Unit.Animals","DC.Is.Dry","D.Ad.lib","D.Type"))
   
   results<-validator(data=Animal.Diet,
-                     zero_cols=zero_cols,
                      numeric_cols=c("D.Amount"),
                      numeric_ignore_vals="Unspecified",
                      unit_pairs = data.table(unit="D.Unit.Amount",var="D.Amount",name_field="A.Level.Name"),
@@ -786,7 +832,7 @@ Soil.Out<-results$data
   
   errors<-c(errors,list(error_dat))
   
-  # 3.8.1) Harmonization #######
+  # 3.8.1) TO DO Harmonization #######
   # NOTE NEED TO INTEGRATE HARMONIZATION WITH ALLOWED VALUES TO ALLOW ADDITION OF AOM CODES AND/OR REPLACEMENT OF VALUES WITH NEW (replacement_vals,add_vals,add_vals_name) #####
   if(F){
   # Units
@@ -917,15 +963,29 @@ Soil.Out<-results$data
 # 3.9) Animals.Diet.Comp ######
   table_name<-"Nutrition.Out"
   Animal.Diet.Comp<-excel_dat[[table_name]]
+  
+  # Remove rows where D.Item is NA
+  Animal.Diet.Comp<-Animal.Diet.Comp[!is.na(D.Item)]
+  
+  # Temporary fix for duplicate colname issue
+  colnames(Animal.Diet.Comp)[1]<-"DN.is.DM"
+  
+  dm_col_n<-grep("DN.DM[.][.][.]",colnames(Animal.Diet.Comp))
+  if(length(n)>0){
+    colnames(Animal.Diet.Comp)[dm_col_n]<-"DN.DM"
+  }
+  
   col_names<-colnames(Animal.Diet.Comp)
   col_names<-col_names[!grepl("[.][.][.]|0[.]",col_names)]
   unit_cols<-grep("Unit",col_names,value=T)
   num_cols<-gsub("[.]Unit","",unit_cols)
-
+  method_cols<-grep("Method",col_names,value=T)
+  notes_cols<-grep("Notes",col_names,value=T)
+  
   Animal.Diet.Comp<-Animal.Diet.Comp[,..col_names]
   
   # Copy down units and methods
-  copy_down_cols<-c(unit_cols)
+  copy_down_cols<-c("DN.is.DM",unit_cols,method_cols,notes_cols)
   Animal.Diet.Comp <- Animal.Diet.Comp[, (copy_down_cols) := lapply(.SD,function(x){x[1]}), .SDcols = copy_down_cols]
   
   # Add study code
@@ -933,8 +993,8 @@ Soil.Out<-results$data
   
   Animal.Diet.Comp<-Animal.Diet.Comp[!is.na(D.Item)]
   
-  unit_pairs<-data.table(unit=unit_cols,
-                         var=num_cols,
+  unit_pairs<-data.table(unit=c(unit_cols,method_cols),
+                         var=rep(num_cols,2),
                          name_field=num_cols)
   
   item_options<-as.vector(na.omit(unique(c(Animals.Out$A.Level.Name,Animal.Diet$D.Item,Animal.Diet$D.Item.Group))))
