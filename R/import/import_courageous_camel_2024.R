@@ -688,7 +688,7 @@ Soil.Out<-results$data
    
    # 3.5.1) !!!TO DO!!! Variety Harmonization ######
    
-# 3.7) Animals.Out ######
+# 3.6) Animals.Out ######
    # !!!!NOTE A MAJOR CHANGE IS THE PROCESS IS THAT THE USER IS NOT DEFINING ADDITION OR SUBSTITION PRACTICES WE WILL NEED TO DEFINE RULES THAT CREATE THESE PRACTICES AND ADD THEM TO THE TABLES TO MATCH ####
    # !!!!WITH THE 2022 EXTRACTION IN SKINNY COW. ####
    
@@ -760,7 +760,7 @@ Soil.Out<-results$data
   
   errors<-c(errors,list(error_dat))
 
-# 3.8) Animal.Diet (Ingredients) ####
+# 3.7) Animal.Diet (Ingredients) ####
   table_name<-"Ingredients.Out"
   Animal.Diet<-excel_dat[[table_name]][,-(1:22)]
   template_cols<-c(master_template_cols[[table_name]][-(1:22)],"B.Code")
@@ -832,7 +832,7 @@ Soil.Out<-results$data
   
   errors<-c(errors,list(error_dat))
   
-  # 3.8.1) TO DO Harmonization #######
+  # 3.7.1) TO DO Harmonization #######
   # NOTE NEED TO INTEGRATE HARMONIZATION WITH ALLOWED VALUES TO ALLOW ADDITION OF AOM CODES AND/OR REPLACEMENT OF VALUES WITH NEW (replacement_vals,add_vals,add_vals_name) #####
   if(F){
   # Units
@@ -957,10 +957,9 @@ Soil.Out<-results$data
   Animals.Out<-merge(Animals.Out,Animals.Diet.Summary,by=c("B.Code","A.Level.Name"),all.x=T,sort=F)
   Animals.Out[A.Diet.Trees=="",A.Diet.Trees:=NA][A.Diet.Other=="",A.Diet.Other:=NA]
   }
-  
 
     
-# 3.9) Animals.Diet.Comp ######
+# 3.8) Animals.Diet.Comp ######
   table_name<-"Nutrition.Out"
   Animal.Diet.Comp<-excel_dat[[table_name]]
   
@@ -971,10 +970,11 @@ Soil.Out<-results$data
   colnames(Animal.Diet.Comp)[1]<-"DN.is.DM"
   
   dm_col_n<-grep("DN.DM[.][.][.]",colnames(Animal.Diet.Comp))
-  if(length(n)>0){
+  if(length(dm_col_n)>0){
     colnames(Animal.Diet.Comp)[dm_col_n]<-"DN.DM"
   }
   
+  # Split colnames into different types of field
   col_names<-colnames(Animal.Diet.Comp)
   col_names<-col_names[!grepl("[.][.][.]|0[.]",col_names)]
   unit_cols<-grep("Unit",col_names,value=T)
@@ -991,22 +991,28 @@ Soil.Out<-results$data
   # Add study code
   Animal.Diet.Comp$B.Code<-Pub.Out$B.Code[1]
   
-  Animal.Diet.Comp<-Animal.Diet.Comp[!is.na(D.Item)]
-  
+  # Define compulsory unit pairings
   unit_pairs<-data.table(unit=c(unit_cols,method_cols),
                          var=rep(num_cols,2),
                          name_field=num_cols)
   
   item_options<-as.vector(na.omit(unique(c(Animals.Out$A.Level.Name,Animal.Diet$D.Item,Animal.Diet$D.Item.Group))))
   
+  # Allowed values
+  # NOTE if diet.item names are updated in the previous section this needs to be considered here.
   allowed_values<-data.table(allowed_values=list(item_options),
                              parent_tab_name=c("Diet.Ingredients"),
                              field=c("D.Item"))
+  # Compulsory columns
+  comp_cols<-c(unit_cols,method_cols)
+  comp_cols<-c("DN.is.DM",comp_cols)
+  names(comp_cols)<-rep("B.Code",length(comp_cols))
   
 results<-validator(data=Animal.Diet.Comp,
                    numeric_cols=num_cols,
+                   zero_cols = c("DN.is.DM",unit_cols,method_cols,notes_cols),
                    unit_pairs = unit_pairs,
-                   compulsory_cols = c(D.Item="D.Item"),
+                   compulsory_cols = comp_cols,
                    allowed_values = allowed_values,
                    duplicate_field="D.Item",
                    trim_ws = T,
@@ -1018,7 +1024,7 @@ errors<-c(errors,list(error_dat))
 Animals.Diet.Comp<-results$data
 
 # Set non-numerics cols to character
-non_numeric_cols<-colnames(Animals.Diet.Comp)[!colnames(Animals.Diet.Comp) %in% numeric_cols]
+non_numeric_cols<-colnames(Animals.Diet.Comp)[!colnames(Animals.Diet.Comp) %in% num_cols]
 non_numeric_cols<-non_numeric_cols[!non_numeric_cols %in% c("is_group","is_entire_diet")]
 Animals.Diet.Comp <- Animals.Diet.Comp[, (non_numeric_cols) := lapply(.SD, as.character), .SDcols = non_numeric_cols]
 
@@ -1032,8 +1038,8 @@ setnames(diet_entire,"A.Level.Name","D.Item")
 Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
 Animals.Diet.Comp<-merge(Animals.Diet.Comp,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
 
-  # 3.9.1) Harmonization #######
-
+  # 3.8.1) TO DO!!! Harmonization #######
+if(F){
 # Merge in updated name from Animals.Diet table
 merge_dat<-unique(Animals.Diet[,.(D.Item.Raw,B.Code,D.Item.Root.Other.Comp.Proc_All)])
 # Remove any duplicate rows (see error "Multiple matches between D.Item in Composition table and Diet Description table.")
@@ -1082,42 +1088,64 @@ results<-harmonizer_wrap(data=Animals.Diet.Comp,
 
 h_tasks<-c(h_tasks,list(results$h_tasks))
 Animals.Diet.Comp<-results$data
+}
 
-# 3.10) Animals.Diet.Digest ######
+# 3.9) Animals.Diet.Digest ######
 table_name<-"Digest.Out"
 Animal.Diet.Digest<-excel_dat[[table_name]]
 
+# Remove rows where D.Item is NA
+Animal.Diet.Digest<-Animal.Diet.Digest[!is.na(D.Item)]
+
+# Temporary fix for duplicate colname issue
+colnames(Animal.Diet.Digest)[1]<-"DD.is.DM"
+
+dm_col_n<-grep("DD.DM[.][.][.]",colnames(Animal.Diet.Digest))
+if(length(dm_col_n)>0){
+  colnames(Animal.Diet.Digest)[dm_col_n]<-"DD.DM"
+}
+
+# Split colnames into different types of field
 col_names<-colnames(Animal.Diet.Digest)
 col_names<-col_names[!grepl("[.][.][.]|0[.]",col_names)]
 unit_cols<-grep("Unit",col_names,value=T)
 num_cols<-gsub("[.]Unit","",unit_cols)
 method_cols<-grep("Method",col_names,value=T)
+notes_cols<-grep("Notes",col_names,value=T)
 
 Animal.Diet.Digest<-Animal.Diet.Digest[,..col_names]
 
 # Copy down units and methods
-copy_down_cols<-c(unit_cols)
+copy_down_cols<-c(unit_cols,method_cols,notes_cols,"DD.is.DM")
 Animal.Diet.Digest <- Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD,function(x){x[1]}), .SDcols = copy_down_cols]
 
 # Add study code
 Animal.Diet.Digest$B.Code<-Pub.Out$B.Code[1]
 
-Animal.Diet.Digest<-Animal.Diet.Digest[!is.na(D.Item)]
-
-unit_pairs<-data.table(unit=unit_cols,
-                       var=num_cols,
+# Create unit pairings
+unit_pairs<-data.table(unit=c(unit_cols,method_cols),
+                       var=rep(num_cols,2),
                        name_field=num_cols)
 
+# Allowed values
 item_options<-as.vector(na.omit(unique(c(Animals.Out$A.Level.Name,Animals.Diet$D.Item,Animals.Diet$D.Item.Group))))
-
+# NOTE if diet.item names are updated in the previous sections this needs to be considered here.
 allowed_values<-data.table(allowed_values=list(item_options),
                            parent_tab_name=c("Diet.Ingredients"),
                            field=c("D.Item"))
 
+item_options<-as.vector(na.omit(unique(c(Animals.Out$A.Level.Name,Animal.Diet$D.Item,Animal.Diet$D.Item.Group))))
+
+# Compulsory columns
+comp_cols<-c(unit_cols,method_cols)
+comp_cols<-c("DD.is.DM",comp_cols)
+names(comp_cols)<-rep("B.Code",length(comp_cols))
+
 results<-validator(data=Animal.Diet.Digest,
                    numeric_cols=num_cols,
+                   zero_cols = c("DD.is.DM",unit_cols,method_cols,notes_cols),
                    unit_pairs = unit_pairs,
-                   compulsory_cols = c(D.Item="D.Item"),
+                   compulsory_cols =comp_cols,
                    allowed_values = allowed_values,
                    duplicate_field="D.Item",
                    trim_ws = T,
@@ -1128,7 +1156,7 @@ errors<-c(errors,list(error_dat))
 
 Animal.Diet.Digest<-results$data
 
-  # 3.10.1) !!TO DO !! Harmonization #######
+  # 3.9.1) !!TO DO !! Harmonization #######
 if(F){
 Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
 
@@ -1171,14 +1199,14 @@ h_tasks<-c(h_tasks,list(results$h_tasks))
 Animals.Diet.Digest<-results$data
 }
 
-# 3.x) !! TO DO !! Update D.Item field with harmonized names ######
+# 3.10) !! TO DO !! Update D.Item field in all diet tabs with harmonized names ######
 if(F){
   Animals.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
   Animals.Diet.Comp[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
   Animals.Diet.Digest[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
 }
-# 3.8) Agroforestry #####
-# 3.8.1) AF.Out######
+# 3.11) Agroforestry #####
+  # 3.11.1) AF.Out######
 table_name<-"AF.Out"
 AF.Out<-excel_dat[[table_name]][,c(1:5,7,8)]
 template_cols<-c(master_template_cols[[table_name]][c(1:5,7,8)],"B.Code")
@@ -1196,7 +1224,6 @@ AF.Out<-AF.Out[!(AF.Level.Name=="Base" & is.na(AF.Silvopasture) & is.na(AF.Bound
 results<-validator(data=AF.Out,
                    tabname=table_name,
                    time_data = Times.Out,
-                   compulsory_cols = c(AF.Level.Name="B.Code"),
                    unique_cols = c("AF.Level.Name"),
                    template_cols = template_cols,
                    trim_ws = T)
@@ -1206,7 +1233,7 @@ errors<-c(errors,list(error_dat))
 
 AF.Out<-results$data
 
-# 3.8.2) AF.Trees ######
+  # 3.11.2) AF.Trees ######
 table_name<-"AF.Out"
 AF.Trees<-excel_dat[[table_name]][,c(10:13)]
 template_cols<-c(master_template_cols[[table_name]][c(10:13)],"B.Code")
@@ -1236,8 +1263,8 @@ errors<-c(errors,list(error_dat))
 
 AF.Trees<-results$data
 
-# 3.9) Chemicals #####
-  # 3.9.1) Chems.Code ####
+# 3.12) Chemicals #####
+  # 3.12.1) Chems.Code ####
   table_name<-"Chems.Out"
   Chems.Code<-excel_dat[[table_name]][,c(1:3)]
   template_cols<-c(master_template_cols[[table_name]][c(1:3)],"B.Code")
@@ -1246,26 +1273,28 @@ AF.Trees<-results$data
   setnames(Chems.Code,"C.Name","C.Level.Name")
   Chems.Code<-Chems.Code[!is.na(C.Level.Name)]
   
-  
   error_dat<-validator(data=Chems.Code,
                      unique_cols = "C.Level.Name",
                      tabname="Chems.Code")$errors
   
   errors<-c(errors,list(error_dat))
 
-  # 3.9.2) Chems.Out ####
+  # 3.12.2) Chems.Out ####
   table_name<-"Chems.Out"
-  Chems.Out<-excel_dat[[table_name]][,c(5:19)]
-  template_cols<-c(master_template_cols[[table_name]][c(5:19)],"B.Code")
+  Chems.Out<-excel_dat[[table_name]][,c(5:18)]
+  template_cols<-c(master_template_cols[[table_name]][c(5:18)],"B.Code")
   Chems.Out$B.Code<-Pub.Out$B.Code
   
+  # Remove empty rows
   Chems.Out<-Chems.Out[!is.na(C.Level.Name)]
   
+  if(nrow(Chems.Out)>0){
   colnames(Chems.Out)<-unlist(tstrsplit(colnames(Chems.Out),"[.][.][.]",keep=1))
   template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
 
-  setnames(Chems.Out,"C.Brand","C.Name")
-  Chems.Out[,C.Type:=gsub("Animal - ","",C.Type)]
+  setnames(Chems.Out,c("C.Brand","C.Notes1"),c("C.Name","C.Notes"))
+  template_cols[template_cols=="C.Brand"]<-"C.Name"
+  template_cols[template_cols=="C.Notes1"]<-"C.Notes"
   
   allowed_values<-data.table(allowed_values=list(unique(c(master_codes$chem[,C.Name],master_codes$chem[,C.Name.AI...16])),
                                                  master_codes$lookup_levels[Field=="C.App.Method",Values_New],
@@ -1274,7 +1303,6 @@ AF.Trees<-results$data
                              field=c("C.Name","C.App.Method","C.Unit"))
   
   results<-validator(data=Chems.Out,
-                   compulsory_cols = c(C.Level.Name="C.Type",C.Level.Name="C.Name"),
                    numeric_cols=c("C.Amount","C.Applications","C.Date.DAP"),
                    numeric_ignore_vals="Unspecified",
                    unit_pairs = data.table(unit=c("C.Unit"),
@@ -1294,13 +1322,15 @@ AF.Trees<-results$data
                    duplicate_field="C.Level.Name",
                    trim_ws = T)
 
-error_dat<-results$errors
-errors<-c(errors,list(error_dat))
-Chems.Out<-results$data
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  Chems.Out<-results$data
+  }else{
+  Chems.Out<-NULL
+}
 
-    # 3.9.2.1) !!TO DO: Harmonization #######
-
-if(F){
+    # 3.12.2.1) !!TO DO: Harmonization #######
+if(F & !is.null(Chems.Out)){
   # Update C.Names
   Chems.Out<-Chems.Out[C.Name %in% c("Unspecified","unspecified")|is.na(C.Name),C.Name:=paste0("unspecified ",tolower(C.Type))]
   
@@ -1344,10 +1374,10 @@ h_tasks<-list(results$h_tasks)
 Chems.Out<-results$data
 }
 
-# 3.9.3) Chems.AI ####
+  # 3.12.3) Chems.AI ####
 table_name<-"Chems.Out"
-Chems.AI<-excel_dat[[table_name]][,c(21:27)]
-template_cols<-c(master_template_cols[[table_name]][c(21:27)],"B.Code")
+Chems.AI<-excel_dat[[table_name]][,c(21:26)]
+template_cols<-c(master_template_cols[[table_name]][c(21:26)],"B.Code")
 Chems.AI$B.Code<-Pub.Out$B.Code
 table_name<-"Chems.AI"
 
@@ -1357,8 +1387,10 @@ template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
 colnames(Chems.AI)[1]<-"C.Name"
 table_name[1]<-"C.Name"
 
+# Remove NA rows
 Chems.AI<-Chems.AI[!is.na(C.Name)]
 
+if(nrow(Chems.AI)>0){
 allowed_values<-data.table(allowed_values=list(unique(master_codes$chem[,C.Name.AI...16]),
                                                master_codes$lookup_levels[Field=="C.Unit",Values_New]),
                            parent_tab_name=c("master_codes$chem","master_codes$lookup_levels"),
@@ -1382,9 +1414,123 @@ results<-validator(data=Chems.AI,
 error_dat<-results$errors
 errors<-c(errors,list(error_dat))
 Chems.AI<-results$data
+}else{
+  Chems.AI<-NULL
+}
 
-# 3.x) Grazing Management ####
-names(excel_dat)
+    # 3.12.3.1) TO DO !!!! Harmonization #######
+    if(!is.null(Chems.AI)){
+      # Potential harmonizatio for units and AI
+    }
+
+# 3.12) Grazing Management ####
+  # 3.13.1) GM.Out #####
+  table_name<-"GM.Out"
+  GM.Out<-excel_dat[[table_name]][,c(1:9)]
+  template_cols<-c(master_template_cols[[table_name]][c(1:9)],"B.Code")
+  GM.Out$B.Code<-Pub.Out$B.Code
+  
+  # Temporary field name fix
+  setnames(GM.Out,"Pasture.Shade","GM.Shade",skip_absent = T)
+  template_cols[template_cols=="Pasture.Shade"]<-"GM.Shade"
+  
+  # Deal with duplicate colnames between tables stored in same excel sheet
+  colnames(GM.Out)<-unlist(tstrsplit(colnames(GM.Out),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+  
+  # Remove empty rows
+  GM.Out<-GM.Out[!is.na(GM.Level.Name)]
+  
+  if(nrow(GM.Out)>0){
+    
+    vals<-c("Yes","No","Unspecified")
+    allowed_values = data.table(allowed_values=list(vals,vals,vals,vals,
+                                                    master_codes$lookup_levels[Field=="GM.Stock.Meth",Values_New],
+                                                    master_codes$lookup_levels[Field=="GM.Stock.Adapt.Meth",Values_New],
+                                                    vals,
+                                                    master_codes$lookup_levels[Field %in% c("Pasture.Shade","GM.Shade"),Values_New]),
+                                parent_tab_name=c(NA,NA,NA,NA,
+                                                  "master_codes$lookup_levels",
+                                                  "master_codes$lookup_levels",
+                                                  NA,
+                                                  "master_code$lookup_levels"),
+                                field=c("GM.Graz.Pres","GM.Graz.Cont","GM.Graz.Rot","GM.Graz.Strip","GM.Stock.Meth","GM.Stock.Adapt.Meth",
+                                        "GM.Burn","GM.Shade"))
+    
+    results<-validator(data=GM.Out,
+                       tabname=table_name,
+                       allowed_values = allowed_values,
+                       template_cols = template_cols,
+                       trim_ws = T)
+    
+    error_dat<-results$errors
+    errors<-c(errors,list(error_dat))
+    
+    GM.Out<-results$data
+    
+  }
+  
+  # 3.13.2) GM.Method ##### 
+  table_name<-"GM.Out"
+  GM.Method<-excel_dat[[table_name]][,c(11:68)]
+  template_cols<-c(master_template_cols[[table_name]][c(11:68)],"B.Code")
+  GM.Method$B.Code<-Pub.Out$B.Code
+  table_name<-"GM.Method"
+  
+  # Deal with duplicate colnames between tables stored in same excel sheet
+  
+  # Remove empty columns with [.][.][.] delim
+  col_names<-colnames(GM.Method)
+  col_names<-col_names[!grepl("[.][.][.]|0[.]",col_names)]
+  GM.Method<-GM.Method[,..col_names]
+  template_cols<-template_cols[template_cols %in% col_names]
+  
+  # Remove any empty rows
+  GM.Method<-GM.Method[!is.na(GM.Level.Name)]
+  
+  if(nrow(GM.Method)>0){
+  # Note the num_cols and unit_cols here must be in the same order
+  num_cols<-c("GM.Tot.Area","GM.Tot.Stock.Rate","GM.Tot.Graz.Time",
+              "GM.Subdiv.Area","GM.Subdiv.Stock.Rate","GM.Subdiv.Time.Len",
+              "GM.Biomass.Target")
+  
+  unit_cols<-c("GM.Tot.Area.Unit","GM.Tot.Stock.Rate.Unit","GM.Tot.Graz.Time.Unit",
+               "GM.Subdiv.Area.Unit","GM.Subdiv.Stock.Rate.Unit","GM.Subdiv.Time.Unit",
+               "GM.Biomass.Target")
+  
+  # Create unit pairings
+  unit_pairs<-data.table(unit=unit_cols,
+                         var=num_cols,
+                         name_field="B.Code")
+  
+  # Allowed values for units 
+  allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field=="GM.Tot.Area.Unit",Values_New],
+                                                 master_codes$lookup_levels[Field=="GM.Tot.Stock.Area.Unit",Values_New],
+                                                 master_codes$lookup_levels[Field=="GM.Tot.Graz.Time.Unit",Values_New],
+                                                 master_codes$lookup_levels[Field=="GM.Subdiv.Area.Unit",Values_New],
+                                                 master_codes$lookup_levels[Field=="GM.Subdiv.Stock.Rate.Unit",Values_New],
+                                                 master_codes$lookup_levels[Field=="GM.Subdiv.Time.Unit",Values_New],
+                                                 master_codes$lookup_levels[Field=="GM.Biomass.Unit",Values_New]),
+                             parent_tab_name="master_codes$lookup_levels",
+                             field=c("GM.Tot.Area.Unit","GM.Tot.Stock.Area.Unit","GM.Tot.Graz.Time.Unit","GM.Subdiv.Area.Unit",
+                                     "GM.Subdiv.Stock.Rate.Unit","GM.Subdiv.Time.Unit","GM.Biomass.Unit"))
+  
+  results<-validator(data=GM.Method,
+                     tabname=table_name,
+                     numeric_cols = c(num_cols,"GM.Subdic.Time.Cyc","GM.Subdiv.Time.Rest","GM.Sward.Target","GM.Sward.Max"),
+                     unit_pairs=unit_pairs,
+                     allowed_values = allowed_values,
+                     template_cols = template_cols,
+                     time_data = Times.Out,
+                     site_data = Site.Out,
+                     trim_ws = T)
+  
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
+  GM.Method<-results$data
+  }
+  
 # 3.x) Pasture ####
 # 3.x) Planting ####
 # 3.x) Tillage ####
