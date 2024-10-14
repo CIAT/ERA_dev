@@ -1423,7 +1423,7 @@ Chems.AI<-results$data
       # Potential harmonizatio for units and AI
     }
 
-# 3.12) Grazing Management ####
+# 3.13) Grazing Management ####
   # 3.13.1) GM.Out #####
   table_name<-"GM.Out"
   GM.Out<-excel_dat[[table_name]][,c(1:9)]
@@ -1443,6 +1443,7 @@ Chems.AI<-results$data
   
   if(nrow(GM.Out)>0){
     
+    # Set allowed values
     vals<-c("Yes","No","Unspecified")
     allowed_values = data.table(allowed_values=list(vals,vals,vals,vals,
                                                     master_codes$lookup_levels[Field=="GM.Stock.Meth",Values_New],
@@ -1461,6 +1462,9 @@ Chems.AI<-results$data
                        tabname=table_name,
                        allowed_values = allowed_values,
                        template_cols = template_cols,
+                       check_keyfields=data.table(parent_tab=list(GM.Out),
+                                                  parent_tab_name=c("GM.Out"),
+                                                  keyfield=c("GM.Level.Name")),
                        trim_ws = T)
     
     error_dat<-results$errors
@@ -1531,12 +1535,267 @@ Chems.AI<-results$data
   GM.Method<-results$data
   }
   
-# 3.x) Pasture ####
-# 3.x) Planting ####
-# 3.x) Tillage ####
-# 3.x) Fertilizer ####
+# 3.14) Pasture Planting ####
+  # 3.14.1) Plant.Out ######
+  table_name<-"Plant.Out"
+  Plant.Out<-excel_dat[[table_name]][,c(1:5)]
+  template_cols<-c(master_template_cols[[table_name]][c(1:5)],"B.Code")
+  Plant.Out$B.Code<-Pub.Out$B.Code
+  
+  colnames(Plant.Out)<-unlist(tstrsplit(colnames(Plant.Out),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+  
+  # Remove empty rows
+  Plant.Out<-Plant.Out[!is.na(P.Level.Name)]
+  
+  # Make list of allowed values
+  vals<-c("Yes","No","Unspecified")
+  
+  allowed_values<-data.table(allowed_values=list(aom[grepl("Pasture Management/Improved|Pasture Management/Unimpro",Path),Edge_Value],
+                                                 vals,
+                                                 c("Yes","No")
+                                                 ),
+                             parent_tab_name=c("master_codes$AOM",NA,NA),
+                             field=c("A.Pasture.Man","A.Pasture.Inter","P.Structure"))
+  
+  results<-validator(data=Plant.Out,
+                     tabname=table_name,
+                     allowed_values = allowed_values,
+                     template_cols = template_cols,
+                     trim_ws = T)
+  
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
+  Plant.Out<-results$data
+  
+  # 3.14.2) Plant.Method ######
+  #### density unit and mechanziation cols missing! update when fixed
+  table_name<-"Plant.Out"
+  Plant.Method<-excel_dat[[table_name]][,c(8:10,12:13)]
+  template_cols<-c(master_template_cols[[table_name]][c(8:10,12:13)],"B.Code")
+  Plant.Method$B.Code<-Pub.Out$B.Code
+  
+  table_name<-"Plant.Method"
+  
+  colnames(Plant.Method)<-unlist(tstrsplit(colnames(Plant.Method),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+  
+  Plant.Method<-Plant.Method[!is.na(P.Level.Name)]
+  
 
-# 3.10) Other ######
+  # Create unit pairings
+  unit_pairs <- data.table(unit=c("Plant.Density.Unit"),
+                          var=c("Plant.Density"),
+                          name_field="P.Level.Name")
+  
+  # Set allowed values
+  vals<-c("Yes","No","Unspecified")
+  allowed_values = data.table(allowed_values=list(master_codes$lookup_levels[Field == "Plant.Method",Values_New],
+                                                  vals,
+                                                  master_codes$lookup_levels[Field == "F.Mechanization",Values_New]),
+                              parent_tab_name=c("master_codes$lookup_levels",NA,"master_codes$lookup_levels"),
+                              field=c("Plant.Method","Plant.Overseeding","Plant.Mechanization"))
+  
+  results<-validator(data=Plant.Method,
+                     tabname=table_name,
+                     numeric_cols = "Plant.Density",
+                     compulsory_cols = c(P.Level.Name="P.Species"),
+                     allowed_values = allowed_values,
+                     template_cols = template_cols,
+                     check_keyfields=data.table(parent_tab=list(Plant.Out),
+                                                parent_tab_name=c("Plant.Out"),
+                                                keyfield=c("P.Level.Name")),
+                     trim_ws = T)
+  
+  
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
+  Plant.Method<-results$data
+  
+# 3.15) Tillage ####
+  # 3.15.1) Till.Out #####
+  table_name<-"Till.Out"
+  Till.Out<-excel_dat[[table_name]][,c(1:4)]
+  template_cols<-c(master_template_cols[[table_name]][c(1:4)],"B.Code")
+  Till.Out$B.Code<-Pub.Out$B.Code
+  
+  colnames(Till.Out)<-unlist(tstrsplit(colnames(Till.Out),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+  
+  # Remove empty rows
+  Till.Out<-Till.Out[!is.na(Till.Level.Name)]
+  
+  # Set allowed values
+  allowed_values <- data.table(allowed_values=list(master_codes$prac[grepl("Tillage",Practice),Subpractice]),
+                              parent_tab_name=c("master_codes$prac"),
+                              field=c("Till.Practice"))
+  
+  results<-validator(data=GM.Out,
+                     tabname=table_name,
+                     allowed_values = allowed_values,
+                     template_cols = template_cols,
+                     trim_ws = T)
+  
+  
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
+  Till.Out<-results$data
+  
+  # 3.16.2) Till.Method ####
+  table_name<-"Till.Out"
+  Till.Method<-excel_dat[[table_name]][,c(6:18)]
+  template_cols<-c(master_template_cols[[table_name]][c(6:18)],"B.Code")
+  Till.Method$B.Code<-Pub.Out$B.Code
+  
+  table_name<-"Till.Method"
+  
+  colnames(Till.Method)<-unlist(tstrsplit(colnames(Till.Method),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+  
+  colnames(Till.Method)[1]<-"Till.Level.Name"
+  template_cols[1]<-"Till.Level.Name"
+  
+  Till.Method<-Till.Method[!is.na(Till.Level.Name)]
+  
+  # Set allowed values
+  allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field == "T.Method",Values_New],
+                                                  master_codes$lookup_levels[Field == "Till.Other",Values_New],
+                                                 master_codes$lookup_levels[Field == "F.Mechanization",Values_New]),
+                              parent_tab_name=c("master_codes$lookup_levels",
+                                                "master_codes$lookup_levels",
+                                                "master_codes$lookup_levels"),
+                              field=c("T.Method","T.Method.Other","T.Mechanization"))
+  
+  results<-validator(data=Till.Method,
+                     tabname=table_name,
+                     numeric_cols = c("T.Depth","T.Strip.P","T.Strip.WT","T.Strip.WU","T.Freq"),
+                     date_cols = c("T.Date.Start","T.Date.End"),
+                     hilo_pairs = data.table(low_col="T.Date.Start",high_col="T.Date.End",name_field="Till.Level.Name"),
+                     valid_start = valid_start,
+                     valid_end = valid_end,
+                     allowed_values = allowed_values,
+                     template_cols = template_cols,
+                     site_data = Site.Out,
+                     time_data = Times.Out,
+                     check_keyfields=data.table(parent_tab=list(Till.Out),
+                                                parent_tab_name=c("Till.Out"),
+                                                keyfield=c("Till.Level.Name")),
+                     trim_ws = T)
+  
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
+  Till.Method<-results$data
+  
+  
+# 3.16 Fertilizer ####
+  # 3.16.1) Fert.Out ######
+  table_name<-"Fert.Out"
+  Fert.Out<-excel_dat[[table_name]][,c(1:7,9:28)]
+  template_cols<-c(master_template_cols[[table_name]][c(1:7,9:28)],"B.Code")
+  Fert.Out$B.Code<-Pub.Out$B.Code
+  
+  colnames(Fert.Out)<-unlist(tstrsplit(colnames(Fert.Out),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+  
+  # Remove empty rows
+  Fert.Out<-Fert.Out[!is.na(Fert.Level.Name)]
+  
+  # Copy down units
+  unit_cols<-grep("Unit",colnames(Fert.Out),value=T)
+  Fert.Out <- Fert.Out[, (unit_cols) := lapply(.SD,function(x){x[1]}), .SDcols = unit_cols]
+  
+  
+  # Set allowed values
+  allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field == "F.Rate.Pracs",Values_New],
+                                                 master_codes$lookup_levels[Field == "F.Timing.Pracs",Values_New],
+                                                 master_codes$lookup_levels[Field == "F.Precision.Pracs",Values_New],
+                                                 master_codes$lookup_levels[Field == "F.Info.Pracs",Values_New]),
+                             parent_tab_name=c("master_codes$lookup_levels",
+                                               "master_codes$lookup_levels",
+                                               "master_codes$lookup_levels",
+                                               "master_codes$lookup_levels"),
+                             field=c("F.Prac.Rate","F.Prac.Timing","F.Prac.Precision","F.Prac.Info"))
+  
+  # Set unit pairss
+  num_cols<-c("F.NO","F.PO","F.KO","F.NI","F.PI","F.P2O5","F.KI","F.K2O")
+  unit_pairs<-data.table(unit=c(rep("F.O.Unit",3),rep("F.I.Unit",5)),
+                         var=num_cols,
+                         name_field="F.Level.Name")
+  
+  results<-validator(data=Fert.Out,
+                     numeric_cols = num_cols,
+                     zero_cols = c("F.O.Unit","F.I.Unit"),
+                     tabname=table_name,
+                     allowed_values = allowed_values,
+                     unit_pairs=unit_pairs,
+                     template_cols = template_cols,
+                     trim_ws = T)
+  
+    error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
+  Fert.Out<-results$data
+  # 3.16.2) Fert.Method ######
+  table_name<-"Fert.Out"
+  Fert.Method<-excel_dat[[table_name]][,c(30:49)]
+  template_cols<-c(master_template_cols[[table_name]][c(30:49)],"B.Code")
+  Fert.Method$B.Code<-Pub.Out$B.Code
+  
+  table_name<-"Fert.Method"
+  
+  colnames(Fert.Method)<-unlist(tstrsplit(colnames(Fert.Method),"[.][.][.]",keep=1))
+  template_cols<-unlist(tstrsplit(template_cols,"[.][.][.]",keep=1))
+  
+  colnames(Fert.Method)[1]<-"F.Level.Name"
+  template_cols[1]<-"F.Level.Name"
+  
+  Fert.Method<-Fert.Method[!is.na(F.Level.Name)]
+  
+  # Set allowed values
+  allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field == "F.Unit",Values_New],
+                                                 master_codes$lookup_levels[Field == "F.Method",Values_New],
+                                                 master_codes$lookup_levels[Field == "F.Physical",Values_New],
+                                                 master_codes$lookup_levels[Field == "F.Mechanization",Values_New],
+                                                 master_codes$lookup_levels[Field == "M.Source",Values_New],
+                                                 master_codes$lookup_levels[Field == "M.Fate",Values_New]),
+                             parent_tab_name=c("master_codes$lookup_levels","master_codes$lookup_levels","master_codes$lookup_levels",
+                                               "master_codes$lookup_levels","master_codes$lookup_levels","master_codes$lookup_levels"),
+                             field=c("F.Unit","F.Method","F.Physical","F.Mechanization","F.Source","F.Fate"))
+  
+  # Set unit pairs
+  unit_pairs<-data.table(unit=c("F.Unit"),
+                         var="F.Amount",
+                         name_field="F.Level.Name")
+  
+  results<-validator(data=Fert.Method,
+                     compulsory_cols = c(F.Level.Name="F.Type"),
+                     numeric_cols = c("F.Amount","F.Date.DAP","F.Date.DAE"),
+                     date_cols = c("F.Date.Start","F.Date.End"),
+                     valid_start = valid_start,
+                     valid_end = valid_end,
+                     hilo_pairs = data.table(low_col="F.Date.Start",high_col="F.Date.End",name_field="F.Level.Name"),
+                     tabname=table_name,
+                     allowed_values = allowed_values,
+                     site_data = Site.Out,
+                     time_data = Times.Out,
+                     unit_pairs=unit_pairs,
+                     template_cols = template_cols,
+                     check_keyfields=data.table(parent_tab=list(Fert.Out),
+                                                parent_tab_name=c("Fert.Out"),
+                                                keyfield=c("F.Level.Name")),
+                     trim_ws = T)
+  
+  error_dat<-results$errors
+  errors<-c(errors,list(error_dat))
+  
+  Fert.Out<-results$data
+  
+  # 3.16.3) Fert.Composition ######
+# 3.17) Other ######
 table_name<-"Other.Out"
 data<-lapply(XL,"[[","Other.Out")
 col_names<-colnames(data[[1]])
@@ -1769,7 +2028,7 @@ MT.Out[,T.Start.Year:=as.integer(T.Start.Year)][,T.Reps:=as.integer(T.Reps)][,T.
       # Aggregated Treatments: Split T.Codes & Level.Names into those that are the same and those that differ between treatments
       # This might need some more nuance for fertilizer treatments?
       
-      # Exclude Other, Chemical, Weeding or Planting Practice Levels if they do no structure outcomes.
+      # Exclude Other, Chemical, Weeding or Tilling Practice Levels if they do no structure outcomes.
       Exclude<-c("O.Level.Name","C.Level.Name")[apply(Y[,c("O.Structure","C.Structure")],2,unique)!="Yes" | is.na(apply(Y[,c("O.Structure","C.Structure")],2,unique))]
       Fields1<-Fields[!Levels %in% Exclude]
       
@@ -1993,7 +2252,7 @@ Out.Out[,c("x","N"):=NULL]
 table_name<-"Data.Out"
 data<-lapply(XL,"[[",table_name)
 col_names<-colnames(data[[100]])
-col_names<-col_names[!col_names %in% c("ED.Int","ED.Rot","ED.I.Amount","ED.I.Unit","ED.Plant.Start","ED.Plant.End","ED.Harvest.Start","ED.Harvest.End","ED.Harvest.DAS")]
+col_names<-col_names[!col_names %in% c("ED.Int","ED.Rot","ED.I.Amount","ED.I.Unit","ED.Till.Start","ED.Till.End","ED.Harvest.Start","ED.Harvest.End","ED.Harvest.DAS")]
 
 Data.Out<-lapply(1:length(data),FUN=function(i){
   X<-data[[i]]
