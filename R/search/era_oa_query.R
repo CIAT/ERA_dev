@@ -6,8 +6,8 @@
 #' @param from_date The start date for the publication date filter "YYYY-MM-DD".
 #' @param to_date The end year for the publication date filter "YYYY-MM-DD".
 #' @param continent The continent for filtering works by authorship institutions. Default is `NULL` (no continent filter).
-#' @param download A logical value indicating whether to download the search results or only return the number of search. Default is `TRUE`.
-#' @param full A logical value indicating whether to download the full set of data fields or just title and DOI. Default is `FALSE`.
+#' @param download A logical value indicating whether to download the search results or only return the number of search hits. Default is `TRUE`.
+#' @param full A logical value indicating whether to download the full set of data fields (including abstract) or just title and DOI. Default is `FALSE`.
 #' @param max_char_limit The maximum number of characters allowed in the API request URL. Default is `4000`.
 #'
 #' @return A `data.table` containing the downloaded search results.
