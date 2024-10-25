@@ -91,6 +91,12 @@ if(!file.exists(save_path)){
 
 ERA.Compiled_new<-arrow::read_parquet(save_path)
 data_new<-ERA.Compiled_new[Version=="skinny_cow_2022" & grepl(paste(focal_pracs,collapse = "|"),plist)]
+dim(data_new)
+data_new[,length(unique(Code))]
+# Remove confounding subpractices
+data_new<-data_new[!grepl("Concentrates|Feed Crop|Breed|Feed NonCrop",SubPrName)]
+dim(data_new)
+data_new[,length(unique(Code))]
 
 # Check results from different data sources
 # Fewer comparisons in new data, but more studies overall
@@ -276,6 +282,15 @@ data<-data_new
     digest_dat
     
     # 4.5) Feed intake #####
-    feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,Out.Subind,ED.Intake.Item,ED.Intake.Item.Raw,is_group,is_entire_diet,Out.Unit)]  
+    feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,A.Level.Name,Out.Subind,ED.Intake.Item,ED.Intake.Item.Raw,is_group,is_entire_diet,Out.Unit)]  
+    # These have some residual issues with the raw data we are resolving
     feed_intake[is.na(ED.Intake.Item)]
+    feed_intake<-feed_intake[!is.na(ED.Intake.Item)]
+    
+    # If ED.Intake.Item is not NA and is_group==F and is_entire_diet==F
+    (feed_intake_subset<-feed_intake[is_group==F & is_entire_diet==F,.(B.Code,A.Level.Name,ED.Intake.Item)][20])
+    diet_ingredients[B.Code==feed_intake_subset$B.Code & 
+                       A.Level.Name==feed_intake_subset$A.Level.Name ]    
+    
+    
     
