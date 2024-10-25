@@ -93,6 +93,7 @@ ERA.Compiled_new<-arrow::read_parquet(save_path)
 data_new<-ERA.Compiled_new[Version=="skinny_cow_2022" & grepl(paste(focal_pracs,collapse = "|"),plist)]
 dim(data_new)
 data_new[,length(unique(Code))]
+
 # Remove confounding subpractices
 data_new<-data_new[!grepl("Concentrates|Feed Crop|Breed|Feed NonCrop",SubPrName)]
 dim(data_new)
@@ -286,6 +287,10 @@ data<-data_new
     # These have some residual issues with the raw data we are resolving
     feed_intake[is.na(ED.Intake.Item)]
     feed_intake<-feed_intake[!is.na(ED.Intake.Item)]
+    
+    # Subset to entire diet
+    feed_intake<-feed_intake[is_entire_diet==T]
+    feed_intake[,length(unique(B.Code))]
     
     # If ED.Intake.Item is not NA and is_group==F and is_entire_diet==F
     (feed_intake_subset<-feed_intake[is_group==F & is_entire_diet==F,.(B.Code,A.Level.Name,ED.Intake.Item)][20])
