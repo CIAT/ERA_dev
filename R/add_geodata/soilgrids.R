@@ -122,7 +122,7 @@ colnames(data_ex_median)<-gsub("median.","",colnames(data_ex_median))
 data_ex_median$stat<-"median"
 
 data_ex<-unique(data.table(rbind(data_ex,data_ex_median)))
-data_ex_m<-melt(data_ex,id.vars=c("Site.Key","stat"))
+data_ex_m<-data.table(melt(data_ex,id.vars=c("Site.Key","stat")))
 data_ex_m[grep("error",variable),error:="error"
           ][!grepl("error",variable),error:="value"
             ][,variable:=gsub("-error","",variable)
@@ -130,7 +130,7 @@ data_ex_m[grep("error",variable),error:="error"
               ][,depth:=unlist(tstrsplit(variable,"_",keep=2))
                 ][,variable:=unlist(tstrsplit(variable,"_",keep=1))]
 
-data_ex_m<-dcast(data_ex_m,Site.Key+stat+variable+depth~error,value.var = "value")
+data_ex_m<-data.table(dcast(data_ex_m,Site.Key+stat+variable+depth~error,value.var = "value"))
 
 if(file.exists(soil_file) & overwrite==F){
   data_ex_m<-unique(rbind(existing_data,data_ex_m))
