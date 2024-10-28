@@ -898,7 +898,7 @@ check_units <- function(data, unit_pairs, tabname) {
                    .SDcols = Name_Field
     ][, `:=`(table = tabname, 
              field = Name_Field, 
-             issue = paste0("Amount is present, but unit is missing for ", Var, "."))
+             issue = paste0("Value is present for ",Var," but associated item, value, or unit is missing in ", Unit, "."))
     ][order(B.Code)]
     
     errors
@@ -1286,12 +1286,13 @@ validator <- function(data,
 check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL,na_omit=T,delim=";") {
   keyfield<-unlist(strsplit(keyfield,"/"))
   n_col <- c("B.Code", keyfield)
-  parent<-parent[, ..n_col][, check := TRUE]
+  parent<-parent[, ..n_col][,check:= TRUE]
   child<-child[, ..n_col]
   
   child<-split_syn(data=child,split_col = tail(keyfield,1),delim=delim)
   
-  mergetab <- unique(merge(child, parent, all.x = TRUE)[is.na(check)][, check := NULL])
+  mergetab<-data.table(merge(child, parent, all.x = TRUE))
+  mergetab <- unique(mergetab[is.na(check)][,check := NULL])
   
   if(length(keyfield)>1){
     x<-mergetab[,..keyfield]
