@@ -878,6 +878,11 @@ detect_extremes <- function(data, field, lower_bound, upper_bound, tabname) {
 #' }
 #' @import data.table
 check_units <- function(data, unit_pairs, tabname) {
+   n_cols<-table(colnames(data))
+  if(any(n_cols)>1){
+    stop(paste("Duplicate column names present:",paste0(names(n_cols)[n_cols>1],collapse = ", ")))
+  }
+  
   results <- rbindlist(lapply(1:nrow(unit_pairs), FUN = function(i) {
     Unit <- unit_pairs$unit[i]
     Var <- unit_pairs$var[i]
@@ -885,15 +890,17 @@ check_units <- function(data, unit_pairs, tabname) {
     
     # Dynamically construct the filtering condition
     condition <- paste0("is.na(", Unit, ") & !is.na(", Var, ")")
-    condition2 <- paste0(Name_Field, "[!is.na(", Name_Field, ")]")
     
-    # Evaluate the condition within the data.table context
-    errors <- data[eval(parse(text = condition))
-    ][, list(value = paste(unique(eval(parse(text = condition2))), collapse = "/")), by = B.Code
-    ][, table := tabname
-    ][, field := Name_Field
-    ][, issue := paste0("Amount is present, but unit is missing for ", Var, ".")
+    # Use 'mget(Name_Field)' to dynamically refer to the column within .SD
+    errors <- data[eval(parse(text = condition)), 
+                   .(value = paste(unique(na.omit(.SD[[1]])), collapse = "/")), 
+                   by = B.Code, 
+                   .SDcols = Name_Field
+    ][, `:=`(table = tabname, 
+             field = Name_Field, 
+             issue = paste0("Amount is present, but unit is missing for ", Var, "."))
     ][order(B.Code)]
+    
     errors
   }))
   
@@ -1014,7 +1021,7 @@ validator <- function(data,
   
   if(!is.null(template_cols)){
     a<-colnames(data) %in% template_cols
-    a<-a[!a]
+    a<-colnames(data)[!a]
     
     if(length(a)>0){
       errors1 <- data.table(value = paste(a, collapse = "/"), 
@@ -1028,14 +1035,14 @@ validator <- function(data,
     }
     
     a<-template_cols %in% colnames(data)
-    a<-a[!a]
+    a<-template_cols[!a]
     
     if(length(a)>0){
       errors1 <- data.table(value = paste(a, collapse = "/"), 
                             B.Code = NA,
                             table = tabname,
                             field = NA,
-                            issue = "Column names in excel that do not match the master template.")
+                            issue = "Column names in template that do not match the excel")
       
       errors[[n]] <- errors1
       n <- n + 1
@@ -1276,12 +1283,22 @@ validator <- function(data,
 #' check_key(parent, child, "child_table", "key_field", TRUE, "parent_table")
 #' }
 #' @import data.table
-check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL,na_omit=T) {
+check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL,na_omit=T,delim=";") {
+  keyfield<-unlist(strsplit(keyfield,"/"))
   n_col <- c("B.Code", keyfield)
   parent<-parent[, ..n_col][, check := TRUE]
   child<-child[, ..n_col]
+  
+  child<-split_syn(data=child,split_col = tail(keyfield,1),delim=delim)
+  
   mergetab <- unique(merge(child, parent, all.x = TRUE)[is.na(check)][, check := NULL])
-  setnames(mergetab, keyfield, "value")
+  
+  if(length(keyfield)>1){
+    x<-mergetab[,..keyfield]
+    mergetab<-mergetab[,value:=apply(x,1,paste,collapse="-")][,.(B.Code,value)]
+  }else{
+    setnames(mergetab, keyfield, "value")
+  }
   
   if(na_omit){
     mergetab<-mergetab[!is.na(value)]
@@ -1294,7 +1311,7 @@ check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE,
   }
   
   mergetab[, table := tabname
-  ][, field := keyfield
+  ][, field := paste0(keyfield,collapse = "/")
   ][, issue := "Mismatch in field value between parent and child tables."]
   
   if (!is.null(tabname_parent)) {
@@ -1380,13 +1397,15 @@ check_coordinates <- function(data) {
 #'
 #' @importFrom dplyr mutate
 #' @importFrom tidyr unnest
+#' @importFrom data.table data.table
 #' @export
 split_syn <- function(data, split_col, delim = ";") {
   
   # Split the values in split_col and repeat the corresponding C.Name.New for each split value
   new_data <- data %>%
-    mutate(!!split_col := strsplit(as.character(.data[[split_col]]), delim)) %>%
-    unnest(cols = c(!!split_col))
+    dplyr::mutate(!!split_col := strsplit(as.character(.data[[split_col]]), delim)) %>%
+    tidyr::unnest(cols = c(!!split_col)) %>%
+    data.table
   
   return(new_data)
 }
