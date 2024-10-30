@@ -1150,7 +1150,6 @@ validator <- function(data,
   # Check keyfields
   if(!is.null(check_keyfields)){
     errors1<-rbindlist(lapply(1:nrow(check_keyfields),FUN=function(i){
-      print(i)
       result<-check_key(parent=check_keyfields$parent_tab[[i]],
                         child=data,
                         tabname=table_name,
