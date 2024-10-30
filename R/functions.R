@@ -1152,7 +1152,7 @@ validator <- function(data,
     errors1<-rbindlist(lapply(1:nrow(check_keyfields),FUN=function(i){
       result<-check_key(parent=check_keyfields$parent_tab[[i]],
                         child=data,
-                        tabname=table_name,
+                        tabname=tabname,
                         tabname_parent=check_keyfields$parent_tab_name[i],
                         keyfield=check_keyfields$keyfield[i],
                         collapse_on_code=T)[,table:=paste0(parent_table,"/",table)][,parent_table:=NULL]
