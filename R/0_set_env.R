@@ -27,7 +27,6 @@ if(!require("exactextractr")){
   remotes::install_github("isciences/exactextractr")
 }
 
-
 source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
 
 # 1) Set directories ####
