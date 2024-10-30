@@ -1150,6 +1150,7 @@ validator <- function(data,
   # Check keyfields
   if(!is.null(check_keyfields)){
     errors1<-rbindlist(lapply(1:nrow(check_keyfields),FUN=function(i){
+      print(i)
       result<-check_key(parent=check_keyfields$parent_tab[[i]],
                         child=data,
                         tabname=table_name,
@@ -1175,7 +1176,7 @@ validator <- function(data,
       if(nrow(dat)>0){
         dat<-dat[,.(value=unique(unlist(strsplit(values,";")))),by=B.Code][!value %in% a_vals]
         errors1<-dat[,.(value=paste(unique(value),collapse = "/")),by=B.Code
-        ][, table := allowed_values[i,parent_tab_name]
+        ][, table := paste0(tabname," & ", allowed_values[i,parent_tab_name])
         ][, field := allowed_values[i,field]
         ][, issue := "Values found in field that are not present in lookup values."]
         return(errors1)
@@ -1286,12 +1287,17 @@ validator <- function(data,
 check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL,na_omit=T,delim=";") {
   keyfield<-unlist(strsplit(keyfield,"/"))
   n_col <- c("B.Code", keyfield)
-  parent<-parent[, ..n_col][,check:= TRUE]
-  child<-child[, ..n_col]
   
+  parent<-parent[, ..n_col][,check:= TRUE]
+  parent<-unique(data.table(parent))
+  
+  child<-data.table(child)
+  child<-child[, ..n_col]
   child<-split_syn(data=child,split_col = tail(keyfield,1),delim=delim)
   
-  mergetab<-data.table(merge(child, parent, all.x = TRUE))
+  child <- child[!is.na(child[[ncol(child)]])]
+
+  mergetab<-data.table(merge(child, parent,by=n_col, all.x = TRUE))
   mergetab <- unique(mergetab[is.na(check)][,check := NULL])
   
   if(length(keyfield)>1){
@@ -1318,9 +1324,7 @@ check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE,
   if (!is.null(tabname_parent)) {
     mergetab[, parent_table := tabname_parent]
   }
-  
-  
-  return(mergetab)
+    return(mergetab)
 }
 #' Check Coordinates
 #'
