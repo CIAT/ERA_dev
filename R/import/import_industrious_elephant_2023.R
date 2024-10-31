@@ -4,6 +4,7 @@ pacman::p_load(data.table,
                readxl,
                future, 
                future.apply,
+               progressr,
                parallel,
                miceadds,
                pbapply,
@@ -13,8 +14,7 @@ pacman::p_load(data.table,
                rnaturalearth,
                rnaturalearthhires,
                sf,
-               dplyr,
-               progressr)
+               dplyr)
   # 0.1) Define the valid range for date checking #####
   valid_start <- as.Date("1950-01-01")
   valid_end <- as.Date("2023-12-01")
@@ -22,7 +22,7 @@ pacman::p_load(data.table,
   # 0.2) Set directories and parallel cores ####
   
   # Set cores for parallel processing
-  workers<-parallel::detectCores()-2
+  worker_n<-parallel::detectCores()-2
   
   # Set the project name, this should usually refer to the ERA extraction template used
   project<-era_projects$industrious_elephant_2023
@@ -159,40 +159,49 @@ if(update){
   }
   
   # Set up parallel back-end
-  if (.Platform$OS.type == "windows") {
-    plan(multisession, workers = workers)
-  } else {
-    plan(multicore, workers = workers)
-  }
+  plan(multisession, workers = worker_n)
+
+  # Enable progressr and set up handlers
+  progressr::handlers("progress")
+  progressr::handlers(global = TRUE)
   
-  # Run future apply loop to read in data from each excel file in parallel
-  XL <- future.apply::future_lapply(1:nrow(excel_files), FUN=function(i){
-    File <- excel_files$filename[i]
-    era_code <- excel_files$era_code2[i]
-    save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+  # Wrap the parallel processing in a with_progress call
+  XL <- with_progress({
+    # Define the progressor based on the number of files
+    p <- progressr::progressor(along = 1:nrow(excel_files))
     
-    if (overwrite == TRUE || !file.exists(save_name)) {
-      X <- tryCatch({
-        lapply(SheetNames, FUN=function(SName){
-          cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
-          flush.console()
-          data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
-        })
-      }, error=function(e){
-        cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
-        return(NULL)  # Return NULL if there was an error
-      })
+    # Run future apply loop to read in data from each Excel file in parallel
+    future.apply::future_lapply(1:nrow(excel_files), FUN = function(i) {
+      File <- excel_files$filename[i]
+      era_code <- excel_files$era_code2[i]
+      save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
       
-      if (!is.null(X)) {
-        names(X) <- SheetNames
-        X$file.info<-file.info(File)
-        save(X, file=save_name)
+      # Update the progress bar
+      p(sprintf("Processing file %d of %d: %s", i, nrow(excel_files), era_code))
+      
+      if (overwrite == TRUE || !file.exists(save_name)) {
+        X <- tryCatch({
+          lapply(SheetNames, FUN = function(SName) {
+            cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName, "               ")
+            flush.console()
+            data.table::data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
+          })
+        }, error = function(e) {
+          cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+          return(NULL)  # Return NULL if there was an error
+        })
+        
+        if (!is.null(X)) {
+          names(X) <- SheetNames
+          X$file.info <- file.info(File)
+          save(X, file = save_name)
+        }
+      } else {
+        miceadds::load.Rdata(filename = save_name, objname = "X")
       }
-    } else {
-      miceadds::load.Rdata(filename=save_name, objname="X")
-    }
-    
-    X
+      
+      X
+    })
   })
   
   # Reset plan to default setting
