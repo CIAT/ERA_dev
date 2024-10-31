@@ -1,5 +1,5 @@
 # Make sure you have set the era working directory using the 0_set_env.R script ####
-# 0.0) Install and load packages ####
+## 0.0) Install and load packages ####
 pacman::p_load(data.table, 
                readxl,
                future, 
@@ -15,11 +15,11 @@ pacman::p_load(data.table,
                rnaturalearthhires,
                sf,
                dplyr)
-  # 0.1) Define the valid range for date checking #####
+  ## 0.1) Define the valid range for date checking #####
   valid_start <- as.Date("1950-01-01")
   valid_end <- as.Date("2023-12-01")
   
-  # 0.2) Set directories and parallel cores ####
+  ## 0.2) Set directories and parallel cores ####
   
   # Set cores for parallel processing
   worker_n<-parallel::detectCores()-2
@@ -92,7 +92,7 @@ if(update){
 }
 
 # 2) Load data ####
-  # 2.1) Load era vocab (era_master_sheet.xlsx) #####
+  ## 2.1) Load era vocab (era_master_sheet.xlsx) #####
   # Get names of all sheets in the workbook
   sheet_names <- readxl::excel_sheets(era_vocab_local)
   sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
@@ -100,7 +100,7 @@ if(update){
   # Read each sheet into a list
   master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
   
-  # 2.2) Load excel data entry template #####
+  ## 2.2) Load excel data entry template #####
   Master<-list.files(paste0(project_dir,"/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
   
   # List sheet names that we need to extract
@@ -118,10 +118,10 @@ if(update){
   # Subset Cols
   XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:13] # Subset Agroforesty out tab to needed columns only
   
-  # 2.3) List extraction excel files #####
+  ## 2.3) List extraction excel files #####
   Files<-list.files(excel_dir,".xlsm$",full.names=T)
   
-  # 2.4) Check for duplicate files #####
+  ## 2.4) Check for duplicate files #####
   FNames<-unlist(tail(tstrsplit(Files,"/"),1))
   FNames<-gsub(" ","",FNames)
   FNames<-unlist(tstrsplit(FNames,"-",keep=2))
@@ -147,7 +147,7 @@ if(update){
   excel_files<-excel_files[!N>1][,N:=NULL]
   excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
   
-  # 2.5) Read in data from excel files #####
+  ## 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the import process be run again?
   overwrite<-F
@@ -172,22 +172,23 @@ if(update){
     
     # Run future apply loop to read in data from each Excel file in parallel
     future.apply::future_lapply(1:nrow(excel_files), FUN = function(i) {
+      # Update the progress bar
+      p(sprintf("Processing file %d of %d: %s", i, nrow(excel_files), era_code))
+      
       File <- excel_files$filename[i]
       era_code <- excel_files$era_code2[i]
       save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
       
-      # Update the progress bar
-      p(sprintf("Processing file %d of %d: %s", i, nrow(excel_files), era_code))
-      
+
       if (overwrite == TRUE || !file.exists(save_name)) {
         X <- tryCatch({
           lapply(SheetNames, FUN = function(SName) {
-            cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName, "               ")
-            flush.console()
+            #cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName, "               ")
+            #flush.console()
             data.table::data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
           })
         }, error = function(e) {
-          cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
+          #. cat("Error reading file: ", File, "\nError Message: ", e$message, "\n")
           return(NULL)  # Return NULL if there was an error
         })
         
@@ -224,7 +225,7 @@ if(update){
   error_list<-error_tracker(errors=errors,filename = "excel_import_failures",error_dir=error_dir,error_list = NULL)
   
 # 3) Process imported data ####
-  # 3.1) Publication (Pub.Out) #####
+  ## 3.1) Publication (Pub.Out) #####
   data<-lapply(XL,"[[","Pub.Out")
   
   Pub.Out<-rbindlist(pblapply(1:length(data),FUN=function(i){
@@ -251,7 +252,7 @@ if(update){
   # Reset B.Codes to filename
   Pub.Out[,B.Code:=era_code2][,c("era_code2","filename","N","code_issue","...7"):=NULL]
   
-    # 3.1.1) Harmonization ######
+    ### 3.1.1) Harmonization ######
     results<-val_checker(data=Pub.Out,
                           tabname="Pub.Out",
                           master_codes=master_codes,
@@ -264,7 +265,7 @@ if(update){
     
     harmonization_list<-error_tracker(errors=results$h_task[order(value)],filename = "pub_harmonization",error_dir=harmonization_dir,error_list = NULL)
   
-  # 3.2) Site.Out #####
+  ## 3.2) Site.Out #####
   data<-lapply(XL,"[[","Site.Out")
   col_names<-colnames(data[[800]])
   
@@ -328,7 +329,7 @@ if(update){
                     ][,issue:="Co-ordinates are not in the country specified?"]
   
   
-    # 3.2.1) Harmonization ######
+    ## 3.2.1) Harmonization ######
       h_params<-data.table(h_table="Site.Out",
                            h_field=c("Site.Admin","Site.Start.S1","Site.End.S1","Site.Start.S2","Site.End.S2","Site.Type","Site.Soil.Texture"),
                            h_table_alt=c(NA,"Site.Out","Site.Out","Site.Out","Site.Out",NA,"Site.Out"),
@@ -358,7 +359,7 @@ if(update){
       Site.Out<-results$data
     
     
-    # 3.2.2) Harmonize Site.ID field #######
+    ## 3.2.2) Harmonize Site.ID field #######
     master_sites<-master_codes$site_list[!(is.na(Synonyms) & is.na(Harmonization)),.(Site.ID,Country,Synonyms,Harmonization)
     ][,old_name:=Synonyms
     ][is.na(old_name),old_name:=Harmonization
@@ -402,7 +403,7 @@ if(update){
     ][,field:="Site.ID"
     ][,issue:="No match for facility in era_master_sheet site_list tab (inc. synonyms or harmonization fields)."]
     
-    # 3.2.3) Create Aggregated Site Rows #######
+    ## 3.2.3) Create Aggregated Site Rows #######
     mergedat<-Site.Out[grep("[.][.]",Site.ID)]
     
     result<-pblapply(1:nrow(mergedat),FUN=function(i){
@@ -437,16 +438,16 @@ if(update){
     # Replace aggregated site rows
     Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)
    
-    # 3.2.4) Save errors #####
+    ## 3.2.4) Save errors #####
     error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4,errors5),fill=T),
                               filename = "site_other_errors",
                               error_dir=error_dir,
                               error_list = error_list)    
-  # 3.3) Times periods #####
+  ## 3.3) Times periods #####
   data<-lapply(XL,"[[","Times.Out")
   col_names<-colnames(data[[800]])
       
-    # 3.3.1) Times.Out ###### 
+    ### 3.3.1) Times.Out ###### 
     col_names2<-col_names[1:5]
     Times.Out<-lapply(1:length(data),FUN=function(i){
       X<-data[[i]]
@@ -496,7 +497,7 @@ if(update){
     
     Times.Out[,c("Time.Start.Year","Time.End.Year"):=.(as.numeric(Time.Start.Year),as.numeric(Time.End.Year))]
     
-      # 3.3.1.1) Enforce time ordering ######
+      #### 3.3.1.1) Enforce time ordering ######
     # An oversight in the extraction protocol means that times were not necessarily entered in order
     Times.Out<-Times.Out[order(B.Code,Time.Start.Year,Time.End.Year)]
     
@@ -527,7 +528,7 @@ if(update){
     # Add seq number to Times.Out
     Times.Out[,N:=NULL][,seq_n:=1:.N,by=B.Code]
     
-    # 3.3.2) Times.Clim ###### 
+    ### 3.3.2) Times.Clim ###### 
     col_names2<-col_names[7:14]
     Times.Clim<-lapply(1:length(data),FUN=function(i){
       X<-data[[i]]
@@ -583,14 +584,15 @@ if(update){
     errors3<-Times.Clim[Time.Clim.SP>Time.Clim.TAP
                         ][,issue:="Seasonal > annual precip"]
 
-    # 3.3.3) Save errors #####
+    ### 3.3.3) Save errors #####
     errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL][order(B.Code)]
-    
+    errors[,Time:=as.numeric(Time)]
     error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
+    
     error_list<-error_tracker(errors=rbindlist(list(errors4,errors5),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
     error_list<-error_tracker(errors=errors6,filename = "time_order_check",error_dir=error_dir,error_list = error_list)
     
-  # 3.4) Soil (Soil.Out) #####
+  ## 3.4) Soil (Soil.Out) #####
   data<-lapply(XL,"[[","Soils.Out")
   
   # Structure errors: Check for malformed column names
@@ -771,7 +773,7 @@ if(update){
   errors7<-Soil.Out[variable!="Soil.pH" & is.na(Unit) & !is.na(value),list(value=paste0(unique(variable),collapse="/")),by=B.Code]
   errors7[,table:="Soil.Out"][,field:="variable"][,issue:="Amount is present, but unit is missing for value."]
   
-    # 3.4.1) Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
+    ### 3.4.1) Soil.Out: Calculate USDA Soil Texture from Sand, Silt & Clay ####
     Soil.Out.Texture<-Soil.Out[variable %in% c("SND","SLT","CLY"),list(B.Code,filename,Site.ID,Soil.Upper,Soil.Lower,variable,value)]
     
     # Remove studies with issues
@@ -822,9 +824,9 @@ if(update){
     errors<-rbindlist(list(errors,errors1,errors2,errors3,errors4,errors5,errors6,errors7),fill = T)[order(B.Code)]
     error_list<-error_tracker(errors=errors,filename = "soil_errors",error_dir=error_dir,error_list = error_list)
   
-    # 3.4.3) ***!!!TO DO!!!***  harmonize methods, units and variables ####
+    ### 3.4.3) ***!!!TO DO!!!***  harmonize methods, units and variables ####
     Soil.Out[,filename:=NULL]
-  # 3.5) Experimental Design (ExpD.Out) ####
+  ## 3.5) Experimental Design (ExpD.Out) ####
   data<-lapply(XL,"[[","ExpD.Out")
   col_names<-colnames(data[[1]])
   ExpD.Out<-lapply(1:length(data),FUN=function(i){
@@ -856,7 +858,7 @@ if(update){
   error_list<-error_tracker(errors=results$errors,filename = "expd_other_errors",error_dir=error_dir,error_list = error_list)
   
   
-  # 3.6) Products (Prod.Out) ####
+  ## 3.6) Products (Prod.Out) ####
   data<-lapply(XL,"[[","Prod.Out")
   col_names<-colnames(data[[800]])
   
@@ -926,7 +928,7 @@ if(update){
   
   error_list<-error_tracker(errors=rbind(errors1,errors2),filename = "prod_other_errors",error_dir=error_dir,error_list = error_list)
   
-    # 3.6.1) Harmonization ######
+    ### 3.6.1) Harmonization ######
     # Update mulch and incorporated codes, check product is in master codes
     # Crops 
     prod_master<-unique(master_codes$prod[,.(Product.Subtype,Product.Simple,Mulched,Incorp,Unknown.Fate)])
@@ -951,7 +953,7 @@ if(update){
              c("Mulched","Incorp","Unknown.Fate"),
              c("P.Mulched","P.Incorp","P.Unknown.Fate"))
 
-  # 3.7) Var (Var.Out) ####
+  ## 3.7) Var (Var.Out) ####
   data<-lapply(XL,"[[","Var.Out")
   col_names<-colnames(data[[800]])
   
@@ -1041,7 +1043,7 @@ if(update){
       ][,field:="V.Product:V.Var"
         ][,issue:="Multiple base practices present."]
   
-    # 3.7.1) Var.Out: Harmonize Variety Naming and Codes #####
+    ### 3.7.1) Var.Out: Harmonize Variety Naming and Codes #####
   
   # Save original variety name as this is a keyfield used in the MT.Out tab, if it is changed then this causes issues
   Var.Out[,V.Level.Name:=V.Var]
@@ -1079,15 +1081,15 @@ if(update){
   
   harmonization_list<-error_tracker(errors=errors3,filename = "var_varieties_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-    # Q: Should we update traits and maturity too? ####
-    # 3.7.2) Save errors #######
+    #### Q: Should we update traits and maturity too? ####
+    ### 3.7.2) Save errors #######
     error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4,errors5),use.names = T)[order(B.Code)],filename = "var_other_errors",error_dir=error_dir,error_list = error_list)
   
-  # 3.8) Agroforestry #####
+  ## 3.8) Agroforestry #####
   data<-lapply(XL,"[[","AF.Out")
   col_names<-colnames(data[[800]])
   
-    # 3.8.1) AF.Out ######
+    ### 3.8.1) AF.Out ######
     col_names2<-col_names[1:8]
     
     AF.Out<-pblapply(1:length(data),FUN=function(i){
@@ -1144,7 +1146,7 @@ if(update){
     ][,field:="AF.Level.Name"
     ][,issue:="Multiple base practices present."]
     
-    # 3.8.2) AF.Trees ######
+    ### 3.8.2) AF.Trees ######
     col_names2<-col_names[10:13]
     AF.Trees<-pblapply(1:length(data),FUN=function(i){
       X<-data[[i]]
@@ -1193,20 +1195,20 @@ if(update){
                         ][,field:="AF.Level.Name"
                           ][,issue:="Trees number is present without unit."]
     
-    # 3.8.3) Save errors ######
+    ### 3.8.3) Save errors ######
     errors<-rbindlist(list(errors2,errors3,errors1,errors4,errors5),fill=T)
     error_list<-error_tracker(errors=errors,filename = "af_errors",error_dir=error_dir,error_list = error_list)
     error_list<-error_tracker(errors=rbind(errors_a,errors_b),filename = "af_structure_errors",error_dir=error_dir,error_list = error_list)
     
     
-    # 3.8.x) Harmonization - TO DO !!! ######
+    ### 3.8.x) Harmonization - TO DO !!! ######
     # AF.Tree and AF.Tree.Unit
   
-  # 3.9) Tillage (Till.Out) #####
+  ## 3.9) Tillage (Till.Out) #####
   data<-lapply(XL,"[[","Till.Out")
   col_names<-colnames(data[[1]])
   
-    # 3.9.1) Till.Codes #######
+    ### 3.9.1) Till.Codes #######
   
   col_names2<-col_names[1:4]
   
@@ -1251,7 +1253,7 @@ if(update){
                      unique_cols = "Till.Level.Name",
                      tabname="Till.Codes")$errors
     
-    # 3.9.2) Till.Out #######
+    ### 3.9.2) Till.Out #######
   col_names2<-col_names[6:18]
   
   Till.Out<-lapply(1:length(data),FUN=function(i){
@@ -1310,7 +1312,7 @@ if(update){
     ][,field:="Till.Level.Name"
     ][,issue:="Multiple base practices present."]
 
-      # 3.9.2.2) Harmonization ######
+      #### 3.9.2.2) Harmonization ######
       h_params<-data.table(h_table="Till.Out",
                            h_field=c("T.Method","Till.Other","T.Mechanization"),
                            h_table_alt=c(NA,NA,"Fert.Out"),
@@ -1324,7 +1326,7 @@ if(update){
       
       Till.Out<-results$data
       
-    # 3.9.3) Save errors ######
+    ### 3.9.3) Save errors ######
     # Error checking: look for non-matches in keyfield
     errors3<-check_key(parent = Till.Codes,child = Till.Out,tabname="Till.Out",keyfield="Till.Level.Name")[,issue:="A practice has some description in the tillage (typically base), but no practice has been associated with it."]
     
@@ -1332,11 +1334,11 @@ if(update){
     errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5),fill=T)[order(B.Code)]
     error_list<-error_tracker(errors=errors,filename = "till_errors",error_dir=error_dir,error_list = error_list)
     
-  # 3.10) Planting  #####
+  ## 3.10) Planting  #####
   data<-lapply(XL,"[[","Plant.Out")
   col_names<-colnames(data[[800]])
   
-    # 3.10.1) Plant.Out ####
+    ### 3.10.1) Plant.Out ####
   col_names2<-col_names[1:6]
     Plant.Out<-lapply(1:length(data),FUN=function(i){
       X<-data[[i]]
@@ -1387,7 +1389,7 @@ if(update){
     ][,field:="P.Level.Name"
     ][,issue:="Multiple base practices present."]
     
-    # 3.10.2) Plant.Method ####
+    ### 3.10.2) Plant.Method ####
     col_names2<-col_names[8:23]
     
     Plant.Method<-lapply(1:length(data),FUN=function(i){
@@ -1448,7 +1450,7 @@ if(update){
     ][,table:="Plant.Method"
     ][,field:="P.Level.Name"
     ][,issue:="Missing density unit."])
-      # 3.10.2.1) Harmonization ######
+      #### 3.10.2.1) Harmonization ######
     
     h_params<-data.table(h_table="Plant.Out",
                          h_field=c("Plant.Method","Plant.Density.Unit","Plant.Mechanization","Plant.Intercrop"),
@@ -1465,7 +1467,7 @@ if(update){
     Plant.Method<-results$data
     
     
-    # 3.10.3) Save errors ######
+    ### 3.10.3) Save errors ######
     error_list<-error_tracker(errors=rbind(errors1,errors2,errors3,errors4,errors5,errors6)[order(B.Code)],filename = "plant_method_value_errors",error_dir=error_dir,error_list = error_list)
     
     # errors x
@@ -1485,11 +1487,11 @@ if(update){
     error_list<-error_tracker(errors= errorsxy,filename = "plant_debugging_errors",error_dir=error_dir,error_list = error_list)
     
     
-  # 3.11) Fertilizer (Fert.Out) #####
+  ## 3.11) Fertilizer (Fert.Out) #####
   data<-lapply(XL,"[[","Fert.Out")
   col_names<-colnames(data[[1]])
   
-    # 3.11.1) Fert.Out ######
+    ### 3.11.1) Fert.Out ######
   col_names2<-col_names[c(1:7,9:18)]
   Fert.Out<-lapply(1:length(data),FUN=function(i){
     X<-data[[i]]
@@ -1552,7 +1554,7 @@ if(update){
   ][,field:="F.Level.Name"
   ][,issue:="Multiple base practices present."]
   
-      # 3.11.1.1) Harmonization #######
+      #### 3.11.1.1) Harmonization #######
   h_params<-data.table(h_table="Fert.Out",
                        h_field=c("F.I.Unit","F.O.Unit","F.Rate.Pracs","F.Timing.Pracs","F.Precision.Pracs","F.Info.Pracs"),
                        h_table_alt=c("Fert.Out","Fert.Out",NA,NA,NA,NA),
@@ -1566,7 +1568,7 @@ if(update){
   
   Fert.Out<-results$data
   
-  # 3.11.2) Fert.Composition ######
+  ### 3.11.2) Fert.Composition ######
   col_names2<-col_names[c(50:62)]
   col_names2[1]<-"F.Type2"
   col_names3<-col_names[c(64:73)]
@@ -1619,7 +1621,7 @@ if(update){
   Fert.Comp<-merge(Fert.Comp,match_dat,all.x=T,by.x=c("B.Code","F.Type"),by.y=c("B.Code","F.Level.Name"))
   Fert.Comp[is.na(Is.F.Level.Name),Is.F.Level.Name:=F]
   
-    # 3.11.2.1) Harmonization #######
+    #### 3.11.2.1) Harmonization #######
     h_params<-data.table(h_table="Fert.Comp",
                          h_field=c("F.DM.Unit","F.OC.Unit","F.N.Unit","F.TN.Unit","F.AN.Unit","F.P.Unit","F.TP.Unit","F.AP.Unit","F.K.Unit","F.pH.Method"),
                          h_table_alt=c("Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out"),
@@ -1633,7 +1635,7 @@ if(update){
     
     Fert.Comp<-results$data
     
-  # 3.11.3) Fert.Method ####
+  ### 3.11.3) Fert.Method ####
   col_names2<-col_names[c(30:49)]
   col_names2[3]<-"F.Type1"
   Fert.Method<-lapply(1:length(data),FUN=function(i){
@@ -1701,7 +1703,7 @@ if(update){
                                              ][,field:="F.Level.Name"  
                                                ][,issue:="Name is not used in Fert.Method table and fert method table is not blank, could indicate an error."]
 
-   # 3.11.3.2) Harmonization #######
+   #### 3.11.3.2) Harmonization #######
   h_params<-data.table(h_table="Fert.Method",
                        h_field=c("F.Unit","F.Method","F.Physical","F.Mechanization","F.Source","F.Fate"),
                        h_table_alt=c("Fert.Out",NA,NA,"Fert.Out","Fert.Method","Res.Method"),
@@ -1798,7 +1800,7 @@ if(update){
                      ][,issue:="Use of Unspecified as fertilizer type name. We need to check that this truly should have been unspecfied (i.e. we know nothing about the fertilizer applied at all) or if unspecified N, P or K could have been used."]
   
 
-  # 3.11.4) Save harmonization and error tasks #####
+  ### 3.11.4) Save harmonization and error tasks #####
   errors<-rbindlist(list(errors_a,errors_b,errors_c))
   error_list<-error_tracker(errors=errors,filename = "fert_structure_errors",error_dir=error_dir,error_list = error_list)
   
@@ -1808,7 +1810,7 @@ if(update){
   h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4),fill=T)
   harmonization_list<-error_tracker(errors=h_tasks,filename = "fert_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-  # 3.11.5) Fert.Out: Update Fertilizer codes   #######
+  ### 3.11.5) Fert.Out: Update Fertilizer codes   #######
      # Fert.Method: Combine F.Codes across ingredients and merge with Fert.Out
       Fert.Method[,F.Codes.Level:=paste(sort(unique(unlist(strsplit(F.Codes,"-")))),collapse = "-"),by=.(B.Code,F.Level.Name)
                   ][,F.Codes.Level:=gsub("-NA","",F.Codes.Level)]
@@ -1825,13 +1827,13 @@ if(update){
                  ][F.Codes=="",F.Codes:=NA
                    ][,c("F.Codes.Level","F.NI.Code","F.KI.Code","F.PI.Code"):=NULL]
   
-      # Fert.Out: Add in h10.1 Codes for no Fertilizer use ####
+      # Fert.Out: Add in h10.1 Codes for no Fertilizer use
         Fert.Out[is.na(F.Codes) & !F.Level.Name=="Base",F.Codes:="h10.1"]
         
         # TO DO: Consider codes for urea in Fert.Method and NI listed in Fert.Out
         # TO DO: Add check in case organic nutrients are listed in Fert.Out, but nothing corresponding in Fert.Method tab.
     
-  # 3.11.6) Add F.Level.Name2 field
+  ### 3.11.6) Add F.Level.Name2 field ######
       ReName.Fun<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O){
         NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
         N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
@@ -1868,9 +1870,8 @@ if(update){
       rm(ReName.Fun)
       
       Fert.Method<-merge(Fert.Method,Fert.Out[,.(B.Code,F.Level.Name,F.Level.Name2)],by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
-      Fert.Comp<-merge(Fert.Comp,Fert.Out[,.(B.Code,F.Level.Name,F.Level.Name2)],by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
       
-  # 3.11.x) ***!!!TO DO!!!*** Add in h10 code where there are fertilizer treatments, but fertilizer column is blank #######
+  ### 3.11.x) ***!!!TO DO!!!*** Add in h10 code where there are fertilizer treatments, but fertilizer column is blank #######
   if(F){
     # Old Code
   MT.Out[,Count.F.NA:=sum(is.na(F.Level.Name)),by="B.Code"][,Count.F:=sum(!is.na(F.Level.Name)),by="B.Code"]
@@ -1890,11 +1891,11 @@ if(update){
   MT.Out[F.Codes=="h10"][-grep("h10",T.Codes)]
   unique(Fert.Out[grep("[.][.]",F.Level.Name),"B.Code"])
   }
-  # 3.12) Chemicals #####
+  ### 3.12) Chemicals #####
   data<-lapply(XL,"[[","Chems.Out")
   col_names<-colnames(data[[1]])
   
-   # 3.12.1) Chems.Code ####
+   ### 3.12.1) Chems.Code ####
   col_names2<-col_names[1:3]
   
   Chems.Code<-lapply(1:length(data),FUN=function(i){
@@ -1927,7 +1928,7 @@ if(update){
   errors8<-results$errors
   Chems.Code<-results$data
   
-    # 3.12.2) Chems.Out ####
+    ### 3.12.2) Chems.Out ####
   col_names2<-col_names[5:23]
   col_names2[grep("C.Type",col_names2)]<-"C.Type1"
   col_names2[grep("C.Brand",col_names2)]<-"C.Brand1"
@@ -2019,7 +2020,7 @@ if(update){
   ][,field:="C.Level.Name"
   ][,issue:="Multiple base practices present."]
   
-      # 3.12.2.1) Harmonization #######
+      #### 3.12.2.1) Harmonization #######
   h_params<-data.table(h_table="Chems.Out",
                        h_field=c("C.App.Method","C.Mechanization","C.Unit"),
                        h_table_alt=c(NA,"Fert.Out",NA),
@@ -2032,7 +2033,7 @@ if(update){
   h_tasks1<-results$h_tasks
   Chems.Out<-results$data
   
-  # NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
+      ##### NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
   if(F){
   mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name")[!is.na(C.Type)][,check:=T]
   
@@ -2041,7 +2042,7 @@ if(update){
   errors7<-unique(h_tasks2[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect or simply missing from chem tab in master sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
   h_tasks2<-h_tasks2[C.Type %in% mergedat$C.Type]
   }
-    # 3.12.3) Chems.AI ####
+    ### 3.12.3) Chems.AI ####
   col_names2<-col_names[25:31]
   col_names2[grep("C.Type",col_names2)]<-"C.Type2"
   col_names2[grep("C.Brand",col_names2)]<-"C.Brand2"
@@ -2094,7 +2095,7 @@ if(update){
   ][,issue:="Amount is present, but unit is missing (active ingredient section)."
   ][order(B.Code)]
   
-      # 3.12.3.1) Harmonization #######
+      #### 3.12.3.1) Harmonization #######
   h_params<-data.table(h_table="Chems.AI",
                        h_field="C.AI.Unit",
                        h_table_alt="Chems.Out",
@@ -2106,7 +2107,7 @@ if(update){
   
   h_tasks3<-results$h_tasks
   Chems.AI<-results$data
-  # NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
+      Ø##### NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
   if(F){
     mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name.AI")[!is.na(C.Type)][,check:=T][,C.Name.AI:=tolower(C.Name.AI)]
     h_tasks4<-setnames(merge(Chems.AI[!is.na(C.Name.AI),list(B.Code,C.Type,C.Name.AI)][,C.Name.AI:=tolower(C.Name.AI)],mergedat,all.x = T)[is.na(check)][,check:=NULL],"C.Name.AI","value")
@@ -2119,7 +2120,7 @@ if(update){
     errors6<-unique(h_tasks4[!C.Type %in% mergedat$C.Type][,issue:="C.Type may be incorrect, or simply missing from Master Sheet."][,value:=C.Type][,field:="C.Type"][,C.Type:=NULL])
     h_tasks4<-h_tasks4[C.Type %in% mergedat$C.Type]
   }
-    # 3.12.4) Add/check herbicide codes ######
+    ### 3.12.4) Add/check herbicide codes ######
     
     # Add C.Code to Chems.Code tab
     Chems.Code<-merge(Chems.Code,
@@ -2127,7 +2128,7 @@ if(update){
                       by=c("B.Code","C.Level.Name"),
                       all.x=T)
   
-    # 3.12.5) Save errors and harmonization ######
+    ### 3.12.5) Save errors and harmonization ######
   errors<-rbindlist(list(errors_a,errors_b,errors_c))
   error_list<-error_tracker(errors=errors,filename = "chem_structure_errors",error_dir=error_dir,error_list = error_list)
   
@@ -2137,11 +2138,11 @@ if(update){
   h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4),fill=T)
   harmonization_list<-error_tracker(errors=h_tasks,filename = "chem_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-  # 3.14) Residues #######
+  ## 3.14) Residues #######
   data<-lapply(XL,"[[","Residues.Out")
   col_names<-colnames(data[[1]])
   
-    # 3.14.1) Res.Out #######
+    ### 3.14.1) Res.Out #######
     col_names2<-col_names[1:11]
     col_names2[grep("M.Level.Name",col_names2)]<-"M.Level.Name1"
     col_names2[grep("M.Unit",col_names2)]<-"M.Unit1"
@@ -2201,7 +2202,7 @@ if(update){
     ][,field:="M.Level.Name"
     ][,issue:="Multiple base practices present."]
     
-    # 3.14.1.1) Harmonization ########
+    #### 3.14.1.1) Harmonization ########
     h_params<-data.table(h_table="Res.Out",
                          h_field=c("M.Unit"),
                          h_table_alt=c("Fert.Out"),
@@ -2215,7 +2216,7 @@ if(update){
     
     Res.Out<-results$data
     
-    # 3.14.2) Res.Method #######
+    ### 3.14.2) Res.Method #######
     col_names2<-col_names[13:31]
     col_names2[grep("M.Level.Name",col_names2)]<-"M.Level.Name2"
     col_names2[grep("M.Unit",col_names2)]<-"M.Unit2"
@@ -2290,7 +2291,7 @@ if(update){
     ][,issue:="Compulsory field is NA M.Tree and M.Material"
     ][order(B.Code)]
     
-      # 3.14.2.2) Harmonization ########
+      #### 3.14.2.2) Harmonization ########
     h_params<-data.table(h_table="Res.Method",
                          h_field=c("M.Unit","M.Mechanization","M.Fate","M.Process"),
                          h_table_alt=c(NA,"Fert.Out",NA,"Res.Out"),
@@ -2312,7 +2313,7 @@ if(update){
     
     Res.Method[M.Tree == "Acacia angustissima"]
     
-    # 3.14.3) Res.Composition ######
+    ### 3.14.3) Res.Composition ######
     col_names2<-col_names[33:56]
     col_names2[grep("M.Tree",col_names2)]<-"M.Tree2"
     col_names2[grep("M.Material",col_names2)]<-"M.Material2"
@@ -2363,7 +2364,7 @@ if(update){
   
     errors9<-rbind(errorsx,errorsy)[value!=""][order(B.Code)]
     
-     # 3.14.3.1) Harmonization #######
+     #### 3.14.3.1) Harmonization #######
     h_params<-data.table(h_table="Res.Comp",
                          h_field=c("M.DM.Unit","M.OC.Unit","M.N.Unit","M.TN.Unit","M.AN.Unit","M.P.Unit","M.TP.Unit","M.AP.Unit","M.K.Unit","M.pH.Method"),
                          h_table_alt=c("Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out","Soil.Out"),
@@ -2377,7 +2378,7 @@ if(update){
     
     Res.Comp<-results$data
     
-    # 3.14.4) Save errors and harmonization ######
+    ### 3.14.4) Save errors and harmonization ######
     errors<-rbindlist(list(errors_a,errors_b,errors_c))
     error_list<-error_tracker(errors=errors,filename = "residue_structure_errors",error_dir=error_dir,error_list = error_list)
     
@@ -2387,11 +2388,11 @@ if(update){
     h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4,h_tasks5),fill=T)
     harmonization_list<-error_tracker(errors=h_tasks,filename = "residue_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
     
-  # 3.15) pH #####
+  ## 3.15) pH #####
   data<-lapply(XL,"[[","pH.Out")
   col_names<-colnames(data[[1]])
     
-    # 3.15.1) pH.Out ######
+    ### 3.15.1) pH.Out ######
   col_names2<-col_names[1:4]
   
   pH.Out<-lapply(1:length(data),FUN=function(i){
@@ -2436,7 +2437,7 @@ if(update){
   ][,field:="pH.Level.Name"
   ][,issue:="Multiple base practices present."]
   
-    # 3.15.2) pH.Method ######
+    ### 3.15.2) pH.Method ######
   col_names2<-col_names[6:13]
   
   pH.Method<-lapply(1:length(data),FUN=function(i){
@@ -2480,7 +2481,7 @@ if(update){
   check_codes<-check_codes[!check_codes %in% pH.Method$B.Code]
   errors4<-data.table(B.Code=check_codes,value="Liming or Calcium Addition",table="pH.Method",field="pH.Prac",issue="Junk data value accidently left in master template?")
   
-      # 3.15.2.1) Harmonization ########
+      #### 3.15.2.1) Harmonization ########
   h_params<-data.table(h_table="pH.Method",
                        h_field=c("pH.Unit","pH.Material"),
                        h_table_alt=c("Fert.Out",NA),
@@ -2496,18 +2497,18 @@ if(update){
   
   harmonization_list<-error_tracker(errors=results$h_tasks,filename = "pH_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-  # 3.15.3) Save errors ######
+  ### 3.15.3) Save errors ######
   errors<-rbindlist(list(errors_a,errors_b))
   error_list<-error_tracker(errors=errors,filename = "pH_structure_errors",error_dir=error_dir,error_list = error_list)
   
   errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5))
   error_list<-error_tracker(errors=errors,filename = "pH_other_errors",error_dir=error_dir,error_list = error_list)
   
-  # 3.16) Irrigation #####
+  ## 3.16) Irrigation #####
   data<-lapply(XL,"[[","Irrig.Out")
   col_names<-colnames(data[[1]])
   
-    # 3.16.1) Irrig.Codes ######
+    ### 3.16.1) Irrig.Codes ######
   col_names2<-col_names[1:6]
   
   Irrig.Codes<-lapply(1:length(data),FUN=function(i){
@@ -2561,7 +2562,7 @@ if(update){
   ][,issue:="Multiple base practices present."]
   
   
-    # 3.16.2) Irrig.Method ######
+    ### 3.16.2) Irrig.Method ######
   col_names2<-col_names[8:21]
   
   Irrig.Method<-lapply(1:length(data),FUN=function(i){
@@ -2610,7 +2611,7 @@ if(update){
   
   errors4<-check_key(parent = Irrig.Codes,child = Irrig.Method,tabname="Irrig.Method",keyfield="I.Level.Name")
 
-        # 3.16.2.2) Harmonization #######
+        #### 3.16.2.2) Harmonization #######
   h_params<-data.table(h_table="Irrig.Method",
                        h_field=c("I.Unit","I.Water.Type"),
                        h_field_alt=c("I.Unit","I.Water.Type"),
@@ -2625,13 +2626,13 @@ if(update){
   harmonization_list<-error_tracker(errors=results$h_tasks,filename = "irrigation_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
   
-   # 3.16.3) Save errors ######
+   ### 3.16.3) Save errors ######
   errors<-rbindlist(list(errors_a,errors_b))
   error_list<-error_tracker(errors=errors,filename = "irrig_structure_errors",error_dir=error_dir,error_list = error_list)
   
   errors<-rbindlist(list(errors1,errors2,errors3,errors4),use.names = T)
   error_list<-error_tracker(errors=errors,filename = "irrig_other_errors",error_dir=error_dir,error_list = error_list)
-  # 3.17) Water Harvesting (WH.Out) #####
+  ## 3.17) Water Harvesting (WH.Out) #####
   data<-lapply(XL,"[[","WH.Out")
   col_names<-colnames(data[[1]])
   
@@ -2696,15 +2697,15 @@ if(update){
   ][,issue:="Multiple base practices present."]
   
   WH.Out[,c("N","N1"):=NULL]
-    # 3.17.1) Save errors ######
+    ### 3.17.1) Save errors ######
     error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3),fill=T),filename = "wh_other_errors",error_dir=error_dir,error_list = error_list)
 
   
-  # 3.18) Dates #####
+  ## 3.18) Dates #####
   data<-lapply(XL,"[[","PD.Out")
   col_names<-colnames(data[[1]])
   
-    # 3.18.1) PD.Codes ######
+    ### 3.18.1) PD.Codes ######
   col_names2<-col_names[1:5]
   
   PD.Codes<-lapply(1:length(data),FUN=function(i){
@@ -2738,7 +2739,7 @@ if(update){
   PD.Codes<-results$data
   
   
-      # 3.18.1.1) Harmonization #######
+      #### 3.18.1.1) Harmonization #######
   h_params<-data.table(h_table="PD.Codes",
                        h_field=c("PD.Prac","PD.Prac.Info"),
                        h_field_alt=c("PD.Timing.Pracs","PD.Info.Pracs"),
@@ -2752,7 +2753,7 @@ if(update){
   
   harmonization_list<-error_tracker(errors=results$h_tasks,filename = "dates_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-    # 3.18.2) PD.Out ######
+    ### 3.18.2) PD.Out ######
   col_names2<-col_names[7:14]
   
   PD.Out<-lapply(1:length(data),FUN=function(i){
@@ -2815,14 +2816,14 @@ if(update){
   ][,field:="PD.Level.Name"
   ][,issue:="Only one of start and end date specified in the Dates tab."])
   
-    # 3.18.3) Save errors ######
+    ### 3.18.3) Save errors ######
   errors<-rbindlist(list(errors_a,errors_b))
   error_list<-error_tracker(errors=errors,filename = "dates_structure_errors",error_dir=error_dir,error_list = error_list)
   
   errors<-rbindlist(list(errors1,errors2,errors3,errors4),fill=T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "dates_other_errors",error_dir=error_dir,error_list = error_list)
   
-  # 3.19) Harvest (Har.Out) ######
+  ## 3.19) Harvest (Har.Out) ######
   data<-lapply(XL,"[[","Harvest.Out")
   col_names<-colnames(data[[1]])
   
@@ -2862,7 +2863,7 @@ if(update){
   error_list<-error_tracker(errors=errors1,filename = "harvest_other_errors",error_dir=error_dir,error_list = error_list)
   
   
-  # 3.20) Other (Other.Out) ######
+  ## 3.20) Other (Other.Out) ######
   data<-lapply(XL,"[[","Other.Out")
   col_names<-colnames(data[[1]])
   
@@ -2941,7 +2942,7 @@ if(update){
   
   Other.Out[,N:=NULL][,No_struc:=NULL]
   
-  # 3.21) Weeding (Weed.Out) ######
+  ## 3.21) Weeding (Weed.Out) ######
   data<-lapply(XL,"[[","Weed.Out")
   col_names<-colnames(data[[1]])
   
@@ -3022,7 +3023,7 @@ if(update){
   Weed.Out[!W.Method %in% c("Mechanical","Ploughing"),W.Codes:="h66.2"]
   Weed.Code<-Weed.Out[,list(W.Codes=unique(W.Codes[!is.na(W.Codes)]),W.Structure=W.Structure[1]),by=list(B.Code,W.Level.Name)]
 
-    # 3.21.1) Harmonization #######
+    ### 3.21.1) Harmonization #######
   h_params<-data.table(h_table="Weed.Out",
                        h_field=c("W.Method","W.Freq.Time"),
                        h_field_alt=c("W.Type","W.Time.Units"),
@@ -3036,7 +3037,7 @@ if(update){
   
   harmonization_list<-error_tracker(errors=results$h_tasks,filename = "weed_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-  # 3.22) Base Practices (Base.Out) #####
+  ## 3.22) Base Practices (Base.Out) #####
   Base.Out<-list(
     Var.Out[V.Base=="Yes" & !is.na(V.Codes),c("B.Code","V.Codes")],
     AF.Out[AF.Level.Name=="Base" & !is.na(AF.Codes),c("B.Code","AF.Codes")],
@@ -3197,7 +3198,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   
   harmonization_list<-error_tracker(errors=results$h_tasks,filename = "treatment_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-  # 4.1) Update residue codes ####
+  ## 4.1) Update residue codes ####
   
   # Add residue codes from product sheet
   MT.Out<-merge(MT.Out,Prod.Out[,.(B.Code,P.Product,P.Mulched,P.Incorp,P.Unknown.Fate)],by.x=c("B.Code","P.Product"),by.y=c("B.Code","P.Product"),all.x=T)
@@ -3209,7 +3210,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
            ][T.Residue.Prev %in% c("Mulched (left on surface)"),T.Residue.Code:=P.Mulched
              ][,c("P.Mulched","P.Incorp","P.Unknown.Fate"):=NULL]
   
-  # 4.2) Merge in practice data #####
+  ## 4.2) Merge in practice data #####
   stop("Has issue with V.Level.Name being derived from harmonized field that also needs to be harmonzied in MT.Out been fixed?")
   unique(MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(B.Code,P.Product,T.Name)])
   # Create list of data table to merge with MT.Out treatment table
@@ -3273,7 +3274,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   
   MT.Out<-data
   
-  # 4.3) Combine practice codes to create T.Codes ######
+  ## 4.3) Combine practice codes to create T.Codes ######
   code_cols<-c(AF.Level.Name="AF.Codes",
                H.Level.Name="H.Code",
                I.Level.Name="I.Codes",
@@ -3294,12 +3295,12 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   
   MT.Out[,T.Codes:=t_codes]
   
-  # 4.x) What about structure? #####
+  ## 4.x) What about structure? #####
   
-  # 4.4) Combine aggregated treatments #####
+  ## 4.4) Combine aggregated treatments #####
   
-  # NOTE this section differs substantially from import_majestic_hippo ####
-  # Unclear why this differs from line 1972 in that script, fields T.Agg.Levels3 used in comparison script are not generated here ####
+  ### NOTE this section differs substantially from import_majestic_hippo ####
+  ### Unclear why this differs from line 1972 in that script, fields T.Agg.Levels3 used in comparison script are not generated here ####
   
   N<-grep("[.][.]",MT.Out$T.Name)
   
@@ -3442,7 +3443,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   
   MT.Out<-rbind(MT.Out.agg,MT.Out.noagg)
   
-  # 4.5) Update crop residues for aggregated products  #####
+  ## 4.5) Update crop residues for aggregated products  #####
   MT.Out.agg<-MT.Out[grepl("[.][.][.]",P.Product)]
   MT.Out.noagg<-MT.Out[!grepl("[.][.][.]",P.Product)]
   
@@ -3535,7 +3536,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   MT.Out<-rbind(MT.Out.noagg,MT.Out.agg)
   
   
-  # 4.6) Update structure for aggregated treatments ####
+  ## 4.6) Update structure for aggregated treatments ####
   col_names<-grep("Structure",colnames(MT.Out),value=T)
   
   MT.Out <- MT.Out[, (col_names) := lapply(.SD, FUN=function(x){
@@ -3544,11 +3545,11 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
     x
     }), .SDcols = col_names]
   
-  # 4.7) Merge and save errors #####
+  ## 4.7) Merge and save errors #####
   errors<-rbindlist(list(errors1,errors2,errors3,errors4,errors5,errors6),fill = T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "treatment_other_errors",error_dir=error_dir,error_list = error_list)
   
-  # 4.x) ***!!!TO DO!!!***MT.Out: Correct Ridge & Furrow #####
+  ## 4.x) ***!!!TO DO!!!***MT.Out: Correct Ridge & Furrow #####
   # remove water harvesting code if ridge and furrow is a conventional tillage control
   if(F){
     # Add row index
@@ -3654,7 +3655,7 @@ errors4<-Int.Out[!grepl("__",IN.Level.Name),.(value=paste(IN.Level.Name)),by=B.C
 # Update order of components
 Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=unlist(tstrsplit(IN.Level.Name,"__",keep = 2))][,IN.Comp3:=unlist(tstrsplit(IN.Level.Name,"__",keep = 3))][,IN.Comp4:=unlist(tstrsplit(IN.Level.Name,"__",keep = 4))]
 
-  # 5.1) Update aggregated treatment delimiters #####
+  ## 5.1) Update aggregated treatment delimiters #####
   col_names<-c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")
   
   Int.Out[, (col_names) := lapply(.SD, split_trimws, delim = ".."), .SDcols = col_names]
@@ -3663,7 +3664,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
   # Change agg Treat delim = "..." 
   Int.Out[, (col_names) := lapply(.SD, function(x) gsub("[.][.]", "...", x)), .SDcols = col_names]
   
-  # 5.2) Update residue codes from MT.Out sheet #####
+  ## 5.2) Update residue codes from MT.Out sheet #####
   
     # Update Residue Codes where they are NA
     Int.Out[is.na(IN.Res1),IN.Res1:=MT.Out[match(Int.Out[is.na(IN.Res1),paste(B.Code,IN.Comp1)],MT.Out[,paste(B.Code,T.Name)]),T.Residue.Code]]
@@ -3850,7 +3851,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
         unique(Int.Out[IN.Residue.Fate=="Grazed",.(IN.Prods.All,IN.Residue.Fate,IN.Residue.Code)])
     }
     
-  # 5.3) Update T.Codes #####
+  ## 5.3) Update T.Codes #####
     # Do we need rules for IN.T.Codes column? (keep all practices as per current method? keep common practices? keep if 50% or greater?)
     Code.Comb.Fun<-function(A,B,C,D){
       X<-c(unlist(strsplit(A,"-")),unlist(strsplit(B,"-")),unlist(strsplit(C,"-")),unlist(strsplit(D,"-")))
@@ -3933,7 +3934,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
     })
     Int.Out<-rbindlist(Int.Out,use.names = T)
     
-  # 5.4) Special case for when reduced & zero-tillage are both present ####
+  ## 5.4) Special case for when reduced & zero-tillage are both present ####
   # Where both these practices are present then count the combined practice as reduced only, by removing zero till
     N<-Int.Out[,grepl("b39",IN.T.Codes) & grepl("b38",IN.T.Codes)]
     
@@ -3946,7 +3947,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
     # Add b38 code to shared col
     Int.Out[N,IN.T.Codes.Shared:=paste(sort(c(unlist(strsplit(IN.T.Codes.Shared[1],"-")),"b38")),collapse="-"),by=IN.T.Codes.Shared]
   
-  # 5.5) Combine products #####
+  ## 5.5) Combine products #####
   # A duplicate of In.Prods.All column, but using a "-" delimiter that distinguishes products that contribute to a system outcome from products aggregated 
   # in the Products tab (results aggregated across products) which use a ".." delim.
   
@@ -3961,12 +3962,12 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
     }
     rm(Int.Out.Missing.Prod)
   
-  # 5.6) Update intercropping delimiters ####
+  ## 5.6) Update intercropping delimiters ####
     Int.Out$IN.Level.Name2<-apply(Int.Out[,c("IN.Comp1","IN.Comp2","IN.Comp3","IN.Comp4")],1,FUN=function(X){
       X<-paste0(X[!is.na(X)],collapse = "***")
     })
   
-  # 5.7) Structure ####
+  ## 5.7) Structure ####
     X<-MT.Out[,.(C.Structure,P.Structure,W.Structure,O.Structure,PD.Structure)
               ][grepl("Yes",C.Structure),C.Structure:=MT.Out[grepl("Yes",C.Structure),C.Level.Name]
                 ][grepl("Yes",P.Structure),P.Structure:=MT.Out[grepl("Yes",P.Structure),P.Level.Name]
@@ -4035,7 +4036,7 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
     }
   
   
-  # 5.8) Residues in system outcomes ####
+  ## 5.8) Residues in system outcomes ####
     Recode.Res<-function(X){
       A<-unlist(strsplit(unlist(X),"-"))
       if(is.na(A[1])){
@@ -4055,13 +4056,13 @@ Int.Out[,IN.Comp1:=unlist(tstrsplit(IN.Level.Name,"__",keep = 1))][,IN.Comp2:=un
   Int.Out[,IN.Res.System:=Recode.Res(IN.Residue.Code[1]),by=IN.Residue.Code]
   rm(Recode.Res)
   
-  # 5.9) Save errors #####
+  ## 5.9) Save errors #####
     error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4),fill=TRUE)[order(B.Code)],
                               filename = "intercrop_other_errors",
                               error_dir=error_dir,
                               error_list = error_list)
   
-  # X) ***!!!TO DO!!!*** - check is NA start.date or reps after treatments, intercropping and rotation are merged #####
+  ## X) ***!!!TO DO!!!*** - check is NA start.date or reps after treatments, intercropping and rotation are merged #####
 if(F){
   errors4<-MT.Out[(is.na(T.Start.Year)) & !grepl("[.][.]",T.Name),
                   list(B.Code,T.Name)
@@ -4088,7 +4089,7 @@ if(F){
 data<-lapply(XL,"[[","Rot.Out")
 col_names<-colnames(data[[1]])
 
-  # 6.1) Rot.Seq #####
+  ## 6.1) Rot.Seq #####
   col_names2<-col_names[15:18]
   
   Rot.Seq<-lapply(1:length(data),FUN=function(i){
@@ -4129,7 +4130,7 @@ col_names<-colnames(data[[1]])
   Rot.Seq[R.Resid.Fate=="Retained (Unknown if mulched/incorp.)",R.Resid.Fate:="Retained (unknown if mulched/incorp.)"]
   Rot.Seq[R.Resid.Fate=="Grazed/Mulched",R.Resid.Fate:="Mulched (left on surface)"]
   
-  # 6.2) Rot.Out #####
+  ## 6.2) Rot.Out #####
   col_names2<-col_names[1:13]
   
   Rot.Out<-lapply(1:length(data),FUN=function(i){
@@ -4169,8 +4170,8 @@ col_names<-colnames(data[[1]])
   # Remove duplicated rows
   Rot.Out<-Rot.Out[!duplicated(Rot.Out[,.(B.Code,R.Level.Name)])]
   
-  # 6.3) Rot.Seq processing #####
-    # 6.3.1) Update delimiters #####
+  ## 6.3) Rot.Seq processing #####
+    ### 6.3.1) Update delimiters #####
     Rot.Seq[, R.Treatment:= split_trimws(R.Treatment,delim = "..")]
     Rot.Seq[,R.Treatment:=gsub("[.][.]","...",R.Treatment)]
     Rot.Seq[,R.Treatment:=gsub("__","***",R.Treatment)]
@@ -4194,7 +4195,7 @@ col_names<-colnames(data[[1]])
                                         ][,issue:="Treatname name used in time sequence does not match in treatment or intercrop tabs. "
                                           ][,value:=gsub("[.][.][.]","..",value)][,value:=gsub("[*][*][*]","__",value)]
   
-    # 6.3.2) Add in products & structure ######
+    ### 6.3.2) Add in products & structure ######
       # Merge in products
       # Treatments tab
       mergedat<-MT.Out[,.(B.Code,T.Name,P.Product,Structure.Comb)]
@@ -4220,7 +4221,7 @@ col_names<-colnames(data[[1]])
       # Are there any residual mismatches not highlighted in errors3?
       Rot.Seq[is.na(R.Prod) & !B.Code %in% errors3$B.Code]
       
-    # 6.3.3) Add in treatment codes ######
+    ### 6.3.3) Add in treatment codes ######
   
     # Merge in products
     # Treatments tab
@@ -4238,7 +4239,7 @@ col_names<-colnames(data[[1]])
     # Add in fallow codes
     Rot.Seq[R.Treatment == "Natural or Bare Fallow",R.T.Codes:="h24"]
     
-    # 6.3.4) Update residue codes based on previous season ######
+    ### 6.3.4) Update residue codes based on previous season ######
   
     # Merge in info from Rot.Out
     Rot.Seq<-merge(Rot.Seq,
@@ -4380,7 +4381,7 @@ col_names<-colnames(data[[1]])
     Rot.Seq[grep("[.][.][.]",R.Treatment),R.Residues.Codes:=X1agg[grep("[.][.][.]",Rot.Seq$R.Treatment)]]
   
     
-    # 6.3.5) Add rotation codes ######
+    ### 6.3.5) Add rotation codes ######
   
     Rot.Seq<-merge(Rot.Seq,Rot.Out[,.(R.Level.Name,B.Code,R.Code)],by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
     
@@ -4403,13 +4404,13 @@ col_names<-colnames(data[[1]])
     
     # See section 6.5 for how this is used to remove codes for the first year of sequence
     
-    # 6.3.6) Update structure ######
+    ### 6.3.6) Update structure ######
     Join.Fun<-function(X,Y){c(X,Y)[!is.na(c(X,Y))]}
     Rot.Seq[,R.Structure:=Join.Fun(Structure.Comb[1],IN.Structure[1]),by=.(Structure.Comb,IN.Structure)]
     rm(Join.Fun)
   
-  # 6.4) Rot.Out processing #####
-    # 6.4.1) Update/add fields from Rot.Seq ######
+  ## 6.4) Rot.Out processing #####
+    ### 6.4.1) Update/add fields from Rot.Seq ######
       # R.T.Codes.All 
         # Would it be better to have Agg Treats by component split with a "|||" as well as Cmn Trts? and retaining NA values
         # Perhap R.T.Codes.All should be derived from Rot.Seq?
@@ -4477,12 +4478,12 @@ col_names<-colnames(data[[1]])
         Rot.Out[,R.All.Structure:=NULL]
         Rot.Out<-merge(Rot.Out,unique(mergedat),by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
         
-    # 6.4.2) Update delimiters in R.T.Level.Names.All ######
+    ### 6.4.2) Update delimiters in R.T.Level.Names.All ######
         # Is this required ?
         mergedat<-unique(Rot.Seq[,list(R.T.Level.Names.All2=paste0(R.Treatment,collapse="|||")),by=.(B.Code,R.Level.Name)])
         Rot.Out<-merge(Rot.Out,mergedat,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)   
         
-    # 6.4.3) Generate T.Codes & Residue for System Outcomes ####
+    ### 6.4.3) Generate T.Codes & Residue for System Outcomes ####
     # Set Threshold for a practice to be considered present in the sequence (proportion of phases recorded)
     Threshold<-0.5
     
@@ -4530,7 +4531,7 @@ col_names<-colnames(data[[1]])
     Rot.Out[R.Res.Codes.Sys=="",R.Res.Codes.Sys:=NA
             ][R.IN.Codes.Sys=="",R.IN.Codes.Sys:=NA]
   
-    # 6.4.4) Add Practice Level Columns ######
+    ### 6.4.4) Add Practice Level Columns ######
     Levels<-Fields[!Levels %in% c("P.Level.Name","O.Level.Name","W.Level.Name","C.Level.Name","PD.Level.Name","T.Residue.Prev")]
     Levels<-c(Levels[,Levels],Levels[,Codes])
     
@@ -4558,7 +4559,7 @@ col_names<-colnames(data[[1]])
     Rot.Levels[,R.ID:=paste(B.Code,R.Level.Name)]
     rm(Levels)
     
-    # 6.4.5) Add crop sequence to Rot.Out #####
+    ### 6.4.5) Add crop sequence to Rot.Out #####
     Seq.Fun<-function(A){
       paste(A[!is.na(A)],collapse = "|||")
     }
@@ -4566,7 +4567,7 @@ col_names<-colnames(data[[1]])
     Rot.Out<-merge(Rot.Out,Rot.Seq.Summ,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
     
     
-  # 6.5) Other validation ######
+  ## 6.5) Other validation ######
         # Check for sequences that have a rotation code, but no rotation in the sequence presented
         # Only improved fallow should be able to have a sequence with no change in product.
         Rot.Seq[,n_crops:=length(unique(R.Prod)),by=.(B.Code,R.Level.Name)]
@@ -4603,7 +4604,7 @@ col_names<-colnames(data[[1]])
         errors5<-issues[!B.Code %in% error_list$prod_other_errors$B.Code,.(value=paste(unique(issue_crop),collapse="/")),by=B.Code][,table:="Rot.Seq"][,field:="R.Level.Name"][,issue:="Crop name merged to Rot.Seq from MT.Out tab has no match in mastercodes products table (check product names throughout sheet)."]
 
       
-  # 6.6) Save errors #####
+  ## 6.6) Save errors #####
   error_list<-error_tracker(errors=unique(rbind(errors_a,errors_b)),filename = "rot_structure_errors",error_dir=error_dir,error_list = error_list)
   error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4,errors5),fill=T)[order(B.Code)],filename = "rot_other_errors",error_dir=error_dir,error_list = error_list)
 
@@ -4611,7 +4612,7 @@ col_names<-colnames(data[[1]])
 data<-lapply(XL,"[[","Out.Out")
 col_names<-colnames(data[[800]])
 
-  # 7.1) Out.Out #####
+  ## 7.1) Out.Out #####
   col_names2<-col_names[1:10]
   
   Out.Out<-lapply(1:length(data),FUN=function(i){
@@ -4674,7 +4675,7 @@ col_names<-colnames(data[[800]])
                          ][,issue:="Upper depth is greater than lower depth."
                            ][order(B.Code)]
   
-    # 7.1.2) Harmonization ######
+    ### 7.1.2) Harmonization ######
   
   h_params<-data.table(master_tab="unit_harmonization",
                        h_field="Out.Unit",
@@ -4691,7 +4692,7 @@ col_names<-colnames(data[[800]])
   
   write.table(results$h_tasks,"clipboard",row.names = F,sep="\t")
   
-  # 7.2) Out.Econ #####
+  ## 7.2) Out.Econ #####
 col_names2<-col_names[13:20]
 
 Out.Econ<-lapply(1:length(data),FUN=function(i){
@@ -4740,7 +4741,7 @@ error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4)
 data<-lapply(XL,"[[","Data.Out")
 col_names<-colnames(data[[800]])
 
-  # 8.0) Data.Out #####
+  ## 8.0) Data.Out #####
   Data.Out<-pblapply(1:length(data),FUN=function(i){
     X<-data[[i]]
     B.Code<-Pub.Out$B.Code[i]
@@ -4822,7 +4823,7 @@ col_names<-colnames(data[[800]])
   Data.Out[,Site.ID_new:=Site.Out$Site.ID[match(gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",trimws(tolower(Data.Out$Site.ID))),tolower(Site.Out$Site.ID_raw))]] 
   Data.Out[is.na(Site.ID_new),Site.ID_new:=Site.ID][,Site.ID:=Site.ID_new][,Site.ID_new:=NULL]
   
-     # 8.0.1) Check keyfields match ######
+     ### 8.0.1) Check keyfields match ######
   # Check that Outcomes match
   error_dat<-check_key(parent=Out.Out,child=Data.Out[!is.na(Out.Code.Joined)],tabname="Data.Out",tabname_parent="Out.Out",keyfield="Out.Code.Joined",collapse_on_code=T)
   errors[["outcome_mismatches"]]<-error_dat
@@ -4838,7 +4839,7 @@ col_names<-colnames(data[[800]])
   error_dat<-check_key(parent=Site.Out,child=Data.Out,tabname="Data.Out",tabname_parent="Site.Out",keyfield="Site.ID",collapse_on_code=T)
   errors[["site_mismatches"]]<-error_dat
   
-     # 8.0.2) Other validation checks ######
+     ### 8.0.2) Other validation checks ######
   # Check end>start date
   errors<-c(errors,list(Data.Out[ED.Sample.Start>ED.Sample.End
                     ][,list(value=paste0(Out.Code.Joined,collapse="/")),by=B.Code
@@ -4897,7 +4898,7 @@ col_names<-colnames(data[[800]])
   ][,issue:="Outcome derived from T vs C (e.g. LER) does not have comparison specified."
   ][order(B.Code)]))
   
-  # 8.1) Update delims  #####
+  ## 8.1) Update delims  #####
   
   # MT.Out
   Data.Out[,T.Name:= split_trimws(T.Name[1],delim = ".."),by=T.Name]
@@ -4917,7 +4918,7 @@ col_names<-colnames(data[[800]])
   Data.Out[,ED.Comparison1:= split_trimws(ED.Comparison1[1],delim = ".."),by=ED.Comparison1][,ED.Comparison1:=gsub("[.][.]","...",ED.Comparison1)]
   Data.Out[,ED.Comparison2:= split_trimws(ED.Comparison2[1],delim = ".."),by=ED.Comparison2][,ED.Comparison2:=gsub("[.][.]","...",ED.Comparison2)]
   
-  # 8.2) Index products from other tabs #####
+  ## 8.2) Index products from other tabs #####
   
   Data.Out[,P.Product:=NA]
   
@@ -4952,7 +4953,7 @@ col_names<-colnames(data[[800]])
   
   errors[["product_mistmatches"]]<-error_dat
   
-  # 8.3) Harmonization #####
+  ## 8.3) Harmonization #####
   h_tasks1<-harmonizer(data=Data.Out, 
                        master_codes,
                        master_tab="lookup_levels",
@@ -4961,7 +4962,7 @@ col_names<-colnames(data[[800]])
                        h_table_alt="Data.Out", 
                        h_field_alt="Error.Type")$h_tasks[,issue:="Non-standard error value used."]
   
-  # 8.4) Add controls for outcomes that are ratios #####
+  ## 8.4) Add controls for outcomes that are ratios #####
   Data.Out[,N:=1:.N]
   Data.R<-Data.Out[!is.na(ED.Comparison1) & !is.na(T.Name),c("T.Name","ED.Comparison1","B.Code","N","Out.Code.Joined")]
   
@@ -4995,16 +4996,16 @@ col_names<-colnames(data[[800]])
   
   Data.Out[,N:=1:nrow(Data.Out)]
   
-  # 8.5) Merge data from linked tables ####
+  ## 8.5) Merge data from linked tables ####
   n_rows<-Data.Out[,.N]
-    # 8.5.2) Add MT.Out ######
+    ### 8.5.2) Add MT.Out ######
     Data.Out<-merge(Data.Out,unique(MT.Out[,!c("P.Product","Base.Codes")]),by=c("B.Code","T.Name"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
-    # 8.5.3) Add Int.Out ######
+    ### 8.5.3) Add Int.Out ######
     Data.Out<-merge(Data.Out,Int.Out[,!"IN.Level.Name"],by.x=c("B.Code","IN.Level.Name"),by.y=c("B.Code","IN.Level.Name2"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
     
-      # 8.5.3.1) Check for non-matches #######
+      #### 8.5.3.1) Check for non-matches #######
       error_dat<-unique(Data.Out[!is.na(IN.Level.Name) & is.na(IN.Comp.N),.(value=paste(unique(IN.Level.Name),collapse="/")),by=B.Code])
       error_dat<-error_dat[!B.Code %in% unique(c(error_list$intercrop_other_errors[grepl("Non-match btw intercropping and make treatment|Delimiter|Component(s) of aggregated treatment name used in intercropping ta",issue),B.Code],error_list$intercropping_structure_errors$B.Code))
                            ][,table:="Data.Out/Int.Out"
@@ -5020,11 +5021,11 @@ col_names<-colnames(data[[800]])
       Int.Out[B.Code == error_dat$B.Code[i],.(IN.Level.Name,IN.Level.Name2,IN.Comp1,IN.Comp2,IN.Comp3)]
     }
     
-    # 8.5.4) Add Rot.Out ######
+    ### 8.5.4) Add Rot.Out ######
     Data.Out<-merge(Data.Out,Rot.Out,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
     
-      # 8.5.4.1) Check for missing rotation codes #######
+      #### 8.5.4.1) Check for missing rotation codes #######
     # Check for studies where Rot.Out is always NA for a ED.Rot treatment - there should be Rotation code but it is missing
     error_dat<-unique(Data.Out[!is.na(R.Level.Name),list(Len=sum(!is.na(R.Code))),by=c("R.Level.Name","B.Code","R.Code")][Len==0])
     error_dat<-error_dat[,.(value=paste(R.Level.Name,collapse = "/")),by=B.Code
@@ -5035,10 +5036,10 @@ col_names<-colnames(data[[800]])
     
     errors<-c(errors,list(error_dat))
     
-    # 8.5.5) Add Publication  ######
+    ### 8.5.5) Add Publication  ######
     Data.Out<-merge(Data.Out,Pub.Out,by=c("B.Code"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
-    # 8.5.6) Add Outcomes  ####
+    ### 8.5.6) Add Outcomes  ####
     Data.Out<-merge(Data.Out,unique(Out.Out),by=c("B.Code","Out.Code.Joined"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
     
@@ -5085,7 +5086,7 @@ col_names<-colnames(data[[800]])
     
     Data.Out[,Is.Biomass.Prod:=NULL]
     
-      # 8.5.6.1) Merge in outcome codes  #######
+      #### 8.5.6.1) Merge in outcome codes  #######
     mergedat<-setnames(unique(master_codes$out[,.(Subindicator,Code)]),c("Subindicator","Code"),c("Out.Subind","Out.Code"))
     Data.Out<-merge(Data.Out,mergedat,by=c("Out.Subind"),all.x=T,sort=F)
     
@@ -5097,8 +5098,8 @@ col_names<-colnames(data[[800]])
     
     errors<-c(errors,list(error_dat))
     
-    # 8.5.7) Add product codes ######
-      # 8.5.7.1) Check product components #######
+    ### 8.5.7) Add product codes ######
+      #### 8.5.7.1) Check product components #######
       
       # Update okra fruits to okra pods
       Data.Out[P.Product %in% c("Okra","Arabica","Robusta","Cocoa") & ED.Product.Comp=="Fruit (Unspecified)",ED.Product.Comp:="Pods"]
@@ -5142,7 +5143,7 @@ col_names<-colnames(data[[800]])
       
       errors<-c(errors,list(error_dat))
       
-      # 8.5.7.2) Merge using product x component code  #######
+      #### 8.5.7.2) Merge using product x component code  #######
       
       merge_prods<-function(P.Product,Component,master_prods,master_prod_codes,prod_tab,tree_tab){
         prods<-unlist(strsplit(P.Product,"-"))
@@ -5187,7 +5188,7 @@ col_names<-colnames(data[[800]])
       
       Data.Out<-merge(Data.Out,mergedat,by=c("P.Product","ED.Product.Comp.L1"),all.x=T,sort=F)
       
-        # I THINK THIS IS NO LONGER RELEVANT - 3) Add in Agroforestry Trees ####
+        ##### I THINK THIS IS NO LONGER RELEVANT - 3) Add in Agroforestry Trees ####
         if(F){
           NX<-is.na(X[,EU])  & Data.Out[,ED.Product.Simple] %in% TreeCodes$Product.Simple
           X[NX,Product.Type :="Plant Product"]
@@ -5200,7 +5201,7 @@ col_names<-colnames(data[[800]])
           X[NX,EU:=TreeCodes[match(Data.Out[NX,ED.Product.Simple],TreeCodes[,Product.Simple]),EU]]
           rm(NX)
         }
-        # I THINK THIS IS NO LONGER RELEVANT -  4) Repeat 1-3 but for aggregated products (SLOW consider parallel) ####
+        ##### I THINK THIS IS NO LONGER RELEVANT -  4) Repeat 1-3 but for aggregated products (SLOW consider parallel) ####
         if(F){
           N<-grep("[.][.]",Data.Out$ED.Product.Simple)
           Z<-Data.Out[N,c("ED.Product.Simple","ED.Product.Comp","ED.Product.Code")]
@@ -5252,7 +5253,7 @@ col_names<-colnames(data[[800]])
           
           Z[,N:=grep("[.][.]",Data.Out$ED.Product.Simple)]
         }
-      # 8.5.7.3) Product Validation ####
+      #### 8.5.7.3) Product Validation ####
       
       # Check NA & "No Product Specified" against outcome (should not be a productivity outcome)
       error_dat<-unique(Data.Out[is.na(P.Product) | P.Product == "No Product Specified",c("P.Product","B.Code","T.Name","IN.Level.Name","R.Level.Name","Out.Subind")]
@@ -5261,10 +5262,10 @@ col_names<-colnames(data[[800]])
       # Often these errors results from mismatches and structural errors in others
       error_dat[is.na(IN.Level.Name) & !B.Code %in% c("JO0088","JO0002","SP0038","SA0059.3"),table(B.Code)]
       
-    # 8.5.8) Add Experimental Design  ######
+    ### 8.5.8) Add Experimental Design  ######
     Data.Out<-merge(Data.Out,ExpD.Out,by=c("B.Code"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
-    # 8.5.9) Update replicates ######
+    ### 8.5.9) Update replicates ######
     # Reps specified in EnterData tab > Rotation tab > Intercropping tab > Treatment tab
     Data.Out[,N:=1:.N
              ][,Final.Reps:=if(!is.na(ED.Reps)){ED.Reps}else{
@@ -5287,23 +5288,23 @@ col_names<-colnames(data[[800]])
     
     errors<-c(errors,list(error_dat))
     
-    # 8.5.10) Add Site  ######
+    ### 8.5.10) Add Site  ######
     Data.Out<-merge(Data.Out,unique(Site.Out[,!c("Site.ID_raw","check")]),by=c("B.Code","Site.ID"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
     
     # Make Sure of match between Data.Out and Site.Out
     (error_dat<-unique(Data.Out[is.na(Country),.(B.Code,Site.ID)])[!B.Code %in% errors$site_mismatches$B.Code])
       
-    # 8.5.11) Update residue codes ######
-      # 8.5.11.1) IN.Residue.Code > T.Residue.Code > R.Residue.Codes.All ######
+    ### 8.5.11) Update residue codes ######
+      #### 8.5.11.1) IN.Residue.Code > T.Residue.Code > R.Residue.Codes.All ######
       # Previously was T.Residue.Code > IN.Residue.Code but this caused issues where the intercrop received both crop and agroforesty residues, for example
       # In that case the intercrop would only get the residue code of the component for which the outcome was being reported.
       Data.Out[,N:=1:.N][,Final.Residue.Code:=if(!is.na(IN.Residue.Code)){IN.Residue.Code}else{
         if(!is.na(T.Residue.Code)){T.Residue.Code}else{if(!is.na(R.Residue.Codes.All)){R.Residue.Codes.All}
         }},by=N]
       
-      # 8.5.11.2) If observation is a component of a rotation treatment update residues from the Rot.Seq table #######
-      # ***ISSUE*** WHAT ABOUT ROTATIONS WITH BOTH PHASES? IS THIS COVERED IN ROT.OUT SECTION (NEED TO DUPLICATE PHASES?) #####
+      #### 8.5.11.2) If observation is a component of a rotation treatment update residues from the Rot.Seq table #######
+      ##### ***ISSUE*** WHAT ABOUT ROTATIONS WITH BOTH PHASES? IS THIS COVERED IN ROT.OUT SECTION (NEED TO DUPLICATE PHASES?) #####
       
       mergedat<-Rot.Seq[,.(B.Code,R.Treatment,R.Level.Name,Time,R.Residues.Codes)][,code:=paste(B.Code,R.Treatment,R.Level.Name,Time)]
       Data.Out[!is.na(R.Level.Name) & !is.na(IN.Level.Name) & is.na(T.Name) & !grepl("[.][.]",Time),Temp.Code.Int:=paste(B.Code,IN.Level.Name,R.Level.Name,Time)]
@@ -5322,7 +5323,7 @@ col_names<-colnames(data[[800]])
       # Tidy Up
       Data.Out[,c("Temp.Code.Int","Temp.Code.Treat"):=NULL]
       
-      # 8.5.11.3) Check results are sensible #######
+      #### 8.5.11.3) Check results are sensible #######
       error_dat<-Data.Out[!grepl("[.][.]",Time) & !T.Residue.Prev=="Unspecified",.(B.Code,Time,T.Residue.Prev,T.Residue.Code,T.Name,IN.Residue.Fate,IN.Level.Name,IN.Residue.Code,R.Residue.Codes.All,R.Level.Name,Final.Residue.Code)
       ][(!is.na(T.Residue.Code) | !is.na(IN.Residue.Code) | !is.na(R.Residue.Codes.All)) & is.na(Final.Residue.Code) & 
           !B.Code %in% c(errors$rotation_mismatches$B.Code,errors$intercrop_mismatches$B.Code,errors$treatment_mismatches$B.Code,unlist(strsplit(error_list$prod_other_errors$B.Code,"/")),error_list$rot_other_errors[grep("Crop name merged to Rot.Seq from MT.Out tab has no match in mastercodes pr",issue),B.Code])]
@@ -5352,7 +5353,7 @@ col_names<-colnames(data[[800]])
       
       errors<-c(errors,list(error_dat))
       
-      # 8.5.11.4) Replace intercropping "***" or aggregation "..." delim in Final.Residue.Code #######
+      #### 8.5.11.4) Replace intercropping "***" or aggregation "..." delim in Final.Residue.Code #######
       
       # Intercrops
       PC1<-PracticeCodes[Practice %in% c("Agroforestry Pruning"),Code]
@@ -5425,13 +5426,13 @@ col_names<-colnames(data[[800]])
         Rot.Out[B.Code==results$B.Code[i] & R.Level.Name==results$R.Level.Name[i]]
       }
       
-    # 8.4.12) Add climate & time ######
+    ### 8.4.12) Add climate & time ######
       Data.Out<-merge(Data.Out,unique(Times.Out[,!c("check")]),by=c("B.Code","Time"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
       
       Data.Out<-merge(Data.Out,unique(Times.Clim[!is.na(Site.ID) & !is.na(Time)]),by=c("B.Code","Site.ID","Time"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
-    # 8.4.13) Add dates ######
+    ### 8.4.13) Add dates ######
       # Create function to merge on time and site id taking into account all sites and all times values
       merge_time_site<-function(data,
                                 Data.Out,
@@ -5464,7 +5465,7 @@ col_names<-colnames(data[[800]])
         return(mergedat)
       }
       
-      # 8.4.13.1) Add planting dates #######
+      #### 8.4.13.1) Add planting dates #######
       variable<-c("Planting","Transplanting")
       data<-PD.Out[PD.Variable %in% variable,.(B.Code,Site.ID,PD.Variable,Time,PD.Date.Start,PD.Date.End)]
       
@@ -5485,8 +5486,8 @@ col_names<-colnames(data[[800]])
       
       Data.Out<-cbind(Data.Out,mergedat[,!c("B.Code","Time","Site.ID")])
       
-      # ***TO DO*** Bring in any planting dates from aggregated years/sites ####
-      # 8.4.13.1) Add harvest dates #######
+      ##### ***TO DO*** Bring in any planting dates from aggregated years/sites ####
+      #### 8.4.13.1) Add harvest dates #######
       variable<-c("Harvesting")
       data<-PD.Out[PD.Variable %in% variable,.(B.Code,Site.ID,Time,PD.Date.Start,PD.Date.End,PD.Date.DAS,PD.Date.DAP)]
       
@@ -5499,8 +5500,8 @@ col_names<-colnames(data[[800]])
       
       Data.Out<-cbind(Data.Out,mergedat[,!c("B.Code","Time","Site.ID")])
       
-    # 8.5.14) Update start year & season #####
-    # ***ISSUE*** NEEDS LOGIC FOR ROT/INT as "Base"? / CONSIDER LOGIC FOR ONLY USING INT/ROT YEAR IF THEY ARE NOT BASE PRACTICES ####
+    ### 8.5.14) Update start year & season #####
+    #### ***ISSUE*** NEEDS LOGIC FOR ROT/INT as "Base"? / CONSIDER LOGIC FOR ONLY USING INT/ROT YEAR IF THEY ARE NOT BASE PRACTICES ####
       
       Data.Out[,Final.Start.Year:=
                  if(!is.na(R.Start.Year[1])){as.numeric(R.Start.Year[1])}else{
@@ -5517,10 +5518,10 @@ col_names<-colnames(data[[800]])
         }},by=.(R.Start.Year,IN.Start.Year,T.Start.Year)]
       
       
-    # 8.5.15) Add base practices #####
+    ### 8.5.15) Add base practices #####
     Data.Out<-merge(Data.Out,Base.Out,by="B.Code",all.x=T,sort=F)
     stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
-    # 8.5.16) Update Structure Fields to reflect Level name rather than "Yes" or "No" ####
+    ### 8.5.16) Update Structure Fields to reflect Level name rather than "Yes" or "No" ####
     
     grep("[.]Structure$",colnames(Data.Out),value=T)
     
@@ -5529,7 +5530,7 @@ col_names<-colnames(data[[800]])
     Data.Out[O.Structure!="Yes",O.Structure:=NA][O.Structure=="Yes",O.Structure:=O.Level.Name]
     Data.Out[W.Structure!="Yes",W.Structure:=NA][W.Structure=="Yes",W.Structure:=W.Level.Name]
     Data.Out[C.Structure!="Yes",C.Structure:=NA][C.Structure=="Yes",C.Structure:=C.Level.Name]
-    # 8.5.17) Update monoculture and irrigation control codes ######
+    ### 8.5.17) Update monoculture and irrigation control codes ######
     Data.Out[is.na(IN.Level.Name) & is.na(R.Level.Name),
              T.Codes:=paste(sort(unique(c("h2",unlist(strsplit(T.Codes[1],"-"))))),collapse="-"),by=T.Codes]
     # Also update aggregated treatment codes
