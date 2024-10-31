@@ -74,20 +74,20 @@ if(update){
     print("The file does not exist.")
     file_status<-F
   }
-}
-
-local_file<-file.path(excel_dir,basename(s3_file))
-
-if(file_status){
-  if(length(list.files(excel_dir))<1|update==T){
-    rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
-    unlink(rm_files)
-    options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
-    if(download){
-      download.file(s3_file, destfile = local_file)
+  
+  local_file<-file.path(excel_dir,basename(s3_file))
+  
+  if(file_status){
+    if(length(list.files(excel_dir))<1|update==T){
+      rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
+      unlink(rm_files)
+      options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
+      if(download){
+        download.file(s3_file, destfile = local_file)
+      }
+      unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
+      unlink(local_file)
     }
-    unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
-    unlink(local_file)
   }
 }
 
@@ -1822,6 +1822,45 @@ if(file_status){
         # TO DO: Consider codes for urea in Fert.Method and NI listed in Fert.Out
         # TO DO: Add check in case organic nutrients are listed in Fert.Out, but nothing corresponding in Fert.Method tab.
     
+  # 3.11.6) Add F.Level.Name2 field
+      ReName.Fun<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O){
+        NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
+        N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
+        
+        
+        F.Level<-Fert.Method[F.Level.Name==X & B.Code ==Y,list(F.Type,F.Amount)]
+        
+        F.Level<-rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=F.Type])
+        
+        # Deal with rounding issues   
+        F.Level[,F.Amount:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10)))]
+        F.Level<-F.Level[,paste(F.Type,F.Amount)]
+        
+        F.Level<-paste(F.Level[order(F.Level)],collapse = "|")
+        
+        
+        if(length(F.Level)==0 | F.Level==""){
+          F.Level<-"No Fert Control"
+        }else{
+          if(length(N)>0){
+            NPK<-NPK[,..N]
+            NPK<-paste(paste(colnames(NPK),unlist(NPK),sep="-"),collapse=" ")
+            F.Level<-paste(NPK,F.Level,sep = "||")
+          }
+        }
+        return(F.Level)
+      }
+      
+      Fert.Out[,N:=1:.N]
+      Fert.Out[,F.Level.Name2:=ReName.Fun(F.Level.Name,B.Code,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O),by="N"]
+      
+      # Tidy up
+      Fert.Out[,N:=NULL]
+      rm(ReName.Fun)
+      
+      Fert.Method<-merge(Fert.Method,Fert.Out[,.(B.Code,F.Level.Name,F.Level.Name2)],by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
+      Fert.Comp<-merge(Fert.Comp,Fert.Out[,.(B.Code,F.Level.Name,F.Level.Name2)],by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
+      
   # 3.11.x) ***!!!TO DO!!!*** Add in h10 code where there are fertilizer treatments, but fertilizer column is blank #######
   if(F){
     # Old Code
