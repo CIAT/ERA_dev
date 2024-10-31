@@ -583,13 +583,23 @@ if(update){
     
     errors3<-Times.Clim[Time.Clim.SP>Time.Clim.TAP
                         ][,issue:="Seasonal > annual precip"]
-
+    
+    Times.Clim<-unique(Times.Clim[!is.na(Site.ID) & !is.na(Time)])[,N:=.N,by=.(B.Code,Site.ID,Time)]
+    
+    errors6<-Times.Clim[N>1
+                         ][,.(value=paste(unique(paste(Site.ID,"-",Time)),collapse = "/")),by=B.Code
+                              ][,table:="Times.Clim"
+                                ][,field:="Site.ID-Time"
+                                  ][,issue:=">1 combination of Site.ID and Time is present in the time climate table."]
+    
+    Times.Clim<-Times.Clim[N==1][,N:=NULL]
+    
     ### 3.3.3) Save errors #####
     errors<-rbind(errors1,errors2,errors3)[,Time.Clim.Notes:=NULL][order(B.Code)]
     errors[,Time:=as.numeric(Time)]
     error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
     
-    error_list<-error_tracker(errors=rbindlist(list(errors4,errors5),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
+    error_list<-error_tracker(errors=rbindlist(list(errors4,errors5,errors6),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
     error_list<-error_tracker(errors=errors6,filename = "time_order_check",error_dir=error_dir,error_list = error_list)
     
   ## 3.4) Soil (Soil.Out) #####
@@ -2107,7 +2117,7 @@ if(update){
   
   h_tasks3<-results$h_tasks
   Chems.AI<-results$data
-      Ø##### NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
+      ##### NEEDS UPDATING ACCORDING TO NEW CHEMS STRUCTURE ######
   if(F){
     mergedat<-setnames(master_codes$chem[,4:5],"C.Name.2020...5","C.Name.AI")[!is.na(C.Type)][,check:=T][,C.Name.AI:=tolower(C.Name.AI)]
     h_tasks4<-setnames(merge(Chems.AI[!is.na(C.Name.AI),list(B.Code,C.Type,C.Name.AI)][,C.Name.AI:=tolower(C.Name.AI)],mergedat,all.x = T)[is.na(check)][,check:=NULL],"C.Name.AI","value")
@@ -3211,7 +3221,10 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
              ][,c("P.Mulched","P.Incorp","P.Unknown.Fate"):=NULL]
   
   ## 4.2) Merge in practice data #####
-  stop("Has issue with V.Level.Name being derived from harmonized field that also needs to be harmonzied in MT.Out been fixed?")
+  warning("Has issue with V.Level.Name being derived from harmonized field that also needs to be harmonzied in MT.Out been fixed?")
+  # Check to see if above issues is addressed
+  MT.Out[!V.Level.Name %in%   Var.Out[,V.Level.Name],.(B.Code,V.Level.Name)]
+  
   unique(MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(B.Code,P.Product,T.Name)])
   # Create list of data table to merge with MT.Out treatment table
   mergedat<-list(V.Level.Name=Var.Out,
@@ -4690,7 +4703,7 @@ col_names<-colnames(data[[800]])
   
   harmonization_list<-error_tracker(errors=results$h_tasks,filename = "outcome_unit_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
-  write.table(results$h_tasks,"clipboard",row.names = F,sep="\t")
+  write.table(results$h_tasks, pipe("pbcopy"), row.names = FALSE, sep = "\t")
   
   ## 7.2) Out.Econ #####
 col_names2<-col_names[13:20]
@@ -5427,8 +5440,10 @@ col_names<-colnames(data[[800]])
       }
       
     ### 8.4.12) Add climate & time ######
-      Data.Out<-merge(Data.Out,unique(Times.Out[,!c("check")]),by=c("B.Code","Time"),all.x=T,sort=F)
+      Data.Out<-merge(Data.Out,unique(Times.Out[,!c("seq_n","check")]),by=c("B.Code","Time"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
+      
+      unique(Times.Clim[!is.na(Site.ID) & !is.na(Time)])[,N:=.N,by=.(B.Code,Site.ID,Time)][N>1]
       
       Data.Out<-merge(Data.Out,unique(Times.Clim[!is.na(Site.ID) & !is.na(Time)]),by=c("B.Code","Site.ID","Time"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
