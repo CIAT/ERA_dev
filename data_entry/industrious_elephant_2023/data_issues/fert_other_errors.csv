@@ -19,6 +19,7 @@ JO0077,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
 JO0114,15K/45K/60K/75K/90K/105K/10S/20S/30S/40S/50S/BN-92/BP-39/BK-66/BS-30/BZn-5/BBn-1,Fert.Method,F.Level.Name,"Name is not used in Fert.Method table and fert method table is not blank, could indicate an error.",,,,FALSE,"",""
 JO0147,AL-B_2015/AL-B_2016/Brewery waste/Gateway_2015,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 JO0166,fNP-18_nNPK,Fert.Method,F.Level.Name,"Name is not used in Fert.Method table and fert method table is not blank, could indicate an error.",,,,FALSE,"",""
+NM0006, 10% P/ 13.3% K + 0.5% Zn/6.7% N,Fert.Method,F.Level.Name,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 NM0031,OBD-Plus/market & abattoir wastes,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 NM0057,`,Fert.Method,F.Date.Start,Non-numeric value in numeric field.,,,,FALSE,"",""
 NM0061,Inorganic-Unspecified: Corn/Corn 30/Corn 60/Corn 90,Fert.Method,F.Category-F.Type:F.Level.Name,"Use of Unspecified as fertilizer type name. We need to check that this truly should have been unspecfied (i.e. we know nothing about the fertilizer applied at all) or if unspecified N, P or K could have been used.",,,,FALSE,NJ,Unspecified

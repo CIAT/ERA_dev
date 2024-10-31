@@ -34,6 +34,7 @@ JS0070,N1-0MS..N2-0MS..N1-0MS-72..N2-0MS-72/P1-0MS..P2-0MS..P1-0MS-72..P2-0MS-72
 JS0248,barley mulch/wheat  + barley mulch,MT.Out,M.Level.Name,Non-match for name in M.Level.Name column.,Res.Out,FALSE,"",""
 LM0318,10mVGA/5mVGA,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
 LM0321,WITH TREE C/WITH TREE M/WITHOUT TREE C/WITHOUT TREE M,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
+NM0006, 10% P/ 13.3% K + 0.5% Zn/6.7% N,MT.Out,F.Level.Name,Non-match for name in F.Level.Name column.,Fert.Out,FALSE,"",""
 NN0168,T3>>T39..T6>>T42..T3>>T39..T3>>T39..T6>>T42..T3>>T39..T3>>T39..T3>>T39..T6>>T42..T3>>T39..T3>>T39..T6>>T42,MT.Out,T.Name,One or more component names of aggregated treatment name are missing.,,FALSE,"",""
 NN0412,Lablab planting (intercrop)/Lablab sole/Maize planting (intercrop)/Maize sole/Vetch planting (intercrop)/Vetch sole,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
 NN0427,Brachiaria/Inter Brachiaria/Inter PP 2008/Inter PP 2009/Inter maize/PP 2008/PP 2009/Sole maize,MT.Out,P.Level.Name,Non-match for name in P.Level.Name column.,Plant.Out,FALSE,"",""
