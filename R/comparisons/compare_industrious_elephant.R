@@ -19,6 +19,8 @@ Fert.Out<-data$Fert.Out
 Int.Out<-data$Int.Out
 Irrig.Codes<-data$Irrig.Codes
 Irrig.Method<-data$Irrig.Method
+setnames(Irrig.Method,"Times","Time",skip_absent = T)
+
 MT.Out2<-data$MT.Out2
 Plant.Out<-data$Plant.Out
 Plant.Method<-data$Plant.Method
@@ -54,7 +56,9 @@ master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_exce
 EUCodes<-master_codes$prod
 MasterLevels<-master_codes$lookup_levels
 PracticeCodes<-master_codes$prac
-PracticeCodes1<-master_codes$prac
+PracticeCodes[,Linked.Col:=gsub("ED.Int","IN.Level.Name",Linked.Col)]
+PracticeCodes[,Linked.Col:=gsub("ED.Rot","R.Level.Name",Linked.Col)]
+PracticeCodes1<-copy(PracticeCodes)
 TreeCodes<-master_codes$trees
 
 # 2) Automated Comparison of Control vs Treatments ####
@@ -118,10 +122,10 @@ DATA<-Data.Out.No.Agg
     # Exception for residue mulching being compared to residue incorporation
     Mulch.Fun<-function(A,B,X,Z){
       if(A %in% X){
-        Z[Mulch.Flag==F,Mulch.Flag:=Z[,any(unlist(Final.Codes) %in% B),by="N"][,V1]]
+        Z[Mulch.Flag==F,Mulch.Flag:=Z[Mulch.Flag==F,any(unlist(Final.Codes) %in% B),by="N"][,V1]]
         Z[Mulch.Flag==T,Match:=Match+1]
         Z[Mulch.Flag==T,NoMatch:=NoMatch-1]
-        Z[Mulch.Flag==T,Mulch.Code:=paste0(Mulch.Code,A,collapse = "-"),by="N"]
+        Z[Mulch.Flag==T,Mulch.Code:=paste0(na.omit(c(Mulch.Code,A)),collapse = "-"),by="N"]
         
       }
       return(Z)
@@ -202,10 +206,10 @@ DATA<-Data.Out.No.Agg
         ]
         
         # Exception for comparison of mulched residues to incorporated residues.
-        Z[,Mulch.Code:=as.character("")][,Mulch.Flag:=F]
+        Z[,Mulch.Code:=as.character(NA)][,Mulch.Flag:=F]
         
         for(kk in 1:length(Mulch.C.Codes)){
-          Z<-Mulch.Fun(Mulch.C.Codes[kk],Mulch.T.Codes[kk],X,Z)
+          Z<-Mulch.Fun(A=Mulch.C.Codes[kk],B=Mulch.T.Codes[kk],X,Z)
           }
         
         # Keep instances for which this treatment can be a control for other treatments
@@ -404,13 +408,13 @@ DATA<-Data.Out.No.Agg
                         Trt<-Data[Z[ii,Y.N],I.Level.Name]
                         Control<-Data[j,I.Level.Name]
                         
-                        Trt1<-Irrig.Out[I.Name==Trt & 
+                        Trt1<-Irrig.Method[I.Level.Name==Trt & 
                                           B.Code == BC & 
                                           Time %in% c(Data$Time[1],"All Times") & 
                                           Site.ID %in% c(Data$Site.ID[1],"All Sites"),
                                         c("I.Amount","I.Unit","I.Water.Type")]
                         
-                        Control1<-Irrig.Out[I.Name==Control  & 
+                        Control1<-Irrig.Method[I.Level.Name==Control  & 
                                               B.Code == BC & 
                                               Time %in% c(Data$Time[1],"All Times") & 
                                               Site.ID %in% c(Data$Site.ID[1],"All Sites"),
@@ -553,12 +557,11 @@ b_codes<-DATA[,unique(B.Code)]
 
 Comparisons <- with_progress({
   # Progress indicator
-  p <- progressor(along = 1:length(b_codes))
+  p <- progressor(steps = length(b_codes))
   
   # Apply function across unique B.Codes with future_lapply in parallel
   future_lapply(1:length(b_codes), function(j) {
-   lapply(1:length(b_codes), function(j){
-   # p() # Increment progress bar
+  # lapply(1:length(b_codes), function(j){
     BC<-b_codes[j]
     
     if (Verbose) {
@@ -568,13 +571,13 @@ Comparisons <- with_progress({
     # Filter subset of data for current B.Code
     Data.Sub <- DATA[B.Code == BC]
     CW <- unique(Data.Sub[, ..CompareWithin])
-    CW <- match(apply(Data.Sub[, ..CompareWithin], 1, paste, collapse = "-"),
+    CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
                 apply(CW, 1, paste, collapse = "-"))
     Data.Sub[, Group := CW]
     
     # Report groups that have no comparisons
     group_n<-Data.Sub[,table(Group)]
-    no_comparison<-Data.Sub[Group %in% names(group_n)[group_n==1],..CompareWithin]
+    no_comparison <- Data.Sub[Group %in% names(group_n)[group_n == 1], CompareWithin, with = FALSE]
     
     Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
     
@@ -588,25 +591,31 @@ Comparisons <- with_progress({
       Compare.Fun(Verbose = Verbose, 
                   Data = Data.Sub[Group == i], 
                   Debug = FALSE,
-                  PracticeCodes=master_codes$prac, 
+                  PracticeCodes=PracticeCodes, 
                   Return.Lists = FALSE)
     }))
     }else{
       comp_dat<-NULL
     }
     
-    return(list(data=comp_dat,no_comparison_rows=no_comparison,zero_comparisons=if(is.null(comp_dat)){BC}else{NULL}))
+    # Update progress bar after each iteration
+    p() 
+    
+    return(list(data=comp_dat,
+                no_comparison_rows=no_comparison,
+                zero_comparisons=if(is.null(comp_dat)){BC}else{NULL}))
   })
 })
 
 # Reset to sequential plan after parallel tasks are complete
 plan(sequential)
 
-  
-  Comparisons<-unique(rbindlist(Comparisons))
+  no_comparison_rows<-rbindlist(lapply(Comparisons,"[[","no_comparison_rows"))
+  zero_comp_basic<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
+  Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
   
   # Basic: Validation - list studies with no comparisons at all (could be studies with system or aggregated outcomes) ####
-  Comparisons.Simple.All.NA<-DATA[!B.Code %in% Comparisons[,B.Code],unique(B.Code)]
+  Comparisons.Simple.All.NA<-DATA[!B.Code %in% Comparisons[,unique(B.Code)],unique(B.Code)]
   if(F){
     if(length(Comparisons.Simple.All.NA)!=0){
       View(Comparisons.Simple.All.NA)
@@ -623,20 +632,20 @@ plan(sequential)
   Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
   
   
-  Cols<-c("ED.Treatment","ED.Int","ED.Rot")
+  Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
   Cols1<-c(CompareWithin,Cols)
   
   Comparisons1<-Data.Out.No.Agg[match(Comparisons[,N],N),..Cols1]
   Comparisons1[,Control.For:=Comparisons[,Control.For]]
   Comparisons1[,Control.N:=Comparisons[,N]]
   Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
-  setnames(Comparisons1,"ED.Treatment","Control.Trt")
-  setnames(Comparisons1,"ED.Int","Control.Int")
-  setnames(Comparisons1,"ED.Rot","Control.Rot")
+  setnames(Comparisons1,"T.Name","Control.Trt")
+  setnames(Comparisons1,"IN.Level.Name","Control.Int")
+  setnames(Comparisons1,"R.Level.Name","Control.Rot")
   
-  Comparisons1[,Compare.Trt:=Data.Out.No.Agg[match(Control.For,N),ED.Treatment]]
-  Comparisons1[,Compare.Int:=Data.Out.No.Agg[match(Control.For,N),ED.Int]]
-  Comparisons1[,Compare.Rot:=Data.Out.No.Agg[match(Control.For,N),ED.Rot]]
+  Comparisons1[,Compare.Trt:=Data.Out.No.Agg[match(Control.For,N),T.Name]]
+  Comparisons1[,Compare.Int:=Data.Out.No.Agg[match(Control.For,N),IN.Level.Name]]
+  Comparisons1[,Compare.Rot:=Data.Out.No.Agg[match(Control.For,N),R.Level.Name]]
   
   # fwrite(Comparisons1,paste0(choose.dir(),"\\Basic_Comparisons_V1.8.csv"),row.names = F)
   
@@ -645,7 +654,7 @@ plan(sequential)
   # 1.1) Aggregated Treatments (Not Animals) ####
   
   # Extract Aggregated Observations
-  Data.Out.Agg<-Data.Out[grep("[.][.][.]",T.Name2)]
+  Data.Out.Agg<-Data.Out[grep("[.][.][.]",T.Name)]
   
   # Exclude Ratios
   # Remove Controls for Ratio Comparisons
@@ -654,15 +663,8 @@ plan(sequential)
   # Data.Out.Agg<-Data.Out.Agg[is.na(ED.Comparison) & Out.Subind!="Land Equivalent Ratio"]
   
   # Ignore outcomes aggregated over rot/int entire sequence or system
-  Data.Out.Agg<-Data.Out.Agg[!is.na(ED.Treatment)]
-  
-  # Ignore animal data
-  Data.Out.Agg<-Data.Out.Agg[!Data.Out.Agg$Out.Subind %in% c("Weight Gain","Meat Yield","Milk Yield","Egg Yield","Other Animal Product Yield","Reproductive Yield",
-                                                             "Feed Conversion Ratio (Out In)","Feed Conversion Ratio (In Out)","Protein Conversion Ratio (Out In)",
-                                                             "Protein Conversion Ratio (In Out)")]
-  
-  Data.Out.Agg<-Data.Out.Agg[!B.Code %in% Animals.Out$B.Code]
-  
+  Data.Out.Agg<-Data.Out.Agg[!is.na(T.Name)]
+
   X<-Data.Out.Agg[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
   Data.Out.Agg[,Final.Codes:=X$Final.Codes]
   rm(X)
@@ -688,15 +690,67 @@ plan(sequential)
     write.table(Y,"clipboard-256000",row.names = F,sep="\t")
   }
   
+  #CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year", "ED.Outcome",
+  #                 "ED.Plant.Start","ED.Plant.End","ED.Harvest.Start",
+  #                 "ED.Harvest.End","ED.Harvest.DAS","ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","C.Structure","P.Structure","O.Structure",
+  #                 "W.Structure","B.Code","Country","T.Agg.Levels3","ED.Comparison")
   
-  CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year", "ED.Outcome","ED.Plant.Start","ED.Plant.End","ED.Harvest.Start",
-                   "ED.Harvest.End","ED.Harvest.DAS","ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","C.Structure","P.Structure","O.Structure",
-                   "W.Structure","B.Code","Country","T.Agg.Levels3","ED.Comparison")
+  # !!! TO DO !!! Investgate and add T.Agg.Levels3 ####
+  
+  CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
+                   "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
+                   "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
+                   "B.Code","Country","ED.Comparison1","ED.Comparison2","T.Agg.Levels3")
   
   DATA<-Data.Out.Agg
   
   Verbose<-F
+
+  # Set up future plan for parallel execution with the specified number of workers
+  plan(multisession, workers = worker_n)
   
+  # Enable progress bar
+  handlers(global = TRUE)
+  handlers("progress")
+  
+  # Set up future plan for parallel execution
+  plan(multisession, workers = worker_n)
+  
+  # Initialize progress bar
+  Comparisons <- with_progress({
+    p <- progressor(steps = length(unique(DATA[, B.Code])))
+    
+    # Run future_lapply with progress bar
+    future_lapply(unique(DATA[, B.Code]), function(BC, CompareWithin) {
+      p()  # Update progress bar
+      
+      # Filter subset of data for current B.Code
+      Data.Sub <- DATA[B.Code == BC]
+      CW <- unique(Data.Sub[, CompareWithin, with = FALSE])  # No `..` prefix needed with `with = FALSE`
+      CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
+                  apply(CW, 1, paste, collapse = "-"))
+      Data.Sub[, Group := CW]
+      
+      # Apply Compare.Fun to each group
+      rbindlist(lapply(unique(Data.Sub$Group), function(i) {
+        if (Verbose) {
+          print(paste0(BC, " Subgroup = ", i))
+        }
+        
+        Compare.Fun(
+          Verbose = Verbose,
+          Data = Data.Sub[Group == i],
+          Debug = FALSE,
+          PracticeCodes = PracticeCodes,
+          Return.Lists = FALSE
+        )
+      }))
+      
+    }, CompareWithin = CompareWithin)  # Pass CompareWithin explicitly to the function
+  })
+  
+  # Old code
+  if(F){
   cl<-makeCluster(worker_n)
   clusterEvalQ(cl, list(library(data.table)))
   clusterExport(cl,list("DATA","CompareWithin","Verbose","B.Codes","Compare.Fun","PracticeCodes","PracticeCodes1","Fert.Method","Plant.Out",
@@ -724,6 +778,7 @@ plan(sequential)
   })
   
   stopCluster(cl)
+  }
   
   Comparisons<-unique(rbindlist(Comparisons))
   
