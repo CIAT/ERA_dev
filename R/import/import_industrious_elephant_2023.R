@@ -2270,6 +2270,8 @@ if(update){
     errors_b<-rbindlist(lapply(Res.Method,"[[","error"))
     Res.Method<-rbindlist(lapply(Res.Method,"[[","data"))
     
+    setname(Res.Method,"Times","Time")
+    
     # Update Site.ID
     Res.Method[Site.ID!="All Sites",Site.ID_new:=Site.Out$Site.ID[match(Res.Method[Site.ID!="All Sites",Site.ID],Site.Out$Site.ID_raw)]  
     ][is.na(Site.ID_new),Site.ID_new:=Site.ID
@@ -4576,9 +4578,8 @@ col_names<-colnames(data[[1]])
     Seq.Fun<-function(A){
       paste(A[!is.na(A)],collapse = "|||")
     }
-    Rot.Seq.Summ<-Rot.Seq[,list(Seq=Seq.Fun(R.Prod)),by=.(B.Code,R.Level.Name)]
+    Rot.Seq.Summ<-Rot.Seq[,list(R.Prod.Seq=Seq.Fun(R.Prod)),by=.(B.Code,R.Level.Name)]
     Rot.Out<-merge(Rot.Out,Rot.Seq.Summ,by=c("B.Code","R.Level.Name"),all.x=T,sort=F)
-    
     
   ## 6.5) Other validation ######
         # Check for sequences that have a rotation code, but no rotation in the sequence presented
