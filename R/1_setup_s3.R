@@ -74,7 +74,7 @@ if(F){
   # 1.2.1) 2023 industrious elephant ######
     # 1.2.1.1) Upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
-    folder_local<-"G:/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
+    folder_local<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
     project<-era_projects$industrious_elephant_2023
     folder<-file.path(era_dirs$era_dataentry_dir,
                       project,
