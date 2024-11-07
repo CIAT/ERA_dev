@@ -107,8 +107,21 @@ if(F){
                        mode="public-read")
     
     # 1.2.1.2) Upload pdfs #####
+    
+    # 1.2.1.3) Upload imported data #####
+    folder_local<-era_dirs$era_masterdata_dir
+    s3_bucket<-era_dirs$era_masterdata_s3
+    
+    files<-list.files(folder_local,era_projects$industrious_elephant_2023,full.names = T,recursive=T)
+    files<-grep(".RData",files,value=T)
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
   # 1.2.2) 2022 skinny cow ######
-    # 1.2.2.1) excels #######
+    # 1.2.2.1) upload excels #######
     folder_local<-file.path("/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
     project<-era_projects$skinny_cow_2022
     folder<-file.path(era_dirs$era_dataentry_dir,
@@ -141,7 +154,7 @@ if(F){
                        overwrite=T,
                        mode="public-read")
     
-    # 1.2.2.2) imported data #######
+    # 1.2.2.2) upload imported data #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
