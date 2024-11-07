@@ -172,12 +172,14 @@ if(update){
     
     # Run future apply loop to read in data from each Excel file in parallel
     future.apply::future_lapply(1:nrow(excel_files), FUN = function(i) {
-      # Update the progress bar
-      p(sprintf("Processing file %d of %d: %s", i, nrow(excel_files), era_code))
       
       File <- excel_files$filename[i]
       era_code <- excel_files$era_code2[i]
       save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+      
+      # Update the progress bar
+      p(sprintf("Processing file %d of %d: %s", i, nrow(excel_files), era_code))
+
       
 
       if (overwrite == TRUE || !file.exists(save_name)) {
@@ -2270,7 +2272,7 @@ if(update){
     errors_b<-rbindlist(lapply(Res.Method,"[[","error"))
     Res.Method<-rbindlist(lapply(Res.Method,"[[","data"))
     
-    setname(Res.Method,"Times","Time")
+    setnames(Res.Method,"Times","Time")
     
     # Update Site.ID
     Res.Method[Site.ID!="All Sites",Site.ID_new:=Site.Out$Site.ID[match(Res.Method[Site.ID!="All Sites",Site.ID],Site.Out$Site.ID_raw)]  
@@ -2598,6 +2600,8 @@ if(update){
   
   errors_b<-rbindlist(lapply(Irrig.Method,"[[","errors"))
   Irrig.Method<-rbindlist(lapply(Irrig.Method,"[[","data")) 
+  
+  setnames(Irrig.Method,"Times","Time")
   
   # Update Site.ID
   Irrig.Method[Site.ID!="All Sites",Site.ID_new:=Site.Out$Site.ID[match(Irrig.Method[Site.ID!="All Sites",Site.ID],Site.Out$Site.ID_raw)]  
@@ -3314,16 +3318,13 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   
   ## 4.4) Combine aggregated treatments #####
   
-  ### NOTE this section differs substantially from import_majestic_hippo ####
-  ### Unclear why this differs from line 1972 in that script, fields T.Agg.Levels3 used in comparison script are not generated here ####
-  
   N<-grep("[.][.]",MT.Out$T.Name)
   
   Fields<-data.table(Levels=c("T.Residue.Prev",names(code_cols),"P.Level.Name","O.Level.Name","PD.Level.Name"),
                      Codes =c("T.Residue.Code",code_cols,NA,NA,NA))
   Fields[Levels %in% c("W.Level.Name","C.Level.Name"),Codes:=NA]
   
-    results<-pblapply(N,FUN=function(i){
+   results<-pblapply(N,FUN=function(i){
     if(F){
       # Display progress
       cat('\r', strrep(' ', 150), '\r')
@@ -3370,6 +3371,24 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
       Agg.Levels<-paste0(COLS[Levels],collapse = "-")
       
       COLS<-COLS[Levels]
+      
+      Agg.Levels2<-paste(apply(Y[,..COLS],1,FUN=function(X){
+        X[as.vector(is.na(X))]<-"NA"
+        paste(X,collapse="---")
+      }),collapse="...")
+      
+      if("F.Level.Name" %in% COLS){
+        
+        COLS2<-COLS
+        COLS2[COLS2=="F.Level.Name"]<-"F.Level.Name2"
+
+        Agg.Levels3<-paste(apply(Y[,..COLS2],1,FUN=function(X){
+          X[as.vector(is.na(X))]<-"NA"
+          paste(X,collapse="---")
+        }),collapse="...")
+      }else{
+        Agg.Levels3<-Agg.Levels2
+      }
       
       CODES.IN<-Fields1$Codes[Levels]
       CODES.IN<-CODES.IN[!is.na(CODES.IN)]
@@ -3426,6 +3445,8 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
       
       # Do not combine the Treatment names, keep this consistent with Enter.Data tab
       Y$T.Agg.Levels<-Agg.Levels
+      Y$T.Agg.Levels2<-Agg.Levels2
+      Y$T.Agg.Levels3<-Agg.Levels3
       Y$T.Codes.No.Agg<-CODES.OUT
       Y$T.Codes.Agg<-CODES.IN
       
@@ -3454,7 +3475,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   MT.Out.agg[,T.Codes:=T.Codes.No.Agg]
   
   MT.Out.noagg<-MT.Out[-N]
-  MT.Out.noagg[,c("T.Agg.Levels","T.Codes.No.Agg","T.Codes.Agg"):=NA]
+  MT.Out.noagg[,c("T.Agg.Levels","T.Agg.Levels2","T.Agg.Levels3","T.Codes.No.Agg","T.Codes.Agg"):=NA]
   
   MT.Out<-rbind(MT.Out.agg,MT.Out.noagg)
   
@@ -5581,6 +5602,7 @@ Prod.Out=Prod.Out,
 Var.Out=Var.Out,
 Till.Out=Till.Out,
 Plant.Out=Plant.Out,
+Plant.Method=Plant.Method,
 PD.Codes=PD.Codes,
 PD.Out=PD.Out,
 Fert.Out=Fert.Out,
