@@ -1,7 +1,6 @@
 tracking_file,n_B.Codes,n_B.Codes_pending,n_rows,nrow_pending
-excel_import_failures.csv,1058,1058,1058,1058
 enterdata_other_errors.csv,157,157,194,194
-site_other_errors.csv,146,144,149,147
+site_other_errors.csv,149,147,152,150
 soil_errors.csv,77,77,86,86
 treatment_duplicates.csv,87,63,87,63
 pH_other_errors.csv,59,59,59,59
