@@ -5562,11 +5562,11 @@ col_names<-colnames(data[[800]])
     
     grep("[.]Structure$",colnames(Data.Out),value=T)
     
-    Data.Out[P.Structure!="Yes",P.Structure:=NA][P.Structure=="Yes",P.Structure:=P.Level.Name]
-    Data.Out[PD.Structure!="Yes",P.Structure:=NA][PD.Structure=="Yes",PD.Structure:=PD.Level.Name]
-    Data.Out[O.Structure!="Yes",O.Structure:=NA][O.Structure=="Yes",O.Structure:=O.Level.Name]
-    Data.Out[W.Structure!="Yes",W.Structure:=NA][W.Structure=="Yes",W.Structure:=W.Level.Name]
-    Data.Out[C.Structure!="Yes",C.Structure:=NA][C.Structure=="Yes",C.Structure:=C.Level.Name]
+    Data.Out[P.Structure!="No",P.Structure:=NA][P.Structure=="No",P.Structure:=P.Level.Name]
+    Data.Out[PD.Structure!="No",P.Structure:=NA][PD.Structure=="No",PD.Structure:=PD.Level.Name]
+    Data.Out[O.Structure!="No",O.Structure:=NA][O.Structure=="No",O.Structure:=O.Level.Name]
+    Data.Out[W.Structure!="No",W.Structure:=NA][W.Structure=="No",W.Structure:=W.Level.Name]
+    Data.Out[C.Structure!="No",C.Structure:=NA][C.Structure=="No",C.Structure:=C.Level.Name]
     ### 8.5.17) Update monoculture and irrigation control codes ######
     Data.Out[is.na(IN.Level.Name) & is.na(R.Level.Name),
              T.Codes:=paste(sort(unique(c("h2",unlist(strsplit(T.Codes[1],"-"))))),collapse="-"),by=T.Codes]
