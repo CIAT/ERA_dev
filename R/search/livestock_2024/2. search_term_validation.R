@@ -42,7 +42,8 @@ search_history<-rbindlist(list(search_history,search_history_oa),use.names = T)
                                  ][,doi:=trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi))
                                    ][,title:=trimws(tolower(title))]
   
-  # 4.2) Check which dois are in openalex #####
+  # 4.2) Check which dois & titles are in openalex #####
+  # dois
   oa_dois<-data.table(oa_fetch(
     entity = "works",
     doi = search_manual[!is.na(doi),doi],
@@ -51,7 +52,7 @@ search_history<-rbindlist(list(search_history,search_history_oa),use.names = T)
      ][,list(doi,indexed_oa)
        ][,doi:=trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi))]
   
-  
+  # titles
   oa_titles<-rbindlist(lapply(1:nrow(search_manual),FUN=function(i){
       data<-data.table(oa_fetch(
         entity = "works",
