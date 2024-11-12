@@ -7,6 +7,7 @@ pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr)
 worker_n<-14
 
 # 1) Read in data ####
+  # 1.1) Load tables from era data model #####
 data_dir<-era_dirs$era_masterdata_dir
 data<-miceadds::load.Rdata2(filename=tail(list.files(data_dir,"industrious_elephant"),1),data_dir)
 
@@ -40,13 +41,14 @@ Soil.Out<-data$Soil.Out
 Times<-data$Times
 Var.Out<-data$Var.Out
 
+AF.Trees<-data$AF.Trees
 
 Rot.Seq2<-Rot.Seq[,list(Time=paste(Time,collapse="|||"),
                         Treatment=paste(R.Treatment,collapse="|||"),
                         Products=paste(R.Prod,collapse="|||")),by=ID]
 
 
-  # 1.1) Load era vocab #####
+  # 1.2) Load era vocab #####
 # Get names of all sheets in the workbook
 sheet_names <- readxl::excel_sheets(era_vocab_local)
 sheet_names <- sheet_names[!grepl("sheet|Sheet",sheet_names)]
@@ -2008,7 +2010,7 @@ TreeCodes<-master_codes$trees
   B<-Comparison.List$Sys.Int.vs.Mono
   B<-B[Level.Match==T][,Codes.Match:=NULL][,Level.Match:=NULL]
   COLS<-colnames(B)
-  COLS<-COLS[!grepl("Structure|ED.ComparisonI|IN.Agg.Levels3",COLS)]
+  COLS<-COLS[!grepl("Structure|ED.Comparison|IN.Agg.Levels3",COLS)]
   
   # Subset Int/Rot vs Mono to Match.Levels = T
   Comparison.List$Sys.Rot.vs.Mono<- Comparison.List$Sys.Rot.vs.Mono[Level.Match==T]
@@ -2028,21 +2030,31 @@ TreeCodes<-master_codes$trees
     # 2.6.1) Find studies that have no comparisons ######
     all_bcodes<-Data.Out[,unique(B.Code)] 
     no_match<-sort(all_bcodes[!all_bcodes %in% Comparisons[,unique(B.Code)]])
-    error_dat<-data.table(B.Code=no_match,value=NA,table=NA,field=NA,issue="Comparison logic does find any comparisons for this paper.")
+    
+    error_dat<-Plant.Out[B.Code %in% no_match,.(value=if(any(na.omit(P.Structure)=="No")){"Answer -No- is present in planting comparison row."}else{""}),by=B.Code]
+    error_dat<-rbind(data.table(B.Code=no_match[!no_match %in% error_dat$B.Code],value=""),error_dat)
+    
+    ç<-error_dat[order(value,B.Code)
+                ][!is.na(value),table:="Plant.Out"
+                  ][!is.na(value),field:="P.Structure"
+                    ][,issue:="Comparison logic does find any comparisons for this paper."]
+    
     error_list<-error_tracker(errors=error_dat,filename = "no_comparisons",error_dir=qaqc_dir,error_list = NULL)
+    
+    error_dat[value!="",.N]
     
     # 2.6.2) Save comparison logic file ######
     arrow::write_parquet(Comparisons,file.path(qaqc_dir,"comparison_results.parquet"))
     fwrite(Comparisons,file.path(qaqc_dir2,"comparison_results.csv"))
     
-# 4) Prepare Main Dataset ####
+# 3) Prepare Main Dataset ####
 Data<-Data.Out
-  # 4.1) Ignore Aggregated Observations for now ####
+  # 3.1) Ignore Aggregated Observations for now ####
   # Data<-Data.Out[-grep("[.][.][.]",T.Name2)]
-  # 4.2) Ignore outcomes aggregated over rot/int entire sequence or system ####
-  #Data<-Data[!is.na(ED.Treatment)]
+  # 3.2) Ignore outcomes aggregated over rot/int entire sequence or system ####
+  #Data<-Data[!is.na(T.Name)]
   
-  # 4.3) Combine all Practice Codes together & remove h-codes ####
+  # 3.3) Combine all Practice Codes together & remove h-codes ####
   Join.T<-function(A,B,C,D){
     X<-c(A,B,C,D)
     X<-unlist(strsplit(X,"-"))
@@ -2055,16 +2067,16 @@ Data<-Data.Out
   Data[,Final.Codes:=X$Final.Codes]
   
   # Intercrop System
-  X<-Data[is.na(ED.Treatment) & !is.na(ED.Int),list(Final.Codes=Join.T(IN.T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
-  Data[is.na(ED.Treatment) & !is.na(ED.Int),Final.Codes:=X$Final.Codes]
+  X<-Data[is.na(T.Name) & !is.na(IN.Level.Name),list(Final.Codes=Join.T(IN.T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
+  Data[is.na(T.Name) & !is.na(IN.Level.Name),Final.Codes:=X$Final.Codes]
   
   # Rotation System
-  X<-Data[is.na(ED.Treatment) & is.na(ED.Int) & !is.na(ED.Rot),list(Final.Codes=Join.T(R.T.Codes.Sys,R.IN.Codes.Sys,R.Res.Codes.Sys,R.Code)),by="N"]
-  Data[is.na(ED.Treatment) & is.na(ED.Int) & !is.na(ED.Rot),Final.Codes:=X$Final.Codes]
+  X<-Data[is.na(T.Name) & is.na(IN.Level.Name) & !is.na(R.Level.Name),list(Final.Codes=Join.T(R.T.Codes.Sys,R.IN.Codes.Sys,R.Res.Codes.Sys,R.Code)),by="N"]
+  Data[is.na(T.Name) & is.na(IN.Level.Name) & !is.na(R.Level.Name),Final.Codes:=X$Final.Codes]
   
   rm(X)
   
-  # 4.4) Add filler cols ####
+  # 3.4) Add filler cols ####
   
   Data$LatM<-NA # All values converted to DD in excel
   Data$LatS<-NA # All values converted to DD in excel
@@ -2079,8 +2091,8 @@ Data<-Data.Out
   Data[,USD2010.C:=NA] # TO DO: Needs function to calculate this automatically
   Data[,MeanFlip:=NA] # Not sure what this is for, but all values in the Master dataset seem to say N
   
-  # 4.5) MSP & MAT ####
-  Data[,Season:=unlist(lapply(strsplit(Data[,ED.M.Year],"[.][.]"),FUN=function(X){
+  # 3.5) MSP & MAT ####
+  Data[,Season:=unlist(lapply(strsplit(Data[,Time],"[.][.]"),FUN=function(X){
     X<-unlist(strsplit(X,"[.]"))
     if(all(is.na(X))|is.null(X)){
       NA
@@ -2097,46 +2109,58 @@ Data<-Data.Out
   Data[Season==1 | is.na(Season),MSP:=Site.MSP.S1]
   Data[Season==2 | is.na(Season),MSP:=Site.MSP.S2]
   
-  # 4.6) Soils ####
+  # 3.6) Soils ####
   #Soil.Out$Soil.pH.Method<-NA # Bug in Excels that needs fixing
   Soil.Out[,Depth.Interval:=Soil.Upper-Soil.Lower]
+  Soil.Out[variable=="Soil.pH",Soil.pH.Method:=Method]
+  Soil.Out[variable=="Soil.SOC",Soil.SOC.Unit:=Unit]
+  Soil.Out<-dcast(Soil.Out[,!c("Method","Unit")],B.Code+Site.ID+Soil.Upper+Soil.Lower+Depth.Interval+Soil.pH.Method+Soil.SOC.Unit~variable,value.var = "value")
+  
   Soil.Out[Depth.Interval==0,Depth.Interval:=1]
-  X<-Soil.Out[,list(SOC=round(weighted.mean(Soil.SOC,Depth.Interval,na.rm=T),2),Lower=max(Soil.Lower),Upper=min(Soil.Upper),SOC.Unit=unique(Soil.SOC.Unit),
-                    Soil.pH=round(weighted.mean(Soil.pH,Depth.Interval,na.rm=T),2),Soil.pH.Method=unique(Soil.pH.Method)),by=c("B.Code","Site.ID")]
-  Y<-Soil.Out[Soil.Lower<=50,list(SOC=round(weighted.mean(Soil.SOC,Depth.Interval,na.rm=T),2),Soil.pH=round(weighted.mean(Soil.pH,Depth.Interval,na.rm=T),2),
-                                  Lower=max(Soil.Lower),Upper=min(Soil.Upper)),by=c("B.Code","Site.ID")]
-  X[match(Y[,paste(B.Code,Site.ID)],paste(B.Code,Site.ID)),SOC:=Y[,SOC]]
-  X[match(Y[,paste(B.Code,Site.ID)],paste(B.Code,Site.ID)),Soil.pH:=Y[,Soil.pH]]
-  X[match(Y[,paste(B.Code,Site.ID)],paste(B.Code,Site.ID)),Upper:=Y[,Upper]]
-  X[match(Y[,paste(B.Code,Site.ID)],paste(B.Code,Site.ID)),Lower:=Y[,Lower]]
+  X<-Soil.Out[,list(SOC=round(weighted.mean(Soil.SOC,Depth.Interval,na.rm=T),2),
+                    Lower=max(Soil.Lower),
+                    Upper=min(Soil.Upper),
+                    SOC.Unit=unique(Soil.SOC.Unit),
+                    Soil.pH=round(weighted.mean(Soil.pH,Depth.Interval,na.rm=T),2),
+                    Soil.pH.Method=unique(Soil.pH.Method)),by=c("B.Code","Site.ID")]
+  Y<-Soil.Out[Soil.Lower<=50,list(SOC=round(weighted.mean(Soil.SOC,Depth.Interval,na.rm=T),2),
+                                  Soil.pH=round(weighted.mean(Soil.pH,Depth.Interval,na.rm=T),2),
+                                  Lower=max(Soil.Lower),
+                                  Upper=min(Soil.Upper)),by=c("B.Code","Site.ID")]
+  
+  N<-X[,match(Y[,paste(B.Code,Site.ID)],paste(B.Code,Site.ID))]
+  
+  X[N,SOC:=Y[,SOC]]
+  X[N,Soil.pH:=Y[,Soil.pH]]
+  X[N,Upper:=Y[,Upper]]
+  X[N,Lower:=Y[,Lower]]
   N.Match<-match(Data[,paste(B.Code,Site.ID)],X[,paste(B.Code,Site.ID)])
   Data[,SOC:=X[N.Match,SOC]]
   Data[,SOC.Depth:=X[,(Lower+Upper)/2][N.Match]]
   Data[,SOC.Unit:=X[N.Match,SOC.Unit]]
   Data[,Soil.pH:=X[N.Match,Soil.pH]]
   Data[,Soil.pH.Method:=X[N.Match,Soil.pH.Method]]
-  rm(N.Match,X,Y)
   
-  # 4.7.1) Update treatment names for intercrop and rotation ####
+  # 3.7) Update treatment names for intercrop and rotation ####
   
   # Component of Intercrop without rotation
-  Data[!is.na(ED.Treatment) & !is.na(ED.Int) & is.na(ED.Rot),ED.Treatment:=paste0(ED.Treatment,">>",ED.Int)]
+  Data[!is.na(T.Name) & !is.na(IN.Level.Name) & is.na(R.Level.Name),T.Name:=paste0(T.Name,">>",IN.Level.Name)]
   # Component of Rotation without Intercrop
-  Data[!is.na(ED.Treatment) & is.na(ED.Int) & !is.na(ED.Rot),ED.Treatment:=paste0(ED.Treatment,"<<",ED.Rot)]
+  Data[!is.na(T.Name) & is.na(IN.Level.Name) & !is.na(R.Level.Name),T.Name:=paste0(T.Name,"<<",R.Level.Name)]
   # Component of Intercrop in Rotation
-  Data[!is.na(ED.Treatment) & !is.na(ED.Int) & !is.na(ED.Rot),ED.Treatment:=paste0(ED.Treatment,">>",ED.Int,"<<",ED.Rot)]
+  Data[!is.na(T.Name) & !is.na(IN.Level.Name) & !is.na(R.Level.Name),T.Name:=paste0(T.Name,">>",IN.Level.Name,"<<",R.Level.Name)]
   
   # Intercrop only
-  Data[is.na(ED.Treatment) & !is.na(ED.Int) & is.na(ED.Rot),ED.Treatment:=ED.Int]
+  Data[is.na(T.Name) & !is.na(IN.Level.Name) & is.na(R.Level.Name),T.Name:=IN.Level.Name]
   # Rotation only
-  Data[is.na(ED.Treatment) & is.na(ED.Int) & !is.na(ED.Rot),ED.Treatment:=ED.Rot]
+  Data[is.na(T.Name) & is.na(IN.Level.Name) & !is.na(R.Level.Name),T.Name:=R.Level.Name]
   # Intercrop part of rotation 
-  Data[is.na(ED.Treatment) & !is.na(ED.Int) & !is.na(ED.Rot),ED.Treatment:=paste0(ED.Int,"<<",ED.Rot)]
+  Data[is.na(T.Name) & !is.na(IN.Level.Name) & !is.na(R.Level.Name),T.Name:=paste0(IN.Level.Name,"<<",R.Level.Name)]
   
-  # 4.7.2) Create TID code ####
-  Data[,TID:=paste0("T",as.numeric(as.factor(ED.Treatment))),by="B.Code"]
+  # 3.8) Create TID code ####
+  Data[,TID:=paste0("T",as.numeric(as.factor(T.Name))),by="B.Code"]
   
-  # 4.8) Make "C1:Cmax" & Add Base Codes ####
+  # 3.9) Make "C1:Cmax" & Add Base Codes ####
   Data[,Base.Codes:=strsplit(Base.Codes,"-")]
   Join.Fun<-function(X,Y){
     X<-unique(c(unlist(X),unlist(Y)))
@@ -2157,30 +2181,31 @@ Data<-Data.Out
   
   # TO DO - Which studies have >11 practices - Consider simplifying residues codes when Int/Rot are present (as per Basic Comparisons)
   Data[apply(X,1,FUN=function(Y){sum(!is.na(Y))})>10]
+  Data[apply(X,1,FUN=function(Y){sum(!is.na(Y))})>13]
   
   if(!"C10" %in%colnames(Data)){
     Data[,C10:=NA]
   }
   
-    # 4.8.1) How many C columns are there? ####
+    # 3.9.1) How many C columns are there? ####
   NCols<-sum(paste0("C",1:30) %in% colnames(Data))
   
-  # 4.9) Add Rotation Seq & Intercropping Species ####
+  # 3.10) Add Rotation Seq & Intercropping Species ####
   N.R<-match(paste0(Data$B.Code,Data$R.Level.Name),paste0(Rot.Seq.Summ$B.Code,Rot.Seq.Summ$R.Level.Name))
-  Data[,R.Seq:=Rot.Seq.Summ[N.R,Seq]]
-  rm(N.R)
+  Data[,R.Seq:=Rot.Seq.Summ[N.R,R.Prod.Seq]]
+
   # Intercropping
-  N.I<-match(Data[is.na(R.Seq),paste0(B.Code,ED.Int)],paste0(Int.Out$B.Code,Int.Out$IN.Level.Name))
+  N.I<-match(Data[is.na(R.Seq),paste0(B.Code,IN.Level.Name)],paste0(Int.Out$B.Code,Int.Out$IN.Level.Name))
   Data[is.na(R.Seq),R.Seq:=Int.Out[N.I,IN.Prod]]
-  rm(N.I)
+
   # Reformat sequence
   Data[,R.Seq:=gsub("[*][*][*]","-",R.Seq)][,R.Seq:=gsub("[|][|][|]","/",R.Seq)]
   
-  # 4.10) Add in Trees ####
+  # 3.11) Add in Trees ####
   # Trees in rotation sequence
-  X<-Rot.Out[,list(P.List=unlist(strsplit(R.Prod.Seq,"[|][|][|]"))),by=N]
-  X<-X[,list(P.List=list(unlist(strsplit(unlist(P.List),"[.][.]")))),by=N]
-  Rot.Out[,Trees:=lapply(X$P.List,FUN=function(X){
+  X<-Rot.Out[,N:=1:.N][,.(P.List=unlist(strsplit(R.Prod.Seq,"[|][|][|]"))),by=N]
+  X<-X[,list(P.List=list(unlist(strsplit(unlist(P.List),"[*][*][*]")))),by=N]
+  X<-X[,.(Trees=lapply(P.List,FUN=function(X){
     X<-unlist(X)
     Y<-unique(X[X %in% TreeCodes$Product.Simple])
     Y<-c(Y,unique(X[X %in% EUCodes[Tree=="Yes",Product.Simple]]))
@@ -2189,9 +2214,13 @@ Data<-Data.Out
     if(length(Y)==0){
       NA
     }else{
-      Y
+      paste(sort(unique(Y)),collapse="-")
     }
-  })]
+  })),by=N]
+  n_missing<-Rot.Out[!N %in% X[,N],N]
+  X<-rbind(X,data.table(N=n_missing,Trees=NA))[order(N)]
+  Rot.Out[,Trees:=X$Trees]
+  
   
   # Trees in intercropping
   X<-Int.Out[,list(P.List=unlist(strsplit(IN.Prod,"[*][*][*]"))),by=N]
@@ -2210,13 +2239,13 @@ Data<-Data.Out
   })]
   
   # Add Trees to Data
-  X<-match(Data[,paste(B.Code,ED.Int)],Int.Out[,paste(B.Code,IN.Level.Name)])
+  X<-match(Data[,paste(B.Code,IN.Level.Name)],Int.Out[,paste(B.Code,IN.Level.Name)])
   Data[!is.na(X),Int.Tree:=Int.Out[X[!is.na(X)],Trees]]
   
-  X<-match(Data[,paste(B.Code,ED.Rot)],Rot.Out[,paste(B.Code,R.Level.Name)])
+  X<-match(Data[,paste(B.Code,R.Level.Name)],Rot.Out[,paste(B.Code,R.Level.Name)])
   Data[!is.na(X),Rot.Tree:=Rot.Out[X[!is.na(X)],Trees]]
-  
-  Y<-AF.Out[,list(Trees=list(AF.Tree[!is.na(AF.Tree)])),by=c("AF.Level.Name","B.Code")]
+
+  Y<-AF.Trees[,list(Trees=list(AF.Tree[!is.na(AF.Tree)])),by=c("AF.Level.Name","B.Code")]
   Y<-Y[,list(Trees=if(length(unlist(Trees))==0){as.character(NA)}else{unlist(Trees)}),by=c("AF.Level.Name","B.Code")]
   X<-match(Data[,paste(B.Code,AF.Level.Name)],Y[,paste(B.Code,AF.Level.Name)])
   Data[!is.na(X),AF.Tree:=Y[X[!is.na(X)],Trees]]
@@ -2226,205 +2255,24 @@ Data<-Data.Out
   X[,Trees:=paste0(unlist(Trees),collapse="-"),by=N]
   
   Data[,Tree:=X[,Trees]][,Tree:=unlist(Tree)]
-  rm(X,Y)
-  # 4.11) M.Year/Season - Translate to old system or code start/end year and season ####
+  
+  # 3.12) M.Year/Season - Translate to old system or code start/end year and season ####
   # We have some instances of 2000-2020 and some of ".." and some of "-5" between seasons
+  setnames(Data,
+           c("Time","Time.Start.Year","Time.End.Year","Time.Season.Start","Time.Season.End"),
+           c("M.Year","M.Year.Start","M.Year.End","M.Season.Start","M.Season.End"))
+
+  # Variable from majestic hippo, probably redundant
+  Data[,Max.Season:=NA]
   
-  Data[,M.Year:=gsub("..",".",ED.M.Year,fixed=T)]
-  Data[,M.Year:=gsub("-5","",M.Year)]
-  Data[,M.Year:=gsub("-",".",M.Year)]
-  
-  M.Year.Fun<-function(M.Year){
-    X<-unlist(strsplit(M.Year,"[.]"))
-    if(length(X)>4 & nchar(X[1])==4 & nchar(X[2])==1){
-      X<-paste0(c(X[1],X[2],X[(length(X)-1)],X[length(X)]),collapse = ".")
-    }else{
-      if(length(X)>1 & nchar(X[1])==4 & nchar(X[2])==4){
-        X<-paste0(c(X[1],X[length(X)]),collapse = ".")
-      }else{
-        X<-paste0(X,collapse=".")
-      }
-    }
-    
-    return(X)
-  }
-  
-  Data[,M.Year:=M.Year.Fun(M.Year),by=N]
-  
-  rm(M.Year.Fun)
-  
-  M.Start.Fun<-function(M.Year){
-    X<-unlist(strsplit(M.Year,"[.]"))
-    X<-as.integer(X[1])
-    return(X)
-  }
-  Data[,M.Year.Start:=M.Start.Fun(M.Year),by=N]
-  
-  rm(M.Start.Fun)
-  
-  M.End.Fun<-function(M.Year){
-    X<-unlist(strsplit(M.Year,"[.]"))
-    X<-X[nchar(X)==4]
-    X<-as.integer(X[length(X)])
-    return(X)
-  }
-  
-  Data[,M.Year.End:=M.End.Fun(M.Year),by=N]
-  
-  rm(M.End.Fun)
-  
-  M.S.Start.Fun<-function(M.Year){
-    X<-unlist(strsplit(M.Year,"[.]"))
-    X<-X[nchar(X)==1]
-    X<-as.integer(X[1])
-    return(X)
-  }
-  
-  Data[,M.Season.Start:=M.S.Start.Fun(M.Year),by=N]
-  
-  rm(M.S.Start.Fun)
-  
-  M.S.End.Fun<-function(M.Year){
-    X<-unlist(strsplit(M.Year,"[.]"))
-    X<-X[nchar(X)==1]
-    X<-as.integer(X[length(X)])
-    return(X)
-  }
-  
-  Data[,M.Season.End:=M.S.End.Fun(M.Year),by=N]
-  
-  rm(M.S.End.Fun)
-  
-  Data[,Max.Season:=max(M.Season.Start),by=c("B.Code","Site.ID")]
-  
-  # 4.12) Add Duration ####
-    # 4.12.1) Update start season ####
-    # If start season is unknown but 2 seasons are present in the same year then the start season should be 1
-    
-    Updates.SS<-function(M.Season.End,Max.Season,M.Year.End,Final.Start.Year.Code){
-      M.Season.End<-M.Season.End[1]
-      Max.Season<-Max.Season[1]
-      M.Year.End<-M.Year.End[1]
-      Final.Start.Year.Code<-Final.Start.Year.Code[1]
-      X<-NA
-      if(is.na(Final.Start.Year.Code)|is.na(M.Year.End)|is.na(M.Year.End)){Final.Start.Year.Code}else{
-        N<-M.Year.End==Final.Start.Year.Code[1]
-        if(sum(N)>1 & unique(Max.Season)==2){
-          M.Season.End<-M.Season.End[N]
-          if(all(c(1,2) %in% M.Season.End)){
-            X<-1
-          }}
-        return(X)
-      }
-    }
-    
-    # Here are assuming that all aspects of a Treatment within a Site & Study start at the same time.
-    Data[is.na(Final.Start.Season.Code),
-         Final.Start.Season.Code:=Updates.SS(M.Season.End,Max.Season,M.Year.End,Final.Start.Year.Code),
-         by=list(ED.Site.ID, ED.Treatment, B.Code, Country, Final.Start.Year.Code)]
-    
-    
-    # 4.12.2) Calculate duration  ####
-    Dur.Fun<-function(M.Year.Start,M.Year.End,M.Season.Start,M.Season.End,Max.Season,Final.Start.Year.Code,Final.Start.Season.Code){
-      
-      M.Season<-mean(c(M.Season.Start,M.Season.End))
-      M.Year<-mean(c(M.Year.Start,M.Year.End))
-      
-      A<-M.Year-suppressWarnings(as.numeric(Final.Start.Year.Code))
-      B<-(M.Season-suppressWarnings(as.numeric(Final.Start.Season.Code))*(M.Season/Max.Season))
-      
-      if(is.na(A) & is.na(B)){
-        C<-NA
-      }else{
-        
-        if(is.na(B) & !is.na(A)){
-          C<-A
-        }
-        
-        if(!is.na(A) & !is.na(B)){
-          C<-A+B
-        }
-        
-        if(is.na(Max.Season)){Max.Season<-1}
-        
-        # If bimodal system first division = 0.5
-        if(C==0 & Max.Season==2){
-          C<-0.5
-        }
-        
-        # If unimodal system first division = 1
-        if(C==0 & Max.Season==1){
-          C<-1
-        }
-      }
-      
-      return(round(C,2))
-    }
-    
-    Data[,Duration:=Dur.Fun(M.Year.Start,M.Year.End,M.Season.Start,M.Season.End,Max.Season,Final.Start.Year.Code,Final.Start.Season.Code),by=N]
-    
-    rm(Dur.Fun)
-    
-    # 4.12.3) Calculate duration for animal or postharvest experiments ####
-    Data[,ED.Plant.Start:=as.numeric(as.character(ED.Plant.Start))]
-    Data[,ED.Plant.End:=as.numeric(as.character(ED.Plant.End))]
-    Data[,ED.Harvest.Start:=as.numeric(as.character(ED.Harvest.Start))]
-    Data[,ED.Harvest.End:=as.numeric(as.character(ED.Harvest.End))]
-    Data[,ED.Sample.Start:=as.numeric(as.character(ED.Sample.Start))]
-    Data[,ED.Sample.End:=as.numeric(as.character(ED.Sample.End))]
-    Data[,ED.Sample.DAS:=as.numeric(as.character(ED.Sample.DAS))]
-    
-    Data[is.na(Duration) & (!is.na(A.Level.Name)|!is.na(V.Animal.Practice)),Duration:=round(((ED.Harvest.Start+ED.Harvest.End)/2-(ED.Plant.Start+ED.Plant.End)/2)/365,3)]
-    Data[is.na(Duration) & (!is.na(A.Level.Name)|!is.na(V.Animal.Practice)),Duration:=round(ED.Sample.DAS/365,3)]
-    
-    Data[is.na(Duration) & !is.na(PO.Level.Name),Duration:=round(((ED.Harvest.Start+ED.Harvest.End)/2-(ED.Plant.Start+ED.Plant.End)/2)/365,3)]
-    Data[is.na(Duration) & !is.na(PO.Level.Name),Duration:=round(ED.Sample.DAS/365,3)]
-    
-    if(F){
-      Data[Out.Code %in% c(209,209.1,212),list(B.Code,ED.Plant.Start,ED.Plant.End,ED.Harvest.Start,ED.Sample.Start,ED.Sample.End,ED.Sample.DAS,Duration)]
-      write.table(Data[is.na(Duration) & (!is.na(A.Level.Name)|!is.na(V.Animal.Practice)),unique(B.Code)],"clipboard",row.names = F,sep="\t")
-      write.table(Data[is.na(Duration) & !is.na(PO.Level.Name),unique(B.Code)],"clipboard",row.names = F,sep="\t")
-    }
-    # 4.12.4) Duration: Validation checks ####
-    # 1) Observation date before start of experiment
-    Negative.Duration<-unique(Data[Duration<0,c("B.Code","Duration","Final.Start.Year.Code","Final.Start.Season.Code","ED.M.Year")])
-    if(nrow(Negative.Duration)>0){
-      View(Negative.Duration)
-    }
-    rm(Negative.Duration)
-    
-    # 2) Start Date is NA but reporting year is not
-    
-    NA.Duration<-unique(Data[is.na(Duration) & !is.na(ED.M.Year) & !ED.Ratio.Control==T,c("B.Code","ED.Treatment","ED.Rot","ED.Int","Final.Start.Year.Code","Final.Start.Season.Code","M.Year","Duration","M.Year.Start","M.Year.End","M.Season.Start","M.Season.End","Max.Season")])
-    if(nrow(NA.Duration)>0){
-      View(NA.Duration)
-      write.table(NA.Duration,"clipboard-256000",row.names=F,sep="\t")
-    }
-    rm(NA.Duration)
-    
-  # 4.13) EUs: Remove agroforestry tree codes (t) & change delimiters ####
-  
-  Rm.T<-function(A,Delim){
-    A<-unlist(strsplit(A,Delim,fixed = T))
-    A<-A[!grepl("t",A)]
-    if(length(A)==0){
-      NA
-    }else{
-      paste(A[order(A)],collapse = Delim)
-    }
-  }
-  
-  Data[,EU:=Rm.T(EU,"**"),by=N]
-  
+  # 3.13) Rename Duration ####
+  setnames(Data,"Exp.Duration","Duration")
+
+  # 3.14) EUs: change delimiters ####
   Data[,EU:=gsub("**",".",EU,fixed = T)]
-  unique(Data[grep("..",ED.Product.Simple,fixed = T),c("ED.Product.Simple","EU")])
-  
-  # 4.14) Animal Diet Source ####
-  X<-Animals.Diet[,list(Source=unique(D.Source)),by=c("B.Code","A.Level.Name")]
-  NX<-match(Data[,paste(B.Code,A.Level.Name)],X[,paste(B.Code,A.Level.Name)])
-  Data[,Feed.Source:=X[NX,Source]]
-  rm(X,NX)
-  # 4.15) TSP & TAP ####
+
+  # 3.15) TSP & TAP ####
+  # PICK UP HERE !!!! ####
   NX<-match(Data[,paste(B.Code,ED.Site.ID,M.Year)],Times[,paste(B.Code,Site.ID,Time)])
   Data[,TSP:=Times[NX,TSP]]
   Data[,TAP:=Times[NX,TAP]]
@@ -2520,8 +2368,8 @@ Data<-Data.Out
 
 Knit.V1<-function(Control.N,Control.For,Data,Mulch,Analysis.Function,NCols){
   
-  C.Descrip.Col<-"ED.Treatment"
-  T.Descrip.Col<-"ED.Treatment"
+  C.Descrip.Col<-"T.Name"
+  T.Descrip.Col<-"T.Name"
   
   
   Control.N<-as.numeric(Control.N)
@@ -2584,7 +2432,7 @@ stopCluster(cl)
 
 
   # 5.1.1) Add in outcomes that are ratios of Trt/Cont already ####
-  Data.R<-Data[(!is.na(ED.Comparison) & !is.na(ED.Treatment)) & Out.Subind!="Land Equivalent Ratio",c("ED.Treatment","ED.Int","ED.Rot","ED.Comparison","B.Code","N","ED.Outcome")]
+  Data.R<-Data[(!is.na(ED.Comparison) & !is.na(T.Name)) & Out.Subind!="Land Equivalent Ratio",c("T.Name","IN.Level.Name","R.Level.Name","ED.Comparison","B.Code","N","ED.Outcome")]
   
   
   # Use this to check outcomes are appropriate
@@ -2593,33 +2441,33 @@ stopCluster(cl)
   }
   
   # Outcomes where the Treatment and Control are the same
-  Data.R<-Data.R[!(ED.Treatment==ED.Comparison)]
+  Data.R<-Data.R[!(T.Name==ED.Comparison)]
   
-  # Check & remove entries where ED.Treatment == ED.Comparison
-  if(nrow(Data.R[ED.Treatment==ED.Comparison])>0){
-    View(Data.R[ED.Treatment==ED.Comparison])
+  # Check & remove entries where T.Name == ED.Comparison
+  if(nrow(Data.R[T.Name==ED.Comparison])>0){
+    View(Data.R[T.Name==ED.Comparison])
   }
   
-  Data.R<-Data.R[ED.Treatment!=ED.Comparison]
+  Data.R<-Data.R[T.Name!=ED.Comparison]
   
   # Hack to fix DK0056 issue where the comparison is a different rotation sequence
-  N<-Data[B.Code=="DK0056",stringr::str_count(ED.Treatment,"<<")]
-  X<-unlist(lapply(strsplit(Data[B.Code=="DK0056",ED.Treatment][N>1],"<<"),FUN=function(X){
+  N<-Data[B.Code=="DK0056",stringr::str_count(T.Name,"<<")]
+  X<-unlist(lapply(strsplit(Data[B.Code=="DK0056",T.Name][N>1],"<<"),FUN=function(X){
     paste(c(X[1],X[2]),collapse="<<")
   }))
   
   
-  Data[B.Code=="DK0056",Temp:=stringr::str_count(ED.Treatment,"<<")>1]
-  Data[B.Code=="DK0056" & Temp==T,ED.Treatment:=X]
+  Data[B.Code=="DK0056",Temp:=stringr::str_count(T.Name,"<<")>1]
+  Data[B.Code=="DK0056" & Temp==T,T.Name:=X]
   
-  Data[B.Code=="DK0056",ED.Treatment]
+  Data[B.Code=="DK0056",T.Name]
   
   
   # Need to add in Analysis Function
   Verbose=T
   ERA.Reformatted.Ratios<-rbindlist(pblapply(1:nrow(Data.R),FUN = function(i){
     if(Verbose){print(paste(Data.R[i,paste(B.Code,N)]," i = ",i))}
-    Control.N<-Data[match(Data.R[i,paste(B.Code,ED.Comparison)],Data[,paste(B.Code,ED.Treatment)]),N][1]
+    Control.N<-Data[match(Data.R[i,paste(B.Code,ED.Comparison)],Data[,paste(B.Code,T.Name)]),N][1]
     
     if(is.na(Control.N)|length(Control.N)==0){
       print(paste0("No Match - ",Data.R[i,paste(B.Code,N)]," | i = ",i))
@@ -2629,9 +2477,9 @@ stopCluster(cl)
       
       AF<-"Simple"
       
-      A<-Data[c(Control.N,Control.For),is.na(ED.Treatment)]
+      A<-Data[c(Control.N,Control.For),is.na(T.Name)]
       if(any(A)){
-        B<-Data[c(Control.N,Control.For),is.na(ED.Int)]
+        B<-Data[c(Control.N,Control.For),is.na(IN.Level.Name)]
         if(any(B)){
           if(sum(B)==2){
             AF<-"Sys.Int.vs.Int"
@@ -2639,7 +2487,7 @@ stopCluster(cl)
             AF<-"Sys.Int.vs.Mono"
           }
         }else{
-          C<-Data[c(Control.N,Control.For),is.na(ED.Rot)]
+          C<-Data[c(Control.N,Control.For),is.na(R.Level.Name)]
           if(sum(C)==2){
             AF<-"Sys.Rot.vs.Rot"
           }else{
@@ -2684,7 +2532,7 @@ stopCluster(cl)
   # Generate comparison by removing diversification components
   
   Data.R<-Data[Out.Code==103,]
-  Data.R<-Data.R[!grepl("sole",ED.Treatment)]
+  Data.R<-Data.R[!grepl("sole",T.Name)]
   Data.R[,N:=1:.N]
   Data.R[is.na(T.Name2),T.Name2:=IN.Level.Name2]
   Data.R[is.na(T.Name2),T.Name2:=R.Level.Name]
@@ -2701,12 +2549,12 @@ stopCluster(cl)
     X<-Data.R.Cont[i,paste0("C",1:10)]
     
     if("h2" %in% X){
-      print(paste("Error - h2 present:",paste(Data.R.Cont[i,c("ED.Treatment","ED.Int","ED.Rot","B.Code")],collapse = "-")))
+      print(paste("Error - h2 present:",paste(Data.R.Cont[i,c("T.Name","IN.Level.Name","R.Level.Name","B.Code")],collapse = "-")))
     }
     N<-which(X %in% Div.Codes)
     
     if(length(N) == 0){
-      print(paste("Error - no diversification present:",i,"-",paste(Data.R.Cont[i,c("ED.Treatment","ED.Int","ED.Rot","B.Code")],collapse = "-")))
+      print(paste("Error - no diversification present:",i,"-",paste(Data.R.Cont[i,c("T.Name","IN.Level.Name","R.Level.Name","B.Code")],collapse = "-")))
     }else{
       
       X[N[1]]<-"h2"
@@ -2750,9 +2598,9 @@ stopCluster(cl)
     
     AF<-"Simple"
     
-    A<-Data2[c(Control.N,Control.For),is.na(ED.Treatment)]
+    A<-Data2[c(Control.N,Control.For),is.na(T.Name)]
     if(any(A)){
-      B<-Data[c(Control.N,Control.For),is.na(ED.Int)]
+      B<-Data[c(Control.N,Control.For),is.na(IN.Level.Name)]
       if(any(B)){
         if(sum(B)==2){
           AF<-"Sys.Int.vs.Int"
@@ -2760,7 +2608,7 @@ stopCluster(cl)
           AF<-"Sys.Int.vs.Mono"
         }
       }else{
-        C<-Data[c(Control.N,Control.For),is.na(ED.Rot)]
+        C<-Data[c(Control.N,Control.For),is.na(R.Level.Name)]
         if(sum(C)==2){
           AF<-"Sys.Rot.vs.Rot"
         }else{
