@@ -478,6 +478,8 @@ if(update){
     
     results<-validator(data=Times.Out,
                        unique_cols = c("Time"),
+                       numeric_cols = c("Time.Start.Year","Time.End.Year"),
+                       ignore_values = c("Unspecified","unspecified","UnspecifiedTime"),
                        tabname="Times.Out",
                        duplicate_field="Time",
                        duplicate_ignore_fields=colnames(Times.Out)[!colnames(Times.Out) %in% c("Time","B.Code")],
@@ -497,7 +499,30 @@ if(update){
                                 ][,issue:="Character values for year start or end. Please convert unknown years to 9999.1, 9999.2, etc. conveying the ascending temporal sequence."
                                   ][order(B.Code)]
     
+    # Years should be integer values
+    Times.Out[,Time.Start.Year:=as.integer(Time.Start.Year)][,Time.End.Year:=as.integer(Time.End.Year)]
+    
     Times.Out[,c("Time.Start.Year","Time.End.Year"):=.(as.numeric(Time.Start.Year),as.numeric(Time.End.Year))]
+  
+    # Check for incorrect use of season field (should be something simple like dry/wet and not include the year)
+    
+    # Remove season if it the same as the Time
+    Times.Out[Time.Season==Time.Start.Year,Time.Season:=NA]
+    
+    errors7<-Times.Out[grep(paste(seq(1960,2024,1),collapse="|"),Time.Season),.(B.Code,Time.Season)]
+    errors7<-errors7[,.(value=paste0(unique(Time.Season),collapse = "/")),by=B.Code
+                     ][,table:="Time.Out"
+                       ][,field:="Time.Season"
+                         ][,issue:="Season conflated with year (e.g. 2020 SR instead of SR)"
+                           ][order(B.Code)]
+    
+    errors8<-Times.Out[Time.Start.Year<1930|Time.End.Year<1930,.(value=paste0(unique(Time.Start.Year),collapse = "/")),by=B.Code
+    ][,table:="Time.Out"
+    ][,field:="Time.Start.Year"
+    ][,issue:="Start year is less than 1930."
+    ][order(B.Code)]
+    
+    Times.Out[Time.Start.Year<1930|Time.End.Year<1930,c("Time.Start.Year","Time.End.Year"):=NA]
     
       #### 3.3.1.1) Enforce time ordering ######
     # An oversight in the extraction protocol means that times were not necessarily entered in order
@@ -529,6 +554,7 @@ if(update){
     
     # Add seq number to Times.Out
     Times.Out[,N:=NULL][,seq_n:=1:.N,by=B.Code]
+
     
     ### 3.3.2) Times.Clim ###### 
     col_names2<-col_names[7:14]
@@ -601,7 +627,7 @@ if(update){
     errors[,Time:=as.numeric(Time)]
     error_list<-error_tracker(errors=errors,filename = "time_climate_errors",error_dir=error_dir,error_list = error_list)
     
-    error_list<-error_tracker(errors=rbindlist(list(errors4,errors5,errors6),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
+    error_list<-error_tracker(errors=rbindlist(list(errors4,errors5,errors6,errors7,errors8),fill=T),filename = "time_other_errors",error_dir=error_dir,error_list = error_list)
     error_list<-error_tracker(errors=errors6,filename = "time_order_check",error_dir=error_dir,error_list = error_list)
     
   ## 3.4) Soil (Soil.Out) #####
@@ -5469,6 +5495,190 @@ col_names<-colnames(data[[800]])
       
       Data.Out<-merge(Data.Out,unique(Times.Clim[!is.na(Site.ID) & !is.na(Time)]),by=c("B.Code","Site.ID","Time"),all.x=T,sort=F)
       stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
+      #### 8.4.12.1) Update aggregated times #######
+      Data.Out[!is.na(Time.Season),c("Time.Season.Start","Time.Season.End"):=Time.Season]
+      
+      # Create function to split aggregate times and extract start and end for years and seasons
+      agg_time_fun<-function(value,b_code,parent_tab,n_seasons,delim){
+        values<-unlist(strsplit(value,delim,fixed=T))
+        
+        vals<-parent_tab[B.Code==b_code & Time %in% values]
+        max_seq_n<-vals[,max(seq_n)]
+
+        if(is.infinite(max_seq_n)){
+          max_seq_n<-NA
+          seq_n<-NA
+          yr_season_ratio<-NA
+        }else{
+          seq_n<-max_seq_n-vals[,min(seq_n)]
+          yr_season_ratio<-parent_tab[B.Code==b_code,(max(Time.Start.Year)-min(Time.Start.Year)+1)/.N]
+        }
+        
+        if(nrow(vals)==length(values)){
+        if(any(is.na(vals$Time.Start.Year))){
+         seq_years<-NA 
+        }else{
+        seq_years<-vals[,length(min(Time.Start.Year):max(Time.Start.Year))]
+        }
+        
+        min_val<-vals[Time==values[1],.(Time.Start.Year,Time.Season)]
+        max_val<-vals[Time==tail(values,1),.(Time.End.Year,Time.Season)]
+        values<-cbind(min_val,max_val)  
+        colnames(values)<-c("t_start_yr","t_start_s","t_end_yr","t_end_s")
+        values$Time<-value
+        values$B.Code<-b_code
+        values$n_seasons<-n_seasons
+        values$max_seq_n<-max_seq_n
+        values$seq_yrs<-seq_years
+        values$yr_season_ratio<-yr_season_ratio
+        values$seq_n<-seq_n
+        return(values)
+        }else{
+          cat("No match to parent table",b_code,"-",paste0(values[!values %in% vals$Time],collapse="/"),"\n")
+          return(NULL)
+        }
+
+      }
+      
+      # Subset to aggregated times
+      agg_times<-unique(Data.Out[grepl("[.][.]",Time),.(Time,Time.Start.Year,Time.End.Year,Time.Season,B.Code,Site.Rain.Seasons)])
+
+      # apply function
+      agg_times<-rbindlist(lapply(1:nrow(agg_times),FUN=function(i){
+        agg_time_fun(value=agg_times$Time[i],b_code=agg_times$B.Code[i],n_seasons=agg_times$Site.Rain.Seasons[i],parent_tab = Times.Out,delim="..")
+      }))
+      
+      agg_times[yr_season_ratio==1,Duration:=seq_n+0.5]
+      agg_times[yr_season_ratio>=0.5 & yr_season_ratio<1,Duration:=seq_n*0.5+0.5]
+      agg_times[yr_season_ratio>=0.25 & yr_season_ratio<0.4 & !n_seasons %in% c(1,2),Duration:=round(seq_n*1/3+1/3,1)]
+      agg_times[is.na(Duration) & n_seasons==2,Duration:=seq_n*0.5+0.5]
+      agg_times[is.na(Duration) & seq_yrs==seq_n+1,Duration:=seq_n+0.5]
+      agg_times[is.na(Duration) & grepl("[.]1[.][.]|[.]1$|LR|Year 1[.]|year 1[.]",Time) & grepl("[.]2[.][.]|[.]2$|SR|Year 2$|year 2$",Time) & !grepl(".[3]$|[.]3[.][.]",Time),Duration:=seq_n*0.5+0.5]
+      agg_times[is.na(Duration) & !is.na(yr_season_ratio),Duration:=seq_n*0.5+0.5]
+      setnames(agg_times,"Duration","Time.Agg.Duration")
+      
+      # merge data back to Data.Out and replace values
+      Data.Out<-merge(Data.Out,unique(agg_times[,.(Time,B.Code,t_start_yr,t_end_yr,t_start_s,t_end_s,Time.Agg.Duration)]),by=c("Time","B.Code"),sort=F,all.x=T)
+      stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
+      
+      Data.Out[grep("[.][.]",Time),
+               c("Time.Start.Year","Time.End.Year","Time.Season.Start","Time.Season.End"):=.(t_start_yr,t_end_yr,t_start_s,t_end_s)]  
+      
+      Data.Out[,c("t_start_yr","t_end_yr","t_start_s","t_end_s","Time.Season"):=NULL]
+      
+      #### 8.4.12.2) Estimate experimental duration ####
+      Data.Out[,exp_start:=T.Start.Year
+               ][,exp_start_s:=T.Start.Season
+               ][!is.na(IN.Level.Name) & !is.na(IN.Start.Year),exp_start:=IN.Start.Year    
+                 ][!is.na(IN.Level.Name) & !is.na(IN.Start.Year),exp_start_s:=IN.Start.Season
+                 ][!is.na(R.Level.Name) & !is.na(R.Start.Year),exp_start:=R.Start.Year
+                 ][!is.na(R.Level.Name) & !is.na(R.Start.Year),exp_start_s:=R.Start.Season]
+      
+      time_seq<-Times.Out[,.(y_max=max(Time.Start.Year),y_min=min(Time.Start.Year),n_seasons=.N,t_start=Time[1],unique_seasons=length(unique(na.omit(Time.Season))),
+                             all_years=if(!any(is.na(Time.Start.Year))){all((min(Time.Start.Year):max(Time.Start.Year)) %in% Time.Start.Year)}else{NA}),by=B.Code
+                          ][,years:=y_max-y_min+1
+                            ][,yr_season_ratio:=years/n_seasons]
+      
+      mergedat<-copy(Data.Out)
+      mergedat<-merge(mergedat,time_seq,by="B.Code",all.x=T)
+      
+      # Substitute missing start year for first year in Time.Out tab
+      mergedat[is.na(exp_start) & !grepl(9999,y_min),exp_start:=y_min]
+      
+      # Are more years present in experiment that time seq?
+      mergedat[,y_flag:=F][exp_start<y_min,y_flag:=T]
+      
+      x<-unique(mergedat[y_flag==F,.(B.Code,Time,Time.Start.Year,Time.Season.Start,Time.Agg.Duration,yr_season_ratio,t_start,y_min,unique_seasons,n_seasons,all_years,exp_start)])
+      x[,Time2:=tail(unlist(strsplit(Time,"[.][.]")),1),by=Time]
+      
+      # If observation and start time are the same, then it must be first season of experiment
+      x[Time2==t_start,Exp.Duration:=0.5]
+      
+      # If the time period name is in YYYY format assume there is only 1 season
+      x[Time2 %in% 1930:2024 & t_start %in% 1930:2024 & is.na(Exp.Duration),Exp.Duration:=as.numeric(Time2)-as.numeric(t_start)+0.5]
+
+      # Work out difference in seq_n between t_start and Time2
+      x<-merge(x,Times.Out[,.(B.Code,Time,seq_n,Time.Season)],by.x=c("B.Code","t_start"),by.y=c("B.Code","Time"),all.x=T,sort=F)
+      setnames(x,c("seq_n","Time.Season"),c("seq_n_start","seq_season_start"))
+      x<-merge(x,Times.Out[,.(B.Code,Time,seq_n)],by.x=c("B.Code","Time2"),by.y=c("B.Code","Time"),all.x=T,sort=F)
+      x[,seq_diff:=seq_n-seq_n_start]
+      
+      # If seasons are the same then difference should be the years +0.5
+      x[Time.Season.Start==seq_season_start & is.na(Exp.Duration) & (Time.Start.Year!=y_min),Exp.Duration:=Time.Start.Year-y_min+0.5]
+      
+      # If there 50% more seasons than years exactly, let's assume there are 2 seasons
+      x[is.na(Exp.Duration) & (yr_season_ratio==0.5|unique_seasons==2) & all_years,Exp.Duration:=seq_diff*0.5+0.5]
+      
+      # Is a third season present?
+      x[,s3:=F][,s3:=any(grepl("[.]3[.][.]|[.]3$",Time) & !grepl("9999",Time))|(yr_season_ratio>0.31 & yr_season_ratio<0.36) & grep("SA",B.Code),by=B.Code]
+      x[s3==T & is.na(Exp.Duration) & all_years,Exp.Duration:=seq_diff*0.33+0.33]
+      
+      # Identify 2 seasons
+      a<-"[.]2$|S$|SR$|W$|A$|Winter$|-ST|Season 1"
+      b<-"[.]1$|L$|LR$|S$|B$|Summer$|-2ND|Season 2"
+      
+      x[,s2:=(any(grepl(a,Time2)) & (any(grepl(b,Time2))|any(grepl(b,t_start))))|(any(grepl(b,Time2)) & (any(grepl(a,Time2))|any(grepl(a,t_start)))),by=B.Code
+        ][,s2:=s2 & grepl(paste0(a,"|",b),t_start) & !grepl("9999",Time2)]
+      x[is.na(Exp.Duration) & s2==T & all_years,Exp.Duration:=seq_diff*0.5+0.5]
+      
+      # Identify 1 season
+      x[is.na(Exp.Duration) & (yr_season_ratio==1|unique_seasons==0) & all_years,Exp.Duration:=seq_diff+0.5]
+      
+      a<-"year1$|year 1$"
+      b<-"year2$|year 2$"
+      
+      x[grepl(a,t_start,ignore.case = T) & grepl(b,Time2,ignore.case = T),Exp.Duration:=1.5]
+      
+      # Try identifying 2 seasons from season names
+      a<-"Major|Rainy|Winter|summer"
+      b<-"Minor|Dry|Summer|winter"
+      x[is.na(Exp.Duration) ,s2:=(any(grepl(a,Time.Season.Start)) & (any(grepl(b,Time.Season.Start))|any(grepl(b,seq_season_start))))|(any(grepl(b,Time.Season.Start)) & (any(grepl(a,Time.Season.Start))|any(grepl(a,seq_season_start)))),by=B.Code
+        ][is.na(Exp.Duration) ,s2:=s2 & grepl(paste0(a,"|",b),seq_season_start)]
+      x[is.na(Exp.Duration) & s2==T & all_years,Exp.Duration:=seq_diff*0.5+0.5]
+      
+      error_dat<-x[is.na(Exp.Duration) & !is.na(seq_n),.(value=paste0(Time2,collapse = "/")),by=B.Code][,table:="Data.Out"][,field:="Time"][,issue:="Cannot estimate season length, probably due to incomplete sequence or error in sequence in Time.Out tab."][order(B.Code)]
+      errors<-c(errors,list(error_dat))
+      
+      x<-x[!is.na(Exp.Duration),.(B.Code,Time,Exp.Duration)]
+      
+      # Where experimental start is different to start of time seq
+      y<-unique(mergedat[y_flag==T,.(B.Code,exp_start,exp_start_s,Time,Time.Start.Year,Time.Season.Start,Time.Agg.Duration,yr_season_ratio,t_start,y_min,unique_seasons,n_seasons,all_years)])
+      y[,Time2:=tail(unlist(strsplit(Time,"[.][.]")),1),by=Time]
+      # If number of seasons = 0 or 1 we can assume duration is the difference in the years
+      y[,exp_start:=as.numeric(exp_start)][yr_season_ratio==1|unique_seasons==0,Exp.Duration:=Time.Start.Year-exp_start+0.5]
+    
+      y<-merge(y,Times.Out[,.(B.Code,Time,seq_n)],by.x=c("B.Code","Time2"),by.y=c("B.Code","Time"),all.x=T,sort=F)
+      
+      # Where  we have 2 seasons order on seq_n and give each step 0.5 years
+      y<-y[order(B.Code,Time.Start.Year,seq_n,decreasing = F)]
+      y[is.na(Exp.Duration) & unique_seasons==2,N:=.N,by=.(B.Code,Time.Start.Year)][N==2,season1:=Time.Season.Start[1],by=.(B.Code,Time.Start.Year)][,season1:=season1[!is.na(season1)][1],by=B.Code]
+
+      y[season1==Time.Season.Start,season1:=0][!is.na(season1) & season1!=0,season1:=0.5]
+      
+      y[is.na(Exp.Duration) & !is.na(season1),Exp.Duration:=Time.Start.Year-exp_start+0.5+as.numeric(season1)]
+      
+      # For remainder make do with difference between years
+      y[is.na(Exp.Duration),Exp.Duration:=Time.Start.Year-exp_start+0.5]
+      
+      y<-y[!is.na(Exp.Duration) & Exp.Duration>0,.(B.Code,Time,Exp.Duration)]
+      
+      xy<-unique(rbind(x,y))
+      xy[,N:=.N,by=.(B.Code,Time)]
+      error_dat<-xy[N>1,.(value=paste0(unique(Time),collapse = "/")),by=B.Code
+                    ][,table:="Data.Out"
+                      ][,field:="Time"
+                        ][,issue:="Multiple experimental durations calculate for this time, might mean differences between treatment, intercrop and rotation experimental start years."]
+      
+      errors<-c(errors,list(error_dat))
+      
+      
+      xy<-xy[N==1][,N:=NULL]
+      
+      # Add Exp.Duration to Data.Out
+      Data.Out<-merge(Data.Out,xy,by=c("B.Code","Time"),all.x=T,sort=F)
+      stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
+      
+      
     ### 8.4.13) Add dates ######
       # Create function to merge on time and site id taking into account all sites and all times values
       merge_time_site<-function(data,
