@@ -427,7 +427,15 @@ if(update){
       agg_dat<-agg_dat[N]
       
       result <- agg_dat[, lapply(.SD, function(x) {
-        paste(unique(x), collapse = "..")
+        
+        # If only 1 value present for this column across all rows, then use this one value. Otherwise we concatenate all the values.
+        x_u<-unique(x)
+        if(length(x_u)==1){
+         x<-x_u 
+        }
+        
+        paste(x, collapse = "..")
+          
       }), .SDcols = colnames(agg_dat)]
       
       list(data=result)
