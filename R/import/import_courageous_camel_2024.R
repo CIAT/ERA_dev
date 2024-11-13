@@ -2588,9 +2588,9 @@ Out.Out<-Out.Out[!rowSums(is.na(Out.Out)) == ncol(Out.Out)]
 Out.Out$B.Code<-Pub.Out$B.Code
 
 # Allowed values
-allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field=="Out.FI.Unit",Values_New],master_codes$out[Depreciated==F,unique(Subindicator)]),
-                           parent_tab_name=c("master_Codes$lookup_levels","master_codes$out$Subindicator"),
-                           field=c("Out.FI.Unit","Out.Subind"))
+allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field=="Out.FI.Unit",Values_New]),
+                           parent_tab_name=c("master_Codes$lookup_levels"),
+                           field=c("Out.FI.Unit"))
 
 results<-validator(data=Out.Out,
                    allowed_values = allowed_values,
@@ -2622,6 +2622,22 @@ error_dat<-Out.Out[grepl("Meat Yield",Out.Subind) & is.na(Out.WG.Days),.(value=p
                                                                                   ][,field:="Out.Code.Joined"
                                                                                     ][,issue:="Meat yield outcome without experimental duration."]
 errors<-c(errors,list(error_dat))
+
+# TO DO: Check outcome names match master codes (these are now AOM outcomes) ####
+if(F){
+  out_name_changes<-data.table(old_values=c("Nitrogen [(]Apparent Efficiency[)]","Carbon dioxide emissions","Aboveground Biomass"),
+                               new_values=c('Nitrogen (Apparent Efficiency Animals Feed)',"Carbon Dioxide Emissions","Aboveground Carbon Biomass"))
+  
+  parent<-master_codes$out[,list(Subindicator)][,Out.Subind:=Subindicator]
+  error_dat<-Out.Out[!Out.Out$Out.Subind %in% parent$Out.Subind & !Out.Subind %in% out_name_changes$old_values
+  ][,value:=Out.Subind
+  ][,list(B.Code=paste(B.Code,collapse = "/")),by=value
+  ][,table:="Out.Out"
+  ][,field:="Out.Subind"
+  ][,issue:="Outcome not found in master codes."]
+  
+  errors<-c(errors,list(error_dat))
+}
 
   # 5.1) Out.Econ #####
   table_name<-"Out.Out"
