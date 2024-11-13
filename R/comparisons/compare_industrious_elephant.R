@@ -47,7 +47,6 @@ Rot.Seq2<-Rot.Seq[,list(Time=paste(Time,collapse="|||"),
                         Treatment=paste(R.Treatment,collapse="|||"),
                         Products=paste(R.Prod,collapse="|||")),by=ID]
 
-
   # 1.2) Load era vocab #####
 # Get names of all sheets in the workbook
 sheet_names <- readxl::excel_sheets(era_vocab_local)
@@ -2034,7 +2033,7 @@ TreeCodes<-master_codes$trees
     error_dat<-Plant.Out[B.Code %in% no_match,.(value=if(any(na.omit(P.Structure)=="No")){"Answer -No- is present in planting comparison row."}else{""}),by=B.Code]
     error_dat<-rbind(data.table(B.Code=no_match[!no_match %in% error_dat$B.Code],value=""),error_dat)
     
-    ç<-error_dat[order(value,B.Code)
+    error_dat<-error_dat[order(value,B.Code)
                 ][!is.na(value),table:="Plant.Out"
                   ][!is.na(value),field:="P.Structure"
                     ][,issue:="Comparison logic does find any comparisons for this paper."]
@@ -2271,207 +2270,165 @@ Data<-Data.Out
   # 3.14) EUs: change delimiters ####
   Data[,EU:=gsub("**",".",EU,fixed = T)]
 
-  # 3.15) TSP & TAP ####
-  # PICK UP HERE !!!! ####
-  NX<-match(Data[,paste(B.Code,ED.Site.ID,M.Year)],Times[,paste(B.Code,Site.ID,Time)])
-  Data[,TSP:=Times[NX,TSP]]
-  Data[,TAP:=Times[NX,TAP]]
-  rm(NX)
-  # 4.16) ISO.3166.1.alpha.3 ####
-  Countries<-MasterLevels[,c("Country","ISO.3166-1.alpha-3")]
-  Data[,ISO.3166.1.alpha.3:=as.character(NA)]
-  for(C in Data[,unique(Country)]){
-    ISO<-paste(unlist(Countries[match(unlist(strsplit(C,"[.][.]")),Countries[,Country]),"ISO.3166-1.alpha-3"]),collapse = "..")
-    Data[Country == C,ISO.3166.1.alpha.3:=ISO]
-  }
-  
-  rm(Countries)
-  
-  # 4.17) Update Journal Codes ####
-  Journals<-MasterLevels[,c("B.Journal","Journal")]
-  NX<-match(Data[,B.Journal],Journals[,B.Journal])
-  
-  if(length(is.na(NX))>0){
-    Journal.No.Match<-unique(Data[is.na(NX),c("B.Journal","B.Code")])[order(B.Journal)]
-    View(Journal.No.Match)
-    write.table(Journal.No.Match,"clipboard",row.names = F,sep="\t")
-    rm(Journal.No.Match)
-  }
-  
-  Data[!is.na(NX),B.Journal:=Journals[NX[!is.na(NX)],Journal]]
-  
-  rm(Journals,NX)
-  
-  
-  # 4.18) Aggregate data for averaged site locations ####
-  A.Sites<-Data[grepl("[.][.]",ED.Site.ID),N]
-  
-  
-  
-  Agg.Sites<-function(B.Code,ED.Site.ID){
-    
-    Sites<-unlist(strsplit(ED.Site.ID,"[.][.]"))
-    Study<-B.Code
-    
-    coords<-Site.Out[Site.ID %in% Sites & B.Code==Study,list(Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual)]
-    
-    coords[,N:=1:.N][is.na(Site.Buffer.Manual),Site.Buffer.Manual:=max(c(Site.Lat.Unc,Site.Lon.Unc)),by=N]
-    
-    coords<-coords[!(is.na(Site.LatD)|is.na(Site.LonD))]
-    
-    if(nrow(coords)==0){
-      
-      return(data.table(Site.LonD=as.numeric(NA),Site.LatD=as.numeric(NA),Site.Buffer.Manual=as.numeric(NA)))
-      
-    }else{
-      
-      points <- SpatialPoints(coords[,list(Site.LonD,Site.LatD)],proj4string=CRS("+init=epsg:4326"))
-      points<-spTransform(points,CRS("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-      
-      pbuf1<-lapply(1:nrow(coords),FUN=function(i){
-        pbuf<- gBuffer(points[i], widt=coords[i,Site.Buffer.Manual])
-        pbuf<- spChFIDs(pbuf, paste(i, row.names(pbuf), sep="."))
-        
-      })
-      
-      pbuf1<-SpatialPolygons(lapply(pbuf1, function(x){x@polygons[[1]]}),proj4string=CRS("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-      
-      X<-bbox(pbuf1)
-      Buff<-max(X[1,2]-X[1,1],X[2,2]-X[2,1])/2
-      
-      pbuf<-spTransform(pbuf1,CRS("+init=epsg:4326"))
-      Y<-gCentroid(pbuf)
-      
-      return(data.table(Site.LonD=round(Y@coords[1],5),Site.LatD=round(Y@coords[2],5),Site.Buffer.Manual=round(Buff,0)))
-    } 
-  }
-  
-  
-  
-  X<-Data[A.Sites,Agg.Sites(B.Code[1],ED.Site.ID[1]),by=c("B.Code","ED.Site.ID")]
-  
-  A.Sites<-match(Data[,paste(B.Code,ED.Site.ID)],X[,paste(B.Code,ED.Site.ID)])
-  
-  Data[!is.na(A.Sites),Site.LonD:=X[A.Sites[!is.na(A.Sites)],Site.LonD]]
-  Data[!is.na(A.Sites),Site.LatD:=X[A.Sites[!is.na(A.Sites)],Site.LatD]]
-  Data[!is.na(A.Sites),Site.Buffer.Manual:=X[A.Sites[!is.na(A.Sites)],Site.Buffer.Manual]]
-  
-  rm(A.Sites,Agg.Sites,X)
-  
-  unique(Data[is.na(Site.Buffer.Manual),list(B.Code,Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual)])
-  
-  
-  # 4.19) Update DOI field
-  Data[is.na(B.DOI),B.DOI:=B.Url]
-# 5) Reconfigure to ERA v1.0 format ####
-# This could be integrated earlier in the script for better efficiency 
+  # 3.15) Rename TSP & TAP ####
+  setnames(Data,c("Time.Clim.SP","Time.Clim.TAP"),c("TSP","TAP"))
 
-Knit.V1<-function(Control.N,Control.For,Data,Mulch,Analysis.Function,NCols){
+  # 3.16) Update Journal Codes ####
+  Journals<-master_codes$journals[,c("B.Journal","Journal")]
   
+  Data<-merge(Data,Journals,by="B.Journal",all.x=T,sort=F)
+  Data[!is.na(Journal),B.Journal:=Journal]
+
+  # 3.17) Update DOI field
+  Data[is.na(B.DOI),B.DOI:=B.Url]
+  
+  # 3.18) Partial economic outcomes ####
+  # Note these were not encoded directly in 2023, I think we hoped to be able to derived this from the economic indicators recorded, but we will probably needed to go back and add this information.
+  Data[,c("Out.Partial.Outcome.Name","Out.Partial.Outcome.Code"):="Not assessed"]
+  
+  # 3.19 Species (!!! TO DO !!!) ####
+  # I think this was used for products like "Fish" for which the "Variety" was the species.
+  # This requires harmonization across extractions to reconfigure the fish species to be the product as per crops and other animals
+  Data[,V.Species:=NA]
+  
+# 4) Reconfigure to ERA v1.0 format ####
   C.Descrip.Col<-"T.Name"
-  T.Descrip.Col<-"T.Name"
-  
-  
-  Control.N<-as.numeric(Control.N)
   C.Data.Cols<-c("B.Code","B.Author.Last","B.Date","B.Journal","B.DOI","Site.LatD","LatM","LatS","LatH","Site.LonD","LonM","LonS","LonH","LatDiff","Site.Elevation",
                  "Country","ISO.3166.1.alpha.3","Site.Type","Site.ID","Site.MAT","Site.MAP","TAP","MSP","TSP","Soil.Type","Soil.Classification","Site.Soil.Texture",
-                 "SOC","SOC.Unit","SOC.Depth","Soil.pH","Soil.pH.Method","ED.Plant.Start","ED.Plant.End","ED.Harvest.Start","ED.Harvest.End","Final.Reps",
+                 "SOC","SOC.Unit","SOC.Depth","Soil.pH","Soil.pH.Method","PD.Plant.Start","PD.Plant.End","PD.Harvest.Start","PD.Harvest.End","Final.Reps",
                  "EX.Plot.Size","TID",C.Descrip.Col,paste0("C",1:NCols),"F.NO","F.NI","ED.Mean.T","ED.Error","ED.Error.Type",C.Descrip.Col,
-                 "Site.Buffer.Manual","MeanFlip","Feed.Source","Out.Partial.Outcome.Name","Out.Partial.Outcome.Code")
-  Ctrl<-Data[N==Control.N,..C.Data.Cols]
+                 "Buffer.Manual","MeanFlip","Out.Partial.Outcome.Name","Out.Partial.Outcome.Code")
   
   C.Cols<-c("Code","Author","Date","Journal","DOI","LatD","LatM","LatS","LatH","LonD","LonM","LonS","LonH","Lat.Diff","Elevation","Country","ISO.3166.1.alpha.3","Site.Type",
             "Site.ID","MAT","MAP","TAP","MSP","TSP","Soil.Type","Soil.Classification","Soil.Texture","SOC","SOC.Unit","SOC.Depth","Soil.pH","Soil.pH.Method",
             "Plant.Start","Plant.End","Harvest.Start","Harvest.End","Rep","Plot.Size","CID","C.Descrip",
-            paste0("C",1:NCols),"C.NO","C.NI","MeanC","MeanC.Error","Mean.Error.Type","C.Descrip.Clean","Buffer.Manual","MeanFlip","C.Feed.Source","Partial.Outcome.Name","Partial.Outcome.Code")
+            paste0("C",1:NCols),"C.NO","C.NI","MeanC","MeanC.Error","Mean.Error.Type","C.Descrip.Clean","Buffer.Manual","MeanFlip","Partial.Outcome.Name","Partial.Outcome.Code")
   
-  colnames(Ctrl)<-C.Cols
+  names(C.Data.Cols)<-C.Cols
   
-  
+  T.Descrip.Col<-"T.Name"
   T.Data.Cols<-c("TID",T.Descrip.Col,paste0("C",1:NCols),"F.NI","F.NO","R.Seq","V.Level.Name","Tree","Duration",
                  "M.Year","M.Year.Start","M.Year.End","M.Season.Start","M.Season.End","EU","Out.Code","Out.Unit","ED.Mean.T","ED.Error","Out.Depth.Upper","Out.Depth.Lower",
-                 "ED.Data.Loc","USD2010.C","USD2010.T",T.Descrip.Col,"V.Level.Name","Tree","R.Seq","Feed.Source","V.Species")
+                 "ED.Data.Loc","USD2010.C","USD2010.T",T.Descrip.Col,"V.Level.Name","Tree","R.Seq","V.Species")
   
-  T.Cols<-c("TID","T.Descrip",paste0("T",1:NCols),"T.NI","T.NO","Diversity","Variety","Tree","Duration",
+    T.Cols<-c("TID","T.Descrip",paste0("T",1:NCols),"T.NI","T.NO","Diversity","Variety","Tree","Duration",
             "M.Year","M.Year.Start","M.Year.End","Season.Start","Season.End","EU","Outcome","Units","MeanT","MeanT.Error","Upper","Lower","DataLoc",
-            "USD2010.C","USD2010.T","T.Descrip.Clean","Variety.Clean","Tree.Clean","Diversity.Clean","T.Feed.Source","Species")
+            "USD2010.C","USD2010.T","T.Descrip.Clean","Variety.Clean","Tree.Clean","Diversity.Clean","Species")
   
-  Control.For<-as.numeric(unlist(strsplit(as.character(Control.For),"[/][/]")))
+  names(T.Data.Cols)<-T.Cols
   
-  Trt<-rbindlist(lapply(Control.For,FUN=function(i){
-    X<-Data[N==i,..T.Data.Cols]
-    colnames(X)<-T.Cols
-    X
-  }))
   
-  Ctrl<-Ctrl[rep(1,nrow(Trt))]
-  Ctrl[,Mulch.Code:=Mulch]
-  X<-cbind(Ctrl,Trt)
-  X[,Analysis.Function:=Analysis.Function]
-  X
-  
-}
-Verbose<-F
-
-cl<-makeCluster(worker_n)
-clusterEvalQ(cl, list(library(data.table)))
-clusterExport(cl,list("Comparisons","Knit.V1","Data","Verbose","NCols"),envir=environment())
-registerDoSNOW(cl)
-
-ERA.Reformatted<-rbindlist(
-  parLapply(cl,1:nrow(Comparisons),fun = function(i){
-    #pblapply(1:nrow(Comparisons),FUN = function(i){
-    if(Verbose){print(paste(Comparisons[i,paste(B.Code,Control.N)]," | i = ",i))}
+  Knit.V1<-function(Control.N,Control.For,Data,Analysis.Function,NCols,C.Data.Cols,T.Data.Cols,Mulch){
+    Control.N<-as.numeric(Control.N)
     
-    Knit.V1(Control.N=Comparisons[i,Control.N],Control.For=Comparisons[i,Control.For],Data,
-            Mulch=Comparisons[i,Mulch.Code],Analysis.Function = Comparisons[i,Analysis.Function],NCols=NCols)
-  }))
-
-stopCluster(cl)
-
-
-
-  # 5.1.1) Add in outcomes that are ratios of Trt/Cont already ####
-  Data.R<-Data[(!is.na(ED.Comparison) & !is.na(T.Name)) & Out.Subind!="Land Equivalent Ratio",c("T.Name","IN.Level.Name","R.Level.Name","ED.Comparison","B.Code","N","ED.Outcome")]
+    Ctrl<-Data[N==Control.N,..C.Data.Cols]
+    
+    colnames(Ctrl)<-names(C.Data.Cols)
+    
+    Control.For<-as.numeric(unlist(strsplit(as.character(Control.For),"[/][/]")))
+    
+    Trt<-rbindlist(lapply(Control.For,FUN=function(i){
+      X<-Data[N==i,..T.Data.Cols]
+      colnames(X)<-names(T.Data.Cols)
+      X
+    }))
+    
+    Ctrl<-Ctrl[rep(1,nrow(Trt))]
+    Ctrl[,Mulch.Code:=Mulch]
+    X<-cbind(Ctrl,Trt)
+    X[,Analysis.Function:=Analysis.Function]
+    X
+    
+  }
   
+  # Set up future plan for parallel execution with the specified number of workers
+  plan(multisession, workers = worker_n)
+  
+  # Progress bar setup
+  progressr::handlers(global = TRUE)
+  progressr::handlers("progress")
+  
+  # Start parallelized process with progress bar
+  b_codes<-DATA[,unique(B.Code)]
+  
+  Verbose<-F
+  
+  Comparisons <- with_progress({
+    # Progress indicator
+    p <- progressor(steps = nrow(Comparisons))
+  
+  ERA.Reformatted <-rbindlist(
+    future_lapply(1:nrow(Comparisons), function(i) {
+    #pblapply(1:nrow(Comparisons), function(i) {
+      if (Verbose) {
+        output <- paste(Comparisons[i, paste(B.Code, Control.N)], " | i = ", i,"/",nrow(Comparions))
+        cat(paste(output, strrep(" ", 100 - nchar(output)), "\r"))
+        flush.console()  
+      }
+      
+      result <- Knit.V1(
+        Control.N = Comparisons[i, Control.N],
+        Control.For = Comparisons[i, Control.For],
+        Data = Data,
+        Analysis.Function = Comparisons[i, Analysis.Function],
+        Mulch=Comparisons[i,Mulch.Code],
+        NCols = NCols,
+        T.Data.Cols = T.Data.Cols,
+        C.Data.Cols = C.Data.Cols
+      )
+      
+      # Update progress bar after each iteration
+      p() 
+      
+      return(result)
+    })
+  )
+  })
+  
+  plan(sequential)
+
+  # 4.1) Add in outcomes that are ratios of Trt/Cont already ####
+  Data.R<-Data[(!is.na(ED.Comparison1) & !is.na(T.Name)) & Out.Subind!=c("Land Equivalent Ratio","Area Time Equivalent Ratio"),c("T.Name","IN.Level.Name","R.Level.Name","ED.Comparison1","ED.Comparison2","B.Code","N","Out.Code.Joined")]
   
   # Use this to check outcomes are appropriate
-  if(F){
-    Data.R[order(ED.Outcome),unique(paste(B.Code,ED.Outcome))]
-  }
+  error_dat<-Data.R[!grepl("Efficiency|Ratio",Out.Code.Joined)
+                      ][,.(value=paste0(unique(Out.Code.Joined),collapse = "/")),by=B.Code
+                                                 ][,table:="Data.Out"
+                                                   ][,field:="ED.Comparison1"
+                                                     ][,issue:="Check this is a ratio or efficiency outcome that is calculated from a treatment AND control. Crop yield, biomass yield and gross return should not be associated with ED.Comparison."]
+  error_list<-list(error_dat)
   
-  # Outcomes where the Treatment and Control are the same
-  Data.R<-Data.R[!(T.Name==ED.Comparison)]
+  # Remove crop yield or biomass yield
+  Data.R<-Data.R[!grepl("Crop Yield|Biomass Yield|Gross Return",Out.Code.Joined)]
   
   # Check & remove entries where T.Name == ED.Comparison
-  if(nrow(Data.R[T.Name==ED.Comparison])>0){
-    View(Data.R[T.Name==ED.Comparison])
-  }
+    error_dat<-Data.R[T.Name==ED.Comparison1
+                      ][,.(value=paste(unique(paste0(Out.Code.Joined,"-",T.Name)),collapse="/")),by=B.Code
+                        ][,table:="Data.Out"
+                          ][,field:="ED.Comparison1"
+                            ][,issue:="T.Name and ED.Comparison1 are the same."]
+    
+    error_list<-c(error_list,list(error_dat))
+    
+  Data.R<-Data.R[T.Name!=ED.Comparison1]
   
-  Data.R<-Data.R[T.Name!=ED.Comparison]
+  # Add control information for ratios
+  Data[,Code:=paste(B.Code,T.Name)]
+  Data.R[,Code:=paste(B.Code,ED.Comparison1)]
+  Verbose=F
   
-  # Hack to fix DK0056 issue where the comparison is a different rotation sequence
-  N<-Data[B.Code=="DK0056",stringr::str_count(T.Name,"<<")]
-  X<-unlist(lapply(strsplit(Data[B.Code=="DK0056",T.Name][N>1],"<<"),FUN=function(X){
-    paste(c(X[1],X[2]),collapse="<<")
-  }))
-  
-  
-  Data[B.Code=="DK0056",Temp:=stringr::str_count(T.Name,"<<")>1]
-  Data[B.Code=="DK0056" & Temp==T,T.Name:=X]
-  
-  Data[B.Code=="DK0056",T.Name]
-  
-  
-  # Need to add in Analysis Function
-  Verbose=T
-  ERA.Reformatted.Ratios<-rbindlist(pblapply(1:nrow(Data.R),FUN = function(i){
+  results<-pblapply(1:nrow(Data.R),FUN = function(i){
     if(Verbose){print(paste(Data.R[i,paste(B.Code,N)]," i = ",i))}
-    Control.N<-Data[match(Data.R[i,paste(B.Code,ED.Comparison)],Data[,paste(B.Code,T.Name)]),N][1]
+    data.r_code<-Data.R[i,Code]
+    Control.N<-Data[Code == data.r_code,N][1]
     
     if(is.na(Control.N)|length(Control.N)==0){
+      if(Verbose){
       print(paste0("No Match - ",Data.R[i,paste(B.Code,N)]," | i = ",i))
-      NULL
+      }
+      error<-Data.R[i,.(B.Code,ED.Comparison1)]
+      return(list(data=NULL,error=error))
+      
     }else{
       Control.For<-Data.R[i,N]
       
@@ -2495,13 +2452,37 @@ stopCluster(cl)
           }
         }}
       
+       data<-Knit.V1(
+        Control.N = Control.N,
+        Control.For = Control.For,
+        Data = Data,
+        Analysis.Function = AF,
+        NCols = NCols,
+        Mulch="",
+        T.Data.Cols = T.Data.Cols,
+        C.Data.Cols = C.Data.Cols
+      )
+       
+       return(list(data=data,error=NULL))
       
-      Knit.V1(Control.N=Control.N,Control.For=Control.For,Data=Data,Mulch="",Analysis.Function = AF,NCols=NCols)
     }
-  }))
+  })
   
+  error_dat<-rbindlist(lapply(results,"[[","error"))
+  error_dat<-error_dat[,.(value=paste(unique(ED.Comparison1),collapse="/")),by=B.Code
+                       ][,table:="Data.Out"
+                         ][,field:="ED.Comparison1"
+                           ][,issue:="There is no match for ED.Comparison1 in the T.Name column, this means we cannot describe the comparison from another row in the table."]
+  
+  error_list<-c(error_list,list(error_dat))
+
+  ERA.Reformatted.Ratios<-rbindlist(lapply(results,"[[","data"))
+  
+  # Add in Analysis Function
   ERA.Reformatted.Ratios[,MeanC:=NA][,MeanC.Error:=NA][,MeanC.Error.Type:=NA][,Analysis.Function:="Ratios"]
   nrow(ERA.Reformatted.Ratios[is.na(C.Descrip)])
+  
+    # 4.1.2) Remove non-comparisons ######
   
   # Check valid comparison is present
   C.COLS<-paste0("C",1:NCols)
@@ -2515,47 +2496,55 @@ stopCluster(cl)
     Valid<-sum(!B %in% A)>0
   }))
   
-  if(sum(!N.Log)>1){
-    Ratios.No.Comparison<-ERA.Reformatted.Ratios[!N.Log,]
-    View(Ratios.No.Comparison)
-    rm(Ratios.No.Comparison)
-    # ERA.Reformatted.Ratios[!N.Log]
-  }
+
+    error_dat<-ERA.Reformatted.Ratios[!N.Log,.(value=paste(unique(paste0("T =",T.Descrip,", C = ",C.Descrip,", Out = ",Outcome)),collapse="/")),by=Code
+                                      ][,table:="Compiled Dataset"
+                                        ][,field:="T.Descrip, C.Descrip, Out.Code"
+                                          ][,issue:="There appears to be no comparison between the control and treatment for a efficiency or ratio outcome derived from ED.Comparison1."]
+
+    error_list<-c(error_list,list(error_dat))
+    error_list<-rbindlist(error_list)[order(B.Code)]
+    error_list<-error_tracker(errors=error_dat,filename = "Data.Out - issues with enter data comparisons field",error_dir=error_dir,error_list = NULL)
+    
+ 
+    ERA.Reformatted.Ratios<-ERA.Reformatted.Ratios[N.Log]
+    ERA.Reformatted.Ratios[,MeanC.Error.Type:=NULL]
   
-  ERA.Reformatted.Ratios<-ERA.Reformatted.Ratios[N.Log]
-  
-  ERA.Reformatted.Ratios[,MeanC.Error.Type:=NULL]
-  
-  rm(C.COLS,T.COLS,N.Log)
-  
-  # 5.1.2) Add in LER ####
+  # 4.2) Add in LER ####
   # Generate comparison by removing diversification components
   
-  Data.R<-Data[Out.Code==103,]
-  Data.R<-Data.R[!grepl("sole",T.Name)]
+  Data.R<-Data[Out.Subind %in% c("Land Equivalent Ratio","Area Time Equivalent Ratio")]
   Data.R[,N:=1:.N]
-  Data.R[is.na(T.Name2),T.Name2:=IN.Level.Name2]
-  Data.R[is.na(T.Name2),T.Name2:=R.Level.Name]
+  Data.R[is.na(T.Name),T.Name:=IN.Level.Name]
+  Data.R[is.na(T.Name),T.Name:=R.Level.Name]
   
-  # Perhaps best to create a new "Data" object to use in Knit.V1
   Data.R.Cont<-Data.R
   Data.R.Cont<-data.frame(Data.R.Cont)
   
   Div.Codes<-PracticeCodes1[Practice %in% c("Intercropping","Rotation","Alleycropping","Scattered Trees","Silvopasture",
                                             "Parklands","Agroforestry Fallow","Green Manure","Improved Fallow"),Code]
   
-  
-  Data.R.Cont<-rbindlist(pblapply(1:nrow(Data.R.Cont),FUN=function(i){
-    X<-Data.R.Cont[i,paste0("C",1:10)]
+  Verbose<-F
+  results<-pblapply(1:nrow(Data.R.Cont),FUN=function(i){
+    X<-Data.R.Cont[i,paste0("C",1:NCols)]
     
     if("h2" %in% X){
+      if(Verbose){
       print(paste("Error - h2 present:",paste(Data.R.Cont[i,c("T.Name","IN.Level.Name","R.Level.Name","B.Code")],collapse = "-")))
+      }
+      error1<-data.table(B.Code=Data.R.Cont[i,"B.Code"],value=paste(Data.R.Cont[i,c("T.Name","IN.Level.Name","R.Level.Name")],collapse = "||"),issue="LER outcome treatment has h2 code present")
+    }else{
+      error1<-NULL
     }
     N<-which(X %in% Div.Codes)
     
     if(length(N) == 0){
+      if(Verbose){
       print(paste("Error - no diversification present:",i,"-",paste(Data.R.Cont[i,c("T.Name","IN.Level.Name","R.Level.Name","B.Code")],collapse = "-")))
-    }else{
+      }
+      error2<-data.table(B.Code=Data.R.Cont[i,"B.Code"],value=paste(Data.R.Cont[i,c("T.Name","IN.Level.Name","R.Level.Name")],collapse = "||"),issue="LER outcome treatment has no diversification code present?")
+          }else{
+      error2<-NULL
       
       X[N[1]]<-"h2"
       N<-N[-1]
@@ -2565,27 +2554,33 @@ stopCluster(cl)
     }
     
     Y<-Data.R.Cont[i,]
-    Y[,paste0("C",1:10)]<-X
+    Y[,paste0("C",1:NCols)]<-X
     Y$All.Codes<-list(unique(X[!is.na(X)]))
     
-    data.table(Y)
+    return(list(data=data.table(Y),error1=error1,error2=error2))
     
-    
-  }))
+  })
+  
+  error_dat1<-rbindlist(lapply(results,"[[","error1"))
+  error_dat2<-rbindlist(lapply(results,"[[","error2"))
+  error_dat<-unique(rbind(error_dat1,error_dat2))[,table:="Data.Out"][,field:="T.Name||IN.Level.Name||R.Level.Name"]
+  
+  
+  Data.R.Cont<-rbindlist(lapply(results,"[[","data"))
+  
+  
   Data.R.Cont[,R.Seq:=NA]
   Data.R.Cont[,Int.Tree:=NA]
   Data.R.Cont[,Rot.Tree:=NA]
   Data.R.Cont[,TID:=paste0(TID,".LER.Control")]
-  Data.R.Cont[,T.Name2:="LER Control"]
-  Data.R.Cont[,IN.Level.Name2:="LER Control"]
+  Data.R.Cont[,T.Name:="LER Control"]
+  Data.R.Cont[,IN.Level.Name:="LER Control"]
   Data.R.Cont[,R.Level.Name:="LER Control"]
   Data.R.Cont[,ED.Mean.T:=NA]
   Data.R.Cont[,ED.Error:=NA]
   Data.R.Cont[,ED.Error.Type:=NA]
   
   Data.R.Cont[,N:=(nrow(Data.R)+1):(nrow(Data.R)*2)]
-  
-  
   Data2<-rbind(Data.R,Data.R.Cont)
   
   Verbose=F
@@ -2616,8 +2611,17 @@ stopCluster(cl)
         }
       }}
     
-    Knit.V1(Control.N=Control.N,Control.For=Control.For,Data=Data2,Mulch="",Analysis.Function = AF,NCols=NCols)
-    
+    data<-Knit.V1(
+      Control.N = Control.N,
+      Control.For = Control.For,
+      Data = Data2,
+      Analysis.Function = AF,
+      NCols = NCols,
+      Mulch="",
+      T.Data.Cols = T.Data.Cols,
+      C.Data.Cols = C.Data.Cols
+    )
+    return(data)
   }))
   
   ERA.Reformatted.LER[,Analysis.Function:="LER"]
@@ -2625,57 +2629,47 @@ stopCluster(cl)
   # Set MeanC to equal 1 where MeanC is NA
   ERA.Reformatted.LER[is.na(MeanC),MeanC.Error:=NA][is.na(MeanC),MeanC:=1]
   
-  rm(Data.R,Data.R.Cont,Data2)
-  # 5.2) Combine reformatted datasets ####
+  # 4.3) Combine reformatted datasets ####
   ERA.Reformatted<-rbind(ERA.Reformatted,ERA.Reformatted.Ratios,ERA.Reformatted.LER)
-  rm(ERA.Reformatted.Ratios,ERA.Reformatted.LER,Knit.V1)
-  
-  # 5.3) Recode residues + incorporation as a control for mulching + feed substitution control  ####
+
+  # 4.3) Recode residues + incorporation as a control for mulching + feed substitution control  ####
   # Simplest option might be where we have imbalanced residues (i.e. where different residues codes are present in control vs treatment)
   # to recode these.  
   # Where we have one mulch code in control vs >1 in treatment what to do?
   
   Dpracs<-c("Crop Rotation","Intercropping","Improved Fallow","Green Manure","Agroforestry Fallow","Intercropping or Rotation")
-  Dpracs<-PracticeCodes1[!grepl("h",Code)][Practice %in% Dpracs,Code]
+  Dpracs<-master_codes$prac[!grepl("h",Code)][Practice %in% Dpracs,Code]
   
   Rpracs<-c("Agroforestry Pruning","Mulch","Crop Residue","Crop Residue Incorporation")
   X<-lapply(Rpracs,FUN=function(R){
-    PracticeCodes1[!grepl("h",Code)][Practice %in% R,Code]
+    master_codes$prac[!grepl("h",Code)][Practice %in% R,Code]
   })
   names(X)<-Rpracs
   Rpracs<-X
-  rm(X)
   
   # Mulch codes present in Control & Treatment + Dprac should be present (as per CompareFun) in Trt else we are not in a complex situation
   # Recode either where Control has Rprac category code that Trt does not, or Trt has >1 and control has 1 practice.
-  # ***ISSUE*** Should Agroforestry Prunings be excluded?? (here and in CompareFun?)
+  # ***ISSUE*** Should Agroforestry Prunings be excluded?? (here and in CompareFun?) #####
   
   C.Cols<-which(colnames(ERA.Reformatted) %in% paste0("C",1:NCols))
   
-  Verbose<-F
+  Verbose<-T
   
-  cl<-makeCluster(worker_n)
-  clusterEvalQ(cl, list(library(data.table)))
-  clusterExport(cl,list("ERA.Reformatted","Dpracs","Rpracs","C.Cols","Verbose","NCols"),envir=environment())
-  registerDoSNOW(cl)
-  
-  
-  ERA.Reformatted<-rbindlist(parLapply(cl,1:nrow(ERA.Reformatted),fun=function(i){
-    
-    #ERA.Reformatted<-rbindlist(pblapply(1:nrow(ERA.Reformatted),FUN =function(i){
+
+  ERA.Reformatted<-rbindlist(pblapply(1:nrow(ERA.Reformatted),FUN =function(i){
     
     X<-data.frame(ERA.Reformatted[i,])
     
     T.Code<-as.vector(unlist(X[,paste0("T",1:NCols)]))
     T.Code<-T.Code[!is.na(T.Code)]
     
-    if(Verbose){print(paste0("row = ",i))}
+    if(Verbose){print(paste0("row (i) = ",i))}
     
     if(any(T.Code %in% Dpracs)){
       C.Code<-as.vector(unlist(X[,paste0("C",1:NCols)]))
       C.Code<-C.Code[!is.na(C.Code)]
       for(j in 1:length(Rpracs)){
-        if(Verbose){print(paste0("row = ",i," | RPracs = ",names(Rpracs)[j]," - ",j))}
+        if(Verbose){print(paste0("row (i) = ",i," | RPracs (j) = ",names(Rpracs)[j]," - ",j))}
         Ts<-T.Code[T.Code %in% Rpracs[[j]]]
         Cs<-C.Code[C.Code %in% Rpracs[[j]]]
         CnT<-Cs[!Cs %in% Ts]
@@ -2728,10 +2722,7 @@ stopCluster(cl)
     
   }))
   
-  stopCluster(cl)
-  
-  rm(Dpracs,Rpracs,C.Cols)
-  
+
   # 5.4) Remove other Fert, Mulch, Water Harvesting and Ash codes ####
   # Need to remove then check comparisons are still present
   
