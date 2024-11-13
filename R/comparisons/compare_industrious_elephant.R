@@ -9,9 +9,8 @@ worker_n<-14
 # 1) Read in data ####
   # 1.1) Load tables from era data model #####
 data_dir<-era_dirs$era_masterdata_dir
-data<-miceadds::load.Rdata2(filename=tail(list.files(data_dir,"industrious_elephant"),1),data_dir)
-
-names(data)
+file_local<-tail(list.files(data_dir,"industrious_elephant"),1)
+data<-miceadds::load.Rdata2(filename=file_local,data_dir)
 
 Data.Out<-data$Data.Out
 setnames(Data.Out,"Rot.Seq","R.Prod.Seq",skip_absent = T)
@@ -2495,18 +2494,14 @@ Data<-Data.Out
     B<-B[!(grepl("h",B)|is.na(B))]
     Valid<-sum(!B %in% A)>0
   }))
-  
 
     error_dat<-ERA.Reformatted.Ratios[!N.Log,.(value=paste(unique(paste0("T =",T.Descrip,", C = ",C.Descrip,", Out = ",Outcome)),collapse="/")),by=Code
                                       ][,table:="Compiled Dataset"
                                         ][,field:="T.Descrip, C.Descrip, Out.Code"
                                           ][,issue:="There appears to be no comparison between the control and treatment for a efficiency or ratio outcome derived from ED.Comparison1."]
-
+    setnames(error_dat,"Code","B.Code")
     error_list<-c(error_list,list(error_dat))
-    error_list<-rbindlist(error_list)[order(B.Code)]
-    error_list<-error_tracker(errors=error_dat,filename = "Data.Out - issues with enter data comparisons field",error_dir=error_dir,error_list = NULL)
-    
- 
+
     ERA.Reformatted.Ratios<-ERA.Reformatted.Ratios[N.Log]
     ERA.Reformatted.Ratios[,MeanC.Error.Type:=NULL]
   
@@ -2565,9 +2560,11 @@ Data<-Data.Out
   error_dat2<-rbindlist(lapply(results,"[[","error2"))
   error_dat<-unique(rbind(error_dat1,error_dat2))[,table:="Data.Out"][,field:="T.Name||IN.Level.Name||R.Level.Name"]
   
+  error_list<-c(error_list,list(error_dat))
+  error_list<-rbindlist(error_list,use.names = T)[order(B.Code)]
+  error_list<-error_tracker(errors=error_dat,filename = "Data.Out - issues with enter data comparisons field",error_dir=error_dir,error_list = NULL)
   
   Data.R.Cont<-rbindlist(lapply(results,"[[","data"))
-  
   
   Data.R.Cont[,R.Seq:=NA]
   Data.R.Cont[,Int.Tree:=NA]
@@ -2584,9 +2581,26 @@ Data<-Data.Out
   Data2<-rbind(Data.R,Data.R.Cont)
   
   Verbose=F
-  ERA.Reformatted.LER<-rbindlist(pblapply(1:nrow(Data.R),FUN = function(i){
+  
+  # Set up future plan for parallel execution with the specified number of workers
+  plan(multisession, workers = worker_n)
+  
+  # Progress bar setup
+  progressr::handlers(global = TRUE)
+  progressr::handlers("progress")
+  
+  ERA.Reformatted.LER <- with_progress({
+    # Progress indicator
+    p <- progressor(steps = nrow(Data.R))
+    
+    # Apply function across unique B.Codes with future_lapply in parallel
+    future_lapply(1:nrow(Data.R), function(i) {
+  
+  #ERA.Reformatted.LER<-rbindlist(pblapply(1:nrow(Data.R),FUN = function(i){
     
     if(Verbose){print(paste(Data.R[i,paste(B.Code,N)]," i = ",i))}
+      # Update progress bar after each iteration
+      p() 
     
     Control.N<-Data.R.Cont[i,N]
     Control.For<-Data.R[i,N]
@@ -2622,7 +2636,12 @@ Data<-Data.Out
       C.Data.Cols = C.Data.Cols
     )
     return(data)
-  }))
+  })
+  })
+  
+  ERA.Reformatted.LER<-rbindlist(ERA.Reformatted.LER)
+  
+  plan(sequential)
   
   ERA.Reformatted.LER[,Analysis.Function:="LER"]
   
@@ -2653,11 +2672,26 @@ Data<-Data.Out
   
   C.Cols<-which(colnames(ERA.Reformatted) %in% paste0("C",1:NCols))
   
-  Verbose<-T
+  Verbose<-F
   
-
-  ERA.Reformatted<-rbindlist(pblapply(1:nrow(ERA.Reformatted),FUN =function(i){
+  # Set up future plan for parallel execution with the specified number of workers
+  plan(multisession, workers = worker_n)
+  
+  # Progress bar setup
+  progressr::handlers(global = TRUE)
+  progressr::handlers("progress")
+  
+  ERA.Reformatted <- with_progress({
+    # Progress indicator
+    p <- progressor(steps = nrow(ERA.Reformatted))
     
+    # Apply function across unique B.Codes with future_lapply in parallel
+    future_lapply(1:nrow(ERA.Reformatted), function(i) {
+    #pblapply(1:nrow(ERA.Reformatted),FUN =function(i){
+    
+      # Update progress bar after each iteration
+      p() 
+      
     X<-data.frame(ERA.Reformatted[i,])
     
     T.Code<-as.vector(unlist(X[,paste0("T",1:NCols)]))
@@ -2681,16 +2715,16 @@ Data<-Data.Out
           if(names(Rpracs)[j] != "Agroforestry Pruning"){
             
             T.Code<-c(T.Code,unique(unlist(lapply(Ts,FUN=function(X){unlist(strsplit(X,"[.]"))[1]}))))
-            T.Code<-c(T.Code,rep(NA,NCols-length(T.Code)))
-            
             C.Code<-c(C.Code,unique(unlist(lapply(Cs,FUN=function(X){unlist(strsplit(X,"[.]"))[1]}))))
-            C.Code<-c(C.Code,rep(NA,NCols-length(C.Code)))
             
           }else{
             T.Code<-unique(c(T.Code,gsub("a17|a16","a15",Ts)))
-            
             C.Code<-unique(c(C.Code,gsub("a17|a16","a15",Cs)))
           }
+          
+          T.Code<-c(T.Code,rep(NA,NCols-length(T.Code)))
+          C.Code<-c(C.Code,rep(NA,NCols-length(C.Code)))
+          
           
           X[,paste0("T",1:NCols)]<-T.Code
           X[,paste0("C",1:NCols)]<-C.Code
@@ -2720,14 +2754,18 @@ Data<-Data.Out
     
     return(data.table(X))
     
-  }))
+  })
+  })
   
+  plan(sequential)
+  
+  ERA.Reformatted<-rbindlist(ERA.Reformatted)
 
-  # 5.4) Remove other Fert, Mulch, Water Harvesting and Ash codes ####
+  # 4.4) Remove other Fert, Mulch, Water Harvesting and Ash codes ####
   # Need to remove then check comparisons are still present
   
   # Rm.Codes<-c("b74","b73","b99")
-  Cols<-paste0(c("C","T"),rep(1:10,each=2))
+  Cols<-paste0(c("C","T"),rep(1:NCols,each=2))
   
   X<-data.frame(ERA.Reformatted)
   
@@ -2741,11 +2779,11 @@ Data<-Data.Out
   
   # Check for any comparisons that now have no ERA practices extra in the Treatment 
   Y<-unlist(pblapply(1:nrow(X),FUN=function(i){
-    T.Codes<-unlist(X[i,paste0("T",1:10)])
+    T.Codes<-unlist(X[i,paste0("T",1:NCols)])
     T.Codes<-T.Codes[!is.na(T.Codes)]
     T.Codes<-T.Codes[!grepl("h",T.Codes)]
     
-    C.Codes<-unlist(X[i,paste0("C",1:10)])
+    C.Codes<-unlist(X[i,paste0("C",1:NCols)])
     C.Codes<-C.Codes[!is.na(C.Codes)]
     C.Codes<-C.Codes[!grepl("h",C.Codes)]
     
@@ -2755,17 +2793,15 @@ Data<-Data.Out
   }))
   
   ERA.Reformatted<-X[Y]
-  rm(X,Y,Cols)
   
-     # Combine into final dataset ####
-    # There are still issues with duplication, so only allow unique rows ####
+  # 4.5) There are still issues with duplication, so only allow unique rows ####
     # I don't think this warrants spending a lot of tweaking the comparison code
     dim(ERA.Reformatted)
     table(ERA.Reformatted$Analysis.Function)
     ERA.Reformatted<-unique(ERA.Reformatted)
     table(ERA.Reformatted$Analysis.Function)
     dim(ERA.Reformatted)
-  # 5.6) Update Mulch vs Incorporation Codes ####
+  # 4.6) Update Mulch vs Incorporation Codes ####
   # Basic Comparisons function adds a Mulch.Code column which shows which code in the Control should be changed to a h37 code
   # However this is not fully implemented for system outcomes yet so we will recode the comparison directly
   # Incorporation codes in control (to be removed)
@@ -2777,7 +2813,7 @@ Data<-Data.Out
   
   Z<-ERA.Reformatted[,..Cols]
   
-  Z<-rbindlist(apply(Z,1,FUN=function(X){
+  Z<-rbindlist(pbapply(Z,1,FUN=function(X){
     A<-Mulch.C.Codes[Mulch.C.Codes %in% X[1:NCols] & Mulch.T.Codes %in% X[(NCols+1):length(X)]]
     if(length(A)>0){
       X[which(X[1:NCols] == A)] <-"h37"
@@ -2788,6 +2824,5 @@ Data<-Data.Out
   ERA.Reformatted<-cbind(ERA.Reformatted[,!..Cols],Z)
   
   # 5.7) Save Output ####
-  fwrite(ERA.Reformatted,paste0("Data/Compendium Master Database/ERA V1.1 ",as.character(Sys.Date()),".csv"),row.names = F)
-  
-  
+  save_name<-file.path(era_dirs$era_masterdata_dir, gsub("[.]RData","_comparisons.parquet",file_local))
+  arrow::write_parquet(ERA.Reformatted,save_name)
