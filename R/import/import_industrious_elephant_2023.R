@@ -4725,9 +4725,14 @@ col_names<-colnames(data[[800]])
                          ][,issue:="Outcome name used does not match master codes."
                            ][order(B.Code)]
   
+  allowed_values<-data.table(allowed_values=list(master_codes$out[Depreciated==F,unique(Subindicator)]),
+                             parent_tab_name=c("master_Codes$out$Subindicator"),
+                             field=c("Out.Subind"))
+  
   results<-validator(data=Out.Out,
                      numeric_cols=c("Out.Depth.Upper","Out.Depth.Lower","Out.NPV.Rate","Out.NPV.Time"),
                      compulsory_cols = c(Out.Code.Joined="Out.Unit"),
+                     allowed_values = allowed_values,
                      unique_cols = "Out.Code.Joined",
                      tabname="Out.Out",
                      trim_ws = T)
