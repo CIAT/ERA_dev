@@ -149,8 +149,9 @@ if(!ext_live){
   }
   
   # 2.4) Check for duplicate files #####
-  FNames<-unlist(tail(tstrsplit(Files,"Extracted/"),1))
+  FNames<-unlist(tail(tstrsplit(Files,"Extracted/|Quality Controlled/"),1))
   FNames<-gsub(" ","",FNames)
+  FNames<-gsub("- ","-",FNames,fixed=T)
   FNames<-unlist(tstrsplit(FNames,"-",keep=2))
   FNames<-gsub("[(]1[])]|[(]2[])]","",FNames)
   FNames<-gsub("_1|_2|_3|_4",".1|.2|.3|.4",FNames,fixed=T)
@@ -165,6 +166,7 @@ if(!ext_live){
   
   # Look for duplicate files
   excel_files[,N:=.N,by=era_code]
+  
   excel_files[N>1][order(era_code)]
   
   # Remove not qced duplicates
@@ -177,7 +179,7 @@ if(!ext_live){
 # 3) Process imported data ####
 overwrite<-F
   
-error_list<-lapply(1:nrow(excel_files),FUN=function(ii){
+results<-lapply(1:nrow(excel_files),FUN=function(ii){
 #error_list<-lapply(11,FUN=function(ii){
   
   File <- excel_files$filename[ii]
@@ -191,12 +193,12 @@ error_list<-lapply(1:nrow(excel_files),FUN=function(ii){
   filename_new<-gsub(".xlsx|.xlsm","_errors",basename(File))
   filepath_new<-file.path(dirname(File),paste0(filename_new,".csv"))
   
-  if(!file.exists(filepath_new) | overwrite==T){
+  if(!file.exists(filepath_new)|overwrite==T){
   # 3.0) Load excel data #####
   
   excel_dat <- tryCatch({
     lapply(SheetNames, FUN=function(SName){
-      cat('\r', "Importing File ", i, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
+      cat('\r', "Importing File ", ii, "/", nrow(excel_files), " - ", era_code, " | Sheet = ", SName,"               ")
       flush.console()
       data.table(suppressMessages(suppressWarnings(readxl::read_excel(File, sheet = SName, trim_ws = FALSE))))
     })
@@ -503,8 +505,8 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     
     # Any values not 100
     if(nrow(Soil.Out.Texture)>0){
-    error_dat<-unique(Soil.Out.Texture[N!=1 & (val>102|val<98),,.(value=Site.ID),by=.(B.Code,Site.ID)])
-    error_dat[,table:=table_name][,field:="Site.ID"][,issue:="Sand, silt, clay sum to beyond 2% different to 100%"]
+    error_dat<-unique(Soil.Out.Texture[N!=1 & (val>102|val<98),.(value=paste0(unique(Site.ID),collapse="/")),by=.(B.Code)])
+    error_dat[,table:=table_name][,field:="Site.ID"][,issue:="Sand, silt, clay sum to greater than a 2% difference from 100%"]
     errors<-c(errors,list(error_dat))
     }
     
@@ -1300,8 +1302,17 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     if(length(col_check)>0){
       for(k in 1:length(col_check)){
         cols<-grep(names(col_check[k]),col_names,value=T)
+        cols2<-grep(paste0(names(col_check[k]),"[.][.][.]"),col_names,value=T)
+        # Check the value cols are not all NA
+        all_na <- Animal.Diet.Digest[, sapply(.SD, function(col) !all(is.na(col))), .SDcols = cols2]
+        # Remove any all NA value cols
+        cols<-cols[rep(all_na,length(cols)/length(cols2))]
+        # Split name removing [.][.][.]
         cols_new<-unlist(tstrsplit(cols,"[.][.][.]",keep=1))
-        cols_new<-paste0(cols_new,".",rep(1:2,length(cols_new)/col_check[k]))
+        # Add numeric suffix if more than one column for same variable exists
+        if(sum(all_na)!=1){
+          cols_new<-paste0(cols_new,".",rep(1:sum(all_na),length(cols_new)/sum(all_na)))
+        }
         setnames(Animal.Diet.Digest,cols,cols_new)
       }
     }
@@ -1317,10 +1328,14 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     notes_cols<-grep("Notes",col_names,value=T)
     
     Animal.Diet.Digest<-Animal.Diet.Digest[,..col_names]
-    
+
     # Copy down units and methods
     copy_down_cols<-c(unit_cols,method_cols,notes_cols,focus_cols,"DD.is.DM")
     Animal.Diet.Digest <- Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD,function(x){x[1]}), .SDcols = copy_down_cols]
+    
+    # Enforce non-numeric cols are character
+    Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD, as.character), .SDcols = copy_down_cols]
+    
     
     # Add row_index
     Animal.Diet.Digest[,row_index:=1:.N]
@@ -2146,6 +2161,9 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     
     Pasture.Out<-results$data
     
+    # Enforce P.Level.Name to be character
+    Pasture.Out[,Pasture.Level.Name:=as.character(Pasture.Level.Name)]
+    
     # 3.18.2) Pasture.Comp #####
     table_name<-"Pasture.Out"
     Pasture.Comp<-excel_dat[[table_name]][,c(14:18)]
@@ -2175,7 +2193,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
                        allowed_values = allowed_values,
                        do_time = F,
                        template_cols = template_cols,
-                       check_keyfields=data.table(parent_tab=list(Pasture.Out,Pasture.Out),
+                       check_keyfields=data.table(parent_tab=list(Pasture.Out),
                                                   parent_tab_name=c("Pasture.Out"),
                                                   keyfield=c("Pasture.Level.Name")),
                        trim_ws = T)
@@ -2973,20 +2991,22 @@ if(F){
       Data.Out[O.Structure!="Yes",O.Structure:=NA][O.Structure=="Yes",O.Structure:=O.Level.Name]
       Data.Out[C.Structure!="Yes",C.Structure:=NA][C.Structure=="Yes",C.Structure:=C.Level.Name]
     }
+    
 # 8) Save errors #####
     errors<-rbindlist(errors,use.names = T)
     errors<-error_tracker(errors=errors,
                   filename =filename_new,
                   error_dir=dirname(File),
                   error_list = NULL)
-    return(errors[[1]])
+
+    return(if(length(errors)==0){NULL}else{errors[[1]]})
   }else{
     return(fread(filepath_new))
   }
     
   })
 
-errors<-rbindlist(error_list)
+errors<-rbindlist(results)
 errors<-merge(errors,excel_files[,.(filename,era_code2)],by.x="B.Code",by.y="era_code2",all.x=T,sort=F)[,filename:=basename(filename)]
 fwrite(errors,file.path(excel_dir,"compiled_auto_errors.csv"),bom=T)
 
