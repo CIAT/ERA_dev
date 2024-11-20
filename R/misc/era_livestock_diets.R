@@ -11,7 +11,7 @@ if (!require("pacman", character.only = TRUE)) {
 pacman::p_load(data.table,treemap,s3fs,arrow,devtools)
 
 if(!require(ERAgON)){
-  remotes::install_github(repo="https://github.com/EiA2030/ERAgON",build_vignettes = T)
+  remotes::install_github(repo="https://github.com/EiA2030/ERAgON",build_vignettes = T,dependencies = TRUE)
   library(ERAgON)
 }
 
@@ -283,7 +283,9 @@ data<-data_new
     digest_dat
     
     # 4.5) Feed intake #####
-    feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,A.Level.Name,Out.Subind,ED.Intake.Item,ED.Intake.Item.Raw,is_group,is_entire_diet,Out.Unit)]  
+    feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,A.Level.Name,
+                                                                         Out.Subind,ED.Intake.Item,ED.Mean.T,ED.Intake.Item.Raw,
+                                                                         is_group,is_entire_diet,Out.Unit)]  
     # These have some residual issues with the raw data we are resolving
     feed_intake[is.na(ED.Intake.Item)]
     feed_intake<-feed_intake[!is.na(ED.Intake.Item)]
@@ -297,5 +299,66 @@ data<-data_new
     diet_ingredients[B.Code==feed_intake_subset$B.Code & 
                        A.Level.Name==feed_intake_subset$A.Level.Name ]    
     
+    # 4.5.1) Feed intake with weight gain #####
+    #Subset to weight gain outcomes- removing fish papers 
+    WG<-livestock_metadata$Data.Out[Out.Subind=="Weight Gain" & P.Product != "Fish",.(B.Code,P.Product,T.Name,A.Level.Name,
+                                                                Out.WG.Start,Out.WG.Unit,Out.WG.Days,Out.Code.Joined,ED.Mean.T,Out.Unit)]
+    
+    # Define the list of units requiring conversion
+    units_per_day <- c(
+      "g/day", "g", "g/individual/day", "g/head/day", "g/day/individual", 
+      "g/d/individual", "g/individual/d", "g/indivividual/day", "g/individual", 
+      "g/ndividual/day", "g/dindividual/day", "g/individual.day", "g /individual/day"
+    )
+    
+    # Convert ED.Mean.T to kilograms/day only for specific units
+    WG[, ED.Mean.T_kg := ifelse(
+      Out.Unit %in% units_per_day,               # Check if Out.Unit is in the list
+      round(ED.Mean.T / 1000, 3),                   # Convert grams/day to kilograms/day and round
+      round(ED.Mean.T, 3)                           # Retain as is if not in the list
+    )]
+    
+    # Convert Out.WG.Start to kilograms if Out.WG.Unit indicates grams
+    WG[, Out.WG.Start_kg := ifelse(
+      grepl("^g$", Out.WG.Unit, ignore.case = TRUE), # Match exact "g"
+      Out.WG.Start / 1000,                          # Convert grams to kilograms
+      Out.WG.Start                                   # Retain if already in kilograms
+    )]
+    
+    # Calculate Out.WG.End
+    WG[, Out.WG.End := ifelse(
+      Out.Unit %in% units_per_day,                  # Daily gain units
+      round(Out.WG.Start_kg + (ED.Mean.T_kg * Out.WG.Days), 3),
+      ifelse(                                       # Non-daily gain units
+        grepl("^(g|kg|Kg)$", Out.Unit, ignore.case = TRUE),
+        round(Out.WG.Start_kg + ED.Mean.T_kg, 3),
+        NA                                          # Set to NA for other units
+      )
+    )]
+   
+    #Merge with feed intake. 
+    # Rename columns in WG and feed intake datasets
+    WG <- WG %>%
+      rename(
+        `Weight Gain` = ED.Mean.T,
+        `Weight Gain Unit` = Out.Unit,
+        `Weight Gain_kg` = ED.Mean.T_kg
+      )
+    
+    feed_intake <- feed_intake %>%
+      rename(
+        `Feed Intake` = ED.Mean.T,
+        `Feed Intake Unit` = Out.Unit,
+      )
+    
+    # Perform an inner join on the common columns
+    intake_WG <- merge(
+      WG, feed_intake,
+      by = c("B.Code", "T.Name", "A.Level.Name"),
+      all = FALSE # Inner join: retain only matching rows
+    )
+    
+
+
     
     
