@@ -34,7 +34,6 @@ JO0025,Planting Basins,WH.Out,WH.Level.Name,"Number of practice codes do not mat
 JO0048,RFMB,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,""
 JO0048,RFMG,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,""
 JO0048,RFMT,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,""
-JO0057,Base,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",TRUE,Jabesh,""
 JO0088,Microcatchments,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
 JO0088,Terraces,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""
 JO0088,Tied Ridges,WH.Out,WH.Level.Name,"Number of practice codes do not match number of practices, does the water harvesting practice exist in ERA?",FALSE,"",""

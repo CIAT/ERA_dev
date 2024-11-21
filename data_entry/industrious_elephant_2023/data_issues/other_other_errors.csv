@@ -2,7 +2,7 @@ B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
 AC0003,Fallow/E3,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 AC0019,3/5/7,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 AC0041,Bottom slope/Mid slope/Upper slope,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
-AC0044,Women,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
+AC0044,Women/All Farmers,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 AC0057,Trad,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 AC0076,Diversified farm/Coffee,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",TRUE,Charity,Diversified field had a different pruning pprcatice
 AC0088,Urochloa,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
@@ -22,6 +22,7 @@ CJ0093,L + S + T/C + S + T,Other.Out,O.Level.Name,">1 other practice exists and 
 CJ0106,US,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,"",""
 CJ0132,CF/OF,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 CJ0188,M/C,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
+CJ0197,fresh water/fish drainage water,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 CJ0200,Salinity 5/Salinity12/Salinity 17,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
 HK0157,PRUNNING,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,"",""
 HK0166,UA/AS/CAN,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
@@ -32,11 +33,11 @@ HK0258.3,Prunnings,Other.Out,O.Level.Name,"One other practice exists, please che
 JO0011,Barley-INT-100-25%/Barley-INT-100-37.5%/Barley-INT-100-50%/Barley-INT-100-62.5%,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 JO0013,M3/M5/M7/A3/A5/A7,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 JO0027,Pruned-50%/Unpruned/Pruned-100%/0 2/3 4/4 6,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
-JO0057,15 yrs/22 yrs/8 yrs,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 JO0059,1M/2M/3M,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 JO0060,PESTICIDE,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 JO0064,PRUNING,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 JO0081,L,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,"",""
+JO0082,LHI-2/LHI-3/LHI-4/LHF-7/LHF-14,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 JO0104,TL1/TL2/TL3,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 JO0110,Trees,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 JO0119,T1/T2/T3/T4/T5,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
@@ -53,6 +54,7 @@ LM0006,Tree prunnings,Other.Out,O.Level.Name,"One other practice exists, please 
 LM0171,Prunnings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 LM0264,GS prunings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 LM0321,PRUNNING,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,"",""
+NM0087,Tap water/Grey water,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 NM0110,R1/R2/R3,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 NN0184.2,Grapes,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,Charity,Must have been  addressed during QC
 NN0248,Prunings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
@@ -73,7 +75,6 @@ SA0005,2-50%NPK/3-50%NPK/2-50%NPK>>P6.55/3-50%NPK>>P6.55,Other.Out,O.Level.Name,
 SA0028,L-T1/L-T2/L-T3/L-T4/L-T5/L-T6/L-T7,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 SA0032,4_CA/3_CA_W/5_CA_W,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 SA0041,1_L/2_L/3_L/4_L/5_L/6_L/7_L,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
-SA0043,1_L/2_L/3_L/4_L/5_L/6_L,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 SA0051,1-CONw/2-NPKw/3-NPKw/4-NPKw/5-NPKw/6-NPKw/7-NPKw,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 SA0054.1,1_TGPw/2_TGPw/3_TGPw/4_TGPw/5_TGPw/1_UGPw/2_UGPw/3_UGPw/4_UGPw/5_UGPw,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 SA0054.2,1_MGPw/2_MGPw/3_MGPw/4_MGPw/5_MGPw/1_LGPw/2_LGPw/3_LGPw/4_LGPw/5_LGPw,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""

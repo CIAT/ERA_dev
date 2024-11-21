@@ -40,7 +40,6 @@ JO0020,Vicosa,Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE
 JO0041,Domboshawa Training Centre,Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE,"",""
 JO0042,Soil.TP,Soil.Out,variable,"Amount is present, but unit is missing for value.",,,,FALSE,"",""
 JO0047,Picos-Semi Arid Brazil,Soil.Out,Site.ID,Check for multiple instance of same depth for same site,,,,FALSE,"",""
-JO0057,Soil.AP,Soil.Out,variable,"Amount is present, but unit is missing for value.",,,,FALSE,"",""
 JO0073,"University of Nigeria, Nsukka",Soil.Out,Site.ID,Check for multiple instance of same depth for same site,,,,FALSE,"",""
 JO0078,Soil.AP,Soil.Out,variable,"Amount is present, but unit is missing for value.",,,,FALSE,"",""
 JO0079,Soil.SOM,Soil.Out,variable,"Amount is present, but unit is missing for value.",,,,FALSE,"",""

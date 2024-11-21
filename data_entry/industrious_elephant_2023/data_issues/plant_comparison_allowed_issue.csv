@@ -1,15 +1,12 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
 AC0045,Maize/Sorghum,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,Needs no comparison
-AC0147,Soybean NT/Maize NT,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,"",""
 CJ0036,Sorghum MBP,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
 CJ0052,Maize/Sorghum,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,Needs no comparison
 CJ0056,Maize,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
 CJ0098,Wheat/Maize/Soybean/Common Bean,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,Needs no comparison
 DM0021,Planting SB/Planting CG/Planting Maize,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
-HK0240,INT-M,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,"",""
 JO0019,Sole maize/Intercrop Maize/Intercrop Common Bean/Intercrop Squash,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,Jabesh,This is OK
 JO0053,NT,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,""
-JO0054,Unshadded,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,TRUE,Jabesh,Needs no comparison
 JO0131,INT MZ 2-2,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,"",""
 JO0177,INT-M/INT-C,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,"",""
 NM0056,0.4 SP/0.8SP,Plant.Out,P.Level.Name,Practice name is specified but the does it P.Structure outcomes row is blank.,FALSE,"",""
