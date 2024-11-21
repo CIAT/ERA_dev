@@ -1388,6 +1388,9 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   }}
   
   # !!!TO DO!!! Add validation for unit amounts vs unit type #####
+  # !!!TO DO!!! Add validation for focus vs % (are they sensible) #####
+  # If focus is diet then values cannot add up to more 100%
+  # If focus is diet then value should not be more than the equivalent amount in the nutrient composition table (units need to match of course).
   
     # 3.11.1) !!TO DO !! Harmonization #######
   if(F){

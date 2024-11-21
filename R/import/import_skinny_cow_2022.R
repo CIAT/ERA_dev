@@ -1336,6 +1336,9 @@ errors<-c(errors,list(error_dat))
   Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
   Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
   
+  # !!!TO DO!! Add check that diet does not add up to inappriate amount ####
+  
+  
     # 3.7.4.1) Harmonization #######
 
   Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)

@@ -150,7 +150,7 @@ if(update){
   ## 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the import process be run again?
-  overwrite<-F
+  overwrite<-T
   
   # Delete existing files if overwrite =T
   if(overwrite){
@@ -5782,9 +5782,6 @@ col_names<-colnames(data[[800]])
     Data.Out<-merge(Data.Out,Base.Out,by="B.Code",all.x=T,sort=F)
     stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
     ### 8.5.16) Update Structure Fields to reflect Level name rather than "Yes" or "No" ####
-    
-    grep("[.]Structure$",colnames(Data.Out),value=T)
-    
     Data.Out[P.Structure!="No",P.Structure:=NA][P.Structure=="No",P.Structure:=P.Level.Name]
     Data.Out[PD.Structure!="No",P.Structure:=NA][PD.Structure=="No",PD.Structure:=PD.Level.Name]
     Data.Out[O.Structure!="No",O.Structure:=NA][O.Structure=="No",O.Structure:=O.Level.Name]
