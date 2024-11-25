@@ -26,7 +26,7 @@ valid_end <- as.Date("2024-12-01")
 # 0.2) Set project directories and parallel cores ####
 
 # Set cores for parallel processing
-workers<-parallel::detectCores()-2
+worker_n<-parallel::detectCores()-2
 
 # Set the project name, this should usually refer to the ERA extraction template used
 project<-era_projects$courageous_camel_2024
@@ -177,15 +177,32 @@ if(!ext_live){
   excel_files[, era_code2:=gsub(".xlsm", "", era_code)]
   
 # 3) Process imported data ####
-overwrite<-F
+  # Update saved data and errorchecking (T) or skip if file has already been processed (F)
+  overwrite<-T
+
+  # Set up parallel back-end
+  plan(multisession, workers = worker_n)
   
-results<-lapply(1:nrow(excel_files),FUN=function(ii){
-#error_list<-lapply(11,FUN=function(ii){
+  # Enable progressr and set up handlers
+  progressr::handlers("progress")
+  progressr::handlers(global = TRUE)
   
-  File <- excel_files$filename[ii]
-  cat("File",ii,basename(File),"\n")
-  era_code <- excel_files$era_code2[ii]
+  # Wrap the parallel processing in a with_progress call
+  XL <- with_progress({
+    # Define the progressor based on the number of files
+    p <- progressr::progressor(along = 1:nrow(excel_files))
+    
+  results<-future.apply::future_lapply(1:nrow(excel_files), FUN = function(i) {
+  #results<-lapply(1:nrow(excel_files),FUN=function(ii){
   
+    # Update the progress bar
+    p()
+    
+    File <- excel_files$filename[ii]
+    #cat("File",ii,basename(File),"\n")
+
+    era_code <- excel_files$era_code2[ii]
+    
   # For later development to save processed tables
   # save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
   
@@ -298,6 +315,11 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
                      tabname=table_name)
   
   Site.Out<-results$data
+  
+  # Enforce class character for columns
+  other_cols<-colnames(Site.Out)[!colnames(Site.Out) %in% numeric_cols]
+  Site.Out[, (other_cols) := lapply(.SD, as.character),.SDcols = other_cols]
+  
   error_dat<-results$errors
   # remove aggregated sites from error list
   error_dat<-error_dat[!grepl("[.][.]",value)]
@@ -370,6 +392,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     
     Site.Out$Site.ID_raw<-Site.Out$Site.ID
     
+    if(nrow(Site.Out)>0){
     for(i in 1:nrow(Site.Out)){
       country<-Site.Out$Country[i]
       site_id<-Site.Out$Site.ID_raw[i]
@@ -383,6 +406,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
       site_ids_new<-paste0(site_ids_new,collapse="..")
       
       Site.Out$Site.ID[i]<-site_ids_new
+    }
     }
     
     # Check for missing facilities in era_master_sheet
@@ -738,6 +762,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
      Herd.Out[,Herd.LevelxSublevel:=NULL]
   
      # 3.7.1) Variety Harmonization ######
+     # !!! TO DO !!! Consider names used in hybrids
      mergedat<-master_codes$vars_animals[,.(V.Product,V.Var,V.Code,V.Animal.Practice,V.Var1)]
      setnames(mergedat,c("V.Var1","V.Animal.Practice"),c("V.Var_new","V.Animal.Practice_new"))
      
@@ -745,7 +770,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
      
      # No match error
       error_dat<-Herd.Out[is.na(V.Var_new),
-                         ][,list(value=paste(V.Var,collapse="/")),by=B.Code
+                         ][!grepl("[*][*][*]",V.Var),list(value=paste(V.Var,collapse="/")),by=B.Code
                            ][,table:=table_name
                              ][,field:="V.Var"
                                ][,issue:="No match for variety in the master_codes$vars_animals$V.Var1 field."]
@@ -1116,7 +1141,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
                             field=NA,
                             issue="Critical column names missing, probably spill issue in excel Nurition.Out tab. Error checking of this table cannot proceed further.")
       errors<-c(errors,list(error_dat))
-      
+      Animal.Diet.Comp<-NULL
     }else{
     
     # Remove rows where D.Item is NA
@@ -1205,6 +1230,27 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     
   # !!!TO DO!!! Add validation for unit amounts vs unit type (e.g., if % should not be >100) #####
     }}
+    # 3.10.1) Wrangle dataset into long form ######
+    if(!is.null(Animal.Diet.Comp)){
+      if(nrow(Animal.Diet.Comp)>1){
+      col_names<-colnames(Animal.Diet.Comp)
+      other_cols<-col_names[!col_names %in% c(num_cols,method_cols,unit_cols,notes_cols)]
+      cols<-data.table(num_cols,unit_cols,method_cols,notes_cols)
+      colnames(cols)<-c("DN.Value","DN.Unit","DN.Method","DN.Notes")
+      
+      Animal.Diet.Comp<-rbindlist(lapply(1:nrow(cols),FUN=function(i){
+        target_cols<-unlist(cols[i])
+        cols_selected<-c(other_cols,target_cols)
+        variable<-gsub("DN.","",target_cols[1])
+        dat<-Animal.Diet.Comp[,cols_selected,with=F][,DN.Variable:=variable]
+        setnames(dat,target_cols,names(target_cols))
+        return(dat)
+      }))
+      }else{
+        Animal.Diet.Comp<-NULL
+      }
+    }
+    
     # 3.10.1) TO DO!!! Harmonization #######
   if(F){
   # Merge in updated name from Animal.Diet table
@@ -1281,6 +1327,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
                           field="column number",
                           issue=paste0("Values are present in a column, but the name of the column is blank. Error checking of this table cannot proceed further."))
     errors<-c(errors,list(error_dat))
+    Animal.Diet.Digest<-NULL
   }else{
   
   if(nrow(Animal.Diet.Digest)>0){
@@ -1331,11 +1378,10 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
 
     # Copy down units and methods
     copy_down_cols<-c(unit_cols,method_cols,notes_cols,focus_cols,"DD.is.DM")
-    Animal.Diet.Digest <- Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD,function(x){x[1]}), .SDcols = copy_down_cols]
+    Animal.Diet.Digest <- Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD,function(x){x[!is.na(x)]}), .SDcols = copy_down_cols]
     
     # Enforce non-numeric cols are character
     Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD, as.character), .SDcols = copy_down_cols]
-    
     
     # Add row_index
     Animal.Diet.Digest[,row_index:=1:.N]
@@ -1387,12 +1433,56 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     Animal.Diet.Digest<-merge(Animal.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
   }}
   
-  # !!!TO DO!!! Add validation for unit amounts vs unit type #####
-  # !!!TO DO!!! Add validation for focus vs % (are they sensible) #####
-  # If focus is diet then values cannot add up to more 100%
-  # If focus is diet then value should not be more than the equivalent amount in the nutrient composition table (units need to match of course).
-  
-    # 3.11.1) !!TO DO !! Harmonization #######
+  # Update D.Item names from Animal.Diet.Comp Table
+    # 3.11.1) Wrangle dataset into long form #####
+    if(!is.null(Animal.Diet.Digest)){
+      if(nrow(Animal.Diet.Digest)>0){
+        col_names<-colnames(Animal.Diet.Digest)
+        
+        other_cols<-col_names[!col_names %in% c(num_cols,method_cols,focus_cols,unit_cols,notes_cols)]
+        cols<-data.table(num_cols,unit_cols,focus_cols,method_cols,notes_cols)
+        colnames(cols)<-c("DD.Value","DD.Unit","DD.Nut.or.Diet","DD.Method","DD.Notes")
+        
+        Animal.Diet.Digest<-rbindlist(lapply(1:nrow(cols),FUN=function(i){
+          target_cols<-unlist(cols[i])
+          cols_selected<-c(other_cols,target_cols)
+          variable<-gsub("DD.","",target_cols[1])
+          dat<-Animal.Diet.Digest[,cols_selected,with=F][,DD.Variable:=variable]
+          setnames(dat,target_cols,names(target_cols))
+          return(dat)
+        }))
+        }else{
+          Animal.Diet.Digest<-NULL
+        }
+    }
+    
+    # 3.11.2) If focus is diet then values cannot add up to more 100% #####
+      # Note that DM should not be included
+    if(!is.null(Animal.Diet.Digest)){
+      Animal.Diet.Digest[,DD.Value_sum:=sum(DD.Value[!DD.Variable %in% c("DM","OM")],na.rm=T),by=.(D.Item,D.Time,DD.Unit,DD.Nut.or.Diet)]
+      
+      error_dat<-unique(Animal.Diet.Digest[DD.Nut.or.Diet=="Diet" & ((DD.Value_sum>100 & DD.Unit=="%")|(DD.Value_sum>1 & DD.Unit=="g/kg|mg/g")),
+                                           .(B.Code,D.Item,D.Time,DD.Unit)])
+      
+      error_dat<-error_dat[,.(value=paste(unique(D.Item),collapse = "/")),by=B.Code
+                            ][,table:=table_name
+                              ][,field:="D.Item"
+                                ][,issue:="Focus of digestibility is diet, but values across the diet item or diet sum to more than 100 for % units or more than 1 for g/kg units"]
+                  
+      errors<-c(errors,list(error_dat))
+      
+      Animal.Diet.Digest[,DD.Value_sum:=NULL]
+    }
+    
+    # 3.11.3) !!!TO DO!!! If focus is diet then value should not be more than the equivalent amount in the nutrient composition table (units need to match of course) #####
+    # This requires some more efforts to harmonize units, in particular around % DM and converting g/kg to % or vice-versa
+    # There are also complexities that could come from situation where composition has been measured using different methods
+    if(!is.null(Animal.Diet.Comp)){
+    mergedat<-unique(Animal.Diet.Comp[,.(B.Code,D.Item,DN.Variable,DN.Unit,DN.Value)])
+    }
+    # !!!TO DO!!! Add general validation for unit amounts vs unit type #####
+    
+   # 3.11.4) !!TO DO !! Harmonization #######
   if(F){
   Animal.Diet.Digest<-merge(Animal.Diet.Digest,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
   
@@ -1508,6 +1598,9 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     setnames(Chems.Code,"C.Name","C.Level.Name")
     Chems.Code<-Chems.Code[!is.na(C.Level.Name)]
     
+    # Enforce class character for columns
+    Chems.Code[, (names(Chems.Code)) := lapply(.SD, as.character)]
+    
     error_dat<-validator(data=Chems.Code,
                        unique_cols = "C.Level.Name",
                        ignore_values = "Unspecified",
@@ -1531,6 +1624,12 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     template_cols[template_cols=="C.Brand"]<-"C.Name"
     template_cols[template_cols=="C.Notes1"]<-"C.Notes"
     template_cols[template_cols=="M.Year"]<-"Time"
+    
+    # Enforce character
+    numeric_cols <- c("C.Amount", "C.Date.Start", "C.Date.End", "C.Date.DAP")
+    Chems.Out[, (numeric_cols) := lapply(.SD, as.numeric), .SDcols = numeric_cols]
+    other_cols<-colnames(Chems.Out)[!colnames(Chems.Out) %in% numeric_cols]
+    Chems.Out[, (other_cols) := lapply(.SD, as.character), .SDcols = other_cols]
     
     allowed_values<-data.table(allowed_values=list(unique(c(master_codes$chem[,C.Name],master_codes$chem[,C.Name.AI...16])),
                                                    master_codes$lookup_levels[Field=="C.App.Method",Values_New],
@@ -1627,6 +1726,9 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   
   # Remove NA rows
   Chems.AI<-Chems.AI[!is.na(C.Name)]
+  
+  # Enforce character
+  Chems.AI[, (names(Chems.AI)) := lapply(.SD, as.character)]
   
   allowed_values<-data.table(allowed_values=list(unique(master_codes$chem[,C.Name.AI...16]),
                                                  master_codes$lookup_levels[Field=="C.AI.Unit",Values_New]),
@@ -3008,6 +3110,8 @@ if(F){
   }
     
   })
+
+})
 
 errors<-rbindlist(results)
 errors<-merge(errors,excel_files[,.(filename,era_code2)],by.x="B.Code",by.y="era_code2",all.x=T,sort=F)[,filename:=basename(filename)]
