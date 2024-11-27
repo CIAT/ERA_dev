@@ -8,7 +8,7 @@ if (!require("pacman", character.only = TRUE)) {
   library(pacman)
 }
 
-pacman::p_load(data.table,treemap,s3fs,arrow,devtools)
+pacman::p_load(data.table,treemap,s3fs,arrow,devtools,dplyr,ggplot2)
 
 if(!require(ERAgON)){
   remotes::install_github(repo="https://github.com/EiA2030/ERAgON",build_vignettes = T,dependencies = TRUE)
@@ -360,6 +360,82 @@ data<-data_new
     
 
 ###################Looking for outliers#########################################
-
+#Subset to Cattle 
+    WG_cattle <- WG[grepl('Cattle', P.Product)]
     
+    # Define thresholds based on IQR
+    Q1 <- quantile(WG_cattle$ED.Mean.T_kg, 0.25, na.rm = TRUE)
+    Q3 <- quantile(WG_cattle$ED.Mean.T_kg, 0.75, na.rm = TRUE)
+    IQR <- Q3 - Q1
+    
+    # Filter for non-extreme data (1.5 × IQR rule)
+    no_outliers_cattle <- WG_cattle[
+      WG_cattle$ED.Mean.T_kg > (Q1 - 1.5 * IQR) & WG_cattle$ED.Mean.T_kg < (Q3 + 1.5 * IQR)
+    ]
+    
+    # Identify rows that were filtered out as outliers
+    outliers_cattle <- WG_cattle[
+      !(WG_cattle$ED.Mean.T_kg > (Q1 - 1.5 * IQR) & WG_cattle$ED.Mean.T_kg < (Q3 + 1.5 * IQR))
+    ]
+    
+    # Box-and-Whisker plot with ED.Mean.T_kg on the x-axis for 
+    ggplot(no_outliers_cattle, aes(y= "", x = ED.Mean.T_kg)) +
+      geom_boxplot(outlier.colour = "red", outlier.shape = 19) +
+      labs(
+        title = "Weight Gain distribution for Cattle"
+      ) +
+      theme_minimal()
+    
+    # View or save outliers
+    View(outliers)  # View the filtered-out rows
+    write.csv(outliers, "cattle_outliers.csv", row.names = FALSE)  # Save outliers to a CSV file
+    
+
+#Subset to Sheep and goat 
+    WG_sheep_goat <- WG[grepl('Sheep|Goat', P.Product)]
+    
+    units_per_day_kg <- c(
+      "kg/individual","kg/individual/d","kg/individual/day"
+    )
+    
+    # Convert ED.Mean.T to kilograms/day only for specific units
+    WG_sheep_goat[, ED.Mean.T_kg := ifelse(
+    Out.Unit %in% units_per_day_kg,                # Check if Out.Unit is in the list
+    round(ED.Mean.T, 3),                          # Retain as is (already in g/day)
+    round(ED.Mean.T * 1000, 3)                    # Convert kg/day to g/day and round
+)]
+
+# Calculate ED.Mean.T_g for 'g' or 'kg' units (per day conversion)
+  WG_sheep_goat[, ED.Mean.T_g := ifelse(
+  Out.Unit %in% c("g", "kg") & !is.na(Out.WG.Days), # Check if Out.Unit is 'g' or 'kg' and Out.WG.Days is not NA
+  ED.Mean.T / Out.WG.Days,                          # Perform the calculation
+  NA                                                # Leave as NA for other cases
+)]
+    
+    # Print the updated dataset to verify
+    head(WG)
+    
+    
+    # Define thresholds based on IQR
+    Q1 <- quantile(WG_sheep_goat$ED.Mean.T_g, 0.25, na.rm = TRUE)
+    Q3 <- quantile(WG_sheep_goat$ED.Mean.T_g, 0.75, na.rm = TRUE)
+    IQR <- Q3 - Q1
+    
+    # Filter for non-extreme data (1.5 × IQR rule)
+    no_outliers_sheep_goat <- WG_sheep_goat[
+      WG_sheep_goat$ED.Mean.T_g > (Q1 - 1.5 * IQR) & WG_sheep_goat$ED.Mean.T_g < (Q3 + 1.5 * IQR)
+    ]
+    
+    # Identify rows that were filtered out as outliers
+    outliers_sheep_goat <- WG_sheep_goat[
+      !(WG_sheep_goat$ED.Mean.T_g > (Q1 - 1.5 * IQR) & WG_sheep_goat$ED.Mean.T_g < (Q3 + 1.5 * IQR))
+    ]
+    
+    # Box-and-Whisker plot with ED.Mean.T_g on the x-axis for 
+    ggplot(no_outliers_sheep_goat, aes(y= "", x = ED.Mean.T_g)) +
+      geom_boxplot(outlier.colour = "red", outlier.shape = 19) +
+      labs(
+        title = "Weight Gain distribution for Cattle"
+      ) +
+      theme_minimal()
     
