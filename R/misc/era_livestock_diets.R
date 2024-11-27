@@ -394,28 +394,18 @@ data<-data_new
 #Subset to Sheep and goat 
     WG_sheep_goat <- WG[grepl('Sheep|Goat', P.Product)]
     
-    units_per_day_kg <- c(
-      "kg/individual","kg/individual/d","kg/individual/day"
-    )
+    # Define units to convert to grams
+    units_to_convert_to_g <- c("kg/individual", "kg/individual/d", "kg/individual/day")
     
-    # Convert ED.Mean.T to kilograms/day only for specific units
-    WG_sheep_goat[, ED.Mean.T_kg := ifelse(
-    Out.Unit %in% units_per_day_kg,                # Check if Out.Unit is in the list
-    round(ED.Mean.T, 3),                          # Retain as is (already in g/day)
-    round(ED.Mean.T * 1000, 3)                    # Convert kg/day to g/day and round
-)]
-
-# Calculate ED.Mean.T_g for 'g' or 'kg' units (per day conversion)
-  WG_sheep_goat[, ED.Mean.T_g := ifelse(
-  Out.Unit %in% c("g", "kg") & !is.na(Out.WG.Days), # Check if Out.Unit is 'g' or 'kg' and Out.WG.Days is not NA
-  ED.Mean.T / Out.WG.Days,                          # Perform the calculation
-  NA                                                # Leave as NA for other cases
-)]
-    
-    # Print the updated dataset to verify
-    head(WG)
-    
-    
+    # Create a unified ED.Mean.T_g column
+    WG_sheep_goat[, ED.Mean.T_g := ifelse(
+      Out.Unit %in% units_to_convert_to_g,                # If unit is in kg-related units
+      round(ED.Mean.T * 1000, 3),                         # Convert kg to grams
+      ifelse(Out.Unit %in% c("g", "kg") & !is.na(Out.WG.Days), # If unit is 'g' or 'kg' and days exist
+             round(ED.Mean.T / Out.WG.Days, 3),           # Calculate daily gain in grams
+             ED.Mean.T                                    # Otherwise, retain the original value
+      )
+    )]
     # Define thresholds based on IQR
     Q1 <- quantile(WG_sheep_goat$ED.Mean.T_g, 0.25, na.rm = TRUE)
     Q3 <- quantile(WG_sheep_goat$ED.Mean.T_g, 0.75, na.rm = TRUE)
@@ -435,7 +425,7 @@ data<-data_new
     ggplot(no_outliers_sheep_goat, aes(y= "", x = ED.Mean.T_g)) +
       geom_boxplot(outlier.colour = "red", outlier.shape = 19) +
       labs(
-        title = "Weight Gain distribution for Cattle"
+        title = "Weight Gain distribution for Sheep and Goat"
       ) +
       theme_minimal()
     
