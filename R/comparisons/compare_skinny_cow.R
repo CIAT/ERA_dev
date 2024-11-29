@@ -68,6 +68,7 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   Site.Out<-data_list$Site.Out
   Soil.Out<-data_list$Soil.Out
   Var.Out<-data_list$Var.Out
+  Times.Out<-data_list$Times.Out
   
    # 1.2.1) Prepare Data.Out ######
   # Remove h-codes from T.Codes
@@ -872,7 +873,6 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   
   # 3.11) Update DOI field #####
   Data[is.na(B.DOI),B.DOI:=B.Url]
-  
   # X) Aggregate data for averaged site locations -MOVE TO IMPORT SECTION ####
   if(F){
   setnames(Data,"Buffer.Manual","Site.Buffer.Manual")
@@ -930,7 +930,6 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   
   unique(Data[is.na(Site.Buffer.Manual),list(B.Code,Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual)])
   }
-  
 # 4) Reconfigure to ERA v1.0 format ####
   C.Descrip.Col<-"T.Name"
   
@@ -1015,23 +1014,6 @@ dim(ERA.Reformatted)
 
 ERA.Reformatted[,.(N.Obs=.N),by=.(Code,TID,Outcome,Units,Partial.Outcome.Name)][N.Obs>10][order(N.Obs,decreasing = T),.(Code,TID,Outcome,N.Obs)]
 ERA.Reformatted[,.(N.Obs=.N),by=.(Code,CID,Outcome,Units,Partial.Outcome.Name)][N.Obs>10][order(N.Obs,decreasing = T),.(Code,CID,Outcome,N.Obs)]
-
-  # x) Old Code (Move to import or remove)  ####
-  
-  if(F){
-  # Change Kg to g
-  Animals.Diet[,D.Amount:=as.numeric(D.Amount)]
-  Animals.Diet[D.Unit.Amount=="kg",D.Amount:=D.Amount*1000]
-  Animals.Diet[D.Unit.Amount=="kg",D.Unit.Amount:="g"]
-  
-  # Round amounts to 0 dp 
-  Animals.Diet[,D.Amount.Round:=round(D.Amount)]
-
-  # Deal with Diet Amount is na
-  Animals.Diet[is.na(D.Amount),D.Amount.Round:=999999]
-  # Deal with Diet Amount Rounded == 0  and Diet Amount Rounded is not zero
-  Animals.Diet[D.Amount>0 & D.Amount.Round==0,D.Amount.Round:=999999]
-  }
 
 # 5) Save Output ####
 save_name<-gsub("[.]RData","_comparisons.parquet",file_local)
