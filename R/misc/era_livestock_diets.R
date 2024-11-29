@@ -8,17 +8,30 @@ if (!require("pacman", character.only = TRUE)) {
   library(pacman)
 }
 
-pacman::p_load(data.table,treemap,s3fs,arrow,devtools,dplyr,ggplot2)
+pacman::p_load(data.table,treemap,s3fs,arrow,devtools,dplyr,ggplot2,gh)
 
 if(!require(ERAgON)){
   remotes::install_github(repo="https://github.com/EiA2030/ERAgON",build_vignettes = T,dependencies = TRUE)
   library(ERAgON)
 }
 
+# Load ERAg package
+# Fetch the latest release information
+latest_release <- gh("GET /repos/EiA2030/ERAg/releases/latest")
+# Extract the tag name, which typically represents the version
+latest_version <- latest_release$tag_name
+
 if(!require(ERAg)){
   remotes::install_github(repo="https://github.com/EiA2030/ERAg",build_vignettes = T)
   library(ERAg)
 }
+
+if(packageVersion("ERAg")!=substr(latest_version,2,6)){
+  remotes::install_github(repo="https://github.com/EiA2030/ERAg",build_vignettes = T)
+  library(ERAg)
+}
+
+
 
 # options(arrow.unsafe_metadata=TRUE)
 
