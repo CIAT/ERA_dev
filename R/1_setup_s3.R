@@ -74,7 +74,7 @@ if(F){
   # 1.2.1) 2023 industrious elephant ######
     # 1.2.1.1) Upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
-    folder_local<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1WRc7ooeLNhQTTAx_4WGTCOBg2skSzg4C/Data Entry 2023"
+    folder_local<-"/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2023/Data/"
     project<-era_projects$industrious_elephant_2023
     folder<-file.path(era_dirs$era_dataentry_dir,
                       project,
@@ -93,7 +93,7 @@ if(F){
     files<-list.files(folder_local,full.names = T,recursive=T)
     files<- grep("xlsm$",files,value=T)
     files<-files[!grepl("~",files)]
-    files<- grep("/QCed/|/Extracted/",files,value=T)
+    files<- grep("/Quality Controlled/|/Extracted/",files,value=T)
     
     # zip all the excels and upload to the s3
     output_zip_file <- file.path(folder,paste0(project,".zip"))
@@ -119,7 +119,7 @@ if(F){
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
-    
+
   # 1.2.2) 2022 skinny cow ######
     # 1.2.2.1) upload excels #######
     folder_local<-file.path("/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
