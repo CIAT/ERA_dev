@@ -122,7 +122,103 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   grouping_cols<-c("Site.ID","P.Product","ED.Product.Comp","Time", "Out.Code.Joined",
                    "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","O.Structure","C.Structure","B.Code","Country")
   
-  # 2.1) Feed Addition ####
+  # 2.0) Create Comparison Function #####
+  Compare.Fun.Ani<-function(Data,Verbose,Debug,PracticeCodes){
+    
+    BC<-Data$B.Code[1]
+    N<-Data[,N]
+    #Final.Codes<-Data[,Final.Codes] # Is this redundant?
+    #k<-N # Is this redundant?
+    Y<-Data[,c("Final.Codes","N","N.Prac")][,Y.N:=1:.N]
+    
+    result<-lapply(1:length(N),FUN=function(j){
+      if(Verbose){
+        cat("N (j) =",j, "\n")
+      }
+      X<-unlist(Data$Final.Codes[j])
+      i<-N[j]
+      
+      if(is.na(X[1])){
+        Z<-Y[N!=i & !is.na(Final.Codes)
+        ][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
+        ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
+        ][Match>=0 & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
+        
+        Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
+        
+        Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
+        ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
+        ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
+        
+      }else{
+        
+        # Here we are working from the logic of looking at what other treatments can treatment[i] be a control for?
+        Z<-Y[N!=i][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
+        ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
+        ][Match>=length(X) & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
+        
+        # There was a bug here where Control.Code was set to :=list(X), but if X was the same length as nrow(Z) this led to issues
+        Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
+        
+        Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
+        ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
+        ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
+        
+      }
+      
+      if(nrow(Z)>0){
+        Z$Level.Check<-lapply(1:nrow(Z),FUN=function(ii){
+          unlist(lapply(1:length(unlist(Z[ii,Linked.Tab])),FUN=function(jj){
+            if(is.na(Z[ii,Linked.Tab])){TRUE}else{
+              linked_tab<-unlist(Z[ii,Linked.Tab])[jj]
+              linked_col<-unlist(Z[ii,Linked.Col])[jj]
+              prac_codes<-unlist(Z$Prac.Code[ii])
+              if(Verbose){cat("N (j) =", i,"ii =",ii,"| jj =",jj,"\n")}
+              
+              
+              if(linked_tab=="Animal.Out" & any(prac_codes %in% PracticeCodes1[Practice=="Feed Addition",Code])){
+                if(Verbose){cat("Feed Add: ii =",ii,"| jj =",jj,"\n")}
+                # Is the potential control listed as a control in the Animal tab?
+                Data_subset[j,A.Feed.Add.C]=="Yes"
+                # TO DO Advanced Logic: Control should contain all rows of treatment
+              }else{
+                
+                if(linked_tab=="Var.Out"){
+                  if(Verbose){cat("Improved Breed: ii =",ii,"| jj =",jj,"\n")}
+                  
+                  COL<-linked_col
+                  if(!is.na(COL)){
+                    # Does control value (left) equal treatment value (right)
+                    Data[N==i,..COL] == Data[N== Z[ii,N],..COL]
+                  }else{
+                    # If control codes are NA (no ERA practice) then it could be comparable to other treatments that are not NA and have an ERA practice
+                    !is.na(prac_codes)
+                  }
+                }else{
+                  if(Verbose){cat("Simple: ii =",ii,"| jj =",jj,"\n")}
+                  
+                  # Otherwise we assume comparison is valid
+                  TRUE
+                }}}
+          }))
+        })
+        
+        # All Level.Checks must be true for comparison to be valid
+        Z[,Level.Check:=all(unlist(Level.Check)),by=Y.N]
+        
+        if(Debug){
+          Z
+        }else{
+          # Return rows from master table that are valid treatments for this control (Level.Check==T)
+          Z[Level.Check==T,N]
+        }
+      }else{NA}
+      
+    })
+    return(result)
+  } # Setting Debug to T prints comparison table rather than row numbers
+  
+  # 2.1) Feed Addition #####
   DATA<-Data.Out.Animals[(Feed.Add==T|A.Feed.Add.C=="Yes")]
   
   Match.Fun <- function(A, B) {
@@ -145,101 +241,6 @@ data_dir_s3<-era_dirs$era_masterdata_s3
     return(list(result))
   }
     
-  Compare.Fun.Ani<-function(Data,Verbose,Debug,PracticeCodes){
-      
-      BC<-Data$B.Code[1]
-      N<-Data[,N]
-      #Final.Codes<-Data[,Final.Codes] # Is this redundant?
-      #k<-N # Is this redundant?
-      Y<-Data[,c("Final.Codes","N","N.Prac")][,Y.N:=1:.N]
-      
-      result<-lapply(1:length(N),FUN=function(j){
-        if(Verbose){
-          output<-paste("N =",j)
-          cat(paste(output, strrep(" ", 100 - nchar(output)), "\r"))
-          flush.console()  
-          }
-        X<-unlist(Data$Final.Codes[j])
-        i<-N[j]
-        
-        if(is.na(X[1])){
-          Z<-Y[N!=i & !is.na(Final.Codes)
-          ][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-          ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-          ][Match>=0 & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
-          
-          Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
-          
-          Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-          ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-          ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
-          
-        }else{
-          
-          # Here we are working from the logic of looking at what other treatments can treatment[i] be a control for?
-          Z<-Y[N!=i][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-          ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-          ][Match>=length(X) & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
-          
-          # There was a bug here where Control.Code was set to :=list(X), but if X was the same length as nrow(Z) this led to issues
-          Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
-          
-          Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-          ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-          ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
-          
-        }
-        
-        if(nrow(Z)>0){
-          Z$Level.Check<-lapply(1:nrow(Z),FUN=function(ii){
-            unlist(lapply(1:length(unlist(Z[ii,Linked.Tab])),FUN=function(jj){
-              
-              if(is.na(Z[ii,Linked.Tab])){TRUE}else{
-                
-                if(unlist(Z[ii,Linked.Tab])[jj]=="Animal.Out" & any(Z$Prac.Code[ii] %in% PracticeCodes1[Practice=="Feed Addition",Code])){
-                  if(Verbose){print(paste0("Feed Add: ii = ",ii," | jj = ",jj))}
-                  # Is the potential control listed as a control in the Animal tab?
-                  Data_subset[j,A.Feed.Add.C]=="Yes"
-                  # TO DO Advanced Logic: Control should contain all rows of treatment
-                }else{
-                  
-                  if(unlist(Z[ii,Linked.Tab])[jj]=="Var.Out"){
-                    if(Verbose){print(paste0("Improved Breed: ii = ",ii," | jj = ",jj))}
-                    
-                    COL<-unlist(Z[ii,Linked.Col])[jj]
-                    if(!is.na(COL)){
-                      # Does control value (left) equal treatment value (right)
-                      Data[N==i,..COL] == Data[N== Z[ii,N],..COL]
-                    }else{
-                      # If control codes are NA (no ERA practice) then it could be comparible to other treatments that are not NA and have an ERA practice
-                      !is.na(unlist(Z$Prac.Code)[ii])
-                    }
-                  }else{
-                    if(Verbose){print(paste0("Simple: ii = ",ii," | jj = ",jj))}
-                    
-                    # Otherwise we assume comparison is valid
-                    TRUE
-                  }}}
-              
-              
-            }))
-            
-          })
-          
-          # All Level.Checks must be true for comparison to be valid
-          Z[,Level.Check:=all(unlist(Level.Check)),by=Y.N]
-          
-          if(Debug){
-            Z
-          }else{
-            # Return rows from master table that are valid treatments for this control (Level.Check==T)
-            Z[Level.Check==T,N]
-          }
-        }else{NA}
-        
-      })
-      return(result)
-    } # Setting Debug to T prints comparison table rather than row numbers
   
   CompareWithin<-grouping_cols
 
@@ -315,9 +316,6 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   # Subset to Animal Data
   Data.Out.Animals.Agg<-Data.Out.Animals.Agg[!(is.na(A.Level.Name) & is.na(V.Animal.Practice)),]
   
-  # Split codes into list
-  Data.Out.Animals.Agg[,Final.Codes:=.(strsplit(T.Codes,"-")),by=N]
-  
   # Calculate Number of ERA Practices
   Data.Out.Animals.Agg[,N.Prac:=length(unlist(Final.Codes)[!is.na(unlist(Final.Codes))]),by=N]
   
@@ -335,14 +333,14 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   
   # Set Grouping Variables
   CompareWithin<-c(grouping_cols,"T.Agg.Levels_name")
+
+  DATA<-Data.Out.Animals.Agg
+  B.Codes<-DATA[,unique(B.Code)]
+  
   
   Verbose<-F
-  
-  DATA<-Data.Out.Animals.Agg
-  
-  B.Codes<-DATA[,unique(B.Code)]
-  Comparisons<-rbindlist(pblapply(1:length(B.Codes),FUN=function(i){
-    BC<-B.Codes[i]
+  Comparisons<-rbindlist(lapply(1:length(B.Codes),FUN=function(k){
+    BC<-B.Codes[k]
     Data_subset<-DATA[B.Code==BC]
     CW<-unique(Data_subset[,..CompareWithin])
     CW<-match(apply(Data_subset[,..CompareWithin], 1, paste,collapse = "-"),apply(CW, 1, paste,collapse = "-"))
@@ -350,12 +348,13 @@ data_dir_s3<-era_dirs$era_masterdata_s3
     
     DS<-rbindlist(lapply(unique(Data_subset$Group),FUN=function(i){
       if(Verbose){
-        outcome<-paste0(BC," Subgroup = ", i)
-        cat(paste(output, strrep(" ", 100 - nchar(output)), "\r"))
-        flush.console()  
-        }
+        cat("k =",k,BC," Subgroup (i) = ", i,"\n")
+         }
       
-      Control.For<-Compare.Fun.Ani(Verbose = Verbose,Data = Data_subset[Group==i],Debug=F,PracticeCodes = master_codes$prac)
+      Control.For<-Compare.Fun.Ani(Verbose = Verbose,
+                                   Data = Data_subset[Group==i],
+                                   Debug=F,
+                                   PracticeCodes = master_codes$prac)
       data.table(Control.For=Control.For,N=Data_subset[Group==i,N])
     }))
     
@@ -457,7 +456,6 @@ data_dir_s3<-era_dirs$era_masterdata_s3
     }
     
   }
-  
   
   # Set Grouping Variables
   CompareWithin<-c(grouping_cols,"T.Agg.Levels_name")  
