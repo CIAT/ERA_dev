@@ -295,7 +295,7 @@ data<-data_new
     digest_dat<-diet_digestibility[B.Code==keyfields$B.Code, lapply(.SD, function(col) if (!all(is.na(col))) col), .SDcols = names(diet_digestibility)] 
     digest_dat
     
-    # 4.5) Feed intake #####
+  # 4.5) Feed intake #####
     feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,A.Level.Name,
                                                                          Out.Subind,ED.Intake.Item,ED.Mean.T,ED.Intake.Item.Raw,
                                                                          is_group,is_entire_diet,Out.Unit)]  
@@ -372,7 +372,7 @@ data<-data_new
     )
     
 
-###################Looking for outliers#########################################
+  # 4.6) Looking for outliers#########################################
 #Subset to Cattle 
     WG_cattle <- WG[grepl('Cattle', P.Product)]
     
@@ -441,4 +441,5 @@ data<-data_new
         title = "Weight Gain distribution for Sheep and Goat"
       ) +
       theme_minimal()
+    
     
