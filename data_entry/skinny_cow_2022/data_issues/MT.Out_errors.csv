@@ -65,3 +65,4 @@ NN0223,T Local Goat/T Local sheep,MT.Out,T.Name,Duplicate value in unique field.
 NN0223,T Local Goat/T Local sheep,MT.Out,T.Name,Exact Duplicate rows in table,FALSE,"",""
 NN0339.2,T1/T2/T3/T4/T5/T6/T7,MT.Out,T.Rep/T/Animal,Missing value in compulsory fields T.Reps/T.Animals,FALSE,"",""
 NN0375,T2 Feed Substitution/T3 Feed Substitution/T4 Feed Substitution/T5 Feed Substitution,MT.Out,T.Rep/T/Animal,Missing value in compulsory fields T.Reps/T.Animals,FALSE,"",""
+NN0380,Nile Tilapia,Var.Out/MT.Out,V.Level.Name,Mismatch in field value between parent and child tables.,FALSE,"",""
