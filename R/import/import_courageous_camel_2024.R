@@ -192,7 +192,7 @@ if(!ext_live){
     # Define the progressor based on the number of files
     p <- progressr::progressor(along = 1:nrow(excel_files))
     
-  results<-future.apply::future_lapply(1:nrow(excel_files), FUN = function(i) {
+  results<-future.apply::future_lapply(1:nrow(excel_files), FUN = function(ii) {
   #results<-lapply(1:nrow(excel_files),FUN=function(ii){
   
     # Update the progress bar
@@ -296,10 +296,12 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   # Fix LatD/LonD 0's that should be NAs
   Site.Out[Site.LatD==0 & Site.LonD==0,c("Site.LatD","Site.LonD"):=NA]
   
+  numeric_cols<-c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2")
+  
   # Read in data excluding files with non-match structure
   results<-validator(data=Site.Out,
                      zero_cols=colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
-                     numeric_cols=c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2"),
+                     numeric_cols=numeric_cols,
                      compulsory_cols = c(Site.ID="Site.Type",Site.ID="Country",Site.ID="Site.LatD",Site.ID="Site.LonD"),
                      extreme_cols=list(Site.MAT=c(10,35),
                                        Site.MAP=c(40,4000),
@@ -2776,6 +2778,17 @@ if(F){
   Out.Econ$B.Code<-Pub.Out$B.Code
   
 
+  # 5.2) !!TO DO!! Add unit harmonization ####
+    # Copy from skinny cow
+    # 5.2.1) Feed-intake units ######
+    # 5.2.3) Non feed-intake units #####
+  
+
+  
+  # Copy results to clipboard to add to unit_harmonization table of mater codes
+  if(F){
+  cat(results$h_tasks[,paste0(unique(value),collapse="\t")], file = pipe("pbcopy"))
+  }
 # 6) Time Sequence ####
   # 6.1) TS.Out #####
   table_name<-"Rot.Out"
@@ -2905,18 +2918,40 @@ if(F){
   Data.Out[grepl("Feed Intake",Out.Code.Joined),Feed.Intake:=T]
   
   # Create keyfield mappings
-  keyfields<-data.table(parent_tab=list(Site.Out,Times.Out,TS.Out,Out.Out),
-             parent_tab_name=c("Site.Out","Times.Out","TS.Out","Out.Out"),
-             keyfield=c("Site.ID","Time","R.Level.Name","Out.Code.Joined"))
   
   # Allowed values
+    # Remove spacing around delimiters 
+    Data.Out[,ED.Intake.Item:=gsub(" ;|; ",";",ED.Intake.Item)]
+    # Fix Feed.Intake.Item delimiter issue
+    a_diet_items_new<-Animal.Diet[grepl("[|][|]",D.ItemxProcess),unique(D.ItemxProcess)]
+    a_diet_items_old<-gsub("||",";",a_diet_items_new,fixed = T)
+    
+    if(length(a_diet_items)>0){
+      for(m in 1:length(a_diet_items)){
+        Data.Out[,ED.Intake.Item:=gsub(a_diet_items_old[m],a_diet_items_new[m],ED.Intake.Item,fixed=T)]
+      }
+    }
+    
+    # Create custom table for feed intake items
+    a_diet_items<-unique(Animal.Diet[,.(B.Code,D.ItemxProcess)])
+    colnames(a_diet_items)[2]<-"ED.Intake.Item"
+    
+    a_diet_items2<-unique(Animal.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)])
+    colnames(a_diet_items2)[2]<-"ED.Intake.Item"
+    
+    a_diet_items<-rbind(a_diet_items,a_diet_items2,data.table(B.Code=a_diet_items$B.Code[1],ED.Intake.Item="Entire Diet"))
+    
+  keyfields<-data.table(parent_tab=list(Site.Out,Times.Out,TS.Out,Out.Out,a_diet_items),
+             parent_tab_name=c("Site.Out","Times.Out","TS.Out","Out.Out","Animal.Diet"),
+             keyfield=c("Site.ID","Time","R.Level.Name","Out.Code.Joined","ED.Intake.Item"))
+  
+  
   allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field == "Error.Type",Values_New],
                                                  t_levels),
                            parent_tab_name=c("master_codes$lookup_levels",
                                              "MT.Out"),
                            field=c("ED.Error.Type",
                                    "T.Name"))
-  
 
   results<-validator(data=Data.Out,
                      compulsory_cols = c(row_index="T.Name",row_index="Site.ID",row_index="Out.Code.Joined",
@@ -2928,7 +2963,7 @@ if(F){
                      hilo_pairs = data.table(low_col="ED.Sample.Start",high_col="ED.Sample.End",name_field="row_index"),
                      check_keyfields=keyfields,
                      allowed_values=allowed_values,
-                     unit_pairs = data.table(unit=c("ED.Error.Type","ED.Intake.Item"),var=c("ED.Error","Feed.Intake"),name_field="row_index"),
+                     unit_pairs = data.table(unit=c("ED.Error.Type"),var=c("ED.Error"),name_field="row_index"),
                      trim_ws = T,
                      do_site = F,
                      do_time = F,
@@ -3112,7 +3147,6 @@ if(F){
   })
 
 })
-
 errors<-rbindlist(results)
 errors<-merge(errors,excel_files[,.(filename,era_code2)],by.x="B.Code",by.y="era_code2",all.x=T,sort=F)[,filename:=basename(filename)]
 fwrite(errors,file.path(excel_dir,"compiled_auto_errors.csv"),bom=T)
