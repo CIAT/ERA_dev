@@ -285,7 +285,7 @@ data<-data_new
     # 4.5) Feed intake #####
     feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,A.Level.Name,
                                                                          Out.Subind,ED.Intake.Item,ED.Mean.T,ED.Intake.Item.Raw,
-                                                                         is_group,is_entire_diet,Out.Unit)]  
+                                                                         is_group,is_entire_diet,Out.Unit,T.Control)]  
     # These have some residual issues with the raw data we are resolving
     feed_intake[is.na(ED.Intake.Item)]
     feed_intake<-feed_intake[!is.na(ED.Intake.Item)]
@@ -295,11 +295,29 @@ data<-data_new
     feed_intake[,length(unique(B.Code))]
     
     # If ED.Intake.Item is not NA and is_group==F and is_entire_diet==F
-    (feed_intake_subset<-feed_intake[is_group==F & is_entire_diet==F,.(B.Code,A.Level.Name,ED.Intake.Item)][20])
+    feed_intake_subset<-feed_intake[is_group==F & is_entire_diet==F,.(B.Code,A.Level.Name,ED.Intake.Item)][20]
     diet_ingredients[B.Code==feed_intake_subset$B.Code & 
-                       A.Level.Name==feed_intake_subset$A.Level.Name ]    
+                       A.Level.Name==feed_intake_subset$A.Level.Name ]   
     
-    # 4.5.1) Feed intake with weight gain #####
+    # 4.5.1) Feed intake with tree species #####
+    feed_trees<-data %>% select(Code,T.Descrip, Tree.Feed)
+    
+    # Rename columns in feed_trees
+    feed_trees <- feed_trees %>%
+      rename(
+        `A.Level.Name` = T.Descrip,
+        `B.Code`= Code
+      )
+    
+    #Match and merge feed_trees and feed intake
+    feed_intake_trees <- merge(
+      feed_intake, 
+      feed_trees,
+      by = c("B.Code", "A.Level.Name"),
+      all.x = TRUE # Left join: retain all rows from feed_intake
+    )
+    
+    # 4.5.2) Feed intake with weight gain #####
     #Subset to weight gain outcomes- removing fish papers 
     WG<-livestock_metadata$Data.Out[Out.Subind=="Weight Gain" & P.Product != "Fish",.(B.Code,P.Product,T.Name,A.Level.Name,
                                                                 Out.WG.Start,Out.WG.Unit,Out.WG.Days,Out.Code.Joined,ED.Mean.T,Out.Unit)]
