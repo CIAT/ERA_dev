@@ -286,7 +286,7 @@ data<-data_new
     # 4.5) Feed intake #####
     feed_intake<-livestock_metadata$Data.Out[Out.Subind=="Feed Intake",.(B.Code,T.Name,A.Level.Name,
                                                                          Out.Subind,ED.Intake.Item,ED.Mean.T,ED.Intake.Item.Raw,
-                                                                         is_group,is_entire_diet,Out.Unit,T.Control)]  
+                                                                         is_group,is_entire_diet,Out.Unit,T.Control,Country)]  
     # These have some residual issues with the raw data we are resolving
     feed_intake[is.na(ED.Intake.Item)]
     feed_intake<-feed_intake[!is.na(ED.Intake.Item)]
