@@ -9,7 +9,7 @@ require(sp)
 require(rgeos)
 
 # Load packa
-pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture)
+pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply)
 
 # Create helper functions
 waitifnot <- function(cond) {
@@ -208,6 +208,49 @@ rm(DuplicateFiles)
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #### 
 # Read In Data from Excel Files ####
 
+# Set up the future plan
+plan(multisession, workers = Cores)
+
+# Parallel processing using future_lapply
+XL <- future_lapply(1:length(Files), function(i) {
+  File <- Files[i]
+  X <- lapply(SheetNames, function(SName) {
+    cat('\r                                                                                                                                          ')
+    cat('\r', paste0("Importing File ", i, "/", length(Files), " - ", FNames[i], " | Sheet = ", SName))
+    flush.console()
+    Y <- data.table(suppressMessages(suppressWarnings(read_excel(File, sheet = SName, trim_ws = FALSE))))
+    
+    if (SName == "Rot.Out") {
+      if (length(grep(Rot1, colnames(Y))) != 0) {
+        colnames(Y) <- gsub(Rot1, "Rotation Treatment", colnames(Y))
+      }
+    }
+    
+    if (SName == "AF.Out") {
+      Y <- Y[, 1:9]
+    }
+    
+    if (sum(!colnames(Y) %in% XL.M[[SName]]) > 1) {
+      print("")
+      print("Colnames Error")
+      print("")
+      Y
+    } else {
+      Y
+    }
+  })
+  
+  names(X) <- SheetNames
+  X
+})
+
+names(XL) <- FNames
+
+# Clean up
+rm(Files, SheetNames, XL.M, Rot1, Master)
+
+# Delete once future apply is confirmed to work
+if(F){
 cl<-makeCluster(Cores)
 clusterEvalQ(cl, list(library(data.table),library(readxl)))
 clusterExport(cl,list("Files","SheetNames","FNames","XL.M","Rot1"),envir=environment())
@@ -254,6 +297,7 @@ stopCluster(cl)
 names(XL)<-FNames
 
 rm(Files,SheetNames,XL.M,Rot1,Master)
+}
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #### 
 # ***PREPARE DATA*** ----
 # <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> #### 
