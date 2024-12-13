@@ -884,13 +884,13 @@ errors<-c(errors,list(error_dat))
   Animals.Out<-rbindlist(lapply(Animals.Out,"[[","data"))
   
   # Rename cols
-  p_names<- c("A.Feed.Add.1","A.Feed.Add.2","A.Feed.Add.3", "A.Feed.Add.C", "A.Feed.Sub.1","A.Feed.Sub.2","A.Feed.Sub.3",
+  p_names_new<- c("A.Feed.Add.1","A.Feed.Add.2","A.Feed.Add.3", "A.Feed.Add.C", "A.Feed.Sub.1","A.Feed.Sub.2","A.Feed.Sub.3",
               "A.Feed.Sub.C","A.Feed.Pro.1","A.Feed.Pro.2","A.Feed.Pro.3","A.Manure.Man","A.Pasture.Man","A.Aquasilvaculture")
-  setnames(Animals.Out,paste0("P",1:14),p_names)
   
-
+  p_names_old<-paste0("P",1:14)
+  setnames(Animals.Out,p_names_old,p_names_new)
   
-  zero_cols<-c(p_names,"A.Notes","A.Grazing","A.Hay")
+  zero_cols<-c(p_names_new,"A.Notes","A.Grazing","A.Hay")
   
   results<-validator(data=Animals.Out,
                      zero_cols =zero_cols,
@@ -1268,6 +1268,33 @@ errors<-c(errors,list(error_dat))
   
   h_tasks<-c(h_tasks,list(results$h_tasks))
   Animals.Diet.Comp<-results$data
+    # 3.7.4.2) Wrangle into long form #####
+  if(!is.null(Animals.Diet.Comp)){
+    if(nrow(Animals.Diet.Comp)>0){
+      col_names<-colnames(Animals.Diet.Comp)
+      
+      other_cols<-col_names[!col_names %in% c(numeric_cols,method_cols,unit_cols)]
+      unit_cols<-append(unit_cols, "DC.CN.Unit", after = 4)
+      Animals.Diet.Comp[,DC.CN.Unit:=NA]
+      cols<-data.table(numeric_cols,unit_cols,method_cols)
+      colnames(cols)<-c("DC.Value","DC.Unit","DC.Method")
+      
+      Animals.Diet.Comp<-rbindlist(lapply(1:nrow(cols),FUN=function(i){
+        target_cols<-unlist(cols[i])
+        cols_selected<-c(other_cols,target_cols)
+        variable<-gsub("DC.","",target_cols[1])
+        dat<-Animals.Diet.Comp[,cols_selected,with=F][,DC.Variable:=variable]
+        setnames(dat,target_cols,names(target_cols))
+        return(dat)
+      }))
+    }else{
+      Animals.Diet.Digest<-NULL
+    }
+  }
+  
+  Animals.Diet.Digest<-Animals.Diet.Digest[!is.na(DD.Value)]
+  
+  
 
   # 3.7.4) Animals.Diet.Digest ######
   table_name<-"Animals.Diet.Digest"
@@ -1336,9 +1363,7 @@ errors<-c(errors,list(error_dat))
   Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
   Animals.Diet.Digest<-merge(Animals.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
   
-  # !!!TO DO!! Add check that diet does not add up to inappriate amount ####
-  
-  
+
     # 3.7.4.1) Harmonization #######
 
   Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
@@ -1380,6 +1405,49 @@ errors<-c(errors,list(error_dat))
   
   h_tasks<-c(h_tasks,list(results$h_tasks))
   Animals.Diet.Digest<-results$data
+  
+    # 3.7.4.2) Wrangle into long form #####
+  if(!is.null(Animals.Diet.Digest)){
+    if(nrow(Animals.Diet.Digest)>0){
+      col_names<-colnames(Animals.Diet.Digest)
+      
+      other_cols<-col_names[!col_names %in% c(numeric_cols,method_cols,dv_cols,unit_cols)]
+      cols<-data.table(numeric_cols,unit_cols,dv_cols,method_cols)
+      colnames(cols)<-c("DD.Value","DD.Unit","DD.Nut.or.Diet","DD.Method")
+      
+      Animals.Diet.Digest<-rbindlist(lapply(1:nrow(cols),FUN=function(i){
+        target_cols<-unlist(cols[i])
+        cols_selected<-c(other_cols,target_cols)
+        variable<-gsub("DD.","",target_cols[1])
+        dat<-Animals.Diet.Digest[,cols_selected,with=F][,DD.Variable:=variable]
+        setnames(dat,target_cols,names(target_cols))
+        return(dat)
+      }))
+    }else{
+      Animals.Diet.Digest<-NULL
+    }
+  }
+  
+  Animals.Diet.Digest<-Animals.Diet.Digest[!is.na(DD.Value)]
+  
+    # 3.7.4.3) If focus is diet then values cannot add up to more 100% #####
+  # Note that DM should not be included
+  Animals.Diet.Digest[DD.Nut.or.Diet=="Diet or Item",DD.Nut.or.Diet:="Diet"]
+  if(!is.null(Animals.Diet.Digest)){
+    Animals.Diet.Digest[,DD.Value_sum:=sum(DD.Value[!DD.Variable %in% c("DM","OM")],na.rm=T),by=.(D.Item,DD.Unit,DD.Nut.or.Diet)]
+    
+    error_dat<-unique(Animals.Diet.Digest[DD.Nut.or.Diet=="Diet" & ((DD.Value_sum>100 & DD.Unit=="%")|(DD.Value_sum>1 & DD.Unit=="g/kg|mg/g")),
+                                         .(B.Code,D.Item,DD.Unit)])
+    
+    error_dat<-error_dat[,.(value=paste(unique(D.Item),collapse = "/")),by=B.Code
+    ][,table:=table_name
+    ][,field:="D.Item"
+    ][,issue:="Focus of digestibility is diet, but values across the diet item or diet sum to more than 100 for % units or more than 1 for g/kg units"]
+    
+    errors<-c(errors,list(error_dat))
+    
+    Animals.Diet.Digest[,DD.Value_sum:=NULL]
+  }
   
   # 3.7.5) Update D.Item field with harmonized names ######
   Animals.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
@@ -1995,7 +2063,7 @@ errors<-list(error_dat)
 results<-validator(data=Out.Out,
                    numeric_cols=c("Out.Depth.Upper","Out.Depth.Lower","Out.NPV.Rate","Out.NPV.Time","Out.WG.Start","Out.WG.Days"),
                    ignore_values = c("Unspecified","Unpecified"),
-                   zero_cols = colnames(Out.Out)[3:13],
+                   zero_cols = colnames(Out.Out)[2:13],
                    compulsory_cols = c(Out.Code.Joined="Out.Unit"),
                    unit_pairs = data.table(unit="Out.WG.Unit",var="Out.WG.Start",name_field="Out.Code.Joined"),
                    hilo_pairs = data.table(low_col="Out.Depth.Upper",high_col="Out.Depth.Lower",name_field="Out.Code.Joined"),
@@ -2026,7 +2094,7 @@ Out.Out[,c("x","N"):=NULL]
   # Harmonize Out.WG.Days 
   Out.Out[Out.WG.Days==488]  
 
-  # Intake Units
+  # 5.1.1) Intake Units ######
   Out.Out.Intake<-Out.Out[Out.Subind=="Feed Intake"]
   Out.Out.Not.Intake<-Out.Out[Out.Subind!="Feed Intake"]
 
@@ -2048,6 +2116,38 @@ Out.Out[,c("x","N"):=NULL]
                                      ][,issue:="Unexpected units, perhaps error or incomplete, used with feed intake outcome."]
   
   errors<-c(errors,list(error_dat))
+  
+  # 5.1.2) Update units in for non feed-intake ######
+  h_params<-data.table(h_table=table_name,
+                       h_field=c("Out.Unit"),
+                       ignore_vals=c("Unspecified","unspecified"),
+                       h_field_alt="Out.Unit.Correct",
+                       h_table_alt=NA,
+                       master_tab="unit_harmonization")
+
+  results<-harmonizer_wrap(data=Out.Out.Not.Intake,
+                           h_params=h_params,
+                           master_codes = master_codes)
+  
+  Out.Out.Not.Intake<-results$data
+  
+  # Copy results to clipboard to add to unit_harmonization table of mater codes
+  if(F){
+  cat(results$h_tasks[,paste0(unique(value),collapse="\t")], file = pipe("pbcopy"))
+  }
+  # Check results
+  if(F){
+  unique(data.table(new=results$data$Out.Code.Joined,
+                    old=Out.Out.Not.Intake$Out.Code.Joined,
+                    new1=results$data$Out.Unit,
+                    old1=Out.Out.Not.Intake$Out.Unit))
+    
+    unique(data.table(new1=results$data$Out.Unit,
+                      old1=Out.Out.Not.Intake$Out.Unit))
+  }
+    
+  # Recombine datasets
+  Out.Out<-rbind(Out.Out.Intake,Out.Out.Not.Intake)
 
   # 5.2) Save errors  ######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
