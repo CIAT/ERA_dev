@@ -177,7 +177,7 @@ if(F){
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
-        # 1.2.2.3) upload pdfs #######
+    # 1.2.2.3) upload pdfs #######
   # 1.2.3) 2020 majestic_hippo ######
     # 1.2.3.1) Upload pdfs #######
     local_folder<-"C://Users//PSteward//OneDrive - CGIAR//ERA//Bibliography//Reconstructed Search History for Classification Models//ERA Bibliography 2013-18//2013-18 ENL.Data//PDF"
@@ -193,9 +193,49 @@ if(F){
                        mode="private")
     
     # 1.2.3.2) Upload excels #######
+    # where is the working folder for the ERA data extractions (internal team directory)
+    folder_local<-"data_entry/majestic_hippo_2020/excel_files"
+    project<-era_projects$majestic_hippo_2020
+    folder<-file.path(era_dirs$era_dataentry_dir,
+                      project,
+                      "excel_files")
     
+    if(!dir.exists(folder)){
+      dir.create(folder,recursive = T)
+    }
     
-  # 1.2.4) 2024 Livestock ######
+    # this is the target folder on the S3 bucket and generalized structured file system
+    s3_bucket<-file.path(era_dirs$era_dataentry_s3,
+                         project,
+                         "excel_files")
+    
+    # List excel files to be zipped
+    files<-list.files(folder_local,full.names = T,recursive=T)
+    
+    # zip all the excels and upload to the s3
+    output_zip_file <- file.path(folder,paste0(project,".zip"))
+    
+    zip::zipr(zipfile = output_zip_file, files =files)
+    
+    upload_files_to_s3(files = output_zip_file,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=T,
+                       mode="public-read")
+    # 1.2.3.3) Legacy harmonization files #######
+    local_folder<-file.path("data_entry",era_projects$majestic_hippo_2020,"legacy_files")
+    files<-list.files(local_folder,recursive = T,full.names = T)
+    
+    # pdf folders
+    s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$majestic_hippo_2020,"legacy_harmonization_files")
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="private")
+    
+  # 1.2.4) 2024 courageous_camel ######
     # 1.2.4.1) Upload search data #######
 folder<-file.path(era_dirs$era_search_dir,era_projects$courageous_camel_2024)
 s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
@@ -212,6 +252,39 @@ upload_files_to_s3(files = files,
 
 s3_dir_ls(s3_bucket)
 
+    # 1.2.4.2) Upload excels ########
+    # where is the working folder for the ERA data extractions (internal team directory)
+    folder_local<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024/"
+    project<-era_projects$courageous_camel_2024
+    folder<-file.path(era_dirs$era_dataentry_dir,
+                      project,
+                      "excel_files")
+    
+    if(!dir.exists(folder)){
+      dir.create(folder,recursive = T)
+    }
+    
+    # this is the target folder on the S3 bucket and generalized structured file system
+    s3_bucket<-file.path(era_dirs$era_dataentry_s3,
+                         project,
+                         "excel_files")
+    
+    # List excel files to be zipped
+    files<-list.files(folder_local,full.names = T,recursive=T)
+    files<- grep("xlsm$",files,value=T)
+    files<-files[!grepl("~",files)]
+    files<- grep("/Quality Controlled/|/Extracted/",files,value=T)
+    
+    # zip all the excels and upload to the s3
+    output_zip_file <- file.path(folder,paste0(project,".zip"))
+    
+    zip::zipr(zipfile = output_zip_file, files =files)
+    
+    upload_files_to_s3(files = output_zip_file,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=T,
+                       mode="public-read")
 # 1.4) Upload environmental data ####
   # 1.4.1) Aspect, slope, elevation ######
   s3_bucket<-era_dirs$era_geodata_s3
