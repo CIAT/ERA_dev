@@ -8,6 +8,10 @@ require(soiltexture)
 require(sp)
 require(rgeos)
 
+# Load packa
+pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture)
+
+# Create helper functions
 waitifnot <- function(cond) {
   if (!cond) {
     message(deparse(substitute(cond)), " is not TRUE")  
@@ -24,55 +28,102 @@ ZeroFun<-function(Data,Zero.Cols){
 # Set cores for parallel processing -----
 Cores<-detectCores()-1
 
-# Set Directories ------
+# Download  or update excel data ####
+# If working locally from the "old" one-drive directory then you will to run 1_setup_s3.R section 1.2.1.
+download<-F
+update<-F
 
-DataDir<-gsub("ERA/ERA",'ERA/Data Entry/Data Entry 2020',getwd())
-DataDirs<-list.dirs(DataDir)
-DataDirs<-DataDirs[grep("Quality Controlled|Extracted",DataDirs)]
-DataDirs<-DataDirs[!grepl("rejected|Rejected",DataDirs)]
+s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
+
+# Check if the file exist
+if(update){
+  if (grepl("success",httr::http_status(httr::HEAD(s3_file))$category,ignore.case = T)) {
+    print("The file exists.")
+    file_status<-T
+  } else {
+    print("The file does not exist.")
+    file_status<-F
+  }
+  
+  local_file<-file.path(excel_dir,basename(s3_file))
+  
+  if(file_status){
+    if(length(list.files(excel_dir))<1|update==T){
+      rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
+      unlink(rm_files)
+      options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
+      if(download){
+        download.file(s3_file, destfile = local_file)
+      }
+      unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
+      unlink(local_file)
+    }
+  }
+}
+
+DataDir<-file.path(era_dirs$era_dataentry_dir,
+                   project,
+                   "excel_files")
 
 # Read Concepts & Harmonization Sheets -----
+# Load era vocab #####
+
+# Get names of all sheets in the workbook
+sheet_names <- readxl::excel_sheets(era_vocab_local)
+sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
+
+# Read each sheet into a list
+master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
 
 # Read in Fertilizers
-FertCodes<-fread("Concept Scheme/Fertilizer.csv",header=T,strip.white=F)
+FertCodes<-master_codes$fert
+#FertCodes<-fread("Concept Scheme/Fertilizer.csv",header=T,strip.white=F)
 FertCodes[,F.Lab:=paste0(F.Category,"-",F.Type)]
 
 # Read in Trees
-TreeCodes<-fread("Concept Scheme/Trees.csv",header=T,strip.white=F)
+TreeCodes<-master_codes$trees
+#TreeCodes<-fread("Concept Scheme/Trees.csv",header=T,strip.white=F)
 TreeCodes<-na.omit(TreeCodes, cols=c("EU"))
 
 # Read in Products
-EUCodes<-fread("Concept Scheme/EU.csv",header=T,strip.white=F)
+EUCodes<-master_codes$prod
+#EUCodes<-fread("Concept Scheme/EU.csv",header=T,strip.white=F)
 if(sum(table(EUCodes[,EU])>1)){print("Duplicate codes present in products")}
 
 # Read in component concepts EU_Components
-Comp.Codes<-fread("Concept Scheme/EU_Components.csv",header=T,strip.white=F)
+Comp.Codes<-master_codes$prod_comp
+#Comp.Codes<-fread("Concept Scheme/EU_Components.csv",header=T,strip.white=F)
 
 # Read in Outcomes
-OutcomeCodes<-fread("Concept Scheme/Outcomes.csv",header=T,strip.white=F)
+OutcomeCodes<-master_codes$out
+#OutcomeCodes<-fread("Concept Scheme/Outcomes.csv",header=T,strip.white=F)
 if(sum(table(OutcomeCodes[,Code])>1)){print("Duplicate codes present in outcomes")}
 
 # Read in Practice Codes
-PracticeCodes<-fread("Concept Scheme/Practices.csv",header=T,strip.white=F)
+PracticeCodes<-master_codes$prac
+#PracticeCodes<-fread("Concept Scheme/Practices.csv",header=T,strip.white=F)
 if(sum(table(PracticeCodes[,Code])>1)){print("Duplicate codes present in practices")}
 PracticeCodesX<-data.table::copy(PracticeCodes)
 
 # Read in Levels (in particular for journal names and countries)
-MasterLevels<-fread("Concept Scheme/Levels.csv",header=T,strip.white=F)
+MasterLevels<-master_codes$lookup_levels
+#MasterLevels<-fread("Concept Scheme/Levels.csv",header=T,strip.white=F)
 
 # Read in Variety Harmonization Data
-VarHarmonization.Traits<-fread("Concept Scheme/Harmonization/Variety_Traits.csv",header=T,strip.white=F)
-VarHarmonization<-fread("Concept Scheme/Harmonization/Varieties.csv",header=T,strip.white=F)
+VarHarmonization.Traits<-master_codes$var_traits
+#VarHarmonization.Traits<-fread("Concept Scheme/Harmonization/Variety_Traits.csv",header=T,strip.white=F)
+VarHarmonization<-master_codes$vars
+#VarHarmonization<-fread("Concept Scheme/Harmonization/Varieties.csv",header=T,strip.white=F)
 
 # Read in Corrections
-OtherHarmonization<-fread("Concept Scheme/Harmonization/Other_Fields.csv",header=T,strip.white=F)
+OtherHarmonization<-fread(file.path("data_entry/",era_projects$majestic_hippo_2020,"legacy_files/Other_Fields.csv"),header=T,strip.white=F)
 N<-grep("[.][.][.]",colnames(OtherHarmonization))
 OtherHarmonization<-OtherHarmonization[,-..N]
 
+UnitHarmonization<-master_codes$unit_harmonization
+#UnitHarmonization<-fread("Concept Scheme/Harmonization/Unit_Lists.csv",header=T,strip.white=F)
 
-UnitHarmonization<-fread("Concept Scheme/Harmonization/Unit_Lists.csv",header=T,strip.white=F)
-
-SiteHarmonization<-fread("Concept Scheme/Harmonization/Site_Names.csv",header=T,strip.white=T)
+SiteHarmonization<-fread(file.path("data_entry/",era_projects$majestic_hippo_2020,"legacy_files/Site_Names.csv"),header=T,strip.white=T)
 SiteHarmonization[is.na(ED.Site.ID.Corrected)|ED.Site.ID.Corrected=="",ED.Site.ID.Corrected:=ED.Site.ID]
 SiteHarmonization[is.na(Site.LatD.Corrected)|Site.LatD.Corrected=="",Site.LatD.Corrected:=Site.LatD]
 SiteHarmonization[is.na(Site.LonD.Corrected)|Site.LonD.Corrected=="",Site.LonD.Corrected:=Site.LonD]
@@ -108,7 +159,7 @@ SiteHarmonization<-unique(rbindlist(lapply(1:nrow(SiteHarmonization),FUN=functio
 })))
 
 # Read In the Master Sheet ------
-Master<-paste0(DataDir,"/Excel Form/V1.14.3 - Majestic Hippo.xlsm")
+Master<-file.path(project_dir,"data_entry",era_projects$majestic_hippo_2020,"excel_data_extraction_template/V1.14.3 - Majestic Hippo.xlsm")
 
 # List sheet names that we need to extract
 SheetNames<-getSheetNames(Master)[grep(".Out",getSheetNames(Master))]

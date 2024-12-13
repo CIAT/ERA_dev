@@ -178,9 +178,7 @@ if(update){
       save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
       
       # Update the progress bar
-      p(sprintf("Processing file %d of %d: %s", i, nrow(excel_files), era_code))
-
-      
+      p()
 
       if (overwrite == TRUE || !file.exists(save_name)) {
         X <- tryCatch({
@@ -4750,7 +4748,6 @@ col_names<-colnames(data[[800]])
                            ][order(B.Code)]
   
     ### 7.1.2) Harmonization ######
-  
   h_params<-data.table(master_tab="unit_harmonization",
                        h_field="Out.Unit",
                        h_field_alt="Out.Unit.Correct",
