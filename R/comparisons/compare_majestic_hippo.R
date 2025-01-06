@@ -1,17 +1,20 @@
-# *****Comparison logic***** =====
+# Run 0_set_env.R before running this script
+# Run import_majestic_hippo_20202.R before running this script
 
-# Required packages ####
-require(data.table)
-require(miceadds)
-require(doSNOW)
-require(pbapply)
+# 0) Set-up ####
+  # 0.1) Required packages ####
+pacman::p_load(data.table,miceadds,future,future.apply,sp,terra)
+
 
 Cores<-14
 
-# Read in data ####
-
+  # 0.2) Read in data ####
+project<-era_projects$majestic_hippo_2020
 # Read imported excel data
-Tables_2020<-miceadds::load.Rdata2(file="ERA V1.1 Tables 2023-06-22.RData",path="Data/Compendium Master Database")
+file<-list.files("data",project)
+file<-tail(grep("RData",file,value=T),1)
+
+Tables_2020<-miceadds::load.Rdata2(file=file,path="data")
 
 AF.Out<-Tables_2020$AF.Out
 Animals.Out<-Tables_2020$Animals.Out
@@ -34,18 +37,24 @@ Soil.Out<-Tables_2020$Soil.Out
 Times<-Tables_2020$Times
 Var.Out<-Tables_2020$Var.Out
 
-
 Rot.Seq2<-Rot.Seq[,list(Time=paste(Time,collapse="|||"),
                         Treatment=paste(`Rotation Component`,collapse="|||"),
                         Products=paste(R.Prod,collapse="|||")),by=ID]
 
+# 0.3) Read in codes and harmonization datasets ####
+# Get names of all sheets in the workbook
+sheet_names <- readxl::excel_sheets(era_vocab_local)
+sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
 
-# Read in codes and harmonization datasets
-EUCodes<-fread("Concept Scheme/EU.csv",header=T,strip.white=F,encoding="Latin-1")
-MasterLevels<-fread("Concept Scheme/Levels.csv",header=T,strip.white=F,encoding="Latin-1")
-PracticeCodes<-fread("Concept Scheme/Practices.csv",header=T,strip.white=F,encoding="Latin-1")
-PracticeCodes1<-data.table::copy(PracticeCodes)
-TreeCodes<-fread("Concept Scheme/Trees.csv",header=T,strip.white=F,encoding="Latin-1")
+# Read each sheet into a list
+master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
+
+EUCodes<-master_codes$prod
+
+MasterLevels<-fread(file.path("data_entry",project,"legacy_files/Levels.csv"),header=T,strip.white=T,encoding = "Latin-1")
+PracticeCodes<-copy(master_codes$prac)
+PracticeCodes1<-copy(master_codes$prac)
+TreeCodes<-fread(file.path("data_entry",project,"legacy_files/Trees.csv"),header=T,strip.white=T,encoding = "Latin-1")
 
 # ***Automated Comparison of Control vs Treatments*** ####
 # 1) Basic ####
@@ -506,36 +515,42 @@ DATA<-Data.Out.No.Agg
   } # Setting Debug to T prints comparison table rather than row numbers
   
   # Basic: Run Comparisons ####
-  # ISSUE: IMPROVED VARIETIES IV heat etc. vs IV other? ####
-  Verbose<-F
+
+  # Setup the future plan (adjust cores as needed)
+  plan(multisession, workers = Cores)
   
-  cl<-makeCluster(Cores)
-  clusterEvalQ(cl, list(library(data.table)))
-  clusterExport(cl,list("DATA","CompareWithin","Verbose","B.Codes","Compare.Fun","PracticeCodes","PracticeCodes1","Fert.Method","Plant.Out",
-                        "Fert.Out","Int.Out","Irrig.Out","Res.Method","MT.Out2","Rot.Seq.Summ"),envir=environment())
-  registerDoSNOW(cl)
+  # Register the progress handler
+  handlers("txtprogressbar")
   
-  Comparisons<-parLapply(cl,unique(DATA$B.Code),fun=function(BC){
+  # Wrapping computation in progressr with_progress()
+  Comparisons <- with_progress({
+    p <- progressor(along = unique(DATA$B.Code))
     
-    #Comparisons<-pblapply(B.Codes,FUN=function(BC){
-    
-    Data.Sub<-DATA[B.Code==BC]
-    CW<-unique(Data.Sub[,..CompareWithin])
-    CW<-match(apply(Data.Sub[,..CompareWithin], 1, paste,collapse = "-"),apply(CW, 1, paste,collapse = "-"))
-    Data.Sub[,Group:=CW]
-    
-    rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
-      if(Verbose){print(paste0(BC," Subgroup = ", i))}
+    future_lapply(unique(DATA$B.Code), function(BC) {
+      p() # update progress
       
-      Compare.Fun(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F,PracticeCodes1,Return.Lists=F)
+      Data.Sub <- DATA[B.Code == BC]
+      CW <- unique(Data.Sub[, CompareWithin,with=F])
+      CW <- match(apply(Data.Sub[, CompareWithin,with=F], 1, paste, collapse = "-"),
+                  apply(CW, 1, paste, collapse = "-"))
+      Data.Sub[, Group := CW]
       
-    }))
-    
+      rbindlist(lapply(unique(Data.Sub$Group), function(i) {
+        if (Verbose) {
+          message(paste0(BC, " Subgroup = ", i))
+        }
+        
+        Compare.Fun(Verbose = F, Data = Data.Sub[Group == i],
+                    Debug = FALSE, PracticeCodes1, Return.Lists = FALSE)
+      }))
+    })
   })
-  
-  stopCluster(cl)
-  
+
+  plan(sequential)
+
   Comparisons<-unique(rbindlist(Comparisons))
+  
+  # POTENTIAL ISSUE: IMPROVED VARIETIES IV heat etc. vs IV other? ####
   
   # Basic: Validation - list studies with no comparisons at all (could be studies with system or aggregated outcomes) ####
   Comparisons.Simple.All.NA<-DATA[!B.Code %in% Comparisons[,B.Code],unique(B.Code)]
@@ -627,35 +642,37 @@ DATA<-Data.Out.No.Agg
   
   DATA<-Data.Out.Agg
   
-  Verbose<-F
+  # Setup the future plan (adjust cores as needed)
+  plan(multisession, workers = Cores)
   
-  cl<-makeCluster(Cores)
-  clusterEvalQ(cl, list(library(data.table)))
-  clusterExport(cl,list("DATA","CompareWithin","Verbose","B.Codes","Compare.Fun","PracticeCodes","PracticeCodes1","Fert.Method","Plant.Out",
-                        "Fert.Out","Int.Out","Irrig.Out","Res.Method","MT.Out2","Rot.Seq.Summ"),envir=environment())
-  registerDoSNOW(cl)
+  # Register the progress handler
+  handlers("txtprogressbar")
   
-  # Fert is separated into columns now.....so how to deal with? remove F.Level from CompareFun?
-  
-  Comparisons<-parLapply(cl,unique(DATA[,B.Code]),fun=function(BC){
+  # Wrapping computation in progressr with_progress()
+  Comparisons <- with_progress({
+    p <- progressor(along = unique(DATA$B.Code))
     
-    #Comparisons<-pblapply(unique(DATA[,B.Code]),FUN=function(BC){
-    
-    Data.Sub<-DATA[B.Code==BC]
-    CW<-unique(Data.Sub[,..CompareWithin])
-    CW<-match(apply(Data.Sub[,..CompareWithin], 1, paste,collapse = "-"),apply(CW, 1, paste,collapse = "-"))
-    Data.Sub[,Group:=CW]
-    
-    rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
-      if(Verbose){print(paste0(BC," Subgroup = ", i))}
+    future_lapply(unique(DATA$B.Code), function(BC) {
+      p() # update progress
       
-      Compare.Fun(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F,PracticeCodes1,Return.Lists=F)
+      Data.Sub <- DATA[B.Code == BC]
+      CW <- unique(Data.Sub[, CompareWithin,with=F])
+      CW <- match(apply(Data.Sub[, CompareWithin,with=F], 1, paste, collapse = "-"),
+                  apply(CW, 1, paste, collapse = "-"))
+      Data.Sub[, Group := CW]
       
-    }))
-    
+      rbindlist(lapply(unique(Data.Sub$Group), function(i) {
+        if (Verbose) {
+          message(paste0(BC, " Subgroup = ", i))
+        }
+        
+        Compare.Fun(Verbose = F, Data = Data.Sub[Group == i],
+                    Debug = FALSE, PracticeCodes1, Return.Lists = FALSE)
+      }))
+    })
   })
   
-  stopCluster(cl)
+  plan(sequential)
   
   Comparisons<-unique(rbindlist(Comparisons))
   
@@ -734,9 +751,8 @@ DATA<-Data.Out.No.Agg
     MT.Out2[,W.Level.Name:=W.Structure]
     MT.Out2[,C.Level.Name:=C.Structure]
     
-    # SLOW ADD PARALLEL
     Data.Out.Int2<-rbindlist(pblapply(1:nrow(Data.Out.Int2),FUN=function(i){
-      
+      cat("\r",i)
       if(i %in% N){
         
         # Deal with ".." delim used in Fert tab and Varieties tab that matches ".." delim used to aggregate treatments in Data.Out.Int2 tab
@@ -848,6 +864,7 @@ DATA<-Data.Out.No.Agg
         }
         
         # Collapse into a single row using "***" delim to indicate a treatment aggregation
+        if(nrow(Y)>0){
         Y<-apply(Y,2,FUN=function(X){
           X<-unlist(X)
           Z<-unique(X)
@@ -866,6 +883,7 @@ DATA<-Data.Out.No.Agg
             }
           }
         })
+      
         
         Y<-data.table(t(data.frame(list(Y))))
         row.names(Y)<-1
@@ -898,12 +916,14 @@ DATA<-Data.Out.No.Agg
         Y$IN.Codes.Agg<-NA
         Y
       }
+      }else{
+        NULL
+      }
       
     }))
     
     MT.Out2<-MT.Out3
     rm(MT.Out3)
-    
     
     # Combine all Practice Codes together & remove h-codes
     # In intercropping we consider any practice present in components to be present
@@ -945,36 +965,37 @@ DATA<-Data.Out.No.Agg
     
     DATA<-Data.Out.Int2
     
-    Verbose<-F
+    # Setup the future plan (adjust cores as needed)
+    plan(multisession, workers = Cores)
     
-    cl<-makeCluster(Cores)
-    clusterEvalQ(cl, list(library(data.table)))
-    clusterExport(cl,list("DATA","CompareWithin","Verbose","B.Codes","Compare.Fun","PracticeCodes","PracticeCodes1","Fert.Method","Plant.Out",
-                          "Fert.Out","Int.Out","Irrig.Out","Res.Method","MT.Out2","Rot.Seq.Summ"),envir=environment())
-    registerDoSNOW(cl)
+    # Register the progress handler
+    handlers("txtprogressbar")
     
-    # Fert is separated into columns now.....so how to deal with? remove F.Level from CompareFun?
-    
-    Comparisons<-parLapply(cl,unique(DATA[,B.Code]),fun=function(BC){
+    # Wrapping computation in progressr with_progress()
+    Comparisons <- with_progress({
+      p <- progressor(along = unique(DATA$B.Code))
       
-      #Comparisons<-pblapply(unique(DATA[,B.Code]),FUN=function(BC){
-      
-      Data.Sub<-DATA[B.Code==BC]
-      CW<-unique(Data.Sub[,..CompareWithin])
-      CW<-match(apply(Data.Sub[,..CompareWithin], 1, paste,collapse = "-"),apply(CW, 1, paste,collapse = "-"))
-      Data.Sub[,Group:=CW]
-      
-      rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
-        if(Verbose){print(paste0(BC," Subgroup = ", i))}
+      future_lapply(unique(DATA$B.Code), function(BC) {
+        p() # update progress
         
-        Compare.Fun(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F,PracticeCodes1,Return.Lists=F)
+        Data.Sub <- DATA[B.Code == BC]
+        CW <- unique(Data.Sub[, CompareWithin,with=F])
+        CW <- match(apply(Data.Sub[, CompareWithin,with=F], 1, paste, collapse = "-"),
+                    apply(CW, 1, paste, collapse = "-"))
+        Data.Sub[, Group := CW]
         
-      }))
-      
+        rbindlist(lapply(unique(Data.Sub$Group), function(i) {
+          if (Verbose) {
+            message(paste0(BC, " Subgroup = ", i))
+          }
+          
+          Compare.Fun(Verbose = F, Data = Data.Sub[Group == i],
+                      Debug = FALSE, PracticeCodes1, Return.Lists = FALSE)
+        }))
+      })
     })
     
-    stopCluster(cl)
-    
+    plan(sequential)
     
     Comparisons<-unique(rbindlist(Comparisons))
     
@@ -1007,10 +1028,7 @@ DATA<-Data.Out.No.Agg
     Comparisons1[,Compare.Int:=Data.Out.Int2[match(Control.For,N),ED.Int]]
     Comparisons1[,Compare.Rot:=Data.Out.Int2[match(Control.For,N),ED.Rot]]
     
-    # write.table(Comparisons1,"clipboard-256000",row.names = F,sep="\t")
-    
     Comparison.List[["Sys.Int.vs.Int"]]<-Comparisons1
-    
     
     # 1.2.2) Scenario 2: Intercrop vs Monocrop ####
     
@@ -1032,7 +1050,7 @@ DATA<-Data.Out.No.Agg
     CompareWithinInt<-c("ED.Site.ID","ED.M.Year","ED.Outcome","B.Code","Country")
     
     # Create group codes
-    Data.Out.Int3[,CodeTemp:=apply(Data.Out.Int3[,..CompareWithinInt],1,paste,collapse = " ")]
+    Data.Out.Int3[,CodeTemp:=apply(Data.Out.Int3[,CompareWithinInt,with=F],1,paste,collapse = " ")]
     
     # In intercropping we consider any practice present in components to be present
     
@@ -1054,7 +1072,7 @@ DATA<-Data.Out.No.Agg
     
     Data.Out[,Final.Codes2:=paste(unlist(Final.Codes),collapse = "-"),by=N]
     
-    Data.Out[,CodeTemp:=apply(Data.Out[,..CompareWithinInt],1,paste,collapse = " ")]
+    Data.Out[,CodeTemp:=apply(Data.Out[,CompareWithinInt,with=F],1,paste,collapse = " ")]
     
     # Add in (potential) monoculture controls ####
     Data.Out.Int3<-rbindlist(pblapply(unique(Data.Out.Int3[,CodeTemp]),FUN=function(X){
@@ -1855,9 +1873,7 @@ DATA<-Data.Out.No.Agg
     Data.Out.Rot3<-cbind(Data.Out.Rot3,Y)
     rm(X,Y,Mulch.C.Codes,Mulch.T.Codes)
     
-    
     Comparisons<-Comparisons[!is.na(Control.For)]
-    
     
     CompareWithin<-c("ED.Site.ID","ED.M.Year","ED.Outcome","B.Code","Country","R.All.Structure")
     
@@ -1878,24 +1894,7 @@ DATA<-Data.Out.No.Agg
     Comparisons1[,Level.Match:=Comparisons[,Level.Match]]
     
     Comparison.List[["Sys.Rot.vs.Mono"]]<-Comparisons1
-    
-    
-  # 1.4) Save Data for QC ####
-  if(F){
-    A<-Comparison.List$Sys.Int.vs.Int
-    B<-Comparison.List$Sys.Int.vs.Mono
-    C<-Comparison.List$Aggregated
-    D<-Comparison.List$Sys.Rot.vs.Rot
-    E<-Comparison.List$Sys.Rot.vs.Mono
-    
-    write.table(A,"clipboard-256000",row.names = F,sep="\t")
-    write.table(B,"clipboard-256000",row.names = F,sep="\t")
-    write.table(C,"clipboard-256000",row.names = F,sep="\t")
-    write.table(D,"clipboard-256000",row.names = F,sep="\t")
-    write.table(E,"clipboard-256000",row.names = F,sep="\t")
-    
-    rm(A,B,C,D,E)
-  }
+ 
 # 2) Animals ####
 # Remove Controls for Ratios
 Data.Out.Animals<-Data.Out[ED.Ratio.Control!=T]
@@ -1957,20 +1956,20 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
   
   # Weight Gain Outcomes need non-essential info removing
   X<-Data.Out.Animals[grepl("Weight Gain",ED.Outcome),ED.Outcome]
-  X<-lapply(X,FUN=function(Y){
+  X<-unlist(lapply(X,FUN=function(Y){
     Y<-unlist(strsplit(Y,"[.][.]"))
     paste(Y[-length(Y)],collapse="..")
-  })
+  }))
   
   Data.Out.Animals[grepl("Weight Gain",ED.Outcome),ED.Outcome:=X]
   rm(X)
   
   # Meat Yield Outcomes need weight info removing
   X<-Data.Out.Animals[grepl("Meat Yield",ED.Outcome),ED.Outcome]
-  X<-lapply(X,FUN=function(Y){
+  X<-unlist(lapply(X,FUN=function(Y){
     Y<-unlist(strsplit(Y,"[.][.]"))
     paste(Y[-length(Y)],collapse="..")
-  })
+  }))
   
   Data.Out.Animals[grepl("Meat Yield",ED.Outcome),ED.Outcome:=X]
   rm(X)
@@ -2170,20 +2169,20 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
   
   # Weight Gain Outcomes need non-essential info removing
   X<-Data.Out.Animals.Agg[grepl("Weight Gain",ED.Outcome),ED.Outcome]
-  X<-lapply(X,FUN=function(Y){
+  X<-unlist(lapply(X,FUN=function(Y){
     Y<-unlist(strsplit(Y,"[.][.]"))
     paste(Y[-length(Y)],collapse="..")
-  })
+  }))
   
   Data.Out.Animals.Agg[grepl("Weight Gain",ED.Outcome),ED.Outcome:=X]
   rm(X)
   
   # Meat Yield Outcomes need weight info removing
   X<-Data.Out.Animals.Agg[grepl("Meat Yield",ED.Outcome),ED.Outcome]
-  X<-lapply(X,FUN=function(Y){
+  X<-unlist(lapply(X,FUN=function(Y){
     Y<-unlist(strsplit(Y,"[.][.]"))
     paste(Y[-length(Y)],collapse="..")
-  })
+  }))
   
   Data.Out.Animals.Agg[grepl("Meat Yield",ED.Outcome),ED.Outcome:=X]
   rm(X)
@@ -2807,7 +2806,7 @@ Data<-Data.Out
   Data[,TAP:=Times[NX,TAP]]
   rm(NX)
   # 4.16) ISO.3166.1.alpha.3 ####
-  Countries<-MasterLevels[,c("Country","ISO.3166-1.alpha-3")]
+  Countries<-master_codes$countries
   Data[,ISO.3166.1.alpha.3:=as.character(NA)]
   for(C in Data[,unique(Country)]){
     ISO<-paste(unlist(Countries[match(unlist(strsplit(C,"[.][.]")),Countries[,Country]),"ISO.3166-1.alpha-3"]),collapse = "..")
@@ -2823,20 +2822,15 @@ Data<-Data.Out
   if(length(is.na(NX))>0){
     Journal.No.Match<-unique(Data[is.na(NX),c("B.Journal","B.Code")])[order(B.Journal)]
     View(Journal.No.Match)
-    write.table(Journal.No.Match,"clipboard",row.names = F,sep="\t")
-    rm(Journal.No.Match)
   }
   
   Data[!is.na(NX),B.Journal:=Journals[NX[!is.na(NX)],Journal]]
   
   rm(Journals,NX)
   
-  
-  # 4.18) Aggregate data for averaged site locations ####
+  # 4.18) ***ISSUE SPATIAL SECTION NEEDS UPDATING RGEOS IS NO LONGER AVAILBLE*** Aggregate data for averaged site locations ####
   A.Sites<-Data[grepl("[.][.]",ED.Site.ID),N]
-  
-  
-  
+
   Agg.Sites<-function(B.Code,ED.Site.ID){
     
     Sites<-unlist(strsplit(ED.Site.ID,"[.][.]"))
@@ -2857,25 +2851,32 @@ Data<-Data.Out
       points <- SpatialPoints(coords[,list(Site.LonD,Site.LatD)],proj4string=CRS("+init=epsg:4326"))
       points<-spTransform(points,CRS("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
       
-      pbuf1<-lapply(1:nrow(coords),FUN=function(i){
-        pbuf<- gBuffer(points[i], widt=coords[i,Site.Buffer.Manual])
-        pbuf<- spChFIDs(pbuf, paste(i, row.names(pbuf), sep="."))
-        
-      })
+      # Create points object in WGS84
+      points <- vect(coords,geom=c("Site.LonD", "Site.LatD"), crs = "EPSG:4326")
       
-      pbuf1<-SpatialPolygons(lapply(pbuf1, function(x){x@polygons[[1]]}),proj4string=CRS("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+      # Transform to Mercator projection
+      points <- project(points, "EPSG:3857")
       
-      X<-bbox(pbuf1)
-      Buff<-max(X[1,2]-X[1,1],X[2,2]-X[2,1])/2
+      # Create buffer polygons
+      buffers <- vect(lapply(seq_len(nrow(coords)), function(i) {
+        buffer_geom <- buffer(points[i, ], width = coords[i, Site.Buffer.Manual])
+        buffer_geom
+      }))
       
-      pbuf<-spTransform(pbuf1,CRS("+init=epsg:4326"))
-      Y<-gCentroid(pbuf)
+      combined_buffers<-aggregate(buffers)
+      centroid<-centroids(combined_buffers)
+      centroid_coords <- crds(centroid)
       
-      return(data.table(Site.LonD=round(Y@coords[1],5),Site.LatD=round(Y@coords[2],5),Site.Buffer.Manual=round(Buff,0)))
+      # Calculate bounding box and buffer size
+      bbox <- ext(combined_buffers)
+      # Buffer is a radius
+      Buff <- max(bbox$xmax - bbox$xmin, bbox$ymax - bbox$ymin) / 2
+      
+      return(data.table(Site.LonD = round(centroid_coords[1, "x"], 5),
+                        Site.LatD = round(centroid_coords[1, "y"], 5),
+                        Site.Buffer.Manual=round(Buff,0)))
     } 
   }
-  
-  
   
   X<-Data[A.Sites,Agg.Sites(B.Code[1],ED.Site.ID[1]),by=c("B.Code","ED.Site.ID")]
   
@@ -2940,25 +2941,34 @@ Knit.V1<-function(Control.N,Control.For,Data,Mulch,Analysis.Function,NCols){
   X
   
 }
-Verbose<-F
-
-cl<-makeCluster(Cores)
-clusterEvalQ(cl, list(library(data.table)))
-clusterExport(cl,list("Comparisons","Knit.V1","Data","Verbose","NCols"),envir=environment())
-registerDoSNOW(cl)
-
-ERA.Reformatted<-rbindlist(
-  parLapply(cl,1:nrow(Comparisons),fun = function(i){
-    #pblapply(1:nrow(Comparisons),FUN = function(i){
-    if(Verbose){print(paste(Comparisons[i,paste(B.Code,Control.N)]," | i = ",i))}
+  
+  
+  # Setup the future plan
+  plan(multisession, workers = Cores)
+  
+  # Register the progress handler
+  handlers("txtprogressbar")
+  
+  # Wrapping computation in progressr with_progress()
+  ERA.Reformatted <- with_progress({
+    p <- progressor(along = 1:nrow(Comparisons))
     
-    Knit.V1(Control.N=Comparisons[i,Control.N],Control.For=Comparisons[i,Control.For],Data,
-            Mulch=Comparisons[i,Mulch.Code],Analysis.Function = Comparisons[i,Analysis.Function],NCols=NCols)
-  }))
-
-stopCluster(cl)
-
-
+    future_lapply(1:nrow(Comparisons), function(i) {
+      p() # Update progress bar
+      
+      # Process each row in Comparisons
+      Knit.V1(
+        Control.N = Comparisons[i, Control.N],
+        Control.For = Comparisons[i, Control.For],
+        Data = Data,
+        Mulch = Comparisons[i, Mulch.Code],
+        Analysis.Function = Comparisons[i, Analysis.Function],
+        NCols = NCols
+      )
+    }) |> rbindlist() # Combine results into a single data.table
+  })  
+  
+plan(sequential)
 
   # 5.1.1) Add in outcomes that are ratios of Trt/Cont already ####
   Data.R<-Data[(!is.na(ED.Comparison) & !is.na(ED.Treatment)) & Out.Subind!="Land Equivalent Ratio",c("ED.Treatment","ED.Int","ED.Rot","ED.Comparison","B.Code","N","ED.Outcome")]
@@ -2993,13 +3003,13 @@ stopCluster(cl)
   
   
   # Need to add in Analysis Function
-  Verbose=T
+  Verbose=F
   ERA.Reformatted.Ratios<-rbindlist(pblapply(1:nrow(Data.R),FUN = function(i){
-    if(Verbose){print(paste(Data.R[i,paste(B.Code,N)]," i = ",i))}
+    if(Verbose){cat(Data.R[i,paste(B.Code,N)]," i = ",i,"\n")}
     Control.N<-Data[match(Data.R[i,paste(B.Code,ED.Comparison)],Data[,paste(B.Code,ED.Treatment)]),N][1]
     
     if(is.na(Control.N)|length(Control.N)==0){
-      print(paste0("No Match - ",Data.R[i,paste(B.Code,N)]," | i = ",i))
+      cat("No Match - ",Data.R[i,paste(B.Code,N)]," | i = ",i,"                   ","\n")
       NULL
     }else{
       Control.For<-Data.R[i,N]
@@ -3181,85 +3191,79 @@ stopCluster(cl)
   
   C.Cols<-which(colnames(ERA.Reformatted) %in% paste0("C",1:NCols))
   
-  Verbose<-F
+  # Setup the future plan
+  plan(multisession, workers = Cores)
   
-  cl<-makeCluster(Cores)
-  clusterEvalQ(cl, list(library(data.table)))
-  clusterExport(cl,list("ERA.Reformatted","Dpracs","Rpracs","C.Cols","Verbose","NCols"),envir=environment())
-  registerDoSNOW(cl)
+  # Register the progress handler
+  handlers("txtprogressbar")
   
-  
-  ERA.Reformatted<-rbindlist(parLapply(cl,1:nrow(ERA.Reformatted),fun=function(i){
+  # Wrapping computation in progressr with_progress()
+  ERA.Reformatted <- with_progress({
+    p <- progressor(along = 1:nrow(ERA.Reformatted))
     
-    #ERA.Reformatted<-rbindlist(pblapply(1:nrow(ERA.Reformatted),FUN =function(i){
-    
-    X<-data.frame(ERA.Reformatted[i,])
-    
-    T.Code<-as.vector(unlist(X[,paste0("T",1:NCols)]))
-    T.Code<-T.Code[!is.na(T.Code)]
-    
-    if(Verbose){print(paste0("row = ",i))}
-    
-    if(any(T.Code %in% Dpracs)){
-      C.Code<-as.vector(unlist(X[,paste0("C",1:NCols)]))
-      C.Code<-C.Code[!is.na(C.Code)]
-      for(j in 1:length(Rpracs)){
-        if(Verbose){print(paste0("row = ",i," | RPracs = ",names(Rpracs)[j]," - ",j))}
-        Ts<-T.Code[T.Code %in% Rpracs[[j]]]
-        Cs<-C.Code[C.Code %in% Rpracs[[j]]]
-        CnT<-Cs[!Cs %in% Ts]
+    future_lapply(1:nrow(ERA.Reformatted), function(i) {
+      p() # Update progress bar
+      
+      X <- data.frame(ERA.Reformatted[i, ])
+      
+      T.Code <- as.vector(unlist(X[, paste0("T", 1:NCols)]))
+      T.Code <- T.Code[!is.na(T.Code)]
+      
+      if (any(T.Code %in% Dpracs)) {
+        C.Code <- as.vector(unlist(X[, paste0("C", 1:NCols)]))
+        C.Code <- C.Code[!is.na(C.Code)]
         
-        if(length(CnT)>0 | (length(Ts)>1 & length(Cs)==1)){
-          T.Code<-T.Code[!T.Code %in% Ts]
-          C.Code<-C.Code[!C.Code %in% Cs]
+        for (j in seq_along(Rpracs)) {
+          Ts <- T.Code[T.Code %in% Rpracs[[j]]]
+          Cs <- C.Code[C.Code %in% Rpracs[[j]]]
+          CnT <- Cs[!Cs %in% Ts]
           
-          if(names(Rpracs)[j] != "Agroforestry Pruning"){
+          if (length(CnT) > 0 | (length(Ts) > 1 & length(Cs) == 1)) {
+            T.Code <- T.Code[!T.Code %in% Ts]
+            C.Code <- C.Code[!C.Code %in% Cs]
             
-            T.Code<-c(T.Code,unique(unlist(lapply(Ts,FUN=function(X){unlist(strsplit(X,"[.]"))[1]}))))
-            T.Code<-c(T.Code,rep(NA,NCols-length(T.Code)))
+            if (names(Rpracs)[j] != "Agroforestry Pruning") {
+              T.Code <- c(T.Code, unique(unlist(lapply(Ts, function(X) { 
+                unlist(strsplit(X, "[.]"))[1] 
+              }))))
+              T.Code <- c(T.Code, rep(NA, NCols - length(T.Code)))
+              
+              C.Code <- c(C.Code, unique(unlist(lapply(Cs, function(X) { 
+                unlist(strsplit(X, "[.]"))[1] 
+              }))))
+              C.Code <- c(C.Code, rep(NA, NCols - length(C.Code)))
+            } else {
+              T.Code <- unique(c(T.Code, gsub("a17|a16", "a15", Ts)))
+              C.Code <- unique(c(C.Code, gsub("a17|a16", "a15", Cs)))
+            }
             
-            C.Code<-c(C.Code,unique(unlist(lapply(Cs,FUN=function(X){unlist(strsplit(X,"[.]"))[1]}))))
-            C.Code<-c(C.Code,rep(NA,NCols-length(C.Code)))
-            
-          }else{
-            T.Code<-unique(c(T.Code,gsub("a17|a16","a15",Ts)))
-            
-            C.Code<-unique(c(C.Code,gsub("a17|a16","a15",Cs)))
+            X[, paste0("T", 1:NCols)] <- T.Code
+            X[, paste0("C", 1:NCols)] <- C.Code
           }
-          
-          X[,paste0("T",1:NCols)]<-T.Code
-          X[,paste0("C",1:NCols)]<-C.Code
-          
+        }
+        
+        T.Code <- as.vector(unlist(X[, paste0("T", 1:NCols)]))
+        C.Code <- as.vector(unlist(X[, paste0("C", 1:NCols)]))
+        
+        # Recode incorporation to h37 if mulch and not incorporation are present in treatments
+        if (any(grepl("b41", C.Code)) & !any(grepl("b41", T.Code)) & any(T.Code %in% Rpracs$Mulch)) {
+          X[grepl("b41", X)] <- "h37"
         }
       }
       
-      T.Code<-as.vector(unlist(X[,paste0("T",1:NCols)]))
-      C.Code<-as.vector(unlist(X[,paste0("C",1:NCols)]))
-      # if incorporation is present in the control but not the treatment and mulch is present in the treatment
-      # we recode the incorporation code be a h37 control code
+      # Change mulch ERA codes to h37 where Mulch.Code is not blank
+      M.Code <- X[,"Mulch.Code"]
       
-      if(any(grepl("b41",C.Code)) & !any(grepl("b41",T.Code)) & any(T.Code %in% Rpracs$Mulch)){
-        X[grepl("b41",X)]<-"h37"
+      if (M.Code != "" & !is.na(M.Code)) {
+        N <- C.Cols[grep(M.Code, unlist(X[, C.Cols]))]
+        X[, N] <- "h37"
       }
       
-    }
-    
-    # Change mulch ERA codes to h37 where Mulch.Code is not blank (mulch vs incorporation)
-    
-    M.Code<-X[,"Mulch.Code"]
-    
-    if(M.Code!="" & !is.na(M.Code)){
-      N<-C.Cols[grep(M.Code,unlist(X[,C.Cols]))]
-      X[,N]<-"h37"
-    }
-    
-    return(data.table(X))
-    
-  }))
+      return(data.table(X))
+    }) |> rbindlist() # Combine results into a single data.table
+  })
   
-  stopCluster(cl)
-  
-  rm(Dpracs,Rpracs,C.Cols)
+  plan(sequential)
   
   # 5.4) Remove other Fert, Mulch, Water Harvesting and Ash codes ####
   # Need to remove then check comparisons are still present
@@ -3298,9 +3302,10 @@ stopCluster(cl)
   # 5.5) Reconstitution of Animal Diet codes ####
   # This section could be moved to Animals.Out then integrated into MT.Out2
   # Update Diet Item Names and add Codes
-  A.Corrections<-fread("Concept Scheme/Harmonization/Animal_Lists.csv",header=T,strip.white=F,encoding="Latin-1")
-  
+  animal_lists_file<-"data_entry/majestic_hippo_2020/legacy_files/Animal_Lists.csv"
+  A.Corrections<-fread(animal_lists_file,header=T,strip.white=F,encoding="Latin-1")
   A.Corrections.Process<-A.Corrections[,38:44]
+
   colnames(A.Corrections.Process)<-unlist(lapply(strsplit(colnames(A.Corrections.Process),"[.][.][.]"),"[",1))
   A.Corrections.Process<-A.Corrections.Process[!is.na(B.Code)]
   
@@ -3389,7 +3394,7 @@ stopCluster(cl)
   Animals.Diet[,D.Amount.Round:=round(D.Amount)]
   
   # Create a column of all non-diet animal codes in Animals.Out
-  A.Codes<-fread("Concept Scheme/Harmonization/Animal_Lists.csv",header=T,encoding="Latin-1")
+  A.Codes<-fread(animal_lists_file,header=T,encoding="Latin-1")
   A.Codes<-A.Codes[D.Prac!="" & !is.na(D.Prac),list(D.Prac,Code,Descrip)]
   
   A<-A.Codes[match(Animals.Out[,A.Pasture.Man],A.Codes[,Descrip]),Code]
@@ -3870,6 +3875,6 @@ stopCluster(cl)
   ERA.Reformatted<-cbind(ERA.Reformatted[,!..Cols],Z)
   
   # 5.7) Save Output ####
-  fwrite(ERA.Reformatted,paste0("Data/Compendium Master Database/ERA V1.1 ",as.character(Sys.Date()),".csv"),row.names = F)
-  
+  save_name<-gsub("[.]RData","_comparisons.parquet",file_local)
+  arrow::write_parquet(ERA.Reformatted,save_name)
   
