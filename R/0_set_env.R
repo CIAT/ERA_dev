@@ -27,12 +27,14 @@ if(!require("exactextractr")){
   remotes::install_github("isciences/exactextractr")
 }
 
-source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
 
 # 1) Set directories ####
   if(!exists("project_dir")){
     project_dir<-getwd()
   }
+
+  source(file.path(project_dir,"R/functions.R"))
+
 
   # 1.1) Set era s3 dir #####
   era_s3<-"s3://digital-atlas/era"
@@ -88,7 +90,7 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
                      industrious_elephant_2023="industrious_elephant_2023",
                      courageous_camel_2024="courageous_camel_2024")
   
-  # 1.4) Create ERA output dirs#####
+  # 1.4) Create ERA paths #####
   era_dirs<-list()
   
   # era master datasets
@@ -239,6 +241,23 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/functions.R")
     
     era_dirs$era_currency_files$deflators<-file_path
     
+  # 2.5) Majestic hippo legacy harmonization sheets #####
+    update<-F
+    
+    s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$majestic_hippo_2020,"legacy_harmonization_files")
+    local_folder<-file.path("data_entry",era_projects$majestic_hippo_2020,"legacy_files")
+    
+    # List files in the specified S3 bucket and prefix
+    files_s3<-s3$dir_ls(s3_bucket)
+    
+    files_local<-gsub(s3_bucket,local_folder,files_s3)
+    
+    for(i in 1:length(files_local)){
+      file<-files_local[i]
+      if(!file.exists(file)|update==T){
+        s3$file_download(files_s3[i],file)
+      }
+    }
 # 3) Create table of unique locations (for use with geodata functions) ####
     data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
