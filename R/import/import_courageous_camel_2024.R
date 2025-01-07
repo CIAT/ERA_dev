@@ -188,15 +188,16 @@ if(!ext_live){
   progressr::handlers(global = TRUE)
   
   # Wrap the parallel processing in a with_progress call
-  XL <- with_progress({
+ with_progress({
     # Define the progressor based on the number of files
     p <- progressr::progressor(along = 1:nrow(excel_files))
     
-  results<-future.apply::future_lapply(1:nrow(excel_files), FUN = function(i) {
-  #results<-lapply(1:nrow(excel_files),FUN=function(ii){
-  
+  results<-future.apply::future_lapply(1:nrow(excel_files), FUN = function(ii) {
     # Update the progress bar
-    p()
+   # p()
+    
+  #results<-lapply(1:nrow(excel_files),FUN=function(ii){
+  cat(ii,"\n")
     
     File <- excel_files$filename[ii]
     #cat("File",ii,basename(File),"\n")
@@ -297,9 +298,11 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   Site.Out[Site.LatD==0 & Site.LonD==0,c("Site.LatD","Site.LonD"):=NA]
   
   # Read in data excluding files with non-match structure
+  numeric_cols<-c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2")
+  
   results<-validator(data=Site.Out,
                      zero_cols=colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
-                     numeric_cols=c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2"),
+                     numeric_cols=numeric_cols,
                      compulsory_cols = c(Site.ID="Site.Type",Site.ID="Country",Site.ID="Site.LatD",Site.ID="Site.LonD"),
                      extreme_cols=list(Site.MAT=c(10,35),
                                        Site.MAP=c(40,4000),
@@ -1308,6 +1311,16 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   Animal.Diet.Digest<-excel_dat[[table_name]]
   
   # Remove rows where D.Item is NA
+  if(!"D.Item" %in% colnames(Animal.Diet.Digest)){
+    error_dat<-data.table(B.Code=Pub.Out$B.Code,
+                          value=paste(col_check,collapse="/"),
+                          table=table_name,
+                          field="D.Item",
+                          issue=paste0("Structure of sheet is corrupted, D.Item is missing."))
+    errors<-c(errors,list(error_dat))
+    Animal.Diet.Digest<-NULL
+  }else{
+      
   Animal.Diet.Digest<-Animal.Diet.Digest[!is.na(D.Item)]
   
   # Check for missing column headings
@@ -1432,6 +1445,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     }
     Animal.Diet.Digest<-merge(Animal.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
   }}
+  }
   
   # Update D.Item names from Animal.Diet.Comp Table
     # 3.11.1) Wrangle dataset into long form #####
@@ -1525,12 +1539,12 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   Animal.Diet.Digest<-results$data
   }
   
-  # 3.12) !! TO DO !! Update D.Item field in all diet tabs with harmonized names ######
-  if(F){
-    Animal.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-    Animal.Diet.Comp[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-    Animal.Diet.Digest[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-  }
+      # !! TO DO !! Update D.Item field in all diet tabs with harmonized names ######
+      if(F){
+        Animal.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+        Animal.Diet.Comp[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+        Animal.Diet.Digest[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+      }
   # 3.12) Agroforestry #####
     # 3.12.1) AF.Out######
   table_name<-"AF.Out"
