@@ -1,5 +1,5 @@
 # First run R/0_set_env.R
-# 0.1) Load packages #####
+# 0.1) load packages #####
 if (!require("pacman")) {
   install.packages("pacman")
   require(pacman)
@@ -9,7 +9,7 @@ if (!require("pacman")) {
 p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
 
 
-# 1.1) Upload era master files to s3 #####
+# 1.1) (Legacy) upload era master files to s3 #####
 s3_bucket<-era_dirs$era_masterdata_s3
 local_dir<-era_dirs$era_masterdata_dir
 # Inital set-up from old file system (delete when development is stable)
@@ -70,9 +70,9 @@ if(F){
   s3$file_delete(s3_files)
   }
 
-# 1.2) Upload 2023 extraction files to s3 #####
+# 1.2) upload data to s3 #####
   # 1.2.1) 2023 industrious elephant ######
-    # 1.2.1.1) Upload excels ########
+    # 1.2.1.1) upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
     folder_local<-"/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2023/Data/"
     project<-era_projects$industrious_elephant_2023
@@ -106,9 +106,9 @@ if(F){
                        overwrite=T,
                        mode="public-read")
     
-    # 1.2.1.2) Upload pdfs #####
+    # 1.2.1.2) upload pdfs #####
     
-    # 1.2.1.3) Upload imported data #####
+    # 1.2.1.3) upload imported data #####
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -119,10 +119,23 @@ if(F){
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
-
+    
+    # 1.2.1.4) comparisons #######
+    folder_local<-era_dirs$era_masterdata_dir
+    s3_bucket<-era_dirs$era_masterdata_s3
+    
+    files<-list.files(folder_local,era_projects$industrious_elephant_2023,full.names = T,recursive=T)
+    files<-grep("comparisons",files,value=T)
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
   # 1.2.2) 2022 skinny cow ######
     # 1.2.2.1) upload excels #######
     folder_local<-file.path("/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
+    
     project<-era_projects$skinny_cow_2022
     folder<-file.path(era_dirs$era_dataentry_dir,
                       project,
@@ -179,7 +192,7 @@ if(F){
                        mode="public-read")
     # 1.2.2.3) upload pdfs #######
   # 1.2.3) 2020 majestic_hippo ######
-    # 1.2.3.1) Upload pdfs #######
+    # 1.2.3.1) upload pdfs #######
     local_folder<-"C://Users//PSteward//OneDrive - CGIAR//ERA//Bibliography//Reconstructed Search History for Classification Models//ERA Bibliography 2013-18//2013-18 ENL.Data//PDF"
     files<-list.files(pdf_folder,".pdf",recursive = T,full.names = T)
     
@@ -192,7 +205,7 @@ if(F){
                        overwrite=F,
                        mode="private")
     
-    # 1.2.3.2) Upload excels #######
+    # 1.2.3.2) upload excels #######
     # where is the working folder for the ERA data extractions (internal team directory)
     folder_local<-"data_entry/majestic_hippo_2020/excel_files"
     project<-era_projects$majestic_hippo_2020
@@ -222,21 +235,43 @@ if(F){
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read")
-    # 1.2.3.3) Legacy harmonization files #######
+    # 1.2.3.3) legacy harmonization files #######
     local_folder<-file.path("data_entry",era_projects$majestic_hippo_2020,"legacy_files")
     files<-list.files(local_folder,recursive = T,full.names = T)
-    
-    # pdf folders
+
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$majestic_hippo_2020,"legacy_harmonization_files")
     
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
-                       mode="private")
+                       mode="public-read")
     
+    # 1.2.3.4) upload imported data #######
+    folder_local<-era_dirs$era_masterdata_dir
+    s3_bucket<-era_dirs$era_masterdata_s3
+    
+    files<-list.files(folder_local,era_projects$majestic_hippo_2020,full.names = T,recursive=T)
+    files<-grep(".RData",files,value=T)
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
+    # 1.2.3.5) comparisons #######
+    folder_local<-era_dirs$era_masterdata_dir
+    s3_bucket<-era_dirs$era_masterdata_s3
+    
+    files<-list.files(folder_local,era_projects$majestic_hippo_2020,full.names = T,recursive=T)
+    files<-grep("comparisons",files,value=T)
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
   # 1.2.4) 2024 courageous_camel ######
-    # 1.2.4.1) Upload search data #######
+    # 1.2.4.1) upload search data #######
 folder<-file.path(era_dirs$era_search_dir,era_projects$courageous_camel_2024)
 s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
 
@@ -252,7 +287,7 @@ upload_files_to_s3(files = files,
 
 s3_dir_ls(s3_bucket)
 
-    # 1.2.4.2) Upload excels ########
+    # 1.2.4.2) upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
     folder_local<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024/"
     project<-era_projects$courageous_camel_2024
