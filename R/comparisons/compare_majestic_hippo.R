@@ -11,10 +11,10 @@ Cores<-14
   # 0.2) Read in data ####
 project<-era_projects$majestic_hippo_2020
 # Read imported excel data
-file<-list.files("data",project)
-file<-tail(grep("RData",file,value=T),1)
+file_local<-list.files("data",project,full.names = T)
+file_local<-tail(grep("RData",file_local,value=T),1)
 
-Tables_2020<-miceadds::load.Rdata2(file=file,path="data")
+Tables_2020<-miceadds::load.Rdata2(file=basename(file_local),path=dirname(file_local))
 
 AF.Out<-Tables_2020$AF.Out
 Animals.Out<-Tables_2020$Animals.Out
