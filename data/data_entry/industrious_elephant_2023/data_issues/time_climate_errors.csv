@@ -1,3 +1,0 @@
-Site.ID,Time,Time.Clim.SP,Time.Clim.TAP,Time.Clim.Temp.Mean,Time.Clim.Temp.Max,Time.Clim.Temp.Min,B.Code,issue,issue_addressed,addressed_by_whom,notes
-"Nsapor, Berekum municipality, Bono Region",2019 Major,372.7,848,22,31.875,26.925,CJ0031,"Extremely high temperature or min>mean,min>max,mean>max",FALSE,"",""
-"Nsapor, Berekum municipality, Bono Region",2019 Minor,439.6,848,21.2,29.22,25.14,CJ0031,"Extremely high temperature or min>mean,min>max,mean>max",FALSE,"",""
