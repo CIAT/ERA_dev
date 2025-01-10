@@ -14,8 +14,7 @@ runtime: shiny
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
+0000  comment = "#>",
   echo = FALSE,
   message = FALSE,
   warning = FALSE
@@ -55,10 +54,17 @@ Our methodology employed Boolean operators ‘OR’ and ‘AND’ to ensure the 
 
 Below in a snippet of the search terms used for the livestock extraction: 
 
+```{r install packages}
+if (!require("pacman", character.only = TRUE)) {
+  install.packages("pacman")
+  library(pacman)
+}
+
+p_load(knitr,dplyr,rnaturalearthdata)
+```
 
 ```{r search-terms, echo=FALSE, message=FALSE}
-library(knitr)
-library(dplyr)
+
 
 # Create a data frame to hold search terms
 search_terms <- data.frame(
