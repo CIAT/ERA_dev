@@ -1,10 +1,24 @@
 # Make sure you have set the era working directory using the 0_set_env.R script ####
 # This script requires the compiled dataset created in import/import_industrious_elephant_2023.R ####
 
-# 0) Load packages ####
+# 0) Load packages & functions ####
 pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr)
-
+source(file.path(project_dir,"R/comparisons/compare_fun.R"))
 worker_n<-14
+
+
+# Combine all Practice Codes together & remove h-codes
+Join.T<-function(A,B,C,D){
+  X<-c(A,B,C,D)
+  X<-unlist(strsplit(X,"-"))
+  X<-unique(X[!is.na(X)])
+  if(length(grep("h",X))>0){
+    X<-X[-grep("h",X)]
+    if(length(X)==0){list(NA)}else{list(X)}
+  }else{
+    if(length(X)==0){list(NA)}else{list(X)}
+  }
+}
 
 # 1) Read in data ####
   # 1.1) Load tables from era data model #####
@@ -16,14 +30,14 @@ Data.Out<-data$Data.Out
 setnames(Data.Out,"Rot.Seq","R.Prod.Seq",skip_absent = T)
 Data.Out[,R.ID:=paste(B.Code,R.Level.Name)]
 
-Fert.Method<-data$Fert.Method
-Fert.Out<-data$Fert.Out
+Fert.Method<-copy(data$Fert.Method)
+Fert.Out<-copy(data$Fert.Out)
 Int.Out<-data$Int.Out
 Irrig.Codes<-data$Irrig.Codes
 Irrig.Method<-data$Irrig.Method
 setnames(Irrig.Method,"Times","Time",skip_absent = T)
 
-MT.Out2<-data$MT.Out2
+MT.Out<-data$MT.Out
 Plant.Out<-data$Plant.Out
 Plant.Method<-data$Plant.Method
 Plant.Method<-merge(Plant.Method,Plant.Out[,.(B.Code,P.Product,P.Level.Name)],all.x=T)
@@ -74,19 +88,6 @@ TreeCodes<-master_codes$trees
   # Remove outcomes aggregated over rot/int entire sequence or system (dealt with sections 1.2 and 1.3)
   Data.Out.No.Agg<-Data.Out.No.Agg[!is.na(T.Name)]
   
-  # Combine all Practice Codes together & remove h-codes
-  Join.T<-function(A,B,C,D){
-    X<-c(A,B,C,D)
-    X<-unlist(strsplit(X,"-"))
-    X<-unique(X[!is.na(X)])
-    if(length(grep("h",X))>0){
-      X<-X[-grep("h",X)]
-      if(length(X)==0){list(NA)}else{list(X)}
-    }else{
-      if(length(X)==0){list(NA)}else{list(X)}
-    }
-  }
-  
   X<-Data.Out.No.Agg[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
   Data.Out.No.Agg[,Final.Codes:=X$Final.Codes]
   rm(X)
@@ -104,451 +105,7 @@ TreeCodes<-master_codes$trees
                      "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
                      "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
                      "B.Code","Country","ED.Comparison1","ED.Comparison2")
-    # 2.1.3) Create Comparison function ####
-    # ISSUE: Diversification residue re-coding is for any residues, whereas we are interested in only experimental crop residues.
-    Compare.Fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
-      
-      Match.Fun<-function(A,B){
-        A<-unlist(A)
-        B<-unlist(B)
-        list(A[!A %in% B])
-      }
-      
-      Match.Fun2<-function(A,B,C){
-        A<-unlist(A)
-        B<-unlist(B)
-        C<-unlist(C)
-        list(unique(C[match(A,B)]))
-      }
-      
-      # Exception for residue mulching being compared to residue incorporation
-      Mulch.Fun<-function(A,B,X,Z){
-        if(A %in% X){
-          Z[Mulch.Flag==F,Mulch.Flag:=Z[Mulch.Flag==F,any(unlist(Final.Codes) %in% B),by="N"][,V1]]
-          Z[Mulch.Flag==T,Match:=Match+1]
-          Z[Mulch.Flag==T,NoMatch:=NoMatch-1]
-          Z[Mulch.Flag==T,Mulch.Code:=paste0(na.omit(c(Mulch.Code,A)),collapse = "-"),by="N"]
-          
-        }
-        return(Z)
-      }
-      
-      # Incorporation codes in control (to be removed)
-      Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3")
-      # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
-      Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3")
-      
-      BC<-Data$B.Code[1]
-      N<-Data[,N]
-      Final.Codes<-Data[,Final.Codes] # Is this redundant?
-      k<-N
-      Y<-Data[,c("Final.Codes","N","N.Prac")][,Y.N:=1:.N]
-      
-      # Deal with residues codes in diversification comparisons
-      # Recode AF prunings to a15 codes
-      # Recode Mulch or Incorporation codes by removing ".n" code suffix
-      Dpracs<-c("Crop Rotation","Intercropping","Improved Fallow","Green Manure","Agroforestry Fallow","Intercropping or Rotation")
-      if(any(unlist(Y[,Final.Codes]) %in%  PracticeCodes[Practice %in% Dpracs,Code])){
-        
-        if(Verbose){print(paste0(BC," - Simplifying Residue Codes"))}
-        
-        PC1<-PracticeCodes[Practice %in% c("Agroforestry Pruning"),Code]
-        PC2<-PracticeCodes[Practice %in% c("Mulch","Crop Residue","Crop Residue Incorporation"),Code] 
-        
-        
-        Recode<-function(PC1,PC2,Final.Codes){
-          Final.Codes<-unlist(Final.Codes)
-          X<-Final.Codes %in% PC1
-          
-          if(sum(X)>0){
-            Final.Codes[X]<-gsub("a17","a15",Final.Codes[X])
-            Final.Codes[X]<-gsub("a16","a15",Final.Codes[X])
-          }
-          
-          X<-Final.Codes %in% PC2
-          
-          if(sum(X)>0){
-            Y<-unlist(strsplit(Final.Codes[X],"[.]"))
-            Final.Codes[X]<-Y[nchar(Y)>1]
-          }
-          list(Final.Codes)
-          
-        }
-        
-        Y[,Final.Codes:=list(Recode(PC1,PC2,Final.Codes)),by=Y.N]
-        Data[,Final.Codes:=Y$Final.Codes]
-        
-      }
-      
-      rbindlist(lapply(1:length(N),FUN=function(j){
-        if(Verbose){print(paste(BC," - Group ",Data$Group[1]," - N =",j))}
-        X<-unlist(Data$Final.Codes[j])
-        i<-N[j]
-        
-        if(is.na(X[1])){
-          Z<-Y[N!=i & !is.na(Final.Codes)
-          ][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-          ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-          ][Match>=0 & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
-          
-          Z[,Mulch.Code:=as.character("")][,Mulch.Flag:=F]
-          
-          Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
-          
-          Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-          ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-          ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
-          
-          
-        }else{
-          
-          # Here we are working from the logic of looking at what other treatments can treatment[i] be a control for?
-          Z<-Y[N!=i][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-          ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-          ]
-          
-          # Exception for comparison of mulched residues to incorporated residues.
-          Z[,Mulch.Code:=as.character(NA)][,Mulch.Flag:=F]
-          
-          for(kk in 1:length(Mulch.C.Codes)){
-            Z<-Mulch.Fun(A=Mulch.C.Codes[kk],B=Mulch.T.Codes[kk],X,Z)
-            }
-          
-          # Keep instances for which this treatment can be a control for other treatments
-          Z<-Z[Match>=length(X) & NoMatch>0] 
-          
-          # There was a bug here where Control.Code was set to :=list(X), but if X was the same length as nrow(Z) this led to issues
-          Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
-          
-          # Remove Mulch Code from Control Code where Mulch.Flag == T
-          Z[,Control.Code:=Z[,list(Control.Code=list(unlist(Control.Code)[!unlist(Control.Code) %in% Mulch.Code])),by="N"][,Control.Code]]
-          
-          Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-          ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-          ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
-          
-        }
-        
-        if(nrow(Z)>0){
-          Z$Level.Check<-lapply(1:nrow(Z),FUN=function(ii){
-            if(length(unlist(Z[ii,Linked.Tab]))==0){
-              !is.na(unlist(Z$Prac.Code)[ii])
-            }else{
-              unlist(lapply(1:length(unlist(Z[ii,Linked.Tab])),FUN=function(jj){
-                # ***FERTILIZER*** Do both treatments have fertilizer? If so the sequences must match 
-                if(unlist(Z[ii,Linked.Tab])[jj]=="Fert.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Fert.Out")){
-                  if(Verbose){print(paste0("Fert: ii = ",ii," | jj = ",jj))}
-                  
-                  Trt<-Data[Z[ii,Y.N],F.Level.Name]
-                  Control<-Data[j,F.Level.Name]
-                  
-                  # ISSUE - Fertilizer codes from rotation sequence with outcome reported for entire sequence
-                  # Do we need to update Level.Name fields with aggregated names from Int/Rot Sequence? 
-                  # Guess this would be done through combining MT.Out2 entries.
-                  
-                  if(Trt==Control){
-                    # If Trt & Control Have the same Fertilizer Level Name then no need for further investigation.
-                    TRUE
-                  }else{ 
-                    # Trt & Control have different names so we need to compare these in more detail
-                    
-                    # Extract data from Fert.Method table for Treatment and Control
-                    # Choose fields to match on 
-                    Fert.Fields<-c("F.Level.Name","F.Category","F.Type","F.NPK","F.Amount","F.Unit","F.Method","F.Physical",
-                                   "F.Fate","F.Date","F.Date.Stage","F.Date.DAP","F.Date.DAE")
-                    
-                    Trt1<-Fert.Method[B.Code==BC & 
-                                        F.Level.Name==Trt & 
-                                        Time %in% c(Data$Time[1],"All Times") & 
-                                        Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                      !c("F.Date.Text","F.Level.Name2")]  
-                    
-                    Control1<-Fert.Method[B.Code==BC & 
-                                            F.Level.Name==Control & 
-                                            Time %in% c(Data$Time[1],"All Times") & 
-                                            Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                          !c("F.Date.Text","F.Level.Name2")]  
-  
-                    # Are there any Fert.Method rows in the Control not in the Treatment? 
-                    # Note that the fertilizer being applied could have the same identity but still differ in amount applied 
-                    # Amount can be recorded as total amount applied to plot in the Fert.Out tab and not for each row in the Fert.Method Tab
-                    N.Control<-data.table(Level=c(rep("Control",nrow(Control1)),rep("Trt",nrow(Trt1))),
-                                          Dup=duplicated(rbind(Control1[,!"F.Level.Name"],Trt1[,!"F.Level.Name"])))[Level=="Trt"]
-                    
-                    # 1) For rows that match:
-                    # 1.1) For shared inorganic NPK practices do the NPK values match? (check any 999999 values are set to NA) ####
-                    #Shared.FCodes<-unique(unlist(Trt1[N.Control$Dup,c("Fert.Code1","Fert.Code2","Fert.Code3")]))
-                    Shared.FCodes<-na.omit(unique(Trt1[N.Control$Dup,unlist(tstrsplit(F.Codes,"-"))]))
-  
-                    Trt2<-Fert.Out[B.Code==BC & F.Level.Name==Trt,]  
-                    Control2<-Fert.Out[B.Code==BC & F.Level.Name==Control,]  
-  
-                    if(any(Shared.FCodes %in% c("b16","b17","b21","b23"))){
-                      
-                      if("b16" %in% Shared.FCodes){
-                        K.Logic<-paste(Trt2$F.KI,Trt2$F.K2O) == paste(Control2$F.KI,Control2$F.K2O)
-                      }else{
-                        K.Logic<-T
-                      }
-                      
-                      if(any(c("b23","b17") %in% Shared.FCodes)){
-                        N.Logic<-Trt2$F.NI == Control2$F.NI
-                      }else{
-                        N.Logic<-T
-                      }
-                      
-                      if("b21" %in% Shared.FCodes){
-                        P.Logic<-paste(Trt2$F.PI,Trt2$F.P2O5) == paste(Control2$F.PI,Control2$F.P2O5)
-                      }else{
-                        P.Logic<-T
-                      }
-                      
-                      FI.Logic<-all(K.Logic,N.Logic,P.Logic)
-                    }else{
-                      FI.Logic<-T
-                    }
-                    
-                    # 1.2) For shared organic practices do organic NPK amounts match?) ####
-                    # To compare organic NPK levels there should be one or more organic practices shared and none not shared (if there is a mix then organic NPK could vary)
-                    #NotShared.FCodes<-unique(unlist(Trt1[!N.Control$Dup,c("Fert.Code1","Fert.Code2","Fert.Code3")]))
-                    NotShared.FCodes<-na.omit(unique(Trt1[!N.Control$Dup,unlist(tstrsplit(F.Codes,"-"))]))
-  
-                    if(any(Shared.FCodes %in% c("b29","b30","b75","b67")) & !any(NotShared.FCodes %in% c("b29","b30","b75","b67"))){
-                      FO.Logic<-paste(as.character(unlist(Trt2[,c("F.NO","F.PO","F.KO")])),collapse = " ") == paste(as.character(unlist(Control2[,c("F.NO","F.PO","F.KO")])),collapse = " ")
-                    }else{
-                      FO.Logic<-T
-                    }
-                    
-                    # 2) For rows that don't match do they correspond to a shared practice code? If so these are part of the same practice and cannot be compared) ####
-                    # The row in the Trt that does not match the control should have a code that is not present in the control
-                    #F.ControlCode<-unique(unlist(Control1[,c("Fert.Code1","Fert.Code2","Fert.Code3")]))
-                    F.ControlCode<-na.omit(unique(Control1[,unlist(tstrsplit(F.Codes,"-"))]))
-                    FNoMatch.Logic<-!NotShared.FCodes %in% F.ControlCode
-                    
-                    # 3) If control has practices not in the treatment then it is an invalid comparison) ####
-                    #F.TCode<-unique(unlist(Trt1[,c("Fert.Code1","Fert.Code2","Fert.Code3")]))
-                    F.TCode<-na.omit(unique(Trt1[,unlist(tstrsplit(F.Codes,"-"))]))
-  
-                    # 4) For Practices with NoCode do rows match?
-                    FCinT.Logic<-all(F.ControlCode %in% F.TCode)
-                    
-                    all(FI.Logic,FO.Logic,FNoMatch.Logic,FCinT.Logic)
-                    
-                  }
-                  
-                }else{
-                  # ***ROTATION*** Do both treatments have rotation? If so the sequences must match
-                  if(unlist(Z[ii,Linked.Tab])[jj]=="Rot.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Rot.Out")){
-                    if(Verbose){print(paste0("Rotation: ii = ",ii," | jj = ",jj))}
-                    # Rotation will need to be compared by matching crop sequences
-                    
-                    Trt<-Data[Z[ii,Y.N],R.Level.Name]
-                    Control<-Data[j,R.Level.Name]
-                    
-                    if(is.na(Trt)){Trt<-0}
-                    if(is.na(Control)){Control<-0}
-                    
-                    if(Trt==Control){TRUE}else{ 
-                      # Do rotation sequences match?
-                      Trt<-Data[Z[ii,Y.N],R.Prod.Seq]
-                      Control<-Data[j,R.Prod.Seq]
-                      
-                      # There will not always be values - if both NA for sequence assume comparison is valid by setting both to 0
-                      if(is.na(Trt)){Trt<-0}
-                      if(is.na(Control)){Control<-0}
-          
-                      if(Trt==Control){TRUE}else{FALSE}
-                    }
-                    
-                  }else{
-                    # ***INTERCROPPING*** Do both treatments have intercropping? If so the intercropping planting must match for them to be compared
-                    if(unlist(Z[ii,Linked.Tab])[jj]=="Int.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Int.Out")){ 
-                      if(Verbose){print(paste0("Intercropping: ii = ",ii," | jj = ",jj))}
-                      
-                      # If both the treatment and control share intercropping then the planting density of each component needs to be 95% similar
-                      # If comparing practices at the treatment level (not the intercropping or rotation system level) 
-                      
-                      Trt<-Data[Z[ii,Y.N],IN.Level.Name]
-                      Control<-Data[j,IN.Level.Name]
-                      
-                      # Test if crops used are the same.
-                      Trt.Comp<-Data[Z[ii,Y.N],IN.Prod]
-                      Int.Comp<-Data[j,IN.Prod]
-                      
-                      if(all(Trt.Comp %in% Int.Comp)){
-                        
-                        # Test if Planting Density is 95% similar between treatments 
-                        Trt1<-Plant.Method[P.Product %in% unlist(strsplit(Trt,"[*][*][*]")) & B.Code == BC
-                                           ,c("P.Product","Plant.Density")
-                                           ][order(P.Product)
-                                             ][!is.na(Plant.Density)]
-                        
-                        Control1<-Plant.Method[P.Product %in% unlist(strsplit(Control,"[*][*][*]")) & B.Code == BC
-                                           ,c("P.Product","Plant.Density")
-                                           ][order(P.Product)
-                                             ][!is.na(Plant.Density)]
-                        
-                        # Situation where information might be incomplete for one treatment
-                        if(nrow(Trt1) != nrow(Control1)){
-                          Trt1<-Trt1[P.Product %in% Control1[,P.Product]]
-                          Control1<-Control1[P.Product %in% Trt1[,P.Product]]
-                        }
-                        
-                        # Skip if no density information is available
-                        if(nrow(Trt1)==0){TRUE}else{
-                          
-                          # Planting Density needs to be 95% similar in all treatments
-                          if(all((Trt1[,Plant.Density]/Control1[,Plant.Density])>=0.95)){TRUE}else{FALSE}
-                          
-                        }
-                        
-                      }else{FALSE}
-                      
-                    }else{
-                      # ***IRRIGATION*** Do both treatments have deficit or supplemental irrigation? 
-                      if(unlist(Z[ii,Linked.Tab])[jj]=="Irrig.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Irrig.Out")){
-                        if(Verbose){print(paste0("Irrigation: ii = ",ii," | jj = ",jj))}
-                        
-                        # If deficit, supplemental, APRI or Other irrigation present in both Control and Trt then If so the water applied must match for them to be compared
-                        if(any(c("b37","b36","b54","b53") %in% unlist(Z[ii,Control.Code]))){
-                          Trt<-Data[Z[ii,Y.N],I.Level.Name]
-                          Control<-Data[j,I.Level.Name]
-                          
-                          Trt1<-Irrig.Method[I.Level.Name==Trt & 
-                                            B.Code == BC & 
-                                            Time %in% c(Data$Time[1],"All Times") & 
-                                            Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                          c("I.Amount","I.Unit","I.Water.Type")]
-                          
-                          Control1<-Irrig.Method[I.Level.Name==Control  & 
-                                                B.Code == BC & 
-                                                Time %in% c(Data$Time[1],"All Times") & 
-                                                Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                              c("I.Amount","I.Unit","I.Water.Type")]
-                          
-                          if(identical(Trt1,Control1)){TRUE}else{FALSE}
-                        }else{
-                          # Shared practices must be drip or sprinkler and we assume these are the same.
-                          TRUE
-                        }
-                        
-                      }else{
-                        # ***Water Harvesting*** Do both treatment & control have Water Harvesting?
-                        if(unlist(Z[ii,Linked.Tab])[jj]=="WH.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="WH.Out")){
-                          if(Verbose){print(paste0("Water Harvesting: ii = ",ii," | jj = ",jj))}
-                          
-                          # This should be OK by default. We can have multiple WH practices, but these do not have levels.
-                          # This could be an issue if we have mutilple levels of a base practice shared btw control and treatment
-                          TRUE
-                          
-                        }else{
-                          # ***Post Harvest*** Do both treatment & control have Post Harvest?
-                          if(unlist(Z[ii,Linked.Tab])[jj]=="PO.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="PO.Out")){
-                            if(Verbose){print(paste0("Post Harvest: ii = ",ii," | jj = ",jj))}
-                            
-                            # This should be OK by default. We can have multiple postharvest practices, but these do not have levels.
-                            # This could be an issue if we have mutilple levels of a base practice shared btw control and treatment
-                            TRUE
-                            
-                          }else{
-                            # ***Energy*** Do both treatment & control have Energy?
-                            if(unlist(Z[ii,Linked.Tab])[jj]=="E.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="E.Out")){
-                              if(Verbose){print(paste0("Energy: ii = ",ii," | jj = ",jj))}
-                              
-                              # This should be OK by default. We can have multiple energy practices, but these do not have levels.
-                              # This could be an issue if we have mutilple levels of a base practice shared btw control and treatment
-                              TRUE
-                              
-                            }else{
-                              # ***Residues*** Do both treatments have Residues? If so the material, amount, date and method of application must match for them to be compared
-                              if(unlist(Z[ii,Linked.Tab])[jj]=="Res.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Res.Out")){
-                                if(Verbose){print(paste0("Residues: ii = ",ii," | jj = ",jj))}
-                                
-                                Trt<-Data[Z[ii,Y.N],M.Level.Name]
-                                Control<-Data[j,M.Level.Name]
-                                
-                                # Check if residues are crop residues that have varying application levels, check if MT.Out$T.Name matches the M.Level.Name field in Res.Method
-                                if(is.na(Trt) & is.na(Control)){
-                                  Trt<-Data[Z[ii,Y.N],T.Name]
-                                  Control<-Data[j,T.Name]
-                                  
-                                  if(Trt %in% unlist(Res.Method[B.Code == BC,M.Level.Name])){
-                                    Trt
-                                  }else{
-                                    NA
-                                  }
-                                  
-                                  if(Control %in% unlist(Res.Method[B.Code == BC,M.Level.Name])){
-                                    Control
-                                  }else{
-                                    NA
-                                  }
-                                }
-                                
-                                if(is.na(Trt) & is.na(Control)){
-                                  TRUE # Assume levels must be the same
-                                }else{
-                                  
-                                  Trt1<-Res.Method[M.Level.Name==Trt & 
-                                                     B.Code == BC & 
-                                                     Time %in% c(Data$Time[1],"All Times") & 
-                                                     Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                                   c("M.Tree","M.Material","M.Amount","M.Fate","M.Date","M.Cover","M.Date.Stage","M.Date.DAP")]
-                                  
-                                  Control1<-Res.Method[M.Level.Name==Control  & 
-                                                         B.Code == BC & 
-                                                         Time %in% c(Data$Time[1],"All Times") & 
-                                                         Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                                       c("M.Tree","M.Material","M.Amount","M.Fate","M.Date","M.Cover","M.Date.Stage","M.Date.DAP")]
-                                
-                                  if(identical(Trt1,Control1)){TRUE}else{FALSE}
-                                  
-                                }
-                                
-                              }else{
-                                
-                                if(Verbose){print(paste0("Simple: ii = ",ii," | jj = ",jj))}
-                                
-                                # Simple cases where the treatment level names need be identical for practices shared between control and treatment
-                                # Control Field
-                                COL<-unlist(Z[ii,Linked.Col])[jj]
-                                if(!is.na(COL)){
-                                  # Does control value (left) equal treament value (right)
-                                  Data[N==i,..COL] == Data[N== Z[ii,N],..COL]
-                                }else{
-                                  # If control codes are NA (no ERA practice) then it could be comparible to other treatments that are not NA and have an ERA practice
-                                  !is.na(unlist(Z$Prac.Code)[ii])
-                                }
-                              }}}}}}}}
-                
-              }))
-            }
-            
-          })
-          
-          # All Level.Checks must be true for comparison to be valid
-          Z[,Level.Check:=all(unlist(Level.Check)),by="Y.N"]
-          
-          if(Debug){
-            Z
-          }else{
-            # Return rows from master table that are valid treatments for this control (Level.Check==T)
-            
-            Z<-Z[Level.Check==T,]
-            if(nrow(Z)>0){
-              if(!Return.Lists){
-                data.table(N = Y[j,N],Control.For=Z[,N],Mulch.Code=Z[,Mulch.Code],B.Code=BC)
-              }else{
-                data.table(N = Y[j,N],Control.For=list(Z[,N]),Mulch.Code=list(Z[,Mulch.Code]),B.Code=BC)
-              }
-            }else{}
-          }
-        }else{}
-        
-      }))
-    } # Setting Debug to T prints comparison table rather than row numbers
-    
-    # 2.1.3) Run Comparisons ####
+    # 2.1.2) Run Comparisons ####
       # ISSUE?: IMPROVED VARIETIES IV heat etc. vs IV other? ####
   
   # Set up future plan for parallel execution with the specified number of workers
@@ -589,14 +146,14 @@ TreeCodes<-master_codes$trees
       
       Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
       
-      # Apply Compare.Fun to each group
+      # Apply compare_fun to each group
       if(nrow(Data.Sub)>0){
         
       comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
         if (Verbose) {
           cat(BC,"-",j, " Subgroup = ", i,"\n")
         }
-        Compare.Fun(Verbose = Verbose, 
+        compare_fun(Verbose = Verbose, 
                     Data = Data.Sub[Group == i], 
                     Debug = FALSE,
                     PracticeCodes=PracticeCodes, 
@@ -622,7 +179,7 @@ TreeCodes<-master_codes$trees
     zero_comp_basic<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
     Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
     
-    # 2.1.4) Restructure and save ######
+    # 2.1.4) Restructure ######
     # Remove NA values
     Comparisons<-Comparisons[!is.na(Control.For)
     ][,Len:=length(unlist(Control.For)),by=N]
@@ -649,8 +206,8 @@ TreeCodes<-master_codes$trees
     
     Comparison.List<-list(Simple=Comparisons1)
     
-  # 2.2) Aggregated Treatments ####
-  
+  # 2.2) Aggregated Treatments #####
+    # 2.2.1) Subset and prepare data ######
   # Extract Aggregated Observations
   Data.Out.Agg<-Data.Out[grep("[.][.][.]",T.Name)]
   
@@ -688,11 +245,9 @@ TreeCodes<-master_codes$trees
     write.table(Y,"clipboard-256000",row.names = F,sep="\t")
   }
 
-  CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
-                   "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
-                   "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
-                   "B.Code","Country","ED.Comparison1","ED.Comparison2","T.Agg.Levels3")
   
+    # 2.2.2) "Normal" aggregations ######
+
   DATA<-Data.Out.Agg
   
   Verbose<-F
@@ -709,13 +264,16 @@ TreeCodes<-master_codes$trees
   
   # Initialize progress bar
   Comparisons <- with_progress({
-    p <- progressor(steps = length(unique(DATA[, B.Code])))
+    b_codes<-unique(DATA[, B.Code])
+    p <- progressor(steps = length(b_codes))
     
     # Run future_lapply with progress bar
-    future_lapply(unique(DATA[, B.Code]), function(BC) {
+    future_lapply(1:length(b_codes), function(ii) {
+      
       p()  # Update progress bar
       
       # Filter subset of data for current B.Code
+      BC<-b_codes[ii]
       Data.Sub <- DATA[B.Code == BC]
       CW <- unique(Data.Sub[, CompareWithin, with = FALSE])  # No `..` prefix needed with `with = FALSE`
       CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
@@ -728,16 +286,16 @@ TreeCodes<-master_codes$trees
       
       Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
       
-      # Apply Compare.Fun to each group
+      # Apply compare_fun to each group
       if(nrow(Data.Sub)>0){
       
-      # Apply Compare.Fun to each group
+      # Apply compare_fun to each group
       comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
         if (Verbose) {
           print(paste0(BC, " Subgroup = ", i))
         }
         
-        Compare.Fun(
+        compare_fun(
           Verbose = Verbose,
           Data = Data.Sub[Group == i],
           Debug = FALSE,
@@ -785,6 +343,262 @@ TreeCodes<-master_codes$trees
   # write.table(Comparisons1,"clipboard-256000",row.names = F,sep="\t")
   
   Comparison.List[["Aggregated"]]<-Comparisons1
+  
+    # 2.2.3) Aggregated crossed-fertilizer experiments ######
+  
+  # Combine study code and aggregated practice code for finding the control
+  Data.Out.Agg[,Code:=paste(B.Code,T.Agg.Levels3)]
+  
+  # Subset data to studies where there is a shared fertilizer practice that is the same across all aggregated treatments and other treatment that vary (i.e. a crossed experiment where the results of fertilizer A are aggregated over fertilizer B)
+  Data.Out.Agg.xfert<-Data.Out.Agg[!is.na(T.Agg.Levels.Fert.Shared) & !T.Agg.Levels.Fert.Shared %in% c("","NA")]
+
+  # We need to modify the data to "ignore" the aggregated practices within treatments and focus on comparing treatments and controls based the shared practice within an aggregation.
+  
+  # Add Controls
+  # Conceptually the control has the same variable group of fertilizer practices but lacks the shared practice, so fertilizer A = 0 aggregated over fertilizer B.
+  # Controls are where T.Agg.Levels.Fert.Shared is blank but the T.Agg.Levels3 name is shared (same aggregated practice but the shared practice is missing)
+  
+  xfert_controls<-Data.Out.Agg[(is.na(T.Agg.Levels.Fert.Shared) | T.Agg.Levels.Fert.Shared=="") & Code %in% Data.Out.Agg.xfert$Code]
+  
+  # Join the controls
+  Data.Out.Agg.xfert<-rbind(Data.Out.Agg.xfert,xfert_controls)
+  
+    # Unique values
+  fert_shared<-unique(Data.Out.Agg.xfert[,.(B.Code,F.Level.Name,F.Level.Name2,T.Agg.Levels3,T.Agg.Levels.Fert.Shared)])
+  
+
+  Fert.Method<-copy(data$Fert.Method)[,F.Level.Name_original:=F.Level.Name]
+  Fert.Method[,Code:=F.Level.Name2][grepl("||",Code),Code:=tstrsplit(Code,"||",fixed=T)[[2]]]
+  sum_fun<-function(x){
+    x<-sum(x,na.rm = T)
+    if(x==0){
+      x<-NA
+    }
+    return(x)
+  }
+
+  # Add extra rows for changed F.Level.Names (T.Agg.Levels.Fert.Shared) to Fert.Method, here we are creating an entry for just the shared practice not the entire aggregation
+    fert_method_extra<-rbindlist(pblapply(1:nrow(fert_shared),FUN=function(i){
+      b_code<-fert_shared$B.Code[i]
+      f_level_shared<-fert_shared$T.Agg.Levels.Fert.Shared[i]
+      f_level_2<-fert_shared$F.Level.Name2[i]
+      y<-Fert.Method[B.Code==b_code]
+      x<-y[F.Level.Name2 %in% unlist(tstrsplit(f_level_2,"...",fixed=T)) & !Code %in%  unlist(tstrsplit(f_level_shared,"---"))]
+      if(f_level2 %in% y$F.Level.Name){
+        stop(paste(b_code,"-",f_level_2,"New fertilizer level name derived from F.Level.Name2 is aleady present"))
+      }
+      x$F.Level.Name<-f_level_2  
+      return(x)
+    }))
+    Fert.Method<-rbind(Fert.Method,fert_method_extra)
+    
+    
+    # Add extra rows to the Fert.Out table, this table is used to compare the total amounts of inorganic or organic nutrients added between treatments. This can be for the whole treatment.
+    # The issue we face here is that there are multiple aggregated treatments so we will need to average the input amounts across these. 
+    # When aggregated will need to reassign the F.Codes to all of those present across rows (for example if we have N = 0,10,30,50 then b17 would be missing from one row, but it is present across within the aggregation)
+    null_cols<-c("F.Level.Name","F.Level.Name2","F.Codes","F.Notes")
+    num_cols<-c("F.NO","F.PO","F.KO","F.NI","F.PI","F.P2O5","F.KI","F.K2O")
+    group_cols<-c("B.Code","F.Rate.Pracs","F.Timing.Pracs","F.Precision.Pracs","F.Info.Pracs","F.O.Unit","F.I.Unit")
+    
+    Fert.Out<-copy(data$Fert.Out)[,F.Level.Name_original:=F.Level.Name]
+    
+    fert_extra<-pblapply(1:nrow(fert_shared),FUN=function(i){
+      b_code<-fert_shared$B.Code[i]
+      f_level_2<-fert_shared$F.Level.Name2[i]
+      f_level_tagg3<-fert_shared$T.Agg.Levels3[i]
+      f_level_shared<-fert_shared$T.Agg.Levels.Fert.Shared[i]
+      y<-Fert.Out[B.Code==b_code]
+      # Include both the shared and differing pratices
+      x<-y[F.Level.Name2 %in% unlist(tstrsplit(f_level_2,"...",fixed=T))]
+      f_codes<-x[,paste(sort(unique(unlist(strsplit(F.Codes,"-")))),collapse = "-")]
+      x<-x[,(null_cols):=NULL]
+      
+      # Replace NA values in numeric columns with 0
+      x<-x[, (num_cols) := lapply(.SD, function(x) ifelse(is.na(x), 0, x)), .SDcols = num_cols]
+      
+      # Collapse orginal names
+      x[,F.Level.Name_original:=paste(F.Level.Name_original,collapse = "|")]
+      
+      x<-unique(x[, (num_cols) := lapply(.SD, mean, na.rm = TRUE),by = group_cols,.SDcols = num_cols])
+    
+      x$F.Codes<-f_codes
+      x$F.Level.Name<-f_level_shared
+      x$F.Level.Name2<-f_level_2
+      x$F.Notes<-NA
+      
+      # Check name is not already present
+      if(f_level_shared %in% y$F.Level.Name){
+        stop(paste(b_code,"-",f_level_shared,"New fertilizer level name derived from F.Level.Name2 is aleady present"))
+      }
+      
+      return(x)
+    })
+    
+    fert_extra<-rbindlist(fert_extra)
+    if(nrow(fert_extra)!=nrow(fert_shared)){stop("fert_extra and fert_shared tables should be the same length")}
+    
+    Fert.Out<-rbind(Fert.Out,fert_extra)
+    
+    
+    # Update the F.Level.Name in the dataset for analysis to be the same name used for the shared practice only in the F.Method table.
+    Data.Out.Agg.xfert[,F.Level.Name:=F.Level.Name2]
+    
+    # Update Final.Codes - Final codes in the Data.Out.Agg dataset are derived from T.Codes which in turn are taken from T.Codes.No.Agg
+    # We now need to add the code that relates to the practice in T.Agg.Levels.Fert.Shared (Fert.Method$Code)
+  
+    
+    sum_fun<-function(x){
+      x<-sum(x,na.rm = T)
+      if(x==0){
+        x<-NA
+      }
+      return(x)
+    }
+    Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type,Site.ID,Time)]
+    
+    fcodes_focal<-unlist(pblapply(Data.Out.Agg.xfert$N,FUN=function(i){
+      y<-Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
+      x<-Fert.Method[B.Code==y$B.Code]
+      x<-unique(x[F.Level.Name==y$F.Level.Name])
+      
+      codes2<-y[,unlist(tstrsplit(T.Agg.Levels.Fert.Shared,"---"))]
+      fcodes_focal<-x[Code2 %in% codes2,F.Codes]
+      fcodes_focal<-str_split(fcodes_focal,"-")
+      fcodes_focal<-fcodes_focal[!is.na(fcodes_focal)]
+      fcodes_focal<-paste(sort(unique(unlist(fcodes_focal))),collapse = "-")
+      return(fcodes_focal)
+    }))
+    
+    Data.Out.Agg.xfert$T.Codes.Fert.Shared<-fcodes_focal
+    
+    non_matches<-Data.Out.Agg.xfert[(!is.na(T.Agg.Levels.Fert.Shared) & !T.Agg.Levels.Fert.Shared %in% c("","NA")) & T.Codes.Fert.Shared=="",.(N,B.Code,T.Name,F.Level.Name,F.Level.Name2,T.Agg.Levels,T.Agg.Levels2,T.Agg.Levels3,
+                                                                                                                           T.Codes,T.Codes.No.Agg,T.Codes.Agg,IN.T.Codes,IN.T.Codes.Shared,IN.T.Codes.Diff,I.Codes,R.Code,
+                                                                                                                           Final.Residue.Code,Final.Codes,Final.Codes2,T.Agg.Levels.Fert.Shared,T.Codes.Fert.Shared)]
+    
+    issue_bcodes<-non_matches[,unique(B.Code)]
+    
+    z<-non_matches[B.Code==issue_bcodes[13]]
+    unique(z[,.(B.Code,T.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,F.Level.Name2)])
+    i<-z$N[1]
+    
+    # X SP0019 - OK not a crossed fert experiment, vetch residue practice is compared across levels of N
+    # CJ0096 - Issue? Biochar x Nitrogen. Strange only an issue for 3B+30N...3B+60N...3B+90N treatment, which appears to be specified correctly in the excel
+    # X NM0037 - Gypsum
+    # AC0172 - 30DP treatment misspecified?
+    # X CJ0100 - I think it is OK, it does not appear to be a crossed fertilizer experiment. Non-fertilizer practices are compared across levels of fertilizer
+    # X CJ0120 - Strange scenario we have types of P application (same level) aggregated together which could be compared to no application. There is no no shared crossed practice though. And there is an issue with the control.
+    # X JO0096 - OK, not a crossed fert experiment, same amount of P applied in both trts, but with different timings.
+    # X JO0070 - OK, not a crossed fert experiment, all the fertilizer is identical between aggregated trts.
+    # NM0121.2 - Issue? Crossed inorganic with manure, manure is variable and the inorganic fertilizer constant. T.Agg.Levels3 and T.Agg.Levels.Fert.Shared seem to be ok. Issue with matching to Fert.Methods?
+    # NN0519 - Issue? Cross inorganic with manure,  manure is variable and the inorganic fertilizer constant. One manure value in T.Agg.Levels2 is NaN, but it should be 2.5.
+      # Goat and Sheep Manure 5---Goat and Sheep Manure NaN---NA -> Goat and Sheep Manure 5---Goat and Sheep Manure 2.5---NA. Raw Fert.Out data in the excel seems ok.
+    # SA0019 - crossed fertilizer experiment, but with % in Fert.Method amount summing to over 100%, e.g.
+      # F.NI-30 F.KI-25||Potassium Chloride 700|Urea 700...F.NI-45 F.KI-25||Potassium Chloride 700|Urea 700...F.NI-15 F.KI-25||Potassium Chloride 700|Urea 700
+    # SA0050 - as above
+    # AC0013 - in rejected folder
+    
+    DATA<-Data.Out.Agg.xfert
+    
+    CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
+                     "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
+                     "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
+                     "B.Code","Country","ED.Comparison1","ED.Comparison2","T.Agg.Levels3")
+    
+    Verbose<-F
+    
+    # Set up future plan for parallel execution with the specified number of workers
+    plan(multisession, workers = worker_n)
+    
+    # Enable progress bar
+    handlers(global = TRUE)
+    handlers("progress")
+    
+    # Set up future plan for parallel execution
+    plan(multisession, workers = worker_n)
+    
+    # Initialize progress bar
+    Comparisons <- with_progress({
+      b_codes<-unique(DATA[, B.Code])
+      p <- progressor(steps = length(b_codes))
+      
+      # Run future_lapply with progress bar
+      future_lapply(1:length(b_codes), function(ii) {
+        
+        p()  # Update progress bar
+        
+        # Filter subset of data for current B.Code
+        BC<-b_codes[ii]
+        Data.Sub <- DATA[B.Code == BC]
+        CW <- unique(Data.Sub[, CompareWithin, with = FALSE])  # No `..` prefix needed with `with = FALSE`
+        CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
+                    apply(CW, 1, paste, collapse = "-"))
+        Data.Sub[, Group := CW]
+        
+        # Report groups that have no comparisons
+        group_n<-Data.Sub[,table(Group)]
+        no_comparison <- Data.Sub[Group %in% names(group_n)[group_n == 1], CompareWithin, with = FALSE]
+        
+        Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
+        
+        # Apply compare_fun to each group
+        if(nrow(Data.Sub)>0){
+          
+          # Apply compare_fun to each group
+          comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
+            if (Verbose) {
+              cat(BC, " Subgroup = ", i,"\r")
+            }
+            
+            compare_fun(
+              Verbose = Verbose,
+              Data = Data.Sub[Group == i],
+              Debug = FALSE,
+              PracticeCodes = PracticeCodes,
+              Return.Lists = FALSE
+            )
+          }))
+        }else{
+          comp_dat<-NULL
+        }
+        
+        return(list(data=comp_dat,
+                    no_comparison_rows=no_comparison,
+                    zero_comparisons=if(is.null(comp_dat)){BC}else{NULL}))
+        
+      })
+    })
+    
+    no_comparison_rows_agg<-rbindlist(lapply(Comparisons,"[[","no_comparison_rows"))
+    zero_comp_agg<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
+    Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
+    
+    # Restructure and save
+    # Remove NA values
+    Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
+    
+    Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
+    
+    
+    Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
+    Cols1<-c(CompareWithin,Cols)
+    
+    Comparisons1<-Data.Out.Agg[match(Comparisons[,N],N),..Cols1]
+    Comparisons1[,Control.For:=Comparisons[,Control.For]]
+    Comparisons1[,Control.N:=Comparisons[,N]]
+    Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
+    setnames(Comparisons1,"T.Name","Control.Trt")
+    setnames(Comparisons1,"IN.Level.Name","Control.Int")
+    setnames(Comparisons1,"R.Level.Name","Control.Rot")
+    
+    Comparisons1[,Compare.Trt:=Data.Out.Agg[match(Control.For,N),T.Name]]
+    Comparisons1[,Compare.Int:=Data.Out.Agg[match(Control.For,N),IN.Level.Name]]
+    Comparisons1[,Compare.Rot:=Data.Out.Agg[match(Control.For,N),R.Level.Name]]
+    
+    Comparison.List[["Aggregated_xfert"]]<-Comparisons1
+    
+    # This does not appear to add any new values?
+    dim(unique(rbind(Comparison.List$Aggregated,Comparison.List$Aggregated_xfert)))
+    dim(Comparison.List$Aggregated)
   
   # 2.3) Intercropping System Outcomes ####
   
@@ -1040,16 +854,16 @@ TreeCodes<-master_codes$trees
         
         Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
         
-        # Apply Compare.Fun to each group
+        # Apply compare_fun to each group
         if(nrow(Data.Sub)>0){
           
-          # Apply Compare.Fun to each group
+          # Apply compare_fun to each group
           comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
             if (Verbose) {
               print(paste0(BC, " Subgroup = ", i))
             }
             
-            Compare.Fun(
+            compare_fun(
               Verbose = Verbose,
               Data = Data.Sub[Group == i],
               Debug = FALSE,
@@ -1071,39 +885,6 @@ TreeCodes<-master_codes$trees
     zero_comp_int<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
     Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
     
-    if(F){
-    cl<-makeCluster(worker_n)
-    clusterEvalQ(cl, list(library(data.table)))
-    clusterExport(cl,list("DATA","CompareWithin","Verbose","B.Codes","Compare.Fun","PracticeCodes","PracticeCodes1","Fert.Method","Plant.Out",
-                          "Fert.Out","Int.Out","Irrig.Out","Res.Method","MT.Out2","Rot.Seq.Summ"),envir=environment())
-    registerDoSNOW(cl)
-    
-    # Fert is separated into columns now.....so how to deal with? remove F.Level from CompareFun?
-    
-    Comparisons<-parLapply(cl,unique(DATA[,B.Code]),fun=function(BC){
-      
-      #Comparisons<-pblapply(unique(DATA[,B.Code]),FUN=function(BC){
-      
-      Data.Sub<-DATA[B.Code==BC]
-      CW<-unique(Data.Sub[,..CompareWithin])
-      CW<-match(apply(Data.Sub[,..CompareWithin], 1, paste,collapse = "-"),apply(CW, 1, paste,collapse = "-"))
-      Data.Sub[,Group:=CW]
-      
-      rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
-        if(Verbose){print(paste0(BC," Subgroup = ", i))}
-        
-        Compare.Fun(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F,PracticeCodes1,Return.Lists=F)
-        
-      }))
-      
-    })
-    
-    stopCluster(cl)
-    
-    
-    Comparisons<-unique(rbindlist(Comparisons))
-    }
-    
     # Basic: Restructure and save
     # Remove NA values
     Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
@@ -1111,7 +892,7 @@ TreeCodes<-master_codes$trees
     Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
     
     
-      # 2.3.1.3) Restructure and save ######
+      # 2.3.1.3) Restructure ######
     # Remove NA values
     Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
     
@@ -1447,7 +1228,7 @@ TreeCodes<-master_codes$trees
     # Remove NA values
     Comparisons<-Comparisons[!is.na(Control.For)]
 
-      # 2.3.2.3) Restructure and save ######    
+      # 2.3.2.3) Restructure ######    
     CompareWithin<-c("Site.ID","Time","Out.Code.Joined","B.Code","Country","C.Structure","P.Structure","O.Structure",
                      "W.Structure","PD.Structure","IN.Agg.Levels3","ED.Comparison1","ED.Comparison2")
     
@@ -1684,7 +1465,7 @@ TreeCodes<-master_codes$trees
       # Remove NA values
       Comparisons<-Comparisons[!is.na(Control.For)]
       
-      # 2.4.1.2) Restructure and save ######
+      # 2.4.1.2) Restructure ######
       Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
       Cols1<-c(CompareWithin,Cols)
       
@@ -1974,7 +1755,7 @@ TreeCodes<-master_codes$trees
     
     Comparisons<-Comparisons[!is.na(Control.For)]
     
-      # 2.4.2.3) Restructure and save ######
+      # 2.4.2.3) Restructure ######
     CompareWithin<-c("Site.ID","Time","Out.Code.Joined","B.Code","Country","R.All.Structure")
     
     Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
@@ -1996,9 +1777,10 @@ TreeCodes<-master_codes$trees
     Comparison.List[["Sys.Rot.vs.Mono"]]<-Comparisons1
     
 
-    # 2..5) Combine Data ####
+    # 2.4.5) Combine Data ####
   Comparison.List$Simple$Analysis.Function<-"Simple"
   Comparison.List$Aggregated$Analysis.Function<-"Aggregated"
+  Comparison.List$Aggregated_xfert$Analysis.Function<-"Aggregated_xfert"
   Comparison.List$Sys.Int.vs.Int$Analysis.Function<-"Sys.Int.vs.Int"
   Comparison.List$Sys.Int.vs.Mono$Analysis.Function<-"Sys.Int.vs.Mono"
   Comparison.List$Sys.Rot.vs.Rot$Analysis.Function<-"Sys.Rot.vs.Rot"
@@ -2017,12 +1799,15 @@ TreeCodes<-master_codes$trees
   Comparisons<-rbindlist(lapply(Comparison.List,FUN=function(X){X[,COLS,with=F]}),use.names = T,fill=T)
   Comparisons[Mulch.Code %in% c("Int System","ROT System"),Mulch.Code:=NA]
   
+  # Remove duplicates
+  
+  
   # 2.6) QAQC #####
     # Paths to save to project and local dirs
-    qaqc_dir<-file.path(era_dirs$era_dataentry_prj,project,"comparison_logic_qaqc")
+    qaqc_dir<-file.path(era_dirs$era_dataentry_prj,era_projects$industrious_elephant_2023,"comparison_logic_qaqc")
     if(!dir.exists(qaqc_dir)){dir.create(qaqc_dir)}
   
-    qaqc_dir2<-file.path(era_dirs$era_dataentry_prj,project,"comparison_logic_qaqc")
+    qaqc_dir2<-file.path(era_dirs$era_dataentry_prj,era_projects$industrious_elephant_2023,"comparison_logic_qaqc")
     if(!dir.exists(qaqc_dir2)){dir.create(qaqc_dir2)}
   
     # 2.6.1) Find studies that have no comparisons ######
@@ -2354,7 +2139,7 @@ Data<-Data.Out
   
   Comparisons <- with_progress({
     # Progress indicator
-    p <- progressor(steps = nrow(Comparisons))
+    p <- progressr::progressor(steps = nrow(Comparisons))
   
   ERA.Reformatted <-rbindlist(
     future_lapply(1:nrow(Comparisons), function(i) {
@@ -2562,22 +2347,25 @@ Data<-Data.Out
   
   error_list<-c(error_list,list(error_dat))
   error_list<-rbindlist(error_list,use.names = T)[order(B.Code)]
-  error_list<-error_tracker(errors=error_dat,filename = "Data.Out - issues with enter data comparisons field",error_dir=error_dir,error_list = NULL)
+  error_list<-error_tracker(errors=error_dat,
+                            filename = "Data.Out - LER, issues with enter data comparisons field",
+                            error_dir=qaqc_dir,
+                            error_list = NULL)
   
   Data.R.Cont<-rbindlist(lapply(results,"[[","data"))
   
-  Data.R.Cont[,R.Seq:=NA]
-  Data.R.Cont[,Int.Tree:=NA]
-  Data.R.Cont[,Rot.Tree:=NA]
-  Data.R.Cont[,TID:=paste0(TID,".LER.Control")]
-  Data.R.Cont[,T.Name:="LER Control"]
-  Data.R.Cont[,IN.Level.Name:="LER Control"]
-  Data.R.Cont[,R.Level.Name:="LER Control"]
-  Data.R.Cont[,ED.Mean.T:=NA]
-  Data.R.Cont[,ED.Error:=NA]
-  Data.R.Cont[,ED.Error.Type:=NA]
+  Data.R.Cont[,R.Seq:=NA
+              ][,Int.Tree:=NA
+                ][,Rot.Tree:=NA
+                  ][,TID:=paste0(TID,".LER.Control")
+                    ][,T.Name:="LER Control"
+                      ][,IN.Level.Name:="LER Control"
+                        ][,R.Level.Name:="LER Control"
+                          ][,ED.Mean.T:=NA
+                            ][,ED.Error:=NA
+                              ][,ED.Error.Type:=NA
+                                ][,N:=(nrow(Data.R)+1):(nrow(Data.R)*2)]
   
-  Data.R.Cont[,N:=(nrow(Data.R)+1):(nrow(Data.R)*2)]
   Data2<-rbind(Data.R,Data.R.Cont)
   
   Verbose=F
@@ -2639,10 +2427,9 @@ Data<-Data.Out
   })
   })
   
-  ERA.Reformatted.LER<-rbindlist(ERA.Reformatted.LER)
-  
   plan(sequential)
   
+  ERA.Reformatted.LER<-rbindlist(ERA.Reformatted.LER)
   ERA.Reformatted.LER[,Analysis.Function:="LER"]
   
   # Set MeanC to equal 1 where MeanC is NA
@@ -2823,6 +2610,7 @@ Data<-Data.Out
   
   ERA.Reformatted<-cbind(ERA.Reformatted[,!..Cols],Z)
   
-  # 5.7) Save Output ####
+  # 4.7) Save Output ####
   save_name<-file.path(era_dirs$era_masterdata_dir, gsub("[.]RData","_comparisons.parquet",file_local))
   arrow::write_parquet(ERA.Reformatted,save_name)
+  
