@@ -194,10 +194,10 @@ if(!ext_live){
     
   results<-future.apply::future_lapply(1:nrow(excel_files), FUN = function(ii) {
     # Update the progress bar
-   # p()
+    p()
     
   #results<-lapply(1:nrow(excel_files),FUN=function(ii){
-  cat(ii,"\n")
+  #cat(ii,"\n")
     
     File <- excel_files$filename[ii]
     #cat("File",ii,basename(File),"\n")
@@ -1438,12 +1438,17 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     
     Animal.Diet.Digest<-results$data
     
+    if(exists("diet_groups")){
+      Animal.Diet.Digest<-merge(Animal.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
     if(nrow(diet_groups)>0){
       Animal.Diet.Digest<-merge(Animal.Diet.Digest,diet_groups,all.x=T)[is.na(is_group),is_group:=F]
     }else{
       Animal.Diet.Digest[,is_group:=F]
     }
-    Animal.Diet.Digest<-merge(Animal.Diet.Digest,diet_entire,all.x=T)[is.na(is_entire_diet),is_entire_diet:=F]
+    }else{
+      Animal.Diet.Digest[,is_group:=F][,is_entire_diet:=F]
+    }
+    
   }}
   }
   
