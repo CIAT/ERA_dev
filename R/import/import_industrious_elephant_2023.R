@@ -1878,14 +1878,14 @@ if(update){
         # TO DO: Add check in case organic nutrients are listed in Fert.Out, but nothing corresponding in Fert.Method tab.
     
   ### 3.11.6) Add F.Level.Name2 field ######
+
       ReName.Fun<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O){
         NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
         N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
         
-        
         F.Level<-Fert.Method[F.Level.Name==X & B.Code ==Y,list(F.Type,F.Amount)]
         
-        F.Level<-rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=F.Type])
+        F.Level<-unique(rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=.(F.Type)]))
         
         # Deal with rounding issues   
         F.Level[,F.Amount:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10)))]
@@ -3356,16 +3356,42 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
                      Codes =c("T.Residue.Code",code_cols,NA,NA,NA))
   Fields[Levels %in% c("W.Level.Name","C.Level.Name"),Codes:=NA]
   
-   results<-pblapply(N,FUN=function(i){
+  # Function to process F.Level.Name2 string splitting apart common and shared elements (e.g. F.Type)
+  process_string <- function(input_string,between_delim="..",within_delim="|") {
+    # Step 1: Split the string on `..`
+    split_string <- strsplit(input_string, between_delim,fixed=T)[[1]]
+    
+    # Step 2: Split the first element on `|`
+    first_element_split <- strsplit(split_string[1],within_delim,fixed=T)[[1]]
+    
+    # Step 3: Find common strings across all elements
+    common_strings <- Reduce(intersect, lapply(split_string, function(x) strsplit(x, within_delim,fixed=T)[[1]]))
+    
+    # Step 4: Remove common strings from each element
+    removed_shared <- lapply(split_string, function(x) {
+      setdiff(strsplit(x,within_delim,fixed=T)[[1]], common_strings)
+    })
+    
+    # Step 5: Rejoin each element with `|`
+    rejoined_elements <- sapply(removed_shared, function(x) paste(x, collapse = within_delim))
+    
+    rejoined_elements[rejoined_elements==""]<-"NA"
+    
+    # Step 6: Rejoin all elements with `..`
+    final_result <- paste(sort(rejoined_elements), collapse = between_delim)
+    common_strings <- paste(sort(common_strings), collapse = between_delim)
+    
+    if(length(common_strings)==0){common_strings<-NA}
+    
+    return(c(shared=common_strings,different=final_result))
+  }
+
+  results<-pblapply(N,FUN=function(i){
     if(F){
       # Display progress
-      cat('\r', strrep(' ', 150), '\r')
-      cat("Processing row", i)
-      flush.console()
+      cat("Processing row", i,"/",length(N))
     }
-    # Deal with ".." delim used in Fert tab and Varieties tab that matches ".." delim used to aggregate treatments in MT.Out tab
-    # Above should not be required anyone as Var delim changed to "$$" and combined fertilizers disaggregated.
-    
+
     t_name<-MT.Out$T.Name[i] 
     Trts<-unlist(strsplit(t_name,"[.][.]"))
     Study<-MT.Out[i,B.Code]
@@ -3374,8 +3400,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
     
     if(nrow(Y)==length(Trts)){
       # Aggregated Treatments: Split T.Codes & Level.Names into those that are the same and those that differ between treatments
-      # This might need some more nuance for fertilizer treatments?
-      
+
       # Exclude Other, Chemical, Weeding or Planting Practice Levels if they do no structure outcomes.
       Exclude<-c("O.Level.Name","P.Level.Name","C.Level.Name","W.Level.Name")[apply(Y[,c("O.Structure","P.Structure","C.Structure","W.Structure")],2,unique)!="Yes" | is.na(apply(Y[,c("O.Structure","P.Structure","C.Structure","W.Structure")],2,unique))]
       Fields1<-Fields[!Levels %in% Exclude]
@@ -3392,7 +3417,6 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
         Y[T.Residue.Code %in% c("a16.1","a17.1"),T.Residue.Code:="a15.1"]
         Y[T.Residue.Code %in% c("a16.2","a17.2"),T.Residue.Code:="a15.2"]
       }
-      
       
       COLS<-Fields1$Levels
       Levels<-apply(Y[,..COLS],2,FUN=function(X){
@@ -3411,15 +3435,27 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
       
       if("F.Level.Name" %in% COLS){
         
-        COLS2<-COLS
-        COLS2[COLS2=="F.Level.Name"]<-"F.Level.Name2"
+        COLS2<-COLS[COLS!="F.Level.Name"]
+        
+        # This section is to split shared and different elements in the fertilizer tab
+        # This needed to allow comparisons between aggregated fertilizer treatments
+        f_level<-paste(Y$F.Level.Name2,collapse="---")
+        fert_split<-process_string(f_level,between_delim = "---")
+        
+        Agg.Levels.Fert.Shared<-fert_split[1]
 
-        Agg.Levels3<-paste(apply(Y[,..COLS2],1,FUN=function(X){
+        Agg.Levels3<-apply(Y[,..COLS2],1,FUN=function(X){
           X[as.vector(is.na(X))]<-"NA"
           paste(X,collapse="---")
-        }),collapse="...")
+        })
+        
+        Agg.Levels3<-c(fert_split[2],Agg.Levels3)
+        
+        Agg.Levels3<-paste(Agg.Levels3,collapse="...")
+  
       }else{
         Agg.Levels3<-Agg.Levels2
+        Agg.Levels.Fert.Shared<-NA
       }
       
       CODES.IN<-Fields1$Codes[Levels]
@@ -3479,6 +3515,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
       Y$T.Agg.Levels<-Agg.Levels
       Y$T.Agg.Levels2<-Agg.Levels2
       Y$T.Agg.Levels3<-Agg.Levels3
+      Y$T.Agg.Levels.Fert.Shared<-Agg.Levels.Fert.Shared
       Y$T.Codes.No.Agg<-CODES.OUT
       Y$T.Codes.Agg<-CODES.IN
       
@@ -3507,7 +3544,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   MT.Out.agg[,T.Codes:=T.Codes.No.Agg]
   
   MT.Out.noagg<-MT.Out[-N]
-  MT.Out.noagg[,c("T.Agg.Levels","T.Agg.Levels2","T.Agg.Levels3","T.Codes.No.Agg","T.Codes.Agg"):=NA]
+  MT.Out.noagg[,c("T.Agg.Levels","T.Agg.Levels2","T.Agg.Levels3","T.Agg.Levels.Fert.Shared","T.Codes.No.Agg","T.Codes.Agg"):=NA]
   
   MT.Out<-rbind(MT.Out.agg,MT.Out.noagg)
   
