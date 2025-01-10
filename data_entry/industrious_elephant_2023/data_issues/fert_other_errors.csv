@@ -15,7 +15,6 @@ CJ0181,Cocoa pod husk/palm kernel cake,Fert.Comp,F.Type,Mismatch in field value 
 DM0004,Inorganic-Unspecified: Inorganic fert/Inorganic + Manure,Fert.Method,F.Category-F.Type:F.Level.Name,"Use of Unspecified as fertilizer type name. We need to check that this truly should have been unspecfied (i.e. we know nothing about the fertilizer applied at all) or if unspecified N, P or K could have been used.",,,,FALSE,NJ,Unspecified: survery paper
 HK0240,Unspecified-Unspecified: fert,Fert.Method,F.Category-F.Type:F.Level.Name,"Use of Unspecified as fertilizer type name. We need to check that this truly should have been unspecfied (i.e. we know nothing about the fertilizer applied at all) or if unspecified N, P or K could have been used.",,,,FALSE,NJ,Unspecified- Survey
 JO0052,Black soldier fly frass,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,NJ,""
-JO0077,,Fert.Out,F.I.Unit,Inorganic fertilizer unit missing,,,,FALSE,"",""
 JO0114,15K/45K/60K/75K/90K/105K/10S/20S/30S/40S/50S/BN-92/BP-39/BK-66/BS-30/BZn-5/BBn-1,Fert.Method,F.Level.Name,"Name is not used in Fert.Method table and fert method table is not blank, could indicate an error.",,,,FALSE,"",""
 JO0147,AL-B_2015/AL-B_2016/Brewery waste/Gateway_2015,Fert.Comp,F.Type,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 JO0166,fNP-18_nNPK,Fert.Method,F.Level.Name,"Name is not used in Fert.Method table and fert method table is not blank, could indicate an error.",,,,FALSE,"",""

@@ -1,4 +1,5 @@
 B.Code,value,table,field,issue,variable,Site.ID,filename,issue_addressed,addressed_by_whom,notes
+,"FUT, Minna",Soil.Out,Site.ID,Check for multiple instance of same depth for same site,,,,FALSE,"",""
 AC0043,Fenotselam Research Center,Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE,"",""
 AC0158,"Sao Desiderio, Bahia",Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE,"",""
 AC0168,"ICRISAT Sahelian Centre, Sadore",Soil.Out,Site.ID,Check for multiple instance of same depth for same site,,,,FALSE,"",""
@@ -60,7 +61,6 @@ NM0002,Soil.EC/Soil.SOC/Soil.TN,Soil.Out,variable,"Amount is present, but unit i
 NM0059,Regina Farm,Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE,"",""
 NM0079,"IAPAR, Parana",Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE,"",""
 NM0079,Soil.SOC,Soil.Out,variable,"Amount is present, but unit is missing for value.",,,,FALSE,"",""
-NM0111,"FUT, Minna",Soil.Out,Site.ID,Check for multiple instance of same depth for same site,,,,FALSE,"",""
 NM0115,Soil.NO3,Soil.Out,variable,"Amount is present, but unit is missing for value.",,,,FALSE,"",""
 NN0128.2,"IITA, Onne",Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE,"",""
 NN0415,"JKUAT, Thika",Soil.Out,Site.ID,Missing value in compulsory field value.,,,,FALSE,"",""
