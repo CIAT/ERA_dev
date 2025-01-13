@@ -446,7 +446,6 @@ TreeCodes<-master_codes$trees
     # Update Final.Codes - Final codes in the Data.Out.Agg dataset are derived from T.Codes which in turn are taken from T.Codes.No.Agg
     # We now need to add the code that relates to the practice in T.Agg.Levels.Fert.Shared (Fert.Method$Code)
   
-    
     sum_fun<-function(x){
       x<-sum(x,na.rm = T)
       if(x==0){
@@ -454,7 +453,7 @@ TreeCodes<-master_codes$trees
       }
       return(x)
     }
-    Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type,Site.ID,Time)]
+    Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
     
     fcodes_focal<-unlist(pblapply(Data.Out.Agg.xfert$N,FUN=function(i){
       y<-Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
@@ -471,13 +470,14 @@ TreeCodes<-master_codes$trees
     
     Data.Out.Agg.xfert$T.Codes.Fert.Shared<-fcodes_focal
     
+    # Validation - check for where there is a shared practice name, but no t-codes are associated with it
     non_matches<-Data.Out.Agg.xfert[(!is.na(T.Agg.Levels.Fert.Shared) & !T.Agg.Levels.Fert.Shared %in% c("","NA")) & T.Codes.Fert.Shared=="",.(N,B.Code,T.Name,F.Level.Name,F.Level.Name2,T.Agg.Levels,T.Agg.Levels2,T.Agg.Levels3,
                                                                                                                            T.Codes,T.Codes.No.Agg,T.Codes.Agg,IN.T.Codes,IN.T.Codes.Shared,IN.T.Codes.Diff,I.Codes,R.Code,
                                                                                                                            Final.Residue.Code,Final.Codes,Final.Codes2,T.Agg.Levels.Fert.Shared,T.Codes.Fert.Shared)]
     
     issue_bcodes<-non_matches[,unique(B.Code)]
     
-    z<-non_matches[B.Code==issue_bcodes[13]]
+    z<-non_matches[B.Code==issue_bcodes[12]]
     unique(z[,.(B.Code,T.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,F.Level.Name2)])
     i<-z$N[1]
     
@@ -485,16 +485,12 @@ TreeCodes<-master_codes$trees
     # CJ0096 - Issue? Biochar x Nitrogen. Strange only an issue for 3B+30N...3B+60N...3B+90N treatment, which appears to be specified correctly in the excel
     # X NM0037 - Gypsum
     # AC0172 - 30DP treatment misspecified?
-    # X CJ0100 - I think it is OK, it does not appear to be a crossed fertilizer experiment. Non-fertilizer practices are compared across levels of fertilizer
     # X CJ0120 - Strange scenario we have types of P application (same level) aggregated together which could be compared to no application. There is no no shared crossed practice though. And there is an issue with the control.
     # X JO0096 - OK, not a crossed fert experiment, same amount of P applied in both trts, but with different timings.
     # X JO0070 - OK, not a crossed fert experiment, all the fertilizer is identical between aggregated trts.
     # NM0121.2 - Issue? Crossed inorganic with manure, manure is variable and the inorganic fertilizer constant. T.Agg.Levels3 and T.Agg.Levels.Fert.Shared seem to be ok. Issue with matching to Fert.Methods?
     # NN0519 - Issue? Cross inorganic with manure,  manure is variable and the inorganic fertilizer constant. One manure value in T.Agg.Levels2 is NaN, but it should be 2.5.
       # Goat and Sheep Manure 5---Goat and Sheep Manure NaN---NA -> Goat and Sheep Manure 5---Goat and Sheep Manure 2.5---NA. Raw Fert.Out data in the excel seems ok.
-    # SA0019 - crossed fertilizer experiment, but with % in Fert.Method amount summing to over 100%, e.g.
-      # F.NI-30 F.KI-25||Potassium Chloride 700|Urea 700...F.NI-45 F.KI-25||Potassium Chloride 700|Urea 700...F.NI-15 F.KI-25||Potassium Chloride 700|Urea 700
-    # SA0050 - as above
     # AC0013 - in rejected folder
     
     DATA<-Data.Out.Agg.xfert
