@@ -1,3 +1,559 @@
+<<<<<<< HEAD
+---
+title: "ERA Livestock Data Exploration"
+author: "Namita Joshi"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+    toc: true                # Enables the table of contents
+    toc_float: true          # Makes the TOC a floating sidebar
+    code_folding: hide       # Hides code by default
+    includes:
+      after_body: hypothes.html  # This points to the custom HTML file
+vignette: >
+  %\VignetteIndexEntry{ERA Livestock Data Exploration}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+comments:
+  utterances:
+    repo: CIAT/ERA_dev
+runtime: shiny
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+This vignette will guide you through the livestock-related data available within the Evidence for Resilient Agriculture (ERA) dataset. The dataset serves as a critical resource for understanding agricultural resilience, specifically focusing on livestock systems and their adaptation to climate change.
+
+We will cover the following:
+
+***Methodology:***
+
+*1. Search Terms Used*
+
+*2. Screening Criteria Applied*
+
+*3. Data Extraction Process*
+
+
+***Exploration of Livestock Data in ERA:***
+
+*1. Exploring geographic locations of studies available*
+
+*2. Practices in changing diets*
+
+*3. Understanding Diet compositions*
+
+*4. Common outcomes reported*
+
+
+# Methodology
+
+## ERA Search Terms
+
+Our initial search, conducted in 2014, queried the Web of Science and Scopus Databases for English language articles. Database queries consisted of key terms describing three components: technology, outcome, and geographic location. Given the myriad outcomes of interest, we constructed distinct search strings for each category: productivity, resilience, and mitigation outcomes, as well as a key term related to barriers to adoption. 
+
+Our methodology employed Boolean operators ‘OR’ and ‘AND’ to ensure the comprehensiveness of the search. This string for each technology category was run in both search engines for each of the outcome categories, ‘productivity,’ ‘resilience,’ ‘mitigation,’ and additionally for ‘barriers’. 
+
+Below in a snippet of the search terms used for the livestock extraction: 
+
+
+```{r search-terms, echo=FALSE, message=FALSE}
+library(knitr)
+library(dplyr)
+
+# Create a data frame to hold search terms
+search_terms <- data.frame(
+  Source = c("WoS", "Scopus"),
+  Subject = c("Livestock", "Livestock"),
+  Query = c(
+    "(Livestock OR 'mono gastric' OR cattle OR sheep OR goats OR pigs OR poultry OR ruminant OR aquaculture OR fish*) AND ('non-conventional feed' OR 'Forage productivity' OR grass OR 'pasture additive' OR 'grass-legume' OR 'feed conversion' OR 'feed intake' OR 'protein intake' OR 'energy intake' OR 'feed availability' OR 'feed supplement*' OR 'energy retention' OR 'growth rate' OR 'feed acceptability' OR 'feeding frequency' OR 'stover digestibility' OR 'paddock' OR 'free*range' OR 'hay' OR 'silage' OR 'fodder shrub*' OR 'nomadic' OR pastoral OR 'signal*grass' OR (pasture NEAR cerrado) OR 'crop residue' OR 'animal husbandry' OR 'pasture species' OR 'crop-pasture' OR 'pasture crop*' OR 'zero graz*' OR 'rotational graz*' OR 'conti* graz*' OR 'stocking density' OR 'organic* livestock' OR 'ammonia volatil*' OR 'N-retention' OR 'cover* manure' OR 'biogas capture' OR 'Manure acidification' OR 'Cover* manure' OR 'Manure collection' OR 'manure treatment' OR 'artificial insemination' OR 'trait selection' OR 'heat period' OR ovulation OR hybrid OR 'desirable traits' OR 'progeny test' OR 'semen analysis' OR 'cross breed*' OR 'Aquasilviculture' OR 'Integrated multi-trophic aquaculture' OR 'Organic Aquaculture' OR 'fishing intensity' OR 'culture based fishery' OR 'vulnerable' OR 'susceptible' OR 'resistan*' OR 'quarantine' OR 'antibiotic' OR 'vaccine' OR 'dewormer' OR 'ectoparasite' OR 'innoculation' OR 'agropasto*' OR (Livestock AND (antistress OR 'anti-stress')))",
+    "(Livestock OR 'mono gastric' OR cattle OR sheep OR goats OR pigs OR poultry OR ruminant OR aquaculture OR fish*) AND ('non-conventional feed' OR 'Forage productivity' OR grass OR 'pasture additive' OR 'grass-legume' OR 'feed conversion' OR 'feed intake' OR 'protein intake' OR 'energy intake' OR 'feed availability' OR 'feed supplement*' OR 'energy retention' OR 'growth rate' OR 'feed acceptability' OR 'feeding frequency' OR 'stover digestibility' OR 'paddock' OR 'free*range' OR 'hay' OR 'silage' OR 'fodder shrub*' OR 'nomadic' OR pastoral OR 'signal*grass' OR (pasture W/ cerrado) OR 'crop residue' OR 'animal husbandry' OR 'pasture species' OR 'crop-pasture' OR 'pasture crop*' OR 'zero graz*' OR 'rotational graz*' OR 'conti* graz*' OR 'stocking density' OR 'organic* livestock' OR 'ammonia volatil*' OR 'N-retention' OR 'cover* manure' OR 'biogas capture' OR 'Manure acidification' OR 'Cover* manure' OR 'Manure collection' OR 'manure treatment' OR 'artificial insemination' OR 'trait selection' OR 'heat period' OR ovulation OR hybrid OR 'desirable traits' OR 'progeny test' OR 'semen analysis' OR 'cross breed*' OR 'Aquasilviculture' OR 'Integrated multi-trophic aquaculture' OR 'Organic Aquaculture' OR 'fishing intensity'  OR 'culture based fishery' OR 'vulnerable' OR 'susceptible' OR 'resistan*' OR 'quarantine' OR 'antibiotic' OR 'vaccine' OR 'dewormer' OR 'ectoparasite' OR 'innoculation' OR 'agropasto*' OR (Livestock AND (antistress OR 'anti-stress')))"
+  )
+)
+
+# Display the table using knitr::kable
+kable(search_terms, caption = "Search Terms for ERA Livestock")
+
+
+```
+
+## Screening Criteria with PICOS Standards
+This screening criteria is designed to systematically review papers focusing on livestock management and outcomes, applying both inclusion and exclusion criteria based on specific parameters. The framework ensures that the selected studies align with the objectives of the review, particularly within the context of livestock systems in Africa.
+
+PICOS Framework
+The PICOS framework helps structure systematic reviews by defining key components: Population, Intervention, Comparison, Outcomes, and Study Design.
+
+### Population (P):
+
+The criteria focus on studies involving livestock, excluding fish unless explicitly directed (fish are separated into a distinct category).
+The geographic scope is limited to studies conducted in Africa.
+
+### Intervention (I):
+
+Eligible studies involve practices like:
+Pasture and grazing management.
+Feed experiments (including feed processing).
+Improved variety and herd density management.
+Manure management and related practices.
+
+### Comparison (C):
+
+Studies should ideally have a control group, except for papers reporting diet and intake where controls are not mandatory.
+
+### Outcomes (O):
+
+The review emphasizes studies reporting primary data on key outcomes:
+Reproductive performance, economics, yields, soil quality, biodiversity, emissions, and labour.
+Studies that report surveys or specific emission-related outcomes in controlled environments are included, but consultation with the team is recommended.
+
+### Study Design (S):
+
+Studies must focus on interventions and primary data collection.
+Lab experiments or greenhouse studies are excluded unless they focus on emission outcomes.
+
+## Data Extraction Process
+
+Data were extracted from tables, text, and figures. Figures were digitized using available software, such as Web Plot Digitizer (https://apps.automeris.io/wpd/). 
+
+The data was extracted using a macros enabled excel template: 
+
+https://cgiar-my.sharepoint.com/:x:/g/personal/p_steward_cgiar_org/EXUFiZJ-jopBoxHaC9MsBHUBHC-qVT66csvmjvxluJ_CWQ?e=bEG8kY
+
+There are 9 sections to this workbook: 									
+1) Pub = Publication: capture bibliographic data about an experiment here.																	
+2) Site & Site Soils: captures information about experimental sites, any detailed information about soil variables should be captured in Site.Soils  																	
+3) ExpD = Experimental design, captures information about the number of study replicates, plot sizes, etc.															
+4) Practices= These include the following:
+
+System and Housing structures
+
+Time periods
+
+Herd or Group structures
+
+Diets: This is broken into 3 tabs; Indgredient feed to the animals, Nutritional content of each ingredient and the digestibility of those ingredients. 
+
+Pasture: In experiments where animals were allowed to graze in the pastures, details of grass species are collected.
+
+Grazing: This includes the amount of time animals were allowed to graze, and whether there were any fertilizer or tillage treatments to the grazing land.
+
+Chemicals, Vaccines, Medicines that were given to the animals during the experiment 
+
+5) Make.Trt = create & name treatments by combining the experimental practices entered in the practice tabs.	
+
+8) EnterData = Captures values and associated errors for the experimental treatments, products, outcomes and times specified in the previous tabs. Do not start data entry until you've completed all the previous tabs.	
+
+![Data Extraction tabs in Excel]("ERA_dev\R\misc\extraction schema 3.png")
+
+
+Data extractors went through an intensive 3 week training that included video tutorials and practical examples of extracting data with the livestock template. 
+
+Training materials can be found here: https://cgiar-my.sharepoint.com/:f:/g/personal/p_steward_cgiar_org/EmOgDnJmyX9KkD1s8rNqggsBlSDMvTavst0gd7VIwU3EMw?e=c1gHDf
+
+### Livestock ontology
+As part of the extraction process of the ERA Livestock, we created an ontology. The livestock ontology is a structured, hierarchical framework that defines and categorizes terms, concepts, and relationships related to livestock systems. It includes standardized definitions for livestock species, breeds, production systems, management practices, feed types, environmental factors, health indicators, and outcomes. By providing a shared vocabulary, livestock ontology facilitates consistent and comprehensive data representation across studies.
+
+Link to the ontology: https://doi.org/10.7910/dvn/75e7hv
+
+
+# Exploring the data
+
+## Importing the data
+
+### Link	to	github: 
+
+The	code	used	to	generate	and	compile	the	dataset	from	the	excel	files	is	in	the	ERAg	R	package	using	R	4.2.1
+(R	Development	Team)	and	may	be	downloaded	from	GitHub	https://github.com/EiA2030/ERAg.
+
+### Downloading the data from the S3 bucket
+The data can be downloading using the following code: 
+
+```{r, downloading data from S3 bucket,echo=T, message=FALSE}
+#download	most	recent	version	of	the	data	
+
+#	Set	up	connection	to	S3	bucket
+s3<-s3fs::S3FileSystem$new(anonymous	=	T)
+		era_s3<-"s3://digital-atlas/era"
+		
+		#	List	the	files	in	the	s3	bucket
+		files<-s3$dir_ls(file.path(era_s3,"data"))
+		#	This	is	the	most	recent	version	of	the	datas3://digital-atlas/era/data/industrious_elephant_2023-YYYY-MM-DD.RData
+		files<-tail(grep(".RData",grep("skinny_cow_2022",files,value=T),value=T),1)
+		
+		#	Set	a	save	location	for	the	dataset	(amend	to	something	more	suitable	for	your	needs)
+		save_path<-file.path(getwd(),basename(files))
+		
+		if(!file.exists(save_path)){
+		  s3$file_download(files,save_path,overwrite	=	T)
+		}
+		
+		Tables<-	miceadds::load.Rdata2(file=basename(save_path),path=dirname(save_path))
+```
+
+
+```{r packages,include=F,eval=T,echo=F}
+require(ERAg)
+require(ERAgON)
+require(sf)
+require(rnaturalearth)
+require(rnaturalearthdata)
+require(ggplot2)
+require(viridis)
+require(shiny)
+require(dplyr)
+require(treemap)
+require(treemapify)
+require(plotly)
+
+```
+
+## Subsetting the ERA Compiled data
+
+The Evidence for Resilient Agriculture (ERA) dataset provides a comprehensive analysis of the impacts of technology adoption on 87 key indicators spanning productivity, resilience, and climate change mitigation. This dataset integrates data from both agronomy and livestock studies, with a focus on creating control-versus-treatment comparisons to enable robust meta-analysis.
+
+To extract insights specific to livestock, it is necessary to subset the dataset to isolate livestock-related studies, as follows (Unhide the code):
+
+```{r ERA Subset, echo=T, message=F}
+# Subset data
+livestock_data<-ERA.Compiled[!is.na(Date)]
+# Subset to fewer themes to simplify plot
+livestock_data<-livestock_data[Product.Type %in% c("Animal")]
+```
+
+
+## Exploring geographic locations of studies available
+
+This dataset represents spatial information about livestock-related research papers across various countries in Africa. Each point on the map corresponds to a geographic location associated with a research paper, categorized by livestock type (e.g., cattle, goat, sheep, etc.). The dataset includes:
+
+Country: The country where the research is associated.
+Latitude and Longitude: Coordinates representing the location of the research.
+Product.Simple: The type of livestock being studied.
+Counts: The number of papers associated with each location (aggregated for the map).
+This data provides an overview of the geographic distribution and focus of livestock research, enabling users to explore patterns and trends by livestock type and region.
+
+```{r Site Data, echo=T}
+# Create a leaflet map with interactive filtering
+# Subset the livestock data
+site_data <- livestock_data %>%
+  dplyr::select(Product.Simple, Country, Latitude, Longitude) %>%
+  distinct() %>%
+  mutate(
+    Longitude = as.numeric(Longitude),
+    Latitude = as.numeric(Latitude)
+  ) %>%
+  filter(!is.na(Longitude) & !is.na(Latitude))  # Remove rows with missing coordinates
+
+# Count the number of records per country
+livestock_counts <- site_data %>%
+  group_by(Country,Product.Simple) %>%
+  summarise(N_Livestock = n())
+
+# Prepare the world map with only African countries
+world <- ne_countries(scale = "medium", returnclass = "sf") %>%
+  filter(continent == "Africa") %>%  # Filter for African continent only
+  mutate(admin = if_else(admin == "United Republic of Tanzania", "Tanzania", admin))
+
+# Ensure the CRS is consistent (EPSG:4326)
+world <- st_transform(world, crs = 4326)
+
+# Convert site data to spatial format (only for African countries)
+site_data_filtered <- site_data %>%
+  filter(Country %in% world$admin) %>%  # Filter site data for African countries
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE)
+
+# Join livestock counts with African country geometries for mapping
+countries_studies <- world %>%
+  dplyr::select(admin, geometry) %>%
+  rename(Country = admin) %>%
+  left_join(livestock_counts, by = "Country")
+
+```
+
+```{r Plotting sites, echo=T}
+ui <- fluidPage(
+  tags$head(
+    tags$style(HTML("
+      .main-panel { overflow-y: hidden; }  /* Prevent vertical scrollbars */
+      body { overflow-x: hidden; }        /* Prevent horizontal scrollbars */
+    "))
+  ),
+  sidebarLayout(
+    sidebarPanel(
+      style = "height: auto;",  # Let the sidebar size adjust naturally
+      selectInput(
+        inputId = "animal_filter",
+        label = "Select Livestock Type:",
+        choices = c("All", unique(livestock_data$Product.Simple)),
+        selected = "All"
+      )
+    ),
+    mainPanel(
+      div(
+        style = "height: 600px; width: 100%;",  # Set height explicitly for the plot container
+        plotOutput("livestockMap", width = "100%", height = "600px")  # Match height
+      )
+    )
+  )
+)
+
+# Define Server
+server <- function(input, output, session) {
+  output$livestockMap <- renderPlot({
+    # Filter site data based on user selection
+    filtered_data <- if (input$animal_filter == "All") {
+      site_data_filtered
+    } else {
+      site_data_filtered %>%
+        filter(Product.Simple == input$animal_filter)
+    }
+    
+    # Generate the ggplot map with points in a single color
+    ggplot() +
+      geom_sf(data = countries_studies, fill = "gray92", color = "white") +  # Neutral base map
+      geom_point(data = filtered_data, aes(x = Longitude, y = Latitude), 
+                 size = 3, color = "#3333ff", alpha = 0.8) +  # Single light blue color for points
+      annotate(
+        "text", x = 40, y = -30, label = "One Point = One Paper", 
+        color = "#000000", size = 5, hjust = 0
+      ) +  # Add annotation for legend
+      theme_minimal() +
+      theme(
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none"  # Remove default legend
+      ) +
+      coord_sf(xlim = c(-20, 95), ylim = c(-40, 40), expand = FALSE)
+  })
+}
+
+# Run the App
+shinyApp(ui = ui, server = server)
+```
+
+## Animals reported within papers
+The treemap represents the distribution of livestock categories reported within research papers that were extracted in ERA. Each rectangle corresponds to a livestock category, and its size is proportional to the number of papers reporting on that category. Here's an analysis of the data shown:
+
+Dominant Categories:
+
+Sheep: The largest rectangle (120 papers) indicates that sheep are the most frequently reported livestock category in the dataset. This could reflect their significant role in agricultural research and practices.
+
+Goats: Goats follow closely with 91 papers, showing their importance, likely due to their adaptability to diverse environments.
+
+Moderately Represented Categories:
+
+Cattle (96 papers) and Fish (71 papers) are also prominent, reflecting their widespread use in agricultural systems, both for food production and other economic activities.
+
+```{r tree map for products, echo= T}
+# UI
+ui <- fluidPage(
+  plotlyOutput("treemapPlot", height = "400px")  # Set plot height
+)
+
+# Server
+server <- function(input, output, session) {
+  output$treemapPlot <- renderPlotly({
+    # Prepare data for the treemap
+    products <- livestock_data %>%
+      distinct(Product.Simple, Code) %>%  # Keep only unique combinations
+      group_by(Product.Simple) %>%
+      summarise(Row_Count = n(), .groups = "drop")  # Count occurrences per category
+
+    # Create the Plotly treemap
+    plot_ly(
+      type = "treemap",
+      labels = products$Product.Simple,
+      parents = NA,  # No hierarchical structure in this case
+      values = products$Row_Count,
+      textinfo = "label+value",  # Display labels and values
+      marker = list(colorscale = "Viridis")  # Apply a color scale
+    )
+  })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+```
+
+## Outcomes reported
+
+Outcome measures, units, and products were extracted as reported. Outcome codes differentiated plant parts (grain vs stover) and products from the same species (milk versus meat). Oftentimes authors discussed many treatments but only reported a few. The ways in which the outcomes were reported in the papers, by year or aggregation across practices, dictated which data were extracted and how treatments were coded. Experimental Units (EU) described the species or product that were measured (e.g., maize grain).
+
+```{r Plot the outcomes present in ERA, echo=T}
+# Define the UI
+# Define the UI
+ui <- fluidPage(
+  mainPanel(
+    plotlyOutput("outcomesPlot", width = "100%", height = "400px")  # Adjust plot dimensions
+  )
+)
+
+# Define the server logic
+server <- function(input, output) {
+  output$outcomesPlot <- renderPlotly({
+    # Aggregate data by pillar and indicator
+    DATA_OUTCOMES <- livestock_data %>%
+      group_by(Out.Pillar, Out.Ind) %>%
+      summarise(N_Livestock = n_distinct(Code), .groups = "drop") %>%
+      rename(Pillar = Out.Pillar, Indicator = Out.Ind)
+
+    # Sort indicators within each pillar for better organization
+    DATA_OUTCOMES <- DATA_OUTCOMES %>%
+      arrange(Pillar, Indicator) %>%
+      mutate(
+        Indicator = factor(Indicator, levels = unique(Indicator)),
+        Pillar = factor(Pillar, levels = c("Productivity", "Resilience", "Mitigation"))
+      )
+
+    # Define hover information for specific indicators
+    hover_info <- tibble(
+      Indicator = c("Product Yield", "Income", "Economic Performance","Costs", "Soil Quality","Efficiency"),
+      HoverDetails = c("Meat yield; Egg yield; Milk yield; Reproductive yield; Weight gain","Gross return; Gross margin; Net return","Benefit Cost Ratios","Labour cost; Total cost; Fixed cost; Variable cost","Soil Erosion; Soil Nitrogen; Soil Organic Carbon","Feed Conversion Ratios; Protein Conversion Ratios; Nitrogen Apparent Efficiency")
+    )
+
+    # Add hover text to the data
+    DATA_OUTCOMES <- DATA_OUTCOMES %>%
+      left_join(hover_info, by = "Indicator") %>%  # Join hover info
+      mutate(
+        HoverText = ifelse(
+          !is.na(HoverDetails),
+          paste0("<b>", Indicator, "</b><br>", HoverDetails, "<br><i>Count:</i> ", N_Livestock),
+          paste0("<b>", Indicator, "</b><br><i>Count:</i> ", N_Livestock)
+        )
+      )
+
+    # Define custom colors for each pillar
+    pillar_colors <- c(
+      "Productivity" = "#FFCC66",
+      "Resilience" = "#990000",
+      "Mitigation" = "#8B4513"
+    )
+
+    # Create the faceted bar plot with ggplot
+    p <- ggplot(DATA_OUTCOMES, aes(
+      x = Indicator, y = N_Livestock, fill = Pillar, text = HoverText
+    )) +
+      geom_col(width = 0.8) +  # Vertical bars
+      labs(
+        y = "Number of Papers",
+        x = "Outcome Indicator"
+      ) +
+      scale_fill_manual(values = pillar_colors, na.value = "gray70") +
+      scale_y_continuous(limits = c(0, max(DATA_OUTCOMES$N_Livestock) + 50), expand = c(0, 0)) +
+      facet_wrap(~Pillar, scales = "free_x", nrow = 1) +
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(size = 10, angle = 45, hjust = 1),  # Rotate x-axis labels
+        axis.text.y = element_text(size = 10),  # Adjust y-axis labels
+        axis.title.x = element_text(size = 12, face = "bold", margin = margin(t = 10)),  # Add margin
+        axis.title.y = element_text(size = 12, face = "bold"),  # Y-axis title styling
+        legend.position = "none",  # Remove legend
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.text = element_text(size = 12, face = "bold"),  # Facet strip labels styling
+        plot.margin = margin(10, 10, 10, 10)  # Reduced margins
+      )
+
+    # Convert ggplot to a plotly object
+    ggplotly(p, tooltip = "text")  # Use hover text for tooltips
+  })
+}
+
+# Run the app
+shinyApp(ui = ui, server = server)
+```
+
+## Digestibility and nutrition
+
+To explore the diet items and associated nutrition and digestibility of these items, we need to use the metadata of ERA, and not ERA.Compiled. Unhide the code below and adjust the script with variables you may be interested in.
+
+```{r exploring the diet ingredients, nutrition, digestibility tables, echo=TRUE}
+  # First we need to get the detailed dataset containing the management information that relates to the experiment, this is in the Atlas S3 Bucket
+  s3<-s3fs::S3FileSystem$new(anonymous = T)
+  era_s3<-"s3://digital-atlas/era"
+  
+  # List the files in the s3 bucket
+  files<-s3$dir_ls(file.path(era_s3,"data"))
+  # This is the most recent version of the datas3://digital-atlas/era/data/skinny_cow_2022-YYYY-MM-DD.RData (substitute most recent date into filepath)
+  files<-tail(grep(".RData",grep("skinny_cow_2022",files,value=T),value=T),1)
+  
+  # Set a save location for the dataset (amend to something more suitable for your needs)
+  save_path<-file.path(getwd(),basename(files))
+  
+  if(!file.exists(save_path)){
+    s3$file_download(files,save_path,overwrite = T)
+  }
+  
+  livestock_metadata<- miceadds::load.Rdata2(file=basename(save_path),path=dirname(save_path))
+  names(livestock_metadata)
+  
+  # 4.2) Explore  metadata #####
+  # This table is a high level description of the diet
+  diet_summary<-livestock_metadata$Animals.Out
+  
+    diet_ingredients<-livestock_metadata$Animals.Diet
+  head(diet_ingredients)
+  
+  diet_nutrition<-livestock_metadata$Animals.Diet.Comp
+  head(diet_nutrition)
+  
+  diet_digestibility<-livestock_metadata$Animals.Diet.Digest
+  head(diet_digestibility)
+  
+```
+### Diet ingredients table
+
+```{r summary of diet ingredients, echo=T}
+  #	Display	the	summary	table	of	diets
+DT::datatable(
+		diet_ingredients,
+		options	=	list(
+				scrollY	=	"400px",		#	Set	vertical	scroll	height
+				pageLength	=	20					#	Initial	number	of	rows	displayed
+		)
+)
+```
+
+### Diet nutrition table
+
+```{r, summary of diet nutrition, echo=TRUE}
+
+DT::datatable(
+  diet_nutrition,
+  options = list(
+    scrollY = "400px", 
+    pageLength = 10,  # Show only 10 rows per page
+    lengthMenu = c(10, 20, 50, 100)  # Allow user to choose the number of rows displayed
+  )
+)
+
+
+```
+
+### Here is a summary of the diet digestibility table
+
+```{r, summary of diet digestibility, echo=TRUE}
+  #	Display	the	summary	table	of	diets
+DT::datatable(
+		diet_digestibility,
+		options	=	list(
+				scrollY	=	"400px",		#	Set	vertical	scroll	height
+				pageLength	=	20					#	Initial	number	of	rows	displayed
+		)
+)
+```
+=======
 ---
 title: "ERA Livestock Data Exploration"
 author: "Namita Joshi"
@@ -535,3 +1091,4 @@ DT::datatable(
 		)
 )
 ```
+>>>>>>> 16e1ea305160d85d3f7e07000274a406684de5cb
