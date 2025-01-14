@@ -132,6 +132,11 @@ if(!require("exactextractr")){
   era_dirs$chirps_S3<-file.path(era_dirs$ancillary_s3,"chirps_download")
   era_dirs$chirps_S3_file<-file.path(era_dirs$chirps_S3,"chirps_download.zip")
   
+  # vocabulary
+  era_dirs$vocab_dir<-file.path(era_dir,"vocab")
+  era_dirs$vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
+  era_dirs$vocal_file<-file.path(era_dir,"vocab/era_master_sheet.xlsx")
+  
   # create folders if they do not exist
   for(i in grep("_dir",names(era_dirs))){
     dir_focus<-era_dirs[[i]]
@@ -143,7 +148,6 @@ if(!require("exactextractr")){
   era_dirs$era_masterdata_s3
   
   # 1.5) Set urls #####
-  era_vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
   # 1.4) Set directories of external datasets (e.g. chirps)
   if(CGlabs){
     chirps_dir<-"/home/jovyan/common_data/chirps_wrld"
@@ -183,11 +187,11 @@ if(!require("exactextractr")){
     }
 
   # 2.3) Vocab - era_master_sheet.xlsx #####
-    era_vocab_local<-file.path(project_dir,"data/vocab/era_master_sheet.xlsx")
+    era_vocab_local<-era_dirs$vocal_file
     
     update<-T
     if(update){
-      download.file(era_vocab_url, era_vocab_local, mode = "wb")  # Download and write in binary mode
+      download.file(era_dirs$vocab_url, era_vocab_local, mode = "wb")  # Download and write in binary mode
     }  
     
   # 2.4) Worldbank/FAO economic data #####
