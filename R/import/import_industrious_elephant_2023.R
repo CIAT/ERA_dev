@@ -150,7 +150,7 @@ if(update){
   ## 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the import process be run again?
-  overwrite<-T
+  overwrite<-F
   
   # Delete existing files if overwrite =T
   if(overwrite){
@@ -1564,6 +1564,10 @@ if(update){
   Fert.Out<-rbindlist(lapply(Fert.Out,"[[","data"))
   setnames(Fert.Out,c("F.Prac.Rate","F.Prac.Timing","F.Prac.Precision","F.Prac.Info"),c("F.Rate.Pracs","F.Timing.Pracs","F.Precision.Pracs","F.Info.Pracs"))
   
+  fun2<-function(x){unique(x[!is.na(x) & x!=0])}
+  copy_down_cols<-c("F.O.Unit","F.I.Unit")
+  Fert.Out <- Fert.Out[, (copy_down_cols) := lapply(.SD,fun2), .SDcols = copy_down_cols,by=B.Code]
+  
   results<-validator(data=Fert.Out,
                      unique_cols="F.Level.Name",
                      numeric_cols=c("F.NO","F.PO","F.KO","F.NI","F.PI","F.P2O5","F.KI","F.K2O"),
@@ -1878,41 +1882,97 @@ if(update){
         # TO DO: Add check in case organic nutrients are listed in Fert.Out, but nothing corresponding in Fert.Method tab.
     
   ### 3.11.6) Add F.Level.Name2 field ######
-
-      ReName.Fun<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O){
-        NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
-        N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
         
-        F.Level<-Fert.Method[F.Level.Name==X & B.Code ==Y,list(F.Type,F.Amount)]
-        
-        F.Level<-unique(rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=.(F.Type)]))
-        
-        # Deal with rounding issues   
-        F.Level[,F.Amount:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10)))]
-        F.Level<-F.Level[,paste(F.Type,F.Amount)]
-        
-        F.Level<-paste(F.Level[order(F.Level)],collapse = "|")
-        
-        
-        if(length(F.Level)==0 | F.Level==""){
-          F.Level<-"No Fert Control"
-        }else{
-          if(length(N)>0){
-            NPK<-NPK[,..N]
-            NPK<-paste(paste(colnames(NPK),unlist(NPK),sep="-"),collapse=" ")
-            F.Level<-paste(NPK,F.Level,sep = "||")
+      #' create_fert_name: Generate a Summary String for Fertilizer Levels
+      #'
+      #' This function processes fertilizer data for a specific treatment and site,
+      #' combining nutrient information and fertilizer application details into a
+      #' formatted string. It handles cases where nutrient data or fertilizer levels
+      #' are missing, aggregates amounts by type, and applies rounding adjustments
+      #' to ensure consistent representation of fertilizer amounts.
+      #'
+      #' ## Key Features:
+      #' 1. Extracts fertilizer levels and nutrient information from the dataset.
+      #' 2. Aggregates fertilizer amounts by type.
+      #' 3. Adjusts for rounding issues in fertilizer amounts.
+      #' 4. Combines fertilizer and nutrient information into a single human-readable string.
+      #' 5. Handles cases where no fertilizer data is available, labeling them as "No Fert Control."
+      #'
+      #' ## Parameters:
+      #' @param X The name of the fertilizer level to process (e.g., treatment or control group).
+      #' @param Y The site or block code to filter the fertilizer data (`B.Code`).
+      #' @param F.NO Numeric; nitrogen content (organic).
+      #' @param F.PO Numeric; phosphorus content (organic).
+      #' @param F.KO Numeric; potassium content (organic).
+      #' @param F.NI Numeric; nitrogen content (inorganic).
+      #' @param F.PI Numeric; phosphorus content (inorganic).
+      #' @param F.P2O5 Numeric; phosphorus pentoxide content (inorganic).
+      #' @param F.KI Numeric; potassium content (inorganic, expressed as potassium ion).
+      #' @param F.K2O Numeric; potassium oxide content (inorganic).
+      #' @param Fert.Method A data table containing information about fertilizer types, amounts,
+      #' and metadata such as `Time`, `Site.ID`, `F.Level.Name`, and `B.Code`.
+      #'
+      #' ## Returns:
+      #' A string summarizing:
+      #' 1. Nutrient content (if available), formatted as `F.NO-10 F.KO-5`, etc.
+      #' 2. Fertilizer type and amount, formatted as `Type1 100|Type2 200`.
+      #' The two components are separated by `||`. If no data is available, the function
+      #' returns `"No Fert Control"`.
+      #'
+      #' ## Example:
+      #' Suppose the following inputs:
+      #' - `X = "Control"`, `Y = "SiteA"`.
+      #' - Nutrient data: `F.NO = 10`, `F.KO = 5`, `F.NI = 20`, `F.PI = 15`, others are `NA`.
+      #' - `Fert.Method` contains fertilizer types and amounts.
+      #'
+      #' Calling:
+      #' ```R
+      #' ReName.Fun(X = "Control", Y = "SiteA", F.NO = 10, F.PO = NA, F.KO = 5, 
+      #'            F.NI = 20, F.PI = 15, F.P2O5 = NA, F.KI = NA, F.K2O = 12, 
+      #'            Fert.Method = FertilizerData)
+      #' ```
+      #' Returns:
+      #' `"F.NO-10 F.KO-5 F.NI-20 F.PI-15||Type1 100|Type2 200"`
+      #'
+      #' ## Notes:
+      #' - Ensure `Fert.Method` is preprocessed and contains relevant fields for the function to work.
+      #' - Handles missing values gracefully, but logs meaningful fertilizer information where available.
+      #'
+      create_fert_name<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O,Fert.Method){
+          NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
+          N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
+          
+          F.Level<-Fert.Method[F.Level.Name==X & B.Code ==Y,list(F.Type,F.Amount)]
+          
+          F.Level<-unique(rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=F.Type]))
+          
+          # Deal with rounding issues 
+          # This code is supposed to deal with import issues in excel that create values like 1.9999999999999999, the solution however returns NaN when the rounded log amount is 0
+          F.Level[,F.Amount2:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10))),by=F.Type]
+          F.Level[is.na(F.Amount2)|is.nan(F.Amount2),F.Amount2:=F.Amount]
+          F.Level<-F.Level[,paste(F.Type,F.Amount2)]
+          
+          F.Level<-paste(F.Level[order(F.Level)],collapse = "|")
+          
+          
+          if(length(F.Level)==0 | F.Level==""){
+            F.Level<-"No Fert Control"
+          }else{
+            if(length(N)>0){
+              NPK<-NPK[,..N]
+              NPK<-paste(paste(colnames(NPK),unlist(NPK),sep="-"),collapse=" ")
+              F.Level<-paste(NPK,F.Level,sep = "||")
+            }
           }
+          return(F.Level)
         }
-        return(F.Level)
-      }
-      
+        
       Fert.Out[,N:=1:.N]
-      Fert.Out[,F.Level.Name2:=ReName.Fun(F.Level.Name,B.Code,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O),by="N"]
+      Fert.Out[,F.Level.Name2:=create_fert_name(F.Level.Name,B.Code,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O,Fert.Method = Fert.Method),by="N"]
       
       # Tidy up
       Fert.Out[,N:=NULL]
-      rm(ReName.Fun)
-      
+
       Fert.Method<-merge(Fert.Method,Fert.Out[,.(B.Code,F.Level.Name,F.Level.Name2)],by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
       
   ### 3.11.x) ***!!!TO DO!!!*** Add in h10 code where there are fertilizer treatments, but fertilizer column is blank #######
@@ -3379,7 +3439,7 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
     
     # Step 6: Rejoin all elements with `..`
     final_result <- paste(sort(rejoined_elements), collapse = between_delim)
-    common_strings <- paste(sort(common_strings), collapse = between_delim)
+    common_strings <- paste(sort(unique(common_strings[!is.na(common_strings) & common_strings!=""])), collapse = between_delim)
     
     if(length(common_strings)==0){common_strings<-NA}
     
@@ -3439,7 +3499,21 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
         
         # This section is to split shared and different elements in the fertilizer tab
         # This needed to allow comparisons between aggregated fertilizer treatments
-        f_level<-paste(Y$F.Level.Name2,collapse="---")
+        
+        # Remove fertilizer amounts from name if present (these come from the Fert.Out tab fields, e.g. Fert.NI etc.)
+        # "F.KI-20||Potassium Chloride NA"   becomes "F.KI-20||Potassium Chloride NA"  
+        f_level<-Y$F.Level.Name2
+   
+          f_level<-unlist(lapply(f_level,FUN=function(x){
+            if(grepl("||",x,fixed=T)){
+              tstrsplit(x,"||",fixed=T)[[2]]
+              }else{
+                x
+              }
+            }))
+        
+        
+        f_level<-paste(f_level,collapse="---")
         fert_split<-process_string(f_level,between_delim = "---")
         
         Agg.Levels.Fert.Shared<-fert_split[1]

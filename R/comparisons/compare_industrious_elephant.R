@@ -446,12 +446,20 @@ TreeCodes<-master_codes$trees
     # Update Final.Codes - Final codes in the Data.Out.Agg dataset are derived from T.Codes which in turn are taken from T.Codes.No.Agg
     # We now need to add the code that relates to the practice in T.Agg.Levels.Fert.Shared (Fert.Method$Code)
   
+    
+    F.Level[,F.Amount2:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10))),by=F.Type]
+    F.Level[is.na(F.Amount2)|is.nan(F.Amount2),F.Amount2:=F.Amount]
+    
     sum_fun<-function(x){
       x<-sum(x,na.rm = T)
-      if(x==0){
-        x<-NA
+      x1<-round(x*10*round(log(x,base=10)),0)/(10*round(log(x,base=10)))
+      if(is.na(x1)|is.nan(x1)){
+        x1<-x
       }
-      return(x)
+      if(x1==0){
+        x1<-NA
+      }
+      return(x1)
     }
     Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
     
@@ -477,20 +485,21 @@ TreeCodes<-master_codes$trees
     
     issue_bcodes<-non_matches[,unique(B.Code)]
     
-    z<-non_matches[B.Code==issue_bcodes[12]]
+    j<-6
+    z<-non_matches[B.Code==issue_bcodes[j]]
     unique(z[,.(B.Code,T.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,F.Level.Name2)])
     i<-z$N[1]
     
+    Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
+    Fert.Method[B.Code==issue_bcodes[j],.(F.Type,F.Codes)]
+    Y<-issue_bcodes[j]
+    X<-Fert.Out[B.Code==Y,F.Level.Name][7]
+    
     # X SP0019 - OK not a crossed fert experiment, vetch residue practice is compared across levels of N
-    # CJ0096 - Issue? Biochar x Nitrogen. Strange only an issue for 3B+30N...3B+60N...3B+90N treatment, which appears to be specified correctly in the excel
-    # X NM0037 - Gypsum
     # AC0172 - 30DP treatment misspecified?
     # X CJ0120 - Strange scenario we have types of P application (same level) aggregated together which could be compared to no application. There is no no shared crossed practice though. And there is an issue with the control.
     # X JO0096 - OK, not a crossed fert experiment, same amount of P applied in both trts, but with different timings.
     # X JO0070 - OK, not a crossed fert experiment, all the fertilizer is identical between aggregated trts.
-    # NM0121.2 - Issue? Crossed inorganic with manure, manure is variable and the inorganic fertilizer constant. T.Agg.Levels3 and T.Agg.Levels.Fert.Shared seem to be ok. Issue with matching to Fert.Methods?
-    # NN0519 - Issue? Cross inorganic with manure,  manure is variable and the inorganic fertilizer constant. One manure value in T.Agg.Levels2 is NaN, but it should be 2.5.
-      # Goat and Sheep Manure 5---Goat and Sheep Manure NaN---NA -> Goat and Sheep Manure 5---Goat and Sheep Manure 2.5---NA. Raw Fert.Out data in the excel seems ok.
     # AC0013 - in rejected folder
     
     DATA<-Data.Out.Agg.xfert
