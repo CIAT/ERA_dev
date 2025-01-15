@@ -447,7 +447,7 @@ data<-data_new
       ) +
       theme_minimal()
     
-=======
+
 # Exploring ERA livestock data - tree fodders
 # Author - Pete Steward
 
