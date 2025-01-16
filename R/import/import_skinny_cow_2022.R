@@ -1123,7 +1123,7 @@ errors<-c(errors,list(error_dat))
     
     
     # write.table(h_dat[,.(value,B.Code)],"clipboard-256000",row.names = F,sep="\t",col.names = F)
-    Animals.Diet[,check:=NULL]
+    Animals.Diet[,c("check"," D.ItemxProcess_low"):=NULL]
     
     # 3.7.2.2) Merge AOM Diet Summary with Animals.Out (.inc Trees)  #######
     
@@ -1221,14 +1221,11 @@ errors<-c(errors,list(error_dat))
     # 3.7.3.1) Harmonization #######
 
   # Merge in updated name from Animals.Diet table
-  merge_dat<-unique(Animals.Diet[,.(D.Item.Raw,B.Code,D.Item.Root.Comp.Proc_Major,D.Item.Root.Other.Comp.Proc_All,D.Item.AOM)])
+  merge_dat<-unique(Animals.Diet[,.(D.Item.Raw,B.Code,D.Item.Root.Other.Comp.Proc_All)])
   # Remove any duplicate rows (see error "Multiple matches between D.Item in Composition table and Diet Description table.")
   merge_dat<-merge_dat[!duplicated(merge_dat[,.(B.Code,D.Item.Raw)])][,check:=T]
-  merge_dat[,D.Item.Raw:=tolower(D.Item.Raw)]
   
-  Animals.Diet.Comp[,D.Item_lc:=tolower(D.Item)]
-  Animals.Diet.Comp<-merge(Animals.Diet.Comp,merge_dat,by.x=c("D.Item_lc","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
-  Animals.Diet.Comp[,D.Item_lc:=NULL]
+  Animals.Diet.Comp<-merge(Animals.Diet.Comp,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
   
   # Check for non-matches
   error_dat<-Animals.Diet.Comp[!(is_group) & 
@@ -1291,13 +1288,14 @@ errors<-c(errors,list(error_dat))
         return(dat)
       }))
     }else{
-      Animals.Diet.Comp<-NULL
+      Animals.Diet.Digest<-NULL
     }
   }
   
-  Animals.Diet.Comp<-Animals.Diet.Comp[!is.na(DC.Value)]
-
+  Animals.Diet.Digest<-Animals.Diet.Digest[!is.na(DD.Value)]
   
+  
+
   # 3.7.4) Animals.Diet.Digest ######
   table_name<-"Animals.Diet.Digest"
   col_names<-colnames(data[[1]][,127:208])
@@ -1368,9 +1366,7 @@ errors<-c(errors,list(error_dat))
 
     # 3.7.4.1) Harmonization #######
 
-  Animals.Diet.Digest[,D.Item_lc:=tolower(D.Item)]
-  Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by.x=c("D.Item_lc","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
-  Animals.Diet.Digest[,D.Item_lc:=NULL]
+  Animals.Diet.Digest<-merge(Animals.Diet.Digest,merge_dat,by.x=c("D.Item","B.Code"),by.y=c("D.Item.Raw","B.Code"),all.x=T,sort=F)
   
   # Check for non-matches
   error_dat<-Animals.Diet.Digest[!(is_group) & !(is_entire_diet) & is.na(check),.(B.Code,D.Item)][,.(value=paste(D.Item,collapse = "/")),by=B.Code
@@ -1454,9 +1450,9 @@ errors<-c(errors,list(error_dat))
   }
   
   # 3.7.5) Update D.Item field with harmonized names ######
-  Animals.Diet[,D.Item.raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-  Animals.Diet.Comp[,D.Item.raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
-  Animals.Diet.Digest[,D.Item.raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+  Animals.Diet[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+  Animals.Diet.Comp[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
+  Animals.Diet.Digest[,D.Item_raw:=D.Item][!is.na(D.Item.Root.Other.Comp.Proc_All),D.Item:=D.Item.Root.Other.Comp.Proc_All]
   
   # 3.7.6) Save errors & harmonization #######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
