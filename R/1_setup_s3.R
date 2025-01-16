@@ -132,6 +132,18 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
+    # 1.2.1.5) training materials #######
+    folder_local<-file.path(era_dirs$era_dataentry_dir,era_projects$industrious_elephant_2023,"training_materials")
+    s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$industrious_elephant_2023,"training_materials")
+    
+    files<-list.files(folder_local,full.names = T,recursive=T)
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
+    
   # 1.2.2) 2022 skinny cow ######
     # 1.2.2.1) upload excels #######
     folder_local<-file.path("/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
@@ -190,7 +202,6 @@ if(F){
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
-    
     # 1.2.2.3) upload pdfs #######
   # 1.2.3) 2020 majestic_hippo ######
     # 1.2.3.1) upload pdfs #######
@@ -275,8 +286,6 @@ if(F){
     # 1.2.4.1) upload search data #######
 folder<-file.path(era_dirs$era_search_dir,era_projects$courageous_camel_2024)
 s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
-
-s3_dir_ls(s3_bucket)
 
 files<-list.files(folder,full.names = T,recursive=T)
 
@@ -507,13 +516,7 @@ s3_dir_ls(s3_bucket)
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read") 
-    
 
-
-  # 1.4.7) CHIRPS
-    s3_bucket<-era_dirs$era_geodata_s3
-    files<-list.files(era_dirs$era_geodata_dir,"chirps_",full.names = T)
-    
   # 1.4.7) CHIRPS #####
     s3_bucket<-era_dirs$era_geodata_s3
     
@@ -533,4 +536,9 @@ s3_dir_ls(s3_bucket)
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
+    
+    
+    
+    
+
     
