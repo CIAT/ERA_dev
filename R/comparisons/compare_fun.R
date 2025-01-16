@@ -133,52 +133,116 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
   }
   
   rbindlist(lapply(1:length(N),FUN=function(j){
-    if(Verbose){print(paste(BC," - Group ",Data$Group[1]," - N =",j))}
+    if(Verbose){
+      cat(BC," - Group ",Data$Group[1]," - Row =",j,paste0(c("(",N[j],")"),collapse = ""),"       ","\r")
+      }
     X<-unlist(Data$Final.Codes[j])
     i<-N[j]
     
+    # This section determines how the current treatment (X) can act as a control group.
+    # It handles two cases:
+    # 1. If the treatment (X) has no associated practices (`is.na(X[1])`), it evaluates
+    #    whether it can serve as a baseline control for other treatments based on their practices.
+    # 2. If the treatment (X) has associated practices, it identifies treatments where
+    #    the current treatment can act as a valid control, considering special cases like
+    #    mulching versus incorporation practices.
     if(is.na(X[1])){
-      Z<-Y[N!=i & !is.na(Final.Codes)
-      ][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-      ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-      ][Match>=0 & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
+      # Check if the current treatment (X) has no associated practices.
+      # If X is NA or empty, handle it as a potential "control group".
       
-      Z[,Mulch.Code:=as.character("")][,Mulch.Flag:=F]
+      Z <- Y[N != i & !is.na(Final.Codes)] 
+      # Filter the dataset Y to exclude the current treatment (N != i) 
+      # and rows where Final.Codes (practice codes) are missing.
       
-      Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
+      Z[, Match := sum(X %in% unlist(Final.Codes)), by = N] 
+      # Count how many practices in X (currently empty) match practices in other treatments.
+      # Since X is empty, Match will always be 0.
       
-      Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-      ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-      ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
+      Z[, NoMatch := sum(!unlist(Final.Codes) %in% X), by = N] 
+      # Count how many practices in other treatments (Final.Codes) are not in X.
+      # Since X is empty, NoMatch will equal the total practices in each other treatment.
       
+      Z <- Z[Match >= 0 & NoMatch > 0] 
+      # Retain only rows where:
+      # - Match is non-negative (always true for empty X).
+      # - NoMatch is greater than 0, ensuring meaningful differences exist.
+      
+      Z[, Mulch.Code := as.character("")][, Mulch.Flag := F] 
+      # Initialize columns for mulch-related logic:
+      # - Mulch.Code: Empty character column for mulch-specific codes.
+      # - Mulch.Flag: Logical flag to track if mulching adjustments apply.
+      
+      Z[, Control.Code := rep(list(X), nrow(Z))] 
+      # Assign the practices of the current control group (X) to all rows in Z.
+      # Since X is empty, this column will contain empty lists.
+      
+      Z[, Prac.Code := list(Match.Fun(Final.Codes, Control.Code)), by = N] 
+      # Identify practices unique to each treatment by comparing Final.Codes (treatment practices)
+      # against Control.Code (empty for X in this case).
+      
+      Z[, Linked.Tab := list(Match.Fun2(Control.Code, PracticeCodes$Code, PracticeCodes$Linked.Tab)), by = N] 
+      # Map control practices (Control.Code) to their corresponding linked tables in PracticeCodes.
+      
+      Z[, Linked.Col := list(Match.Fun2(Control.Code, PracticeCodes$Code, PracticeCodes$Linked.Col)), by = N] 
+      # Map control practices (Control.Code) to their corresponding linked columns in PracticeCodes.
       
     }else{
       
-      # Here we are working from the logic of looking at what other treatments can treatment[i] be a control for?
-      Z<-Y[N!=i][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-      ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-      ]
+      # Logic for determining which other treatments the current treatment (X) can be a control for.
+      Z <- Y[N != i] 
+      # Filter dataset Y to exclude the current treatment (N != i) for comparisons.
       
-      # Exception for comparison of mulched residues to incorporated residues.
-      Z[,Mulch.Code:=as.character(NA)][,Mulch.Flag:=F]
+      Z[, Match := sum(X %in% unlist(Final.Codes)), by = N] 
+      # For each treatment in Z, count how many practices in the current treatment (X)
+      # match practices in Final.Codes (practices of other treatments).
+      # The result is stored in a new column, `Match`.
       
-      for(kk in 1:length(Mulch.C.Codes)){
-        Z<-Mulch.Fun(A=Mulch.C.Codes[kk],B=Mulch.T.Codes[kk],X,Z)
+      Z[, NoMatch := sum(!unlist(Final.Codes) %in% X), by = N] 
+      # For each treatment in Z, count how many practices in Final.Codes
+      # do not match any practices in the current treatment (X).
+      # The result is stored in a new column, `NoMatch`.
+      
+      # Handle exceptions for mulched residues compared to incorporated residues.
+      Z[, Mulch.Code := as.character(NA)][, Mulch.Flag := F] 
+      # Initialize columns for mulch-specific adjustments:
+      # - `Mulch.Code`: Placeholder for mulch-specific codes (initially NA).
+      # - `Mulch.Flag`: Logical flag to indicate whether mulching adjustments apply (initially FALSE).
+      
+      for (kk in 1:length(Mulch.C.Codes)) {
+        Z <- Mulch.Fun(A = Mulch.C.Codes[kk], B = Mulch.T.Codes[kk], X, Z) 
+        # Apply the `Mulch.Fun` function for each pair of control and treatment mulch codes.
+        # `A` represents the control mulch codes (`Mulch.C.Codes`).
+        # `B` represents the corresponding treatment mulch codes (`Mulch.T.Codes`).
+        # Updates `Mulch.Code`, `Mulch.Flag`, and matching logic in Z.
       }
       
-      # Keep instances for which this treatment can be a control for other treatments
-      Z<-Z[Match>=length(X) & NoMatch>0] 
+      Z <- Z[Match >= length(X) & NoMatch > 0] 
+      # Retain only rows in Z where:
+      # - The number of matching practices (`Match`) equals or exceeds the length of X.
+      # - The number of non-matching practices (`NoMatch`) is greater than 0.
+      # This ensures the current treatment (X) can be meaningfully compared as a control.
       
-      # There was a bug here where Control.Code was set to :=list(X), but if X was the same length as nrow(Z) this led to issues
-      Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
+      # Correct potential issue when assigning Control.Code to avoid length mismatch.
+      Z[, Control.Code := rep(list(X), nrow(Z))] 
+      # Assign the current treatment's practices (X) to a new column, `Control.Code`,
+      # replicated for all rows in Z.
       
-      # Remove Mulch Code from Control Code where Mulch.Flag == T
-      Z[,Control.Code:=Z[,list(Control.Code=list(unlist(Control.Code)[!unlist(Control.Code) %in% Mulch.Code])),by="N"][,Control.Code]]
+      # Remove mulch-specific codes from the control practices where mulching adjustments apply.
+      Z[, Control.Code := Z[, list(Control.Code = list(unlist(Control.Code)[!unlist(Control.Code) %in% Mulch.Code])), by = "N"][, Control.Code]] 
+      # For each row in Z, update `Control.Code` by excluding codes in `Mulch.Code`.
+      # This ensures mulch-specific adjustments are properly accounted for in the control practices.
       
-      Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-      ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-      ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
+      Z[, Prac.Code := list(Match.Fun(Final.Codes, Control.Code)), by = N] 
+      # Identify practices in the treatments (`Final.Codes`) that are not in the control practices (`Control.Code`).
+      # Store the unmatched practices in a new column, `Prac.Code`.
       
+      Z[, Linked.Tab := list(Match.Fun2(Control.Code, PracticeCodes$Code, PracticeCodes$Linked.Tab)), by = N] 
+      # Map practices in the control (`Control.Code`) to their corresponding linked tables (`Linked.Tab`) in `PracticeCodes`.
+      # This creates a new column, `Linked.Tab`.
+      
+      Z[, Linked.Col := list(Match.Fun2(Control.Code, PracticeCodes$Code, PracticeCodes$Linked.Col)), by = N] 
+      # Map practices in the control (`Control.Code`) to their corresponding linked columns (`Linked.Col`) in `PracticeCodes`.
+      # This creates a new column, `Linked.Col`.
     }
     
     if(nrow(Z)>0){
