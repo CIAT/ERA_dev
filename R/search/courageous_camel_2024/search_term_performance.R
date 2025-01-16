@@ -1,42 +1,44 @@
-# First run R/0_set_env.R
+# First run R/0_set_env.R & R/create_search_query_oa.R
 # 0) Load packages ####
-pacman::p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix,data.table,openalexR,pbapply)
+pacman::p_load(data.table,openalexR,pbapply,s3fs)
 
 # 1) Set-up workspace ####
   # 1.1) Set directories #####
 project<-era_projects$courageous_camel_2024
 search_data_dir<-file.path(era_dirs$era_search_dir,project)
-search_data_dir_prj<-file.path(era_dirs$era_search_prj,project)
+s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
 
-# 2) Download era data from s3 - THIS NEEDS TO BE UPDATED THE PATHS ARE NO LONGER CORRECT ####
+
+# 2) Download any files needed from the s3 bucket ####
 update<-F
+s3_files<-s3$dir_ls(s3_bucket)
+local_files<-file.path(search_data_dir,basename(s3_files))
+s3_files<-s3_files[!basename(s3_files) %in% basename(local_files)]
 
-s3_file<-"https://digital-atlas.s3.amazonaws.com/era/data_entry/data_entry_2024/search_history/livestock_2024/livestock_2024.zip"
-local_file<-file.path(search_data_dir,basename(s3_file))
-
-if(length(list.files(search_data_dir))<1|update==T){
-  options(timeout = 300) 
-  download.file(s3_file, destfile = local_file)
-  unzip(local_file, exdir = search_data_dir,overwrite=T,junkpaths=T)
-  unlink(local_file)
+if(length(s3_files)>0|update==T){
+  for(i in 1:length(s3_files)){
+    cat("downloading file",s3_files[i],"\n")
+    options(timeout = 300) 
+    s3$file_download(s3_files[i], file.path(search_data_dir,basename(s3_files[i])))
+  }
 }
 
 # 3) Load search history ####
-search_history<-fread(file.path(search_data_dir_prj,"search_history.csv"))[,-1]
-search_history[,search_date:=as.Date(trimws(search_date), format = "%d-%b-%y")]
+search_history<-fread(file.path(search_data_dir,"search_history.csv"))[,-1]
+search_history[,search_date:=NULL]
 
-search_history_oa<-fread(file.path(search_data_dir,"searches.csv"))[,list(terms,search_name,search_date)]
+search_history_oa<-fread(file.path(search_data_dir,"searches.csv"))[,list(terms,search_name)]
 setnames(search_history_oa,c("terms","search_name"),c("search_name","filename"))
 search_history_oa[,citation_db:="openalex"
                   ][,timeframe:="all"
                     ][,filename:=paste0("openalex_ta-only_",filename,".csv")
-                      ][,search_date:=as.Date(search_date)]
+                      ]
 
 search_history<-rbindlist(list(search_history,search_history_oa),use.names = T)
 
 # 4) Load validation data ####
   # 4.1) Load titles that should be included #####
-  search_manual<-fread(file.path(search_data_dir_prj,"search_manual.csv"))
+  search_manual<-fread(file.path(search_data_dir,"search_manual.csv"))
   search_manual<-search_manual[,year:=as.numeric(year)
                                ][year>=2018
                                  ][,doi:=trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi))
@@ -53,15 +55,17 @@ search_history<-rbindlist(list(search_history,search_history_oa),use.names = T)
        ][,doi:=trimws(gsub("https://doi.org/|http://dx.doi.org/","",doi))]
   
   # titles
-  oa_titles<-rbindlist(lapply(1:nrow(search_manual),FUN=function(i){
-      data<-data.table(oa_fetch(
+  oa_titles<-lapply(1:nrow(search_manual),FUN=function(i){
+      oa_fetch(
         entity = "works",
         display_name.search = gsub("[^a-zA-Z0-9 ]", "",search_manual[i,title]),
        verbose = TRUE
-    ))[,indexed_oa:="yes"
-       ][,list(title,indexed_oa)]
-    data
-  }))
+    )
+  })
+  
+  oa_titles<-rbindlist(oa_titles,use.names = T,fill = T)
+  
+  oa_titles<-oa_titles[,indexed_oa:="yes"][,list(title,indexed_oa)]
   
   # Merge oa results with the the validation data
   search_manual<-merge(search_manual,oa_dois,all.x=T)
@@ -307,6 +311,8 @@ search_files<-list.files(search_data_dir,full.names = T)
 
 # 6) UNDER DEVELOPMENT- Explore ERA data for keywords to include ####
 if(F){
+  pacman::p_load(readxl, tm, textstem, caret, xgboost, e1071,ggplot2,scales,tokenizers,Matrix,data.table,openalexR,pbapply)
+  
 # Simple ####
 ERA_papers<-ERA.Compiled[Product.Type=="Animal" & grepl("Feed",PrName),unique(Code)]
 data<-ERA_Bibliography[ERACODE %in% ERA_papers]
