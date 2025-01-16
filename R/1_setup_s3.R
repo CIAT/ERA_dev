@@ -289,15 +289,12 @@ s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
 
 files<-list.files(folder,full.names = T,recursive=T)
 
-files<-grep("final",files,value=T)
-
 upload_files_to_s3(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
-                   overwrite=T,
+                   overwrite=F,
                    mode="public-read")
 
-s3_dir_ls(s3_bucket)
 
     # 1.2.4.2) upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
@@ -537,8 +534,4 @@ s3_dir_ls(s3_bucket)
                        overwrite=F,
                        mode="public-read")
     
-    
-    
-    
-
     
