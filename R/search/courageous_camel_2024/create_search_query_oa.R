@@ -1,4 +1,12 @@
-# ERA livestock update search terms
+# ERA Courageous Camel - create terms and query OpenAlex
+
+  # Some of functionality from the download search part of this exercise have been wrapped into a functions: 
+    # https://github.com/CIAT/ERA_dev/blob/main/R/search/era_oa_query.R 
+    # This function is used in an example here: https://github.com/CIAT/ERA_dev/blob/main/R/search/oa_simple_example.R
+  
+  # Internal Developer Note: In future iterations of this script we should modify the file names of the open alex search results with any input
+  # parameters of relevance (for example in section 2.2.2 the value for continent if used)
+
 # 0) Set up workspace ####
   # 0.1) Load packages #####
   # Use p_load to install if not present and load the packages
@@ -15,7 +23,7 @@
     }, USE.NAMES = FALSE)
   }
   # 0.3) Set directories & project ######
-  project<-era_projects$livestock_2024
+  project<-era_projects$courageous_camel_2024
   
   search_data_dir<-file.path(era_dirs$era_search_dir,project)
   if(!dir.exists(search_data_dir)){
@@ -197,7 +205,7 @@ process_breeds <- function(breeds) {
   
   return(processed_breeds)
 }
-africa_breeds<-fread("https://raw.githubusercontent.com/CIAT/ERA_dev/main/data/search_history/livestock_2024/african_livestock_breeds.csv")
+africa_breeds<-fread("https://raw.githubusercontent.com/CIAT/ERA_dev/main/search_history/courageous_camel_2024/african_livestock_breeds.csv")
 africa_breeds<-process_breeds(breeds=africa_breeds$breed)
 # Remove breeds that are commonly used words
 africa_breeds<-africa_breeds[!africa_breeds %in% c("delta","dwarf","somali","taitataveta","pare","hammer","british alpine",
@@ -440,6 +448,8 @@ save(terms,file=file.path(search_data_dir,"terms.RData"))
           
         }))][,author:=NULL]
       }
+      
+      hits_tab[,search_date:=Sys.Date()]
     
       fwrite(hits_tab,file=save_file)
       
@@ -450,6 +460,7 @@ save(terms,file=file.path(search_data_dir,"terms.RData"))
       
       fwrite(search_dates,file=openalex_dates_file)
     }
+
     
     # 2.1.3) Merge & save results #####
     
@@ -505,8 +516,7 @@ save(terms,file=file.path(search_data_dir,"terms.RData"))
       search_new[,search_name:=gsub("l|[|]","",terms)
                  ][,string:=paste0("Searches merged:",paste0(searches$search_name[lists],collapse = "+"))
                    ][,encoded_string:=NA
-                     ][,nchar:=NA
-                       ][,search_date:=as.Date(NA)]
+                     ][,nchar:=NA]
       
       fwrite(search_comb,file.path(search_data_dir,paste0(prefix,"_",search_new$search_name,".csv")))
       
@@ -524,7 +534,7 @@ save(terms,file=file.path(search_data_dir,"terms.RData"))
     
     fwrite(file.path(search_data_dir,"searches.csv"))
     
-  # 2.2) Search without geographic term, insteade author institution location to geographical filter research ####
+  # 2.2) Search without geographic term, instead author institution location to geographical filter research ####
     # 2.1.1) Create searches ######
     searches<-list(
       paste0("l",c(1:2,4:5)),
@@ -586,7 +596,7 @@ save(terms,file=file.path(search_data_dir,"terms.RData"))
     
       save_file<-file.path(search_data_dir,paste0(prefix,"_",search_code,".csv"))
       
-      cat(i,"-",save_file,"\n")
+      cat(i,"/",nrow(searches),"-",save_file,"\n")
       
       if(!file.exists(save_file)|overwrite==T){
         
