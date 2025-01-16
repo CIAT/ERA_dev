@@ -1,11 +1,11 @@
 tracking_file,n_B.Codes,n_B.Codes_pending,n_rows,nrow_pending
-enterdata_other_errors.csv,185,185,230,230
-site_other_errors.csv,147,145,150,148
+enterdata_other_errors.csv,184,184,228,228
+site_other_errors.csv,149,147,152,150
 time_other_errors.csv,82,82,85,85
 soil_errors.csv,76,76,85,85
 treatment_duplicates.csv,89,65,89,65
 pH_other_errors.csv,59,59,59,59
-treatment_other_errors.csv,50,50,53,53
+treatment_other_errors.csv,49,49,52,52
 wh_other_errors.csv,76,49,104,59
 intercrop_other_errors.csv,47,47,81,81
 other_other_errors.csv,80,40,80,40

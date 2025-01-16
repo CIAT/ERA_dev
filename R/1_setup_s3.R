@@ -190,6 +190,7 @@ if(F){
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
+    
     # 1.2.2.3) upload pdfs #######
   # 1.2.3) 2020 majestic_hippo ######
     # 1.2.3.1) upload pdfs #######
@@ -274,6 +275,8 @@ if(F){
     # 1.2.4.1) upload search data #######
 folder<-file.path(era_dirs$era_search_dir,era_projects$courageous_camel_2024)
 s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
+
+s3_dir_ls(s3_bucket)
 
 files<-list.files(folder,full.names = T,recursive=T)
 

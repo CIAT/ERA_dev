@@ -496,11 +496,11 @@ TreeCodes<-master_codes$trees
     X<-Fert.Out[B.Code==Y,F.Level.Name][7]
     
     # X SP0019 - OK not a crossed fert experiment, vetch residue practice is compared across levels of N
-    # AC0172 - 30DP treatment misspecified?
+    # AC0172 - 30DP treatment misspecified? No, charity check. Must be an issue in the code then.
     # X CJ0120 - Strange scenario we have types of P application (same level) aggregated together which could be compared to no application. There is no no shared crossed practice though. And there is an issue with the control.
     # X JO0096 - OK, not a crossed fert experiment, same amount of P applied in both trts, but with different timings.
     # X JO0070 - OK, not a crossed fert experiment, all the fertilizer is identical between aggregated trts.
-    # AC0013 - in rejected folder
+    # AC0013 - error in paper, corrections made.
     
     DATA<-Data.Out.Agg.xfert
     

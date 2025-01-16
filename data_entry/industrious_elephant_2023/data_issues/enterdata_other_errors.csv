@@ -1,6 +1,4 @@
 B.Code,value,table,field,issue,parent_table,tabname,master_table,IN.Level.Name,R.Level.Name,P.Product,Out.Code.Joined,issue_addressed,addressed_by_whom,notes
-,NA,Data.Out,IN.Level.Name/T.Name,Compulsory Product field is blank.,,,,,,,,FALSE,"",""
-,Zn0-N0...Zn0-N60...Zn0-N90...Zn0-N120/Zn0-N0...Zn2.5-N0...Zn5-N0/Zn0-N120...Zn2.5-N120...Zn5-N120/Zn0-N60...Zn2.5-N60...Zn5-N60/Zn0-N90...Zn2.5-N90...Zn5-N90/Zn2.5-N0...Zn2.5-N60...Zn2.5-N90...Zn2.5-N120/Zn5-N0...Zn5-N60...Zn5-N90...Zn5-N120,Data.Out,T.Name,Mismatch in field value between parent and child tables.,MT.Out,,,,,,,FALSE,"",""
 AC0002,Land Equivalent Ratio..NA,Data.Out,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,,,,,,,,FALSE,"",""
 AC0003,2004.1/2003.2/2009/2010/2009/2010,Data.Out,Time,"Cannot estimate season length, probably due to incomplete sequence or error in sequence in Time.Out tab.",,,,,,,,FALSE,"",""
 AC0020,HC-F0...HC-F0 Ben...HC-F0 An...HC-F0 Ben2,Data.Out,T.Name,Mismatch in field value between parent and child tables.,MT.Out,,,,,,,FALSE,"",""
