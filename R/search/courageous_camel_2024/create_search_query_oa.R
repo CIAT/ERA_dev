@@ -72,6 +72,8 @@ outcome_terms <- c("animal performance",
                    "detergent lignin", 
                    "digestible nitrogen",
                    "ether extract")
+  
+  write_clip(outcome_terms)
 
 outcome_terms_extra<-c("yield","performance","production")
 outcome_terms_extra2<-c("energy utilization",
@@ -456,9 +458,10 @@ save(terms,file=file.path(search_data_dir,"terms.RData"))
       # Update dates
       search_dates<-search_dates[search_name != paste0(prefix,"_",search_code)]
       search_dates<-unique(rbind(search_dates,data.table(search_name=paste0(prefix,"_",search_code),search_date=Sys.Date())))
-      }
       
       fwrite(search_dates,file=openalex_dates_file)
+      }
+      
     }
 
     
