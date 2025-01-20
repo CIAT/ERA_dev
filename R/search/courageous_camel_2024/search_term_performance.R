@@ -1,6 +1,6 @@
 # First run R/0_set_env.R & R/create_search_query_oa.R
 # 0) Load packages ####
-pacman::p_load(data.table,openalexR,pbapply,s3fs)
+pacman::p_load(data.table,openalexR,pbapply,s3fs,miceadds)
 
 # 1) Set-up workspace ####
   # 1.1) Set directories #####
@@ -82,10 +82,20 @@ search_history<-rbindlist(list(search_history,search_history_oa),use.names = T)
                                      scopus_openalex=sum(indexed_scopus=="yes"|indexed_oa=="yes"))]
   
 # 5) Load search results ####
-search_files<-list.files(search_data_dir,full.names = T)
-
+  
+# Note the scopus and wos searches used can be found here:
+  wos_scopus_terms<-fread(file.path(search_data_dir,"scopus_wos_terms.csv"))
+  
+  # The scopus search terms should be complete for use
+  # The wos search need to be refined with:
+    # Date range 2018-01-01 to 2024-05-2023
+    # Document Type = Article
+    # Language = English
+  
+  search_files<-list.files(search_data_dir,full.names = T)
+  
   # 5.1) wos #####
-  search_files_wos<-grep("wos_",search_files,value = T)
+  search_files_wos<-grep("xls",grep("wos_",search_files,value = T),value=T)
   
   wos_searches<-rbindlist(pblapply(1:length(search_files_wos),FUN=function(i){
     file<-search_files_wos[i]
@@ -99,7 +109,7 @@ search_files<-list.files(search_data_dir,full.names = T)
             ][,relevance_score:=NA] 
   
   # 5.2) scopus #####
-  search_files_scopus<-grep("scopus_",search_files,value = T)
+  search_files_scopus<-grep("scopus.csv",search_files,value = T)
   
   scopus_searches<-rbindlist(pblapply(1:length(search_files_scopus),FUN=function(i){
     file<-search_files_scopus[i]
@@ -109,7 +119,9 @@ search_files<-list.files(search_data_dir,full.names = T)
     }))[,citation_db:="scopus"
         ][,search:=gsub(".csv","",search)
           ][grepl("Article",`Document Type`)
-            ][,relevance_score:=NA]
+            ][,relevance_score:=NA
+              ][,Abstract:=NA
+                ][,`Author Keywords`:=NA]
   
   # 5.3) openalex #####
   search_files_oa<-grep("openalex_ta-only",search_files,value = T)
@@ -266,27 +278,27 @@ search_files<-list.files(search_data_dir,full.names = T)
     grepl("Cabo Verde",search_2)
     
     # Load Rdata versions of the searches
-    load.Rdata(file.path(search_data_dir,"oa_searches_auth.RData"),"auth_searches")
-    load.Rdata(file.path(search_data_dir,"oa_searches_geo.RData"),"geo_searches")
+    auth_searches<-load.Rdata2("oa_searches_auth.RData",path=search_data_dir)
+    geo_searches<-load.Rdata2("oa_searches_geo.RData",path=search_data_dir)
 
     # Get the relevant search strings for best and second best searches (which together found all the target pdfs)
-    search_1<-auth_searches[terms==search_history_oa[search_name==best_search,terms],string]
-    search_2<-geo_searches[terms==search_history_oa[search_name==oa_second,terms],string]
+    search_1<-auth_searches[search_name==best_search]
+    search_2<-geo_searches[search_name==oa_second]
     
     # Set search dates
     from_date <- "2018-01-01"
-    to_date <- Sys.Date()
+    to_date <- "2024-05-23"
     
     # Run searches
-    results_auth<-run_openalex_query(search_terms=search_1, 
-                                     from_date = from_date, 
-                                     to_date = to_date, 
-                                     continent = "africa", 
-                                     download = TRUE,
-                                     full = TRUE, 
-                                     max_char_limit = 4000)
+    results_auth<-era_oa_query(search_terms=search_1$string,
+                               from_date = from_date, 
+                               to_date = to_date, 
+                               continent = "africa", 
+                               download = TRUE,
+                               full = TRUE, 
+                               max_char_limit = 4000)
     
-    results_geo<-run_openalex_query(search_terms=search_2, 
+    results_geo<-era_oa_query(search_terms=search_2$string, 
                                      from_date = from_date, 
                                      to_date = to_date, 
                                      continent = NULL, 
@@ -305,6 +317,13 @@ search_files<-list.files(search_data_dir,full.names = T)
     dim(results_merged)
     
     # List results and save
-    final_results<-list(search1=results_auth,search2=results_geo,combined_results=results_merged)
-    save(final_results,file=file.path(search_data_dir,"final_search.RData"))
+    final_results<-list(search1=results_auth,
+                        search2=results_geo,
+                        combined_results=results_merged,
+                        search1_terms=search1,
+                        search2_terms=search2,
+                        authorships.institutions.continent1="africa",
+                        authorships.institutions.continent2=NA)
+    
+    save(final_results,file=file.path(search_data_dir,"final_search_results.RData"))
     
