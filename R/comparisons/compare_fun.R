@@ -253,7 +253,7 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
           unlist(lapply(1:length(unlist(Z[ii,Linked.Tab])),FUN=function(jj){
             # ***FERTILIZER*** Do both treatments have fertilizer? If so the sequences must match 
             if(unlist(Z[ii,Linked.Tab])[jj]=="Fert.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Fert.Out")){
-              if(Verbose){print(paste0("Fert: ii = ",ii," | jj = ",jj))}
+              if(Verbose){cat("Fert: ii = ",ii," | jj = ",jj,"\n")}
               
               Trt<-Data[Z[ii,Y.N],F.Level.Name]
               Control<-Data[j,F.Level.Name]
@@ -273,17 +273,20 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                 Fert.Fields<-c("F.Level.Name","F.Category","F.Type","F.NPK","F.Amount","F.Unit","F.Method","F.Physical",
                                "F.Fate","F.Date","F.Date.Stage","F.Date.DAP","F.Date.DAE")
                 
-                Trt1<-Fert.Method[B.Code==BC & 
+                # Suppress warnings is present as cols Code and F.Level.Name_original may not always be present depending on 
+                # where this function is run in the comparison workflow. We must remove any fields that identify a fertilizer
+                # treatment beyond the description of an individual element (e.g. anything derived at the fertilizer practice level combining multiple rows)
+                Trt1<-suppressWarnings(Fert.Method[B.Code==BC & 
                                     F.Level.Name==Trt & 
                                     Time %in% c(Data$Time[1],"All Times") & 
                                     Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                  !c("F.Date.Text","F.Level.Name2")]  
+                                  !c("F.Date.Text","F.Level.Name2","Code","F.Level.Name_original","F.Codes.Level")])
                 
                 Control1<-Fert.Method[B.Code==BC & 
                                         F.Level.Name==Control & 
                                         Time %in% c(Data$Time[1],"All Times") & 
                                         Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                      !c("F.Date.Text","F.Level.Name2")]  
+                                      !c("F.Date.Text","F.Level.Name2","Code","F.Level.Name_original","F.Codes.Level")]  
                 
                 # Are there any Fert.Method rows in the Control not in the Treatment? 
                 # Note that the fertilizer being applied could have the same identity but still differ in amount applied 
@@ -295,6 +298,7 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                 # 1.1) For shared inorganic NPK practices do the NPK values match? (check any 999999 values are set to NA) ####
                 #Shared.FCodes<-unique(unlist(Trt1[N.Control$Dup,c("Fert.Code1","Fert.Code2","Fert.Code3")]))
                 Shared.FCodes<-na.omit(unique(Trt1[N.Control$Dup,unlist(tstrsplit(F.Codes,"-"))]))
+                Shared.FCodes<-Shared.FCodes[Shared.FCodes!="NA"]
                 
                 Trt2<-Fert.Out[B.Code==BC & F.Level.Name==Trt,]  
                 Control2<-Fert.Out[B.Code==BC & F.Level.Name==Control,]  
