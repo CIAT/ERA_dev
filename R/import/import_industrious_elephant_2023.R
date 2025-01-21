@@ -58,6 +58,9 @@ pacman::p_load(data.table,
   # Where compiled data is to be stored
   data_dir<-era_dirs$era_masterdata_dir
 
+  ## 0.3) Load helper functions ####
+  source(file.path(project_dir,"R/import/import_helpers.R"))
+  
 # 1) Download  or update excel data ####
 # If working locally from the "old" one-drive directory then you will to run 1_setup_s3.R section 1.2.1.
 download<-F
@@ -1766,7 +1769,8 @@ if(update){
   Fert.Method<-results$data
   
   # Update fertilizer names using fert tab of master_codes and merge associated f.codes
-  fert_master<-unique(master_codes$fert[,list(F.Category,F.Type,F.Category_New,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3,Fert.Code4)][,match:=T])
+  fert_master<-unique(master_codes$fert[,list(F.Category,F.Type,F.Category_New,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3,Fert.Code4)
+                                        ][,match:=T])
   
   # Convert multiple old names using ; delimiter to new rows
   fert_master<-rbindlist(pblapply(1:nrow(fert_master),FUN=function(i){
@@ -1846,7 +1850,6 @@ if(update){
                  ][,table:="Fert.Method"
                    ][,field:="F.Category-F.Type:F.Level.Name"
                      ][,issue:="Use of Unspecified as fertilizer type name. We need to check that this truly should have been unspecfied (i.e. we know nothing about the fertilizer applied at all) or if unspecified N, P or K could have been used."]
-  
 
   ### 3.11.4) Save harmonization and error tasks #####
   errors<-rbindlist(list(errors_a,errors_b,errors_c))
@@ -1882,90 +1885,6 @@ if(update){
         # TO DO: Add check in case organic nutrients are listed in Fert.Out, but nothing corresponding in Fert.Method tab.
     
   ### 3.11.6) Add F.Level.Name2 field ######
-        
-      #' create_fert_name: Generate a Summary String for Fertilizer Levels
-      #'
-      #' This function processes fertilizer data for a specific treatment and site,
-      #' combining nutrient information and fertilizer application details into a
-      #' formatted string. It handles cases where nutrient data or fertilizer levels
-      #' are missing, aggregates amounts by type, and applies rounding adjustments
-      #' to ensure consistent representation of fertilizer amounts.
-      #'
-      #' ## Key Features:
-      #' 1. Extracts fertilizer levels and nutrient information from the dataset.
-      #' 2. Aggregates fertilizer amounts by type.
-      #' 3. Adjusts for rounding issues in fertilizer amounts.
-      #' 4. Combines fertilizer and nutrient information into a single human-readable string.
-      #' 5. Handles cases where no fertilizer data is available, labeling them as "No Fert Control."
-      #'
-      #' ## Parameters:
-      #' @param X The name of the fertilizer level to process (e.g., treatment or control group).
-      #' @param Y The site or block code to filter the fertilizer data (`B.Code`).
-      #' @param F.NO Numeric; nitrogen content (organic).
-      #' @param F.PO Numeric; phosphorus content (organic).
-      #' @param F.KO Numeric; potassium content (organic).
-      #' @param F.NI Numeric; nitrogen content (inorganic).
-      #' @param F.PI Numeric; phosphorus content (inorganic).
-      #' @param F.P2O5 Numeric; phosphorus pentoxide content (inorganic).
-      #' @param F.KI Numeric; potassium content (inorganic, expressed as potassium ion).
-      #' @param F.K2O Numeric; potassium oxide content (inorganic).
-      #' @param Fert.Method A data table containing information about fertilizer types, amounts,
-      #' and metadata such as `Time`, `Site.ID`, `F.Level.Name`, and `B.Code`.
-      #'
-      #' ## Returns:
-      #' A string summarizing:
-      #' 1. Nutrient content (if available), formatted as `F.NO-10 F.KO-5`, etc.
-      #' 2. Fertilizer type and amount, formatted as `Type1 100|Type2 200`.
-      #' The two components are separated by `||`. If no data is available, the function
-      #' returns `"No Fert Control"`.
-      #'
-      #' ## Example:
-      #' Suppose the following inputs:
-      #' - `X = "Control"`, `Y = "SiteA"`.
-      #' - Nutrient data: `F.NO = 10`, `F.KO = 5`, `F.NI = 20`, `F.PI = 15`, others are `NA`.
-      #' - `Fert.Method` contains fertilizer types and amounts.
-      #'
-      #' Calling:
-      #' ```R
-      #' ReName.Fun(X = "Control", Y = "SiteA", F.NO = 10, F.PO = NA, F.KO = 5, 
-      #'            F.NI = 20, F.PI = 15, F.P2O5 = NA, F.KI = NA, F.K2O = 12, 
-      #'            Fert.Method = FertilizerData)
-      #' ```
-      #' Returns:
-      #' `"F.NO-10 F.KO-5 F.NI-20 F.PI-15||Type1 100|Type2 200"`
-      #'
-      #' ## Notes:
-      #' - Ensure `Fert.Method` is preprocessed and contains relevant fields for the function to work.
-      #' - Handles missing values gracefully, but logs meaningful fertilizer information where available.
-      #'
-      create_fert_name<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O,Fert.Method){
-          NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
-          N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
-          
-          F.Level<-Fert.Method[F.Level.Name==X & B.Code ==Y,list(F.Type,F.Amount)]
-          
-          F.Level<-unique(rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=F.Type]))
-          
-          # Deal with rounding issues 
-          # This code is supposed to deal with import issues in excel that create values like 1.9999999999999999, the solution however returns NaN when the rounded log amount is 0
-          F.Level[,F.Amount2:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10))),by=F.Type]
-          F.Level[is.na(F.Amount2)|is.nan(F.Amount2),F.Amount2:=F.Amount]
-          F.Level<-F.Level[,paste(F.Type,F.Amount2)]
-          
-          F.Level<-paste(F.Level[order(F.Level)],collapse = "|")
-          
-          
-          if(length(F.Level)==0 | F.Level==""){
-            F.Level<-"No Fert Control"
-          }else{
-            if(length(N)>0){
-              NPK<-NPK[,..N]
-              NPK<-paste(paste(colnames(NPK),unlist(NPK),sep="-"),collapse=" ")
-              F.Level<-paste(NPK,F.Level,sep = "||")
-            }
-          }
-          return(F.Level)
-        }
         
       Fert.Out[,N:=1:.N]
       Fert.Out[,F.Level.Name2:=create_fert_name(F.Level.Name,B.Code,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O,Fert.Method = Fert.Method),by="N"]
@@ -3416,36 +3335,6 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
                      Codes =c("T.Residue.Code",code_cols,NA,NA,NA))
   Fields[Levels %in% c("W.Level.Name","C.Level.Name"),Codes:=NA]
   
-  # Function to process F.Level.Name2 string splitting apart common and shared elements (e.g. F.Type)
-  process_string <- function(input_string,between_delim="..",within_delim="|") {
-    # Step 1: Split the string on `..`
-    split_string <- strsplit(input_string, between_delim,fixed=T)[[1]]
-    
-    # Step 2: Split the first element on `|`
-    first_element_split <- strsplit(split_string[1],within_delim,fixed=T)[[1]]
-    
-    # Step 3: Find common strings across all elements
-    common_strings <- Reduce(intersect, lapply(split_string, function(x) strsplit(x, within_delim,fixed=T)[[1]]))
-    
-    # Step 4: Remove common strings from each element
-    removed_shared <- lapply(split_string, function(x) {
-      setdiff(strsplit(x,within_delim,fixed=T)[[1]], common_strings)
-    })
-    
-    # Step 5: Rejoin each element with `|`
-    rejoined_elements <- sapply(removed_shared, function(x) paste(x, collapse = within_delim))
-    
-    rejoined_elements[rejoined_elements==""]<-"NA"
-    
-    # Step 6: Rejoin all elements with `..`
-    final_result <- paste(sort(rejoined_elements), collapse = between_delim)
-    common_strings <- paste(sort(unique(common_strings[!is.na(common_strings) & common_strings!=""])), collapse = between_delim)
-    
-    if(length(common_strings)==0){common_strings<-NA}
-    
-    return(c(shared=common_strings,different=final_result))
-  }
-
   results<-pblapply(N,FUN=function(i){
     if(F){
       # Display progress
@@ -3504,14 +3393,13 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
         # "F.KI-20||Potassium Chloride NA"   becomes "F.KI-20||Potassium Chloride NA"  
         f_level<-Y$F.Level.Name2
    
-          f_level<-unlist(lapply(f_level,FUN=function(x){
+        f_level<-unlist(lapply(f_level,FUN=function(x){
             if(grepl("||",x,fixed=T)){
               tstrsplit(x,"||",fixed=T)[[2]]
               }else{
                 x
               }
             }))
-        
         
         f_level<-paste(f_level,collapse="---")
         fert_split<-process_string(f_level,between_delim = "---")
@@ -5560,36 +5448,37 @@ col_names<-colnames(data[[800]])
         
       }
       
-      FunX<-function(A){
-        A<-unique(unlist(strsplit(unlist(strsplit(A,"[*][*][*]")),"-")))
-        A<-unique(Recode(PC1,PC2,A))
-        A<-A[!is.na(A)]
+      FunX1<-function(Final.Codes,PC1,PC2){
+        Final.Codes<-unique(unlist(strsplit(unlist(strsplit(Final.Codes,"[*][*][*]")),"-")))
+        Final.Codes<-unique(Recode(PC1,PC2,Final.Codes=Final.Codes))
+        Final.Codes<-Final.Codes[!is.na(Final.Codes)]
         # Cannot have h and b codes present, remove h codes
-        if(sum(grepl("h",A))>0 & length(A)>1){
-          A<-A[!grepl("h",A)]
+        if(sum(grepl("h",Final.Codes))>0 & length(Final.Codes)>1){
+          Final.Codes<-Final.Codes[!grepl("h",Final.Codes)]
         }
-        paste(A[order(A)],collapse = "-")
+        paste(Final.Codes[order(Final.Codes)],collapse = "-")
       }
       
-      Data.Out[grep("[*][*][*]",Final.Residue.Code),Final.Residue.Code:=FunX(Final.Residue.Code),by=N]
+      Data.Out[grep("[*][*][*]",Final.Residue.Code),Final.Residue.Code:=FunX1(Final.Codes=Final.Residue.Code,PC1=PC1,PC2=PC2),by=N]
       
       
-      FunX<-function(A){
-        A<-unlist(strsplit(unlist(strsplit(A,"[.][.][.]")),"-"))
-        A<-Recode(PC1,PC2,A)
-        A<-table(A[A!="NA"])/length(A)
+      Threshold<-0.5
+      
+      FunX2<-function(Final.Codes,PC1,PC2,Threshold){
+        Final.Codes<-unlist(strsplit(unlist(strsplit(Final.Codes,"[.][.][.]")),"-"))
+        Final.Codes<-Recode(PC1,PC2,Final.Codes)
+        Final.Codes<-table(Final.Codes[Final.Codes!="NA"])/length(Final.Codes)
         # Apply majority rule
-        A<-names(A[A>=Threshold])
+        Final.Codes<-names(Final.Codes[Final.Codes>=Threshold])
         # Cannot have h-code and b-code
-        if(sum(grepl("h",A))>0 & length(A)>1){
-          A<-A[!grepl("h",A)]
+        if(sum(grepl("h",Final.Codes))>0 & length(Final.Codes)>1){
+          Final.Codes<-Final.Codes[!grepl("h",Final.Codes)]
         }
-        if(length(A)==0){NA}else{paste(A[order(A)],collapse="-")}
+        if(length(Final.Codes)==0){NA}else{paste(Final.Codes[order(Final.Codes)],collapse="-")}
       }
       
-      Data.Out[grep("[.][.][.]",Final.Residue.Code),Final.Residue.Code:=FunX(Final.Residue.Code),by=N]
-      
-      rm(FunX,PC1,PC2,Recode)
+      Data.Out[grep("[.][.][.]",Final.Residue.Code),
+               Final.Residue.Code:=FunX2(Final.Codes=Final.Residue.Code,PC1=PC1,PC2=PC2,Threshold=Threshold),by=N]
       
       # Explore results
       if(F){
