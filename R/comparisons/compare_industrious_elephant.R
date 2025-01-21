@@ -304,7 +304,7 @@ TreeCodes<-master_codes$trees
     Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
     
     fcodes_focal<-unlist(pblapply(Data.Out.Agg.xfert$N,FUN=function(i){
-      y<-Data.Out.Agg.xfert[N==i,.(B.Code,ED.M.Year,ED.Site.ID,ED.Treatment,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
+      y<-Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
       x<-Fert.Method[B.Code==y$B.Code]
       x<-unique(x[F.Level.Name==y$F.Level.Name])
       
@@ -360,10 +360,10 @@ TreeCodes<-master_codes$trees
     Data.Out.Agg.xfert[,Final.Codes2:=update_final_codes(A=Final.Codes2[1],B=T.Codes.Fert.Shared[1]),by=.(Final.Codes2,T.Codes.Fert.Shared)
                        ][,Final.Codes:=strsplit(Final.Codes2,"-")]
     
-    CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year", "ED.Outcome",
-                     "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS",
-                     "C.Structure","P.Structure","O.Structure","W.Structure",
-                     "B.Code","Country","ED.Comparison","T.Agg.Levels3")
+    CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
+                     "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
+                     "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
+                     "B.Code","Country","ED.Comparison1","ED.Comparison2","T.Agg.Levels3")
     
     results<-compare_wrap(DATA=Data.Out.Agg.xfert,
                           CompareWithin=CompareWithin,
@@ -372,8 +372,8 @@ TreeCodes<-master_codes$trees
                           Debug = FALSE,
                           Return.Lists = FALSE,
                           Fert.Method = Fert.Method,
-                          Plant.Method = Plant.Out,
-                          Irrig.Method = Irrig.Out,
+                          Plant.Method = Plant.Method,
+                          Irrig.Method = Irrig.Method,
                           Res.Method = Res.Method,
                           p_density_similarity_threshold = 0.95)
     
@@ -387,7 +387,7 @@ TreeCodes<-master_codes$trees
     
     if(F){
       # Are new aggregated comparisons added?
-      colnames(Comparisons_processed)[! colnames(Comparisons_processed) %in% colnames(Comparison.List$Aggregated)]
+      colnames(Comparisons1)[! colnames(Comparisons1) %in% colnames(Comparison.List$Aggregated)]
       agg_comb<-rbind(Comparison.List$Aggregated,Comparison.List$Aggregated_xfert)
       dim(unique(agg_comb))
       dim(Comparison.List$Aggregated)
@@ -417,7 +417,6 @@ TreeCodes<-master_codes$trees
     
       # 2.3.1.1) Combine intercropped treatment information using a similar process to aggregated trts in the MT.Out table ########
 
-       # !!TO DO !!! In original script Fertilizer tab has columns for each practice code #####
     Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name$",colnames(MT.Out))]))
     Fields[,Codes:=gsub("Level.Name","Codes",Levels)
            ][,Codes:=gsub("Prev","Code",Levels)
