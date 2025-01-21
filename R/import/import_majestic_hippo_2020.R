@@ -11,6 +11,7 @@ waitifnot <- function(cond) {
     while (TRUE) {}
   }
 }
+source(file.path(project_dir,"R/import/import_helpers.R"))
 
 # Replace 0 with NA
 ZeroFun<-function(Data,Zero.Cols){
@@ -917,6 +918,10 @@ names(XL) <- FNames
     })
     Fert.Out[F.Codes=="",F.Codes:=NA]
     
+    fun1<-function(x){x[1]}
+    copy_down_cols<-grep("Unit",colnames(Fert.Out),value=T)
+    Fert.Out <- Fert.Out[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
+    
     ### 2.10.3) Fert.Method: Update Codes in  Fert.Methods From MasterCodes FERT Tab ####
     
     # Validation - Check for non-matches
@@ -933,6 +938,7 @@ names(XL) <- FNames
     # Add Codes
     Fert.Method$F.Lab<-apply(Fert.Method[,c("F.Category","F.Type")],1,paste,collapse="-")
     Fert.Method<-cbind(Fert.Method,FertCodes[match(Fert.Method$F.Lab,FertCodes$F.Lab),c("Fert.Code1","Fert.Code2","Fert.Code3")])
+    Fert.Method[,F.Codes:=paste(sort(unique(na.omit(c(Fert.Code1[1],Fert.Code2[1],Fert.Code3[1])))),collapse="-"),by=.(Fert.Code1,Fert.Code2,Fert.Code3)]
     Fert.Method[,F.Lab:=NULL]
     
     ### 2.10.4) Fert.Method: Update Fields From Harmonization Sheet ####
@@ -1037,46 +1043,16 @@ names(XL) <- FNames
     # Make sure amount is a numeric field
     Fert.Method[,F.Amount:=as.numeric(as.character(F.Amount))]
     
-   ReName.Fun<-function(X,Y,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O){
-      NPK<-data.table(F.NO=F.NO,F.PO=F.NO,F.KO=F.KO,F.NI=F.NI,F.PI=F.PI,F.P2O5=F.P2O5,F.KI=F.KI,F.K2O=F.K2O)
-      N<-colnames(NPK)[which(!apply(NPK,2,is.na))]
-  
-  
-      F.Level<-Fert.Method[F.Level.Name==X & B.Code ==Y,list(F.Type,F.Amount)]
-  
-      F.Level<-rbind(F.Level[is.na(F.Amount)],F.Level[!is.na(F.Amount),list(F.Amount=sum(F.Amount)),by=F.Type])
-      
-      # Deal with rounding issues   
-      F.Level[,F.Amount:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10)))]
-      F.Level<-F.Level[,paste(F.Type,F.Amount)]
-      
-      F.Level<-paste(F.Level[order(F.Level)],collapse = "|")
-  
-      
-      if(length(F.Level)==0 | F.Level==""){
-        F.Level<-"No Fert Control"
-      }else{
-        if(length(N)>0){
-          NPK<-NPK[,..N]
-          NPK<-paste(paste(colnames(NPK),unlist(NPK),sep="-"),collapse=" ")
-          F.Level<-paste(NPK,F.Level,sep = "||")
-        }
-      }
-      return(F.Level)
-    }
-    
     Fert.Out[,N:=1:.N]
-    Fert.Out[,F.Level.Name2:=ReName.Fun(F.Level.Name,B.Code,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O),by="N"]
+    Fert.Out[,F.Level.Name2:=create_fert_name(F.Level.Name,B.Code,F.NO,F.PO,F.KO,F.NI,F.PI,F.P2O5,F.KI,F.K2O,Fert.Method = Fert.Method),by="N"]
     Fert.Out[,N:=NULL]
-    rm(ReName.Fun)
-  
-    Fert.Method[,F.Level.Name2:=Fert.Out[match(Fert.Method[,F.Level.Name],Fert.Out[,F.Level.Name]),F.Level.Name2]]
+
+    Fert.Method<-merge(Fert.Method,Fert.Out[,.(B.Code,F.Level.Name,F.Level.Name2)],all.x=T,sort=F)
     
     ### 2.10.12) Fert.Out: Translate Fert Codes in Cols ####
     F.Master.Codes<-PracticeCodes[Theme=="Nutrient Management" | Subpractice =="Biochar",Code]
     F.Master.Codes<-F.Master.Codes[!grepl("h",F.Master.Codes)]
     Fert.Method[,Code:=paste(B.Code,F.Level.Name)]
-    
     
     Fert.Levels<-rbindlist(pblapply(1:nrow(Fert.Out),FUN=function(i){
       
@@ -1321,6 +1297,8 @@ names(XL) <- FNames
     X
   }))
   
+  setnames(Irrig.Out,"I.Name","I.Level.Name")
+  
   # Change 0 to NA
   Irrig.Out[I.Unit==0,I.Unit:=NA]
   Irrig.Out[I.Water.Type==0,I.Water.Type:=NA]
@@ -1333,7 +1311,7 @@ names(XL) <- FNames
   Irrig.Out[I.Amount==0,I.Amount:=Na]
   
   # Remove any parenthesis in names
-  Irrig.Out[,I.Name:=gsub("[(]","",I.Name)][,I.Name:=gsub("[)]","",I.Name)]
+  Irrig.Out[,I.Level.Name:=gsub("[(]","",I.Level.Name)][,I.Level.Name:=gsub("[)]","",I.Level.Name)]
   
   # Irrig.Codes
   Irrig.Codes<-lapply(XL,"[[",18)
@@ -1822,11 +1800,8 @@ MT.Out[,T.Name:=gsub("[(]","",T.Name)
                                                                        ][,W.Level.Name:=gsub("[)]","",W.Level.Name)]
 
   ## 3.1) MT.Out: Add in corrected Fertilizer Codes ####
-  #C.ori<-MT.Out$F.Codes
-  MT.Out$F.Codes<-Fert.Out$F.Codes[match(paste0(MT.Out$B.Code,MT.Out$F.Level.Name),paste0(Fert.Out$B.Code,Fert.Out$F.Level.Name))]
-  
-  #cbind(C.ori,MT.Out$F.Codes) - NAs still present due to missing ".." delim in several papers
-  
+  MT.Out<-merge(MT.Out[,F.Codes:=NULL],Fert.Out[,.(B.Code,F.Level.Name,F.Codes)],all.x=T,sort=F,by=c("B.Code","F.Level.Name"))
+
   # Combine all practice codes together again in T.Code column (assimilating corrected fertilizer coding)
   N<-grep("Codes",colnames(MT.Out))[-1]
   
@@ -1850,14 +1825,9 @@ MT.Out[,T.Name:=gsub("[(]","",T.Name)
     
     
   }))
-  #cbind(MT.Out$T.Name,Before,MT.Out$T.Codes) # Check NAs once ".." delim issue is fixed
-  
-  MT.Out[,F.Level.Name2:=Fert.Out[match(MT.Out[,paste(B.Code,F.Level.Name)],Fert.Out[,paste(B.Code,F.Level.Name)]),F.Level.Name2]]
+  MT.Out<-merge(MT.Out,Fert.Out[,.(B.Code,F.Level.Name,F.Level.Name2)],all.x=T,sort=F,by=c("B.Code","F.Level.Name"))
+  MT.Out<-merge(MT.Out,Fert.Levels,by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
 
-  MT.Out<-cbind(MT.Out,Fert.Levels[match(MT.Out[,paste(B.Code,F.Level.Name)],Fert.Levels[,paste(B.Code,F.Level.Name)]),!c("B.Code","F.Level.Name")])
-  
-  MT.Out[,F.Level.Name2:=Fert.Out[match(MT.Out[,F.Level.Name],Fert.Out[,F.Level.Name]),F.Level.Name2]]
-  
   ## 3.2) MT.Out: Add in h10 code where there are fertilizer treatments, but fertilizer column is blank ####
   MT.Out[,Count.F.NA:=sum(is.na(F.Level.Name)),by="B.Code"][,Count.F:=sum(!is.na(F.Level.Name)),by="B.Code"]
   MT.Out[Count.F.NA>0 & Count.F>0 & is.na(F.Level.Name) & !(N %in% grep("[.][.]",T.Name)),F.Level.Name:="No Fertilizer Based On MT.Out"]
@@ -1989,16 +1959,21 @@ MT.Out[,T.Name:=gsub("[(]","",T.Name)
   
   rm(T.Code.Fun)
   
-  ## 3.7) MT.Out2: Combine Aggregated Treatments - SLOW CONSIDER PARALLEL ####
+  ## 3.7) MT.Out2: Combine Aggregated Treatments ####
   # MAKE SURE FERT AND VAR delims are changed from ".." to something else in T.Level.Name (MT.Out and all Fert/Variety tabs, Data.Out,Int.Out, Rot.Out, Rot.Seq)
   # GIVEN THE ABOVE, A BETTER APPROCH IS COMPILE TABLES IN R RATHER THAN COMPILING IN EXCEL THEN AMENDING THESE TABLES AFTER ERRPR CORRECTIONS
   N<-grep("[.][.]",MT.Out$T.Name)
-  Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name",colnames(MT.Out))]),
-                     Codes =c("T.Residue.Code","AF.Codes","A.Codes",NA,"E.Codes","H.Codes","I.Codes","M.Codes","F.Codes","pH.Codes",NA,"PO.Codes","Till.Codes","V.Codes","WH.Codes",NA,NA,"F.Codes"))
-  Fields<-Fields[!grepl("F.Level.Name",Levels)]
-  # T.Name2 - uses "..." delim, T.Name retains original ".." delim 
   
-  Fields<-rbind(Fields[Levels!="F.Level.Name"],data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
+  Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name",colnames(MT.Out))]),
+                   Codes =c("T.Residue.Code","F.Codes","AF.Codes","A.Codes",NA,"E.Codes","H.Codes","I.Codes","M.Codes","pH.Codes",NA,"PO.Codes","Till.Codes","V.Codes","WH.Codes",NA,NA,"F.Codes"))
+  Fields<-Fields[Levels!="F.Level.Name2"]
+  # Old approach - fertilizer practices each have their own columns
+  # New approach fertilizer dealt with in T.Agg.Levels3 section below
+  
+  #Fields<-Fields[!grepl("F.Level.Name",Levels)]
+  #Fields<-rbind(Fields[Levels!="F.Level.Name"],data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
+  
+    # T.Name2 - uses "..." delim, T.Name retains original ".." delim 
   
   MT.Out2<-rbindlist(pblapply(1:nrow(MT.Out),FUN=function(i){
 
@@ -2070,15 +2045,39 @@ MT.Out[,T.Name:=gsub("[(]","",T.Name)
       
       if("F.Level.Name" %in% COLS){
         
-      COLS2<-gsub("F.Level.Name","F.Level.Name2",COLS)
-      
-      Agg.Levels3<-paste(apply(Y[,..COLS2],1,FUN=function(X){
-        X[as.vector(is.na(X))]<-"NA"
-        paste(X,collapse="---")
-      }),collapse="...")
-      
+        COLS2<-COLS[COLS!="F.Level.Name"]
+        
+        # This section is to split shared and different elements in the fertilizer tab
+        # This needed to allow comparisons between aggregated fertilizer treatments
+        
+        # Remove fertilizer amounts from name if present (these come from the Fert.Out tab fields, e.g. Fert.NI etc.)
+        # "F.KI-20||Potassium Chloride NA"   becomes "F.KI-20||Potassium Chloride NA"  
+        f_level<-Y$F.Level.Name2
+        
+        f_level<-unlist(lapply(f_level,FUN=function(x){
+          if(grepl("||",x,fixed=T)){
+            tstrsplit(x,"||",fixed=T)[[2]]
+          }else{
+            x
+          }
+        }))
+        
+        f_level<-paste(f_level,collapse="---")
+        fert_split<-process_string(f_level,between_delim = "---")
+        
+        Agg.Levels.Fert.Shared<-fert_split[1]
+        
+        Agg.Levels3<-apply(Y[,..COLS2],1,FUN=function(X){
+          X[as.vector(is.na(X))]<-"NA"
+          paste(X,collapse="---")
+        })
+        
+        Agg.Levels3<-c(fert_split[2],Agg.Levels3)
+        
+        Agg.Levels3<-paste(Agg.Levels3,collapse="...")
       }else{
         Agg.Levels3<-Agg.Levels2
+        Agg.Levels.Fert.Shared<-NA
       }
       
       CODES.IN<-Fields1$Codes[Levels]
@@ -2135,13 +2134,13 @@ MT.Out[,T.Name:=gsub("[(]","",T.Name)
       Y<-data.table(t(data.frame(list(Y))))
       row.names(Y)<-1
       
-      
       # Do not combine the Treatment names, keep this consistent with Enter.Data tab
       Y$T.Name2<-Y$T.Name
       Y$T.Name<-MT.Out[i,T.Name]
       Y$T.Agg.Levels<-Agg.Levels
       Y$T.Agg.Levels2<-Agg.Levels2
       Y$T.Agg.Levels3<-Agg.Levels3
+      Y$T.Agg.Levels.Fert.Shared<-Agg.Levels.Fert.Shared
       Y$T.Codes.No.Agg<-CODES.OUT
       Y$T.Codes.Agg<-CODES.IN
       Y
@@ -2151,6 +2150,7 @@ MT.Out[,T.Name:=gsub("[(]","",T.Name)
       Y$T.Agg.Levels<-NA
       Y$T.Agg.Levels2<-NA
       Y$T.Agg.Levels3<-NA
+      Y$T.Agg.Levels.Fert.Shared<-NA
       Y$T.Codes.No.Agg<-NA
       Y$T.Codes.Agg<-NA
       Y
@@ -2167,10 +2167,6 @@ MT.Out[,T.Name:=gsub("[(]","",T.Name)
   
   # Check for any remaining "aggregated" codes - table should have 0 rows
   unique(MT.Out2[grep("Aggregated",MT.Out2$T.Codes),"B.Code"])
-  
-  # Validate aggregated practices
-  #write.table(MT.Out2[grep("[.][.]",T.Name),c("B.Code","T.Name2","T.Agg.Levels","T.Agg.Levels2","T.Codes.No.Agg","T.Codes.Agg","N2")],"clipboard-256000",row.names=F,sep="\t")
-  #View(MT.Out2[grep("[.][.]",T.Name),c("B.Code","T.Name2","T.Agg.Levels","T.Agg.Levels2","T.Codes.No.Agg","T.Codes.Agg","N2")])
   
   ## 3.8) MT.Out2: Residue Codes ####
   
@@ -3268,12 +3264,14 @@ Rot.Out[R.Phases==0,R.Phases:=NA]
   rm(X,Join.Fun)
   
   # Rot.Out: Add Practice Level Columns
+  Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name",colnames(MT.Out))]),
+                     Codes =c("T.Residue.Code","F.Codes","AF.Codes","A.Codes",NA,"E.Codes","H.Codes","I.Codes","M.Codes","pH.Codes",NA,"PO.Codes","Till.Codes","V.Codes","WH.Codes",NA,NA,"F.Codes"))
+  Fields<-Fields[!grepl("F.Level.Name",Levels)]
+  Fields<-rbind(Fields[Levels!="F.Level.Name"],data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
   
   Levels<-Fields[!Levels %in% c("P.Level.Name","O.Level.Name","W.Level.Name","C.Level.Name","T.Residue.Prev")]
   Levels<-c(Levels[,Levels],Levels[,Codes])
 
-  Rot.Out[,which(B.Code=="AN0088")][3]
-  
   Rot.Levels<-rbindlist(pblapply(1:nrow(Rot.Out),FUN=function(i){
 
       X<-Rot.Out[i]
@@ -3288,8 +3286,7 @@ Rot.Out[R.Phases==0,R.Phases:=NA]
       
       Levels.Joined<-unlist(lapply(Levels,FUN=function(X){
         Y<-unlist(Trts[,..X])
-        paste(Y,collapse = "---")}
-        ))
+        paste(Y,collapse = "---")}))
       Levels.Joined<-data.table(matrix(nrow=1,ncol=length(Levels),Levels.Joined,dimnames=list(1,Levels)))
       data.table(X[,c("B.Code","R.Level.Name")],Levels.Joined)
 
@@ -3767,8 +3764,6 @@ Data.Out[ED.Comparison==0,ED.Comparison:=NA]
   Rot.Seq[,Temp.Code1:=NULL]
   
   ## 8.13) Replace intercropping "***" or aggregation "..." delim in Final.Residue.Code ####
-  
-
   
   # Intercrops
    PC1<-PracticeCodes[Practice %in% c("Agroforestry Pruning"),Code]
