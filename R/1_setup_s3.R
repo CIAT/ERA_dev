@@ -143,7 +143,6 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
-    
   # 1.2.2) 2022 skinny cow ######
     # 1.2.2.1) upload excels #######
     folder_local<-file.path("/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
@@ -249,9 +248,9 @@ if(F){
                        mode="public-read")
     # 1.2.3.3) legacy harmonization files #######
     local_folder<-file.path("data_entry",era_projects$majestic_hippo_2020,"legacy_files")
-    files<-list.files(local_folder,recursive = T,full.names = T)
-
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$majestic_hippo_2020,"legacy_harmonization_files")
+    
+    files<-list.files(local_folder,recursive = T,full.names = T)
     
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
