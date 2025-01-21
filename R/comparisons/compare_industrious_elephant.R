@@ -4,6 +4,8 @@
 # 0) Load packages & functions ####
 pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr)
 source(file.path(project_dir,"R/comparisons/compare_fun.R"))
+source(file.path(project_dir,"R/comparisons/compare_wrap.R"))
+
 worker_n<-14
 
 
@@ -95,116 +97,34 @@ TreeCodes<-master_codes$trees
   # Calculate Number of ERA Practices
   Data.Out.No.Agg[,N.Prac:=length(unlist(Final.Codes)[!is.na(unlist(Final.Codes))]),by="N"]
   
-  # Extract B.Codes
-  B.Codes<-unique(Data.Out.No.Agg$B.Code)
+  # Select fields that need to match for comparisons to be valid
+  CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
+                   "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
+                   "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
+                   "B.Code","Country","ED.Comparison1","ED.Comparison2")
   
-  DATA<-Data.Out.No.Agg
+  # If issue with memory encounted try the line below, recent modifications have been made to the compare_wrap function to reduce memory requirements
+  # options(future.globals.maxSize = 1.5 * 1024^3) # Set to 1.5 GiB 
   
-    # 2.1.2) Select fields that need to match for comparisons to be valid ####
-    CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
-                     "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
-                     "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
-                     "B.Code","Country","ED.Comparison1","ED.Comparison2")
-    # 2.1.2) Run Comparisons ####
-      # ISSUE?: IMPROVED VARIETIES IV heat etc. vs IV other? ####
+  results<-compare_wrap(DATA=Data.Out.No.Agg,
+                        CompareWithin=CompareWithin,
+                        worker_n=worker_n,
+                        Verbose = FALSE,
+                        Debug = FALSE,
+                        Return.Lists = FALSE,
+                        Fert.Method = Fert.Method,
+                        Plant.Method = Plant.Method,
+                        Irrig.Method = Irrig.Method,
+                        Res.Method = Res.Method,
+                        p_density_similarity_threshold = 0.95)
   
-  # Set up future plan for parallel execution with the specified number of workers
-  plan(multisession, workers = worker_n)
+  groups_n1<-results$groups_n1 # These unique groupings have only 1 row
+  all_groups_n1<-results$all_groups_n1 # There no unique groupings with >1 row in these publications
+  no_comparison<-results$no_comparison # There no comparisons in these publications and there are groupings with >1 row
+  Comparisons<-results$Comparisons_raw
+  Comparisons_processed<-results$Comparisons_processed
   
-  # Progress bar setup
-  progressr::handlers(global = TRUE)
-  progressr::handlers("progress")
-  
-  # Start parallelized process with progress bar
-  b_codes<-DATA[,unique(B.Code)]
-  
-  Verbose<-F
-  
-  Comparisons <- with_progress({
-    # Progress indicator
-    p <- progressor(steps = length(b_codes))
-    
-    # Apply function across unique B.Codes with future_lapply in parallel
-    future_lapply(1:length(b_codes), function(j) {
-    #lapply(1:length(b_codes), function(j){
-      BC<-b_codes[j]
-      
-      if (Verbose) {
-        cat(BC,"-",j,"\n")
-      }
-      
-      # Filter subset of data for current B.Code
-      Data.Sub <- DATA[B.Code == BC]
-      CW <- unique(Data.Sub[, ..CompareWithin])
-      CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
-                  apply(CW, 1, paste, collapse = "-"))
-      Data.Sub[, Group := CW]
-      
-      # Report groups that have no comparisons
-      group_n<-Data.Sub[,table(Group)]
-      no_comparison <- Data.Sub[Group %in% names(group_n)[group_n == 1], c(CompareWithin,"T.Name","IN.Level.Name","R.Level.Name"), with = FALSE]
-      
-      Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
-      
-      # Apply compare_fun to each group
-      if(nrow(Data.Sub)>0){
-        
-      comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
-        if (Verbose) {
-          cat(BC,"-",j, " Subgroup = ", i,"\n")
-        }
-        compare_fun(Verbose = Verbose, 
-                    Data = Data.Sub[Group == i], 
-                    Debug = FALSE,
-                    PracticeCodes=PracticeCodes, 
-                    Return.Lists = FALSE)
-      }))
-      }else{
-        comp_dat<-NULL
-      }
-      
-      # Update progress bar after each iteration
-      p() 
-      
-      return(list(data=comp_dat,
-                  no_comparison_rows=no_comparison,
-                  zero_comparisons=if(is.null(comp_dat)){BC}else{NULL}))
-    })
-  })
-  
-  # Reset to sequential plan after parallel tasks are complete
-  plan(sequential)
-  
-    no_comparison_rows<-rbindlist(lapply(Comparisons,"[[","no_comparison_rows"))
-    zero_comp_basic<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
-    Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
-    
-    # 2.1.4) Restructure ######
-    # Remove NA values
-    Comparisons<-Comparisons[!is.na(Control.For)
-    ][,Len:=length(unlist(Control.For)),by=N]
-    
-    Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
-    
-    
-    Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
-    Cols1<-c(CompareWithin,Cols)
-    
-    Comparisons1<-Data.Out.No.Agg[match(Comparisons[,N],N),..Cols1]
-    Comparisons1[,Control.For:=Comparisons[,Control.For]]
-    Comparisons1[,Control.N:=Comparisons[,N]]
-    Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
-    setnames(Comparisons1,"T.Name","Control.Trt")
-    setnames(Comparisons1,"IN.Level.Name","Control.Int")
-    setnames(Comparisons1,"R.Level.Name","Control.Rot")
-    
-    Comparisons1[,Compare.Trt:=Data.Out.No.Agg[match(Control.For,N),T.Name]]
-    Comparisons1[,Compare.Int:=Data.Out.No.Agg[match(Control.For,N),IN.Level.Name]]
-    Comparisons1[,Compare.Rot:=Data.Out.No.Agg[match(Control.For,N),R.Level.Name]]
-    
-    # fwrite(Comparisons1,paste0(choose.dir(),"\\Basic_Comparisons_V1.8.csv"),row.names = F)
-    
-    Comparison.List<-list(Simple=Comparisons1)
+  Comparison.List<-list(Simple=Comparisons_processed)
     
   # 2.2) Aggregated Treatments #####
     # 2.2.1) Subset and prepare data ######
@@ -247,102 +167,26 @@ TreeCodes<-master_codes$trees
 
   
     # 2.2.2) "Normal" aggregations ######
-
-  DATA<-Data.Out.Agg
   
-  Verbose<-F
-
-  # Set up future plan for parallel execution with the specified number of workers
-  plan(multisession, workers = worker_n)
+  results<-compare_wrap(DATA=Data.Out.Agg,
+                        CompareWithin=CompareWithin,
+                        worker_n=worker_n,
+                        Verbose = FALSE,
+                        Debug = FALSE,
+                        Return.Lists = FALSE,
+                        Fert.Method = Fert.Method,
+                        Plant.Method = Plant.Method,
+                        Irrig.Method = Irrig.Method,
+                        Res.Method = Res.Method,
+                        p_density_similarity_threshold = 0.95)
   
-  # Enable progress bar
-  handlers(global = TRUE)
-  handlers("progress")
+  groups_n1<-results$groups_n1 # These unique groupings have only 1 row
+  all_groups_n1<-results$all_groups_n1 # There no unique groupings with >1 row in these publications
+  no_comparison<-results$no_comparison # There no comparisons in these publications and there are groupings with >1 row
+  Comparisons<-results$Comparisons_raw
+  Comparisons_processed<-results$Comparisons_processed
   
-  # Set up future plan for parallel execution
-  plan(multisession, workers = worker_n)
-  
-  # Initialize progress bar
-  Comparisons <- with_progress({
-    b_codes<-unique(DATA[, B.Code])
-    p <- progressor(steps = length(b_codes))
-    
-    # Run future_lapply with progress bar
-    future_lapply(1:length(b_codes), function(ii) {
-      
-      p()  # Update progress bar
-      
-      # Filter subset of data for current B.Code
-      BC<-b_codes[ii]
-      Data.Sub <- DATA[B.Code == BC]
-      CW <- unique(Data.Sub[, CompareWithin, with = FALSE])  # No `..` prefix needed with `with = FALSE`
-      CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
-                  apply(CW, 1, paste, collapse = "-"))
-      Data.Sub[, Group := CW]
-      
-      # Report groups that have no comparisons
-      group_n<-Data.Sub[,table(Group)]
-      no_comparison <- Data.Sub[Group %in% names(group_n)[group_n == 1], CompareWithin, with = FALSE]
-      
-      Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
-      
-      # Apply compare_fun to each group
-      if(nrow(Data.Sub)>0){
-      
-      # Apply compare_fun to each group
-      comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
-        if (Verbose) {
-          print(paste0(BC, " Subgroup = ", i))
-        }
-        
-        compare_fun(
-          Verbose = Verbose,
-          Data = Data.Sub[Group == i],
-          Debug = FALSE,
-          PracticeCodes = PracticeCodes,
-          Return.Lists = FALSE
-        )
-      }))
-      }else{
-        comp_dat<-NULL
-      }
-      
-      return(list(data=comp_dat,
-                  no_comparison_rows=no_comparison,
-                  zero_comparisons=if(is.null(comp_dat)){BC}else{NULL}))
-      
-    })
-  })
-  
-  no_comparison_rows_agg<-rbindlist(lapply(Comparisons,"[[","no_comparison_rows"))
-  zero_comp_agg<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
-  Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
-  
-  # Restructure and save
-  # Remove NA values
-  Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
-  
-  Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
-  
-  
-  Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
-  Cols1<-c(CompareWithin,Cols)
-  
-  Comparisons1<-Data.Out.Agg[match(Comparisons[,N],N),..Cols1]
-  Comparisons1[,Control.For:=Comparisons[,Control.For]]
-  Comparisons1[,Control.N:=Comparisons[,N]]
-  Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
-  setnames(Comparisons1,"T.Name","Control.Trt")
-  setnames(Comparisons1,"IN.Level.Name","Control.Int")
-  setnames(Comparisons1,"R.Level.Name","Control.Rot")
-  
-  Comparisons1[,Compare.Trt:=Data.Out.Agg[match(Control.For,N),T.Name]]
-  Comparisons1[,Compare.Int:=Data.Out.Agg[match(Control.For,N),IN.Level.Name]]
-  Comparisons1[,Compare.Rot:=Data.Out.Agg[match(Control.For,N),R.Level.Name]]
-  
-  # write.table(Comparisons1,"clipboard-256000",row.names = F,sep="\t")
-  
-  Comparison.List[["Aggregated"]]<-Comparisons1
+  Comparison.List[["Aggregated"]]<-Comparisons_processed
   
     # 2.2.3) Aggregated crossed-fertilizer experiments ######
   
@@ -368,7 +212,7 @@ TreeCodes<-master_codes$trees
   
 
   Fert.Method<-copy(data$Fert.Method)[,F.Level.Name_original:=F.Level.Name]
-  Fert.Method[,Code:=F.Level.Name2][grepl("||",Code),Code:=tstrsplit(Code,"||",fixed=T)[[2]]]
+  Fert.Method[,Code:=F.Level.Name2][grepl("||",Code,fixed=T),Code:=tstrsplit(Code,"||",fixed=T)[[2]]]
   sum_fun<-function(x){
     x<-sum(x,na.rm = T)
     if(x==0){
@@ -384,7 +228,7 @@ TreeCodes<-master_codes$trees
       f_level_2<-fert_shared$F.Level.Name2[i]
       y<-Fert.Method[B.Code==b_code]
       x<-y[F.Level.Name2 %in% unlist(tstrsplit(f_level_2,"...",fixed=T)) & !Code %in%  unlist(tstrsplit(f_level_shared,"---"))]
-      if(f_level2 %in% y$F.Level.Name){
+      if(f_level_2 %in% y$F.Level.Name){
         stop(paste(b_code,"-",f_level_2,"New fertilizer level name derived from F.Level.Name2 is aleady present"))
       }
       x$F.Level.Name<-f_level_2  
@@ -445,11 +289,7 @@ TreeCodes<-master_codes$trees
     
     # Update Final.Codes - Final codes in the Data.Out.Agg dataset are derived from T.Codes which in turn are taken from T.Codes.No.Agg
     # We now need to add the code that relates to the practice in T.Agg.Levels.Fert.Shared (Fert.Method$Code)
-  
-    
-    F.Level[,F.Amount2:=round(F.Amount*10*round(log(F.Amount,base=10)),0)/(10*round(log(F.Amount,base=10))),by=F.Type]
-    F.Level[is.na(F.Amount2)|is.nan(F.Amount2),F.Amount2:=F.Amount]
-    
+
     sum_fun<-function(x){
       x<-sum(x,na.rm = T)
       x1<-round(x*10*round(log(x,base=10)),0)/(10*round(log(x,base=10)))
@@ -464,13 +304,13 @@ TreeCodes<-master_codes$trees
     Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
     
     fcodes_focal<-unlist(pblapply(Data.Out.Agg.xfert$N,FUN=function(i){
-      y<-Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
+      y<-Data.Out.Agg.xfert[N==i,.(B.Code,ED.M.Year,ED.Site.ID,ED.Treatment,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
       x<-Fert.Method[B.Code==y$B.Code]
       x<-unique(x[F.Level.Name==y$F.Level.Name])
       
       codes2<-y[,unlist(tstrsplit(T.Agg.Levels.Fert.Shared,"---"))]
       fcodes_focal<-x[Code2 %in% codes2,F.Codes]
-      fcodes_focal<-str_split(fcodes_focal,"-")
+      fcodes_focal<-unlist(strsplit(fcodes_focal,"-"))
       fcodes_focal<-fcodes_focal[!is.na(fcodes_focal)]
       fcodes_focal<-paste(sort(unique(unlist(fcodes_focal))),collapse = "-")
       return(fcodes_focal)
@@ -483,128 +323,78 @@ TreeCodes<-master_codes$trees
                                                                                                                            T.Codes,T.Codes.No.Agg,T.Codes.Agg,IN.T.Codes,IN.T.Codes.Shared,IN.T.Codes.Diff,I.Codes,R.Code,
                                                                                                                            Final.Residue.Code,Final.Codes,Final.Codes2,T.Agg.Levels.Fert.Shared,T.Codes.Fert.Shared)]
     
-    issue_bcodes<-non_matches[,unique(B.Code)]
+    (issue_bcodes<-non_matches[,unique(B.Code)])
     
-    j<-6
-    z<-non_matches[B.Code==issue_bcodes[j]]
-    unique(z[,.(B.Code,T.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,F.Level.Name2)])
-    i<-z$N[1]
-    
-    Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
-    Fert.Method[B.Code==issue_bcodes[j],.(F.Type,F.Codes)]
-    Y<-issue_bcodes[j]
-    X<-Fert.Out[B.Code==Y,F.Level.Name][7]
-    
-    # X SP0019 - OK not a crossed fert experiment, vetch residue practice is compared across levels of N
-    # AC0172 - 30DP treatment misspecified? No, charity check. Must be an issue in the code then.
-    # X CJ0120 - Strange scenario we have types of P application (same level) aggregated together which could be compared to no application. There is no no shared crossed practice though. And there is an issue with the control.
-    # X JO0096 - OK, not a crossed fert experiment, same amount of P applied in both trts, but with different timings.
-    # X JO0070 - OK, not a crossed fert experiment, all the fertilizer is identical between aggregated trts.
-    # AC0013 - error in paper, corrections made.
-    
-    DATA<-Data.Out.Agg.xfert
-    
-    CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
-                     "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
-                     "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
-                     "B.Code","Country","ED.Comparison1","ED.Comparison2","T.Agg.Levels3")
-    
-    Verbose<-F
-    
-    # Set up future plan for parallel execution with the specified number of workers
-    plan(multisession, workers = worker_n)
-    
-    # Enable progress bar
-    handlers(global = TRUE)
-    handlers("progress")
-    
-    # Set up future plan for parallel execution
-    plan(multisession, workers = worker_n)
-    
-    # Initialize progress bar
-    Comparisons <- with_progress({
-      b_codes<-unique(DATA[, B.Code])
-      p <- progressor(steps = length(b_codes))
+    if(F){
+      # Explore potential issues
+      j<-2
+      z<-non_matches[B.Code==issue_bcodes[j]]
+      unique(z[,.(B.Code,T.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,F.Level.Name2)])
+      i<-z$N[1]
       
-      # Run future_lapply with progress bar
-      future_lapply(1:length(b_codes), function(ii) {
-        
-        p()  # Update progress bar
-        
-        # Filter subset of data for current B.Code
-        BC<-b_codes[ii]
-        Data.Sub <- DATA[B.Code == BC]
-        CW <- unique(Data.Sub[, CompareWithin, with = FALSE])  # No `..` prefix needed with `with = FALSE`
-        CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
-                    apply(CW, 1, paste, collapse = "-"))
-        Data.Sub[, Group := CW]
-        
-        # Report groups that have no comparisons
-        group_n<-Data.Sub[,table(Group)]
-        no_comparison <- Data.Sub[Group %in% names(group_n)[group_n == 1], CompareWithin, with = FALSE]
-        
-        Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
-        
-        # Apply compare_fun to each group
-        if(nrow(Data.Sub)>0){
-          
-          # Apply compare_fun to each group
-          comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
-            if (Verbose) {
-              cat(BC, " Subgroup = ", i,"\r")
-            }
-            
-            compare_fun(
-              Verbose = Verbose,
-              Data = Data.Sub[Group == i],
-              Debug = FALSE,
-              PracticeCodes = PracticeCodes,
-              Return.Lists = FALSE
-            )
-          }))
-        }else{
-          comp_dat<-NULL
-        }
-        
-        return(list(data=comp_dat,
-                    no_comparison_rows=no_comparison,
-                    zero_comparisons=if(is.null(comp_dat)){BC}else{NULL}))
-        
-      })
-    })
+      Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
+      Fert.Method[B.Code==issue_bcodes[j],.(F.Type,F.Codes)]
+      Y<-issue_bcodes[j]
+      X<-Fert.Out[B.Code==Y,F.Level.Name][7]
+      
+      # X SP0019 - OK not a crossed fert experiment, vetch residue practice is compared across levels of N
+      # X AC0172 - OK not a crossed experiment, there is no shared practice only 2 levels of P with different application methods aggregated
+      # X CJ0120 - Strange scenario we have types of P application (same level) aggregated together which could be compared to no application. There is no no shared crossed practice though. And there is an issue with the control.
+      # X JO0096 - OK, not a crossed fert experiment, same amount of P applied in both trts, but with different timings.
+      # X JO0070 - OK, not a crossed fert experiment, all the fertilizer is identical between aggregated trts.
+      # AC0013 - error in paper, corrections made, should disappear with next update.
+    }
     
-    no_comparison_rows_agg<-rbindlist(lapply(Comparisons,"[[","no_comparison_rows"))
-    zero_comp_agg<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
-    Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
+    # Update final.codes to include the code of the "fixed" fertilizer treatment that does not vary across the aggregated treatments.
+    update_final_codes<-function(A,B){
+      AB<-c(A,B)
+      AB<-unlist(strsplit(AB,"-"))
+      AB<-unique(AB[!is.na(AB) & AB!="NA"])
+      if(length(AB)>0){
+        paste(sort(AB),collapse = "-")
+      }else{
+        NA
+      }
+    }
     
-    # Restructure and save
-    # Remove NA values
-    Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
+    Data.Out.Agg.xfert[,Final.Codes2:=update_final_codes(A=Final.Codes2[1],B=T.Codes.Fert.Shared[1]),by=.(Final.Codes2,T.Codes.Fert.Shared)
+                       ][,Final.Codes:=strsplit(Final.Codes2,"-")]
     
-    Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
+    CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year", "ED.Outcome",
+                     "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS",
+                     "C.Structure","P.Structure","O.Structure","W.Structure",
+                     "B.Code","Country","ED.Comparison","T.Agg.Levels3")
     
+    results<-compare_wrap(DATA=Data.Out.Agg.xfert,
+                          CompareWithin=CompareWithin,
+                          worker_n=worker_n,
+                          Verbose = FALSE,
+                          Debug = FALSE,
+                          Return.Lists = FALSE,
+                          Fert.Method = Fert.Method,
+                          Plant.Method = Plant.Out,
+                          Irrig.Method = Irrig.Out,
+                          Res.Method = Res.Method,
+                          p_density_similarity_threshold = 0.95)
     
-    Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
-    Cols1<-c(CompareWithin,Cols)
+    groups_n1<-results$groups_n1 # These unique groupings have only 1 row
+    all_groups_n1<-results$all_groups_n1 # There no unique groupings with >1 row in these publications
+    no_comparison<-results$no_comparison # There no comparisons in these publications and there are groupings with >1 row
+    Comparisons<-results$Comparisons_raw
+    Comparisons_processed<-results$Comparisons_processed
     
-    Comparisons1<-Data.Out.Agg[match(Comparisons[,N],N),..Cols1]
-    Comparisons1[,Control.For:=Comparisons[,Control.For]]
-    Comparisons1[,Control.N:=Comparisons[,N]]
-    Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
-    setnames(Comparisons1,"T.Name","Control.Trt")
-    setnames(Comparisons1,"IN.Level.Name","Control.Int")
-    setnames(Comparisons1,"R.Level.Name","Control.Rot")
+    Comparison.List[["Aggregated_xfert"]]<-Comparisons_processed
     
-    Comparisons1[,Compare.Trt:=Data.Out.Agg[match(Control.For,N),T.Name]]
-    Comparisons1[,Compare.Int:=Data.Out.Agg[match(Control.For,N),IN.Level.Name]]
-    Comparisons1[,Compare.Rot:=Data.Out.Agg[match(Control.For,N),R.Level.Name]]
+    if(F){
+      # Are new aggregated comparisons added?
+      colnames(Comparisons_processed)[! colnames(Comparisons_processed) %in% colnames(Comparison.List$Aggregated)]
+      agg_comb<-rbind(Comparison.List$Aggregated,Comparison.List$Aggregated_xfert)
+      dim(unique(agg_comb))
+      dim(Comparison.List$Aggregated)
+      agg_comb[,sort(unique(B.Code))]
+      agg_comb[B.Code=="NN0484",.(Control.Trt,Compare.Trt)]
+    }
     
-    Comparison.List[["Aggregated_xfert"]]<-Comparisons1
-    
-    # This does not appear to add any new values?
-    dim(unique(rbind(Comparison.List$Aggregated,Comparison.List$Aggregated_xfert)))
-    dim(Comparison.List$Aggregated)
-  
   # 2.3) Intercropping System Outcomes ####
   
   # Extract outcomes aggregated over rot/int entire sequence or system
@@ -626,16 +416,23 @@ TreeCodes<-master_codes$trees
     Data.Out.Int2[,T.Name:=IN.Level.Name]
     
       # 2.3.1.1) Combine intercropped treatment information using a similar process to aggregated trts in the MT.Out table ########
-    F.Master.Codes<-PracticeCodes[Theme=="Nutrient Management" | Subpractice =="Biochar",Code]
-    F.Master.Codes<-F.Master.Codes[!grepl("h",F.Master.Codes)]
-    
+
        # !!TO DO !!! In original script Fertilizer tab has columns for each practice code #####
     Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name$",colnames(MT.Out))]))
     Fields[,Codes:=gsub("Level.Name","Codes",Levels)
            ][,Codes:=gsub("Prev","Code",Levels)
              ][grep("O[.]|PD[.]|C[.]|P[.]|W[.]",Codes),Codes:=NA]
     
+    # ***Development Note*** majestic hippo version of comparison workflow has fertilizer codes as columns (e.g. b16 as column name) #####
+    #F.Master.Codes<-PracticeCodes[Theme=="Nutrient Management" | Subpractice =="Biochar",Code]
+    #F.Master.Codes<-F.Master.Codes[!grepl("h",F.Master.Codes)]
+    #Fields<-Fields[!grepl("F.Level.Name",Levels)]
+    #Fields<-rbind(Fields,data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
+    
+    
     N<-which(!is.na(Data.Out.Int[,IN.Level.Name]))
+    
+    MT.Out[,P.Structure]
     
     MT.Out[!is.na(P.Structure),P.Structure:=P.Level.Name]
     MT.Out[!is.na(O.Structure),O.Structure:=O.Level.Name]
@@ -840,88 +637,25 @@ TreeCodes<-master_codes$trees
                      "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
                      "B.Code","Country","ED.Comparison1","ED.Comparison2","IN.Agg.Levels3")
     
-    DATA<-Data.Out.Int2
+    results<-compare_wrap(DATA=Data.Out.Int2,
+                          CompareWithin=CompareWithin,
+                          worker_n=worker_n,
+                          Verbose = FALSE,
+                          Debug = FALSE,
+                          Return.Lists = FALSE,
+                          Fert.Method = Fert.Method,
+                          Plant.Method = Plant.Method,
+                          Irrig.Method = Irrig.Method,
+                          Res.Method = Res.Method,
+                          p_density_similarity_threshold = 0.95)
     
-    Verbose<-F
-   
-    # Initialize progress bar
-    Comparisons <-pblapply(unique(DATA[, B.Code]), function(BC) {
-        # Filter subset of data for current B.Code
-        Data.Sub <- DATA[B.Code == BC]
-        CW <- unique(Data.Sub[, CompareWithin, with = FALSE])  # No `..` prefix needed with `with = FALSE`
-        CW <- match(apply(Data.Sub[, CompareWithin, with = FALSE], 1, paste, collapse = "-"),
-                    apply(CW, 1, paste, collapse = "-"))
-        Data.Sub[, Group := CW]
-        
-        # Report groups that have no comparisons
-        group_n<-Data.Sub[,table(Group)]
-        no_comparison <- Data.Sub[Group %in% names(group_n)[group_n == 1], CompareWithin, with = FALSE]
-        
-        Data.Sub<-Data.Sub[Group %in% names(group_n)[group_n>1]]
-        
-        # Apply compare_fun to each group
-        if(nrow(Data.Sub)>0){
-          
-          # Apply compare_fun to each group
-          comp_dat<-rbindlist(lapply(unique(Data.Sub$Group), function(i) {
-            if (Verbose) {
-              print(paste0(BC, " Subgroup = ", i))
-            }
-            
-            compare_fun(
-              Verbose = Verbose,
-              Data = Data.Sub[Group == i],
-              Debug = FALSE,
-              PracticeCodes = PracticeCodes,
-              Return.Lists = FALSE
-            )
-          }))
-        }else{
-          comp_dat<-NULL
-        }
-        
-        return(list(data=comp_dat,
-                    no_comparison_rows=no_comparison,
-                    zero_comparisons=if(is.null(comp_dat)){BC}else{NULL}))
-        
-      })
+    groups_n1<-results$groups_n1 # These unique groupings have only 1 row
+    all_groups_n1<-results$all_groups_n1 # There no unique groupings with >1 row in these publications
+    no_comparison<-results$no_comparison # There no comparisons in these publications and there are groupings with >1 row
+    Comparisons<-results$Comparisons_raw
+    Comparisons_processed<-results$Comparisons_processed
     
-    no_comparison_rows_int<-rbindlist(lapply(Comparisons,"[[","no_comparison_rows"))
-    zero_comp_int<-unlist(lapply(Comparisons,"[[","zero_comparisons"))
-    Comparisons<-rbindlist(lapply(Comparisons,"[[","data"))
-    
-    # Basic: Restructure and save
-    # Remove NA values
-    Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
-    
-    Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
-    
-    
-      # 2.3.1.3) Restructure ######
-    # Remove NA values
-    Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
-    
-    Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
-    
-    
-    Cols<-c("T.Name","IN.Level.Name","R.Level.Name")
-    Cols1<-c(CompareWithin,Cols)
-    
-    Comparisons1<-Data.Out.Int2[match(Comparisons[,N],N),..Cols1]
-    Comparisons1[,Control.For:=Comparisons[,Control.For]]
-    Comparisons1[,Control.N:=Comparisons[,N]]
-    Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
-    setnames(Comparisons1,"T.Name","Control.Trt")
-    setnames(Comparisons1,"IN.Level.Name","Control.Int")
-    setnames(Comparisons1,"R.Level.Name","Control.Rot")
-    
-    Comparisons1[,Compare.Trt:=Data.Out.Int2[match(Control.For,N),T.Name]]
-    Comparisons1[,Compare.Int:=Data.Out.Int2[match(Control.For,N),IN.Level.Name]]
-    Comparisons1[,Compare.Rot:=Data.Out.Int2[match(Control.For,N),R.Level.Name]]
-    
-    # write.table(Comparisons1,"clipboard-256000",row.names = F,sep="\t")
-    
-    Comparison.List[["Sys.Int.vs.Int"]]<-Comparisons1
+    Comparison.List[["Sys.Int.vs.Int"]]<-Comparisons_processed
     
     # 2.3.2) Scenario 2: Intercrop vs Monocrop ####
     
@@ -1040,6 +774,8 @@ TreeCodes<-master_codes$trees
     Data.Out.Int3[,T.Codes:=Update.Res(T.Codes),by=N3]
     Data.Out.Int3[,IN.T.Codes:=Update.Res(IN.T.Codes),by=N3]
     Data.Out.Int3[,N3:=NULL]
+    
+    Data.Out.Int3[,sort(unique(B.Code))]
     
       # 2.3.2.2) Run Comparisons ####
     # 1) All T-Codes in the Monocrop should be in the Intercrop
@@ -1354,7 +1090,7 @@ TreeCodes<-master_codes$trees
     # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
     Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3")
     
-        # TO DO !!! In original script fertilizer tab has codes as columns ####
+      # ***Development Note*** majestic hippo version of comparison workflow has fertilizer codes as columns (e.g. b16 as column name) #####
       Levels<-PracticeCodes[!Linked.Col %in% c("IN.Level.Name","R.Level.Name"),c("Code","Linked.Col")]
       #Levels<-PracticeCodes[!Linked.Col %in% c("F.Level.Name","IN.Level.Name","R.Level.Name"),c("Code","Linked.Col")]
       #Levels<-rbind(Levels,data.table(Code=F.Master.Codes,Linked.Col=F.Master.Codes))
@@ -2460,7 +2196,7 @@ Data<-Data.Out
   
   # Mulch codes present in Control & Treatment + Dprac should be present (as per CompareFun) in Trt else we are not in a complex situation
   # Recode either where Control has Rprac category code that Trt does not, or Trt has >1 and control has 1 practice.
-  # ***ISSUE*** Should Agroforestry Prunings be excluded?? (here and in CompareFun?) #####
+  # ***Development Note*** Should Agroforestry Prunings be excluded here and in compare_fun? #####
   
   C.Cols<-which(colnames(ERA.Reformatted) %in% paste0("C",1:NCols))
   
