@@ -6,6 +6,7 @@
 pacman::p_load(data.table,miceadds,future,future.apply,sp,terra,progressr)
 
 source(file.path(project_dir,"R/comparisons/compare_fun.R"))
+source(file.path(project_dir,"R/comparisons/compare_fun_ani.R"))
 source(file.path(project_dir,"R/comparisons/compare_wrap.R"))
 
 Cores<-14
@@ -375,10 +376,10 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
   Data.Out.Agg.xfert[,Final.Codes2:=update_final_codes(A=Final.Codes2[1],B=T.Codes.Fert.Shared[1]),by=.(Final.Codes2,T.Codes.Fert.Shared)
   ][,Final.Codes:=strsplit(Final.Codes2,"-")]
   
-  CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
+  CompareWithin<-c("Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year", "ED.Outcome",
                    "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS",
                    "C.Structure","P.Structure","O.Structure","W.Structure",
-                   "B.Code","Country","ED.Comparison1","ED.Comparison2","T.Agg.Levels3")
+                   "B.Code","Country","ED.Comparison","T.Agg.Levels3")
   
   results<-compare_wrap(DATA=Data.Out.Agg.xfert,
                         CompareWithin=CompareWithin,
@@ -667,76 +668,30 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
     
     # We cannot compare different types of intercrop so Levels and cropping sequence should be the same
     # The basic comparison grouping variables on Data.Out.Int dataset should work.
+    
     CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year", "ED.Outcome","ED.Plant.Start","ED.Plant.End","ED.Harvest.Start",
                      "ED.Harvest.End","ED.Harvest.DAS","ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","C.Structure","P.Structure","O.Structure",
                      "W.Structure","B.Code","Country","IN.Agg.Levels3","ED.Comparison")
     
-    DATA<-Data.Out.Int2
+      results<-compare_wrap(DATA=Data.Out.Int2,
+                          CompareWithin=CompareWithin,
+                          worker_n=worker_n,
+                          Verbose = FALSE,
+                          Debug = FALSE,
+                          Return.Lists = FALSE,
+                          Fert.Method = Fert.Method,
+                          Plant.Method = Plant.Out,
+                          Irrig.Method = Irrig.Out,
+                          Res.Method = Res.Method,
+                          p_density_similarity_threshold = 0.95)
     
-    # Setup the future plan (adjust cores as needed)
-    plan(multisession, workers = Cores)
+    groups_n1<-results$groups_n1 # These unique groupings have only 1 row
+    all_groups_n1<-results$all_groups_n1 # There no unique groupings with >1 row in these publications
+    no_comparison<-results$no_comparison # There no comparisons in these publications and there are groupings with >1 row
+    Comparisons<-results$Comparisons_raw
+    Comparisons_processed<-results$Comparisons_processed
     
-    # Register the progress handler
-    handlers("txtprogressbar")
-    
-    # Wrapping computation in progressr with_progress()
-    Comparisons <- with_progress({
-      p <- progressor(along = unique(DATA$B.Code))
-      
-      future_lapply(unique(DATA$B.Code), function(BC) {
-        p() # update progress
-        
-        Data.Sub <- DATA[B.Code == BC]
-        CW <- unique(Data.Sub[, CompareWithin,with=F])
-        CW <- match(apply(Data.Sub[, CompareWithin,with=F], 1, paste, collapse = "-"),
-                    apply(CW, 1, paste, collapse = "-"))
-        Data.Sub[, Group := CW]
-        
-        rbindlist(lapply(unique(Data.Sub$Group), function(i) {
-          if (Verbose) {
-            message(paste0(BC, " Subgroup = ", i))
-          }
-          
-          Compare.Fun(Verbose = F, Data = Data.Sub[Group == i],
-                      Debug = FALSE, PracticeCodes1, Return.Lists = FALSE)
-        }))
-      })
-    })
-    
-    plan(sequential)
-    
-    Comparisons<-unique(rbindlist(Comparisons))
-    
-    # Basic: Restructure and save
-    # Remove NA values
-    Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
-    
-    Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
-    
-    
-    # Restructure and save
-    # Remove NA values
-    Comparisons<-Comparisons[!is.na(Control.For)][,Len:=length(unlist(Control.For)),by=N]
-    
-    Comparisons<-Comparisons[unlist(lapply(Comparisons$Control.For, length))>0]
-    
-    
-    Cols<-c("ED.Treatment","ED.Int","ED.Rot")
-    Cols1<-c(CompareWithin,Cols)
-    
-    Comparisons1<-Data.Out.Int2[match(Comparisons[,N],N),..Cols1]
-    Comparisons1[,Control.For:=Comparisons[,Control.For]]
-    Comparisons1[,Control.N:=Comparisons[,N]]
-    Comparisons1[,Mulch.Code:=Comparisons[,Mulch.Code]]
-    setnames(Comparisons1,"ED.Treatment","Control.Trt")
-    setnames(Comparisons1,"ED.Int","Control.Int")
-    setnames(Comparisons1,"ED.Rot","Control.Rot")
-    
-    Comparisons1[,Compare.Trt:=Data.Out.Int2[match(Control.For,N),ED.Treatment]]
-    Comparisons1[,Compare.Int:=Data.Out.Int2[match(Control.For,N),ED.Int]]
-    Comparisons1[,Compare.Rot:=Data.Out.Int2[match(Control.For,N),ED.Rot]]
-    
-    Comparison.List[["Sys.Int.vs.Int"]]<-Comparisons1
+    Comparison.List[["Sys.Int.vs.Int"]]<-Comparisons_processed
     
     # 1.3.2) Scenario 2: Intercrop vs Monocrop ####
     
@@ -1685,112 +1640,6 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
   # 2.1) Feed Addition: Everything but Feed Substitution ####
   DATA<-Data.Out.Animals[(Feed.Add==T|A.Feed.Add.C=="Yes")]
   
-  Compare.Fun.Ani<-function(Data,Verbose,Debug){
-    
-    Match.Fun<-function(A,B){
-      A<-unlist(A)
-      B<-unlist(B)
-      list(A[!A %in% B])
-    }
-    
-    Match.Fun2<-function(A,B,C){
-      A<-unlist(A)
-      B<-unlist(B)
-      C<-unlist(C)
-      list(unique(C[match(A,B)]))
-    }
-    
-    BC<-Data$B.Code[1]
-    N<-Data[,N]
-    Final.Codes<-Data[,Final.Codes] # Is this redundant?
-    k<-N # Is this redundant?
-    Y<-Data[,c("Final.Codes","N","N.Prac")][,Y.N:=1:.N]
-    
-    lapply(1:length(N),FUN=function(j){
-      if(Verbose){print(paste("N =",j))}
-      X<-unlist(Data$Final.Codes[j])
-      i<-N[j]
-      
-      if(is.na(X[1])){
-        Z<-Y[N!=i & !is.na(Final.Codes)
-        ][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-        ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-        ][Match>=0 & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
-        
-        Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
-        
-        Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-        ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-        ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
-        
-        
-      }else{
-        
-        # Here we are working from the logic of looking at what other treatments can treatment[i] be a control for?
-        Z<-Y[N!=i][,Match:=sum(X %in% unlist(Final.Codes)),by=N # How many practices in this treatment match practices in other treatments?
-        ][,NoMatch:=sum(!unlist(Final.Codes) %in% X),by=N  # How many practices in this treatment do not match practices in other treatments?
-        ][Match>=length(X) & NoMatch>0] # Keep instances for which this treatment can be a control for other treatments
-        
-        # There was a bug here where Control.Code was set to :=list(X), but if X was the same length as nrow(Z) this led to issues
-        Z[,Control.Code:=rep(list(X),nrow(Z))] # Add codes that are present in the control
-        
-        
-        Z[,Prac.Code:=list(Match.Fun(Final.Codes,Control.Code)),by=N  # Add in column for the codes that are in treatment but not control
-        ][,Linked.Tab:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Tab)),by=N
-        ][,Linked.Col:=list(Match.Fun2(Control.Code,PracticeCodes$Code,PracticeCodes$Linked.Col)),by=N]
-        
-      }
-      
-      if(nrow(Z)>0){
-        Z$Level.Check<-lapply(1:nrow(Z),FUN=function(ii){
-          unlist(lapply(1:length(unlist(Z[ii,Linked.Tab])),FUN=function(jj){
-            
-            if(is.na(Z[ii,Linked.Tab])){TRUE}else{
-              
-              if(unlist(Z[ii,Linked.Tab])[jj]=="Animal.Out" & any(Z$Prac.Code[ii] %in% PracticeCodes1[Practice=="Feed Addition",Code])){
-                if(Verbose){print(paste0("Feed Add: ii = ",ii," | jj = ",jj))}
-                # Is the potential control listed as a control in the Animal tab?
-                Data.Sub[j,A.Feed.Add.C]=="Yes"
-                # TO DO Advanced Logic: Control should contain all rows of treatment
-              }else{
-                
-                if(unlist(Z[ii,Linked.Tab])[jj]=="Var.Out"){
-                  if(Verbose){print(paste0("Improved Breed: ii = ",ii," | jj = ",jj))}
-                  
-                  COL<-unlist(Z[ii,Linked.Col])[jj]
-                  if(!is.na(COL)){
-                    # Does control value (left) equal treatment value (right)
-                    Data[N==i,..COL] == Data[N== Z[ii,N],..COL]
-                  }else{
-                    # If control codes are NA (no ERA practice) then it could be comparible to other treatments that are not NA and have an ERA practice
-                    !is.na(unlist(Z$Prac.Code)[ii])
-                  }
-                }else{
-                  if(Verbose){print(paste0("Simple: ii = ",ii," | jj = ",jj))}
-                  
-                  # Otherwise we assume comparison is valid
-                  TRUE
-                }}}
-            
-            
-          }))
-          
-        })
-        
-        # All Level.Checks must be true for comparison to be valid
-        Z[,Level.Check:=all(unlist(Level.Check)),by="Y.N"]
-        
-        if(Debug){
-          Z
-        }else{
-          # Return rows from master table that are valid treatments for this control (Level.Check==T)
-          Z[Level.Check==T,N]
-        }
-      }else{NA}
-      
-    })
-  } # Setting Debug to T prints comparison table rather than row numbers
-  
   Verbose<-F
   Debug<-F
   
@@ -1809,7 +1658,7 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
     DS<-rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
       if(Verbose){print(paste0(BC," Subgroup = ", i))}
       
-      Control.For<-Compare.Fun.Ani(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F)
+      Control.For<-compare_fun_ani(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F,PracticeCodes = master_codes$prac)
       data.table(Control.For=Control.For,N=Data.Sub[Group==i,N])
     }))
     
@@ -1914,7 +1763,7 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
     DS<-rbindlist(lapply(unique(Data.Sub$Group),FUN=function(i){
       if(Verbose){print(paste0(BC," Subgroup = ", i))}
       
-      Control.For<-Compare.Fun.Ani(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F)
+      Control.For<-compare_fun_ani(Verbose = Verbose,Data = Data.Sub[Group==i],Debug=F,PracticeCodes = master_codes$prac)
       data.table(Control.For=Control.For,N=Data.Sub[Group==i,N])
     }))
     
@@ -2028,7 +1877,7 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
         DS<-data.table(Control.For=NA,N=Data.Sub[Group==i,N],B.Code=BC)
       }else{
         
-        DS<-Compare.Fun.Ani.DSub(Verbose = Verbose,Data = Data.Sub[Group==i],PracticeCodes1)
+        DS<-Compare.Fun.Ani.DSub(Verbose = Verbose,Data = Data.Sub[Group==i],PracticeCodes1=master_codes$prac)
       }
       DS
     }))
@@ -2100,6 +1949,7 @@ Comparison.List$Animal.DietSub$Compare.Rot <-NA
 Comparison.List$Animal.NoDietSub.Agg$Compare.Rot <-NA
 
 Comparison.List$Aggregated$Analysis.Function<-"Aggregated"
+Comparison.List$Aggregated_xfert$Analysis.Function<-"Aggregated_xfert"
 Comparison.List$Sys.Int.vs.Int$Analysis.Function<-"Sys.Int.vs.Int"
 Comparison.List$Sys.Int.vs.Mono$Analysis.Function<-"Sys.Int.vs.Mono"
 Comparison.List$Sys.Rot.vs.Rot$Analysis.Function<-"Sys.Rot.vs.Rot"
@@ -2115,9 +1965,11 @@ COLS<-COLS[!grepl("Structure|ED.Comparison",COLS)]
 Comparison.List$Sys.Rot.vs.Mono<- Comparison.List$Sys.Rot.vs.Mono[Level.Match==T]
 Comparison.List$Sys.Int.vs.Mono<- Comparison.List$Sys.Int.vs.Mono[Level.Match==T]
 
-Comparisons<-rbindlist(lapply(Comparison.List,FUN=function(X){X[,..COLS]}),use.names = T,fill=T)
+Comparisons<-rbindlist(lapply(Comparison.List,FUN=function(X){
+  setnames(X,"Site.ID","ED.Site.ID",skip_absent = T)
+  X[,..COLS]
+  }),use.names = T,fill=T)
 Comparisons[Mulch.Code %in% c("Int System","ROT System"),Mulch.Code:=NA]
-rm(B,COLS,Comparisons1)
 
 # 4) Prepare Main Dataset ####
 Data<-Data.Out
