@@ -17,6 +17,11 @@
 #' - **Control Groups**: Represent baseline practices or conditions.
 #' - **Treatment Groups**: Variations or experimental conditions applied.
 #' - **Practices**: Specific actions or methods used (e.g., crop rotation, mulching).
+#' 
+#' ## Developer Notes:
+#'  1.  Explore improved varieties heat etc. vs other?
+
+#' @import data.table
 #'
 #' @param Data Data table containing experimental data. Must include columns 
 #'   like `Final.Codes` (practice codes), `N` (group identifiers), and others.
@@ -26,6 +31,16 @@
 #'   rather than just final results.
 #' @param PracticeCodes Data table listing codes for various practices, along with 
 #'   metadata for linking them to higher-level categories or descriptions.
+#' @param Fert.Method Data table detailing fertilizer applications from the ERA
+#'   data model.
+#' @param Plant.Method Data table detailing crop planting methods and spacings
+#'    from the ERA data model.
+#' @param Irrig.Method Data table detailing irrigation methods and applications
+#'    from the ERA data model.
+#' @param Res.Method  Data table detailing mulching methods and applications
+#'    from the ERA data model.
+#' @param p_density_similarity_threshold Numeric; minimum similarity needed in planting
+#'    density comparisons (0-1, 1 being 100% similar), Default = 0.95.
 #' @param Return.Lists Logical; if TRUE, outputs comparisons as lists (useful for 
 #'   further programmatic analysis). If FALSE, results are returned as a flat table.
 #' @return A data table summarizing valid comparisons between control and treatment 
@@ -44,6 +59,11 @@
 #'   Verbose = TRUE,
 #'   Debug = FALSE,
 #'   PracticeCodes = practice_codes,
+#'   Fert.Method=Fert.Method,
+#'   Plant.Method=Plant.Method,
+#'   Irrig.Method=Irrig.Method,
+#'   Res.Method=Res.Method,
+#'   p_density_similarity_threshold = 0.95,
 #'   Return.Lists = FALSE
 #' )
 #'
@@ -58,7 +78,13 @@
 #' ## Developer Notes:
 #' - Potential issue? Diversification residue re-coding is for any residues, whereas we are interested in only experimental crop residues.
 #'
-compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
+compare_fun<-function(Data,Verbose=F,Debug=F,PracticeCodes,Fert.Method,Plant.Method,Irrig.Method,Res.Method,p_density_similarity_threshold=0.95,Return.Lists=F){
+  
+  if(!all(c("Time","Site.ID") %in% colnames(Fert.Method))){
+    do_times<-F
+  }else{
+    do_times<-T
+  }
   
   # Match.Fun: Identifies elements in A not found in B
   Match.Fun<-function(A,B){
@@ -276,17 +302,22 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                 # Suppress warnings is present as cols Code and F.Level.Name_original may not always be present depending on 
                 # where this function is run in the comparison workflow. We must remove any fields that identify a fertilizer
                 # treatment beyond the description of an individual element (e.g. anything derived at the fertilizer practice level combining multiple rows)
+                if(do_times){
                 Trt1<-suppressWarnings(Fert.Method[B.Code==BC & 
                                     F.Level.Name==Trt & 
                                     Time %in% c(Data$Time[1],"All Times") & 
                                     Site.ID %in% c(Data$Site.ID[1],"All Sites"),
                                   !c("F.Date.Text","F.Level.Name2","Code","F.Level.Name_original","F.Codes.Level")])
                 
-                Control1<-Fert.Method[B.Code==BC & 
+                Control1<-suppressWarnings(Fert.Method[B.Code==BC & 
                                         F.Level.Name==Control & 
                                         Time %in% c(Data$Time[1],"All Times") & 
                                         Site.ID %in% c(Data$Site.ID[1],"All Sites"),
-                                      !c("F.Date.Text","F.Level.Name2","Code","F.Level.Name_original","F.Codes.Level")]  
+                                      !c("F.Date.Text","F.Level.Name2","Code","F.Level.Name_original","F.Codes.Level")] )
+                }else{
+                  Trt1<-suppressWarnings(Fert.Method[B.Code==BC & F.Level.Name==Trt,!c("F.Date.Text","F.Level.Name2","Code","F.Level.Name_original","F.Codes.Level")])
+                  Control1<-suppressWarnings(Fert.Method[B.Code==BC &F.Level.Name==Control,!c("F.Date.Text","F.Level.Name2","Code","F.Level.Name_original","F.Codes.Level")] )
+                }
                 
                 # Are there any Fert.Method rows in the Control not in the Treatment? 
                 # Note that the fertilizer being applied could have the same identity but still differ in amount applied 
@@ -417,8 +448,8 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                     # Skip if no density information is available
                     if(nrow(Trt1)==0){TRUE}else{
                       
-                      # Planting Density needs to be 95% similar in all treatments
-                      if(all((Trt1[,Plant.Density]/Control1[,Plant.Density])>=0.95)){TRUE}else{FALSE}
+                      # Planting Density needs to be similar in all treatments
+                      if(all((Trt1[,Plant.Density]/Control1[,Plant.Density])>=p_density_similarity_threshold)){TRUE}else{FALSE}
                       
                     }
                     
@@ -434,8 +465,8 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                       Trt<-Data[Z[ii,Y.N],I.Level.Name]
                       Control<-Data[j,I.Level.Name]
                       
-                      Trt1<-Irrig.Method[I.Level.Name==Trt & 
-                                           B.Code == BC & 
+                      if(do_times){
+                      Trt1<-Irrig.Method[I.Level.Name==Trt & B.Code == BC & 
                                            Time %in% c(Data$Time[1],"All Times") & 
                                            Site.ID %in% c(Data$Site.ID[1],"All Sites"),
                                          c("I.Amount","I.Unit","I.Water.Type")]
@@ -445,6 +476,11 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                                                Time %in% c(Data$Time[1],"All Times") & 
                                                Site.ID %in% c(Data$Site.ID[1],"All Sites"),
                                              c("I.Amount","I.Unit","I.Water.Type")]
+                      }else{
+                        Trt1<-Irrig.Method[I.Level.Name==Trt & B.Code == BC,c("I.Amount","I.Unit","I.Water.Type")]
+                        
+                        Control1<-Irrig.Method[I.Level.Name==Control  & B.Code == BC,c("I.Amount","I.Unit","I.Water.Type")]
+                      }
                       
                       if(identical(Trt1,Control1)){TRUE}else{FALSE}
                     }else{
@@ -453,7 +489,7 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                     }
                     
                   }else{
-                    # ***Water Harvesting*** Do both treatment & control have Water Harvesting?
+                    # ***WATER HARVESTING*** Do both treatment & control have Water Harvesting?
                     if(unlist(Z[ii,Linked.Tab])[jj]=="WH.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="WH.Out")){
                       if(Verbose){print(paste0("Water Harvesting: ii = ",ii," | jj = ",jj))}
                       
@@ -462,7 +498,7 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                       TRUE
                       
                     }else{
-                      # ***Post Harvest*** Do both treatment & control have Post Harvest?
+                      # ***POST HARVEST*** Do both treatment & control have Post Harvest?
                       if(unlist(Z[ii,Linked.Tab])[jj]=="PO.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="PO.Out")){
                         if(Verbose){print(paste0("Post Harvest: ii = ",ii," | jj = ",jj))}
                         
@@ -471,7 +507,7 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                         TRUE
                         
                       }else{
-                        # ***Energy*** Do both treatment & control have Energy?
+                        # ***ENERGY*** Do both treatment & control have Energy?
                         if(unlist(Z[ii,Linked.Tab])[jj]=="E.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="E.Out")){
                           if(Verbose){print(paste0("Energy: ii = ",ii," | jj = ",jj))}
                           
@@ -480,7 +516,7 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                           TRUE
                           
                         }else{
-                          # ***Residues*** Do both treatments have Residues? If so the material, amount, date and method of application must match for them to be compared
+                          # ***RESIDUES*** Do both treatments have Residues? If so the material, amount, date and method of application must match for them to be compared
                           if(unlist(Z[ii,Linked.Tab])[jj]=="Res.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Res.Out")){
                             if(Verbose){print(paste0("Residues: ii = ",ii," | jj = ",jj))}
                             
@@ -509,6 +545,7 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                               TRUE # Assume levels must be the same
                             }else{
                               
+                              if(do_times){
                               Trt1<-Res.Method[M.Level.Name==Trt & 
                                                  B.Code == BC & 
                                                  Time %in% c(Data$Time[1],"All Times") & 
@@ -520,6 +557,11 @@ compare_fun<-function(Data,Verbose,Debug,PracticeCodes,Return.Lists){
                                                      Time %in% c(Data$Time[1],"All Times") & 
                                                      Site.ID %in% c(Data$Site.ID[1],"All Sites"),
                                                    c("M.Tree","M.Material","M.Amount","M.Fate","M.Date","M.Cover","M.Date.Stage","M.Date.DAP")]
+                              }else{
+                                Trt1<-Res.Method[M.Level.Name==Trt & B.Code == BC,c("M.Tree","M.Material","M.Amount","M.Fate","M.Date","M.Cover","M.Date.Stage","M.Date.DAP")]
+                                
+                                Control1<-Res.Method[M.Level.Name==Control& B.Code == BC,c("M.Tree","M.Material","M.Amount","M.Fate","M.Date","M.Cover","M.Date.Stage","M.Date.DAP")]
+                              }
                               
                               if(identical(Trt1,Control1)){TRUE}else{FALSE}
                               
