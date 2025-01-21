@@ -3438,3 +3438,14 @@ plan(sequential)
   save_name<-gsub("[.]RData","_comparisons.parquet",file_local)
   arrow::write_parquet(ERA.Reformatted,save_name)
   
+  # Compare versions
+  if(F){
+    (files<-grep("parquet",list.files("data/","majestic",full.names = T),value=T))
+    A<-arrow::read_parquet(files[1])
+    B<-arrow::read_parquet(files[2])
+    
+    dim(A)
+    dim(B)
+  }
+  
+  
