@@ -3,7 +3,7 @@
 
 # 0) Set-up ####
   # 0.1) Required packages & functions ####
-pacman::p_load(data.table,miceadds,future,future.apply,sp,terra,progressr)
+pacman::p_load(data.table,miceadds,future,future.apply,terra,progressr,arrow)
 
 source(file.path(project_dir,"R/comparisons/compare_fun.R"))
 source(file.path(project_dir,"R/comparisons/compare_fun_ani.R"))
@@ -28,7 +28,7 @@ Fert.Method<-Tables_2020$Fert.Method
 Fert.Out<-Tables_2020$Fert.Out
 Int.Out<-Tables_2020$Int.Out
 Irrig.Out<-Tables_2020$Irrig.Out
-setnames(Irrig.Out,"I.Name","I.Level.Name")
+setnames(Irrig.Out,"I.Name","I.Level.Name",skip_absent = T)
 MT.Out2<-Tables_2020$MT.Out2
 Plant.Out<-Tables_2020$Plant.Out
 Res.Method<-Tables_2020$Res.Method
@@ -222,6 +222,20 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
   
   Fert.Method<-copy(Tables_2020$Fert.Method)[,F.Level.Name_original:=F.Level.Name]
   Fert.Method[,Code:=F.Level.Name2][grepl("||",Code,fixed=T),Code:=tstrsplit(Code,"||",fixed=T)[[2]]]
+  
+  sum_fun_a<-function(x){
+    x<-sum(x,na.rm = T)
+    x1<-round(x*10*round(log(x,base=10)),0)/(10*round(log(x,base=10)))
+    if(is.na(x1)|is.nan(x1)){
+      x1<-x
+    }
+    if(x1==0){
+      x1<-NA
+    }
+    return(x1)
+  }
+  Fert.Method[,Code2:=paste(F.Type[1],sum_fun_a(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
+  
   sum_fun<-function(x){
     x<-sum(x,na.rm = T)
     if(x==0){
@@ -309,23 +323,15 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
   # Update Final.Codes - Final codes in the Data.Out.Agg dataset are derived from T.Codes which in turn are taken from T.Codes.No.Agg
   # We now need to add the code that relates to the practice in T.Agg.Levels.Fert.Shared (Fert.Method$Code)
   
-  sum_fun<-function(x){
-    x<-sum(x,na.rm = T)
-    x1<-round(x*10*round(log(x,base=10)),0)/(10*round(log(x,base=10)))
-    if(is.na(x1)|is.nan(x1)){
-      x1<-x
-    }
-    if(x1==0){
-      x1<-NA
-    }
-    return(x1)
-  }
-  Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
-  
   fcodes_focal<-unlist(pblapply(Data.Out.Agg.xfert$N,FUN=function(i){
     y<-Data.Out.Agg.xfert[N==i,.(B.Code,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
     x<-Fert.Method[B.Code==y$B.Code]
     x<-unique(x[F.Level.Name==y$F.Level.Name])
+    
+    if(nrow(x)==0){
+      x<-Fert.Method[B.Code==y$B.Code]
+      x<-unique(x[F.Level.Name2==y$F.Level.Name])
+    }
     
     codes2<-y[,unlist(tstrsplit(T.Agg.Levels.Fert.Shared,"---"))]
     fcodes_focal<-x[Code2 %in% codes2,F.Codes]
@@ -350,15 +356,19 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
   
   if(F){
     # Explore potential issues
-    j<-2
+    j<-7
     z<-non_matches[B.Code==issue_bcodes[j]]
-    unique(z[,.(B.Code,T.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,F.Level.Name2)])
+    unique(z[,.(B.Code,T.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,F.Level.Name,F.Level.Name2)])
     i<-z$N[1]
     
-    Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
-    Fert.Method[B.Code==issue_bcodes[j],.(F.Type,F.Codes)]
-    Y<-issue_bcodes[j]
-    X<-Fert.Out[B.Code==Y,F.Level.Name][7]
+    (f_levels<-z[,unique(F.Level.Name)])
+    f_levels[!f_levels %in% Fert.Method[B.Code==issue_bcodes[j],F.Level.Name]]
+    
+    Fert.Method[B.Code == issue_bcodes[j] & F.Level.Name %in% f_levels]
+    
+    Data.Out.Agg.xfert[N==i,.(B.Code,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
+    unique(Fert.Method[B.Code==issue_bcodes[j],.(F.Level.Name,F.Type,F.Codes)])
+    Fert.Out[B.Code==issue_bcodes[j],.(F.Level.Name,F.Level.Name2)]
     }
   
   # Update final.codes to include the code of the "fixed" fertilizer treatment that does not vary across the aggregated treatments.
@@ -2388,7 +2398,7 @@ Data<-Data.Out
   
   rm(Journals,NX)
   
-  # 4.18) ***ISSUE SPATIAL SECTION NEEDS UPDATING RGEOS IS NO LONGER AVAILBLE*** Aggregate data for averaged site locations ####
+  # 4.18) Aggregate data for averaged site locations ####
   A.Sites<-Data[grepl("[.][.]",ED.Site.ID),N]
 
   Agg.Sites<-function(B.Code,ED.Site.ID){
@@ -2407,19 +2417,16 @@ Data<-Data.Out
       return(data.table(Site.LonD=as.numeric(NA),Site.LatD=as.numeric(NA),Site.Buffer.Manual=as.numeric(NA)))
       
     }else{
-      
-      points <- SpatialPoints(coords[,list(Site.LonD,Site.LatD)],proj4string=CRS("+init=epsg:4326"))
-      points<-spTransform(points,CRS("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-      
+
       # Create points object in WGS84
-      points <- vect(coords,geom=c("Site.LonD", "Site.LatD"), crs = "EPSG:4326")
+      points <- terra::vect(coords[,list(Site.LonD,Site.LatD)],geom=c("Site.LonD", "Site.LatD"), crs = "EPSG:4326")
       
       # Transform to Mercator projection
-      points <- project(points, "EPSG:3857")
+      points <- terra::project(points, "EPSG:3857")
       
       # Create buffer polygons
       buffers <- vect(lapply(seq_len(nrow(coords)), function(i) {
-        buffer_geom <- buffer(points[i, ], width = coords[i, Site.Buffer.Manual])
+        buffer_geom <- terra::buffer(points[i, ], width = coords[i, Site.Buffer.Manual])
         buffer_geom
       }))
       
@@ -3441,11 +3448,19 @@ plan(sequential)
   # Compare versions
   if(F){
     (files<-grep("parquet",list.files("data/","majestic",full.names = T),value=T))
-    A<-arrow::read_parquet(files[1])
-    B<-arrow::read_parquet(files[2])
     
-    dim(A)
-    dim(B)
+    versions<-lapply(files,read_parquet)
+    
+    v_compare<-data.table(file=basename(files),
+                          rnows=sapply(versions,nrow),
+                          studies=sapply(versions,FUN=function(x){x[,length(unique(Code))]}))
+    
+    studies<-lapply(versions,FUN=function(x){x[,unique(Code)]})
+    
+    studies[[1]][!studies[[1]] %in% studies[[2]]]
+    studies[[1]][!studies[[1]] %in% studies[[3]]]
+    studies[[2]][!studies[[2]] %in% studies[[3]]]
+    
   }
   
   
