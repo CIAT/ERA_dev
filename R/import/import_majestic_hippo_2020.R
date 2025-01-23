@@ -2,7 +2,7 @@
 
 # 0) Set-up ####
   ## 0.1) Load packages ####
-pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply,parallel)
+pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply,parallel,stringr)
 
   ## 0.2) Create helper functions ####
 waitifnot <- function(cond) {
@@ -74,7 +74,7 @@ master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_exce
   ## 1.3) Prepare concepts & harmonization -----
 
 # Read in Fertilizers
-FertCodes<-fread(file.path("data_entry",project,"legacy_files/Fertilizer.csv"),header=T,strip.white=T,encoding = "Latin-1")
+FertCodes<-master_codes$fert
 FertCodes[,F.Lab:=paste0(F.Category,"-",F.Type)]
 
 # Read in Trees
@@ -836,6 +836,8 @@ names(XL) <- FNames
     }
     rm(Code999999Issue)
     
+    Fert.Method[,F.Amount:=as.numeric(F.Amount)]
+    
     ### 2.10.2) Fert.Out: Fix Potassium & Biochar Coding Errors  #####
     # This is probably redundant and could be implemented from the Fert.Methods table
     
@@ -922,33 +924,117 @@ names(XL) <- FNames
     copy_down_cols<-grep("Unit",colnames(Fert.Out),value=T)
     Fert.Out <- Fert.Out[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
     
-    ### 2.10.3) Fert.Method: Update Codes in  Fert.Methods From MasterCodes FERT Tab ####
+    ### 2.10.3) Fert.Method: Harmonization ####
     
-    # Validation - Check for non-matches
-    Fert.Method[,F.Lab:=paste0(F.Category,"-",F.Type)]
+    # Update fertilizer names using fert tab of master_codes and merge associated f.codes
+    fert_master<-unique(master_codes$fert[,list(F.Category,F.Type,F.Category_New,F.Type_New,Fert.Code1,Fert.Code2,Fert.Code3,Fert.Code4)
+    ][,match:=T])
     
-    # Table should be blank if there are no issues
-    FERT.Master.NonMatches<-unique(Fert.Method[is.na(match(F.Lab,FertCodes[,F.Lab])),c("B.Code","F.Category","F.Type")])
+    # Convert multiple old names using ; delimiter to new rows
+    fert_master<-rbindlist(pblapply(1:nrow(fert_master),FUN=function(i){
+      data<-fert_master[i]
+      N<-data[,str_count(F.Type,";")]
+      if(!is.na(N)){
+        data<-fert_master[rep(i,N+1) ]
+        data[,F.Type:=unlist(str_split(F.Type[1],";"))]
+      }
+      data
+    }))
     
-    if(nrow(FERT.Master.NonMatches)>0){
-      View(FERT.Master.NonMatches)
+    # Create a code for fertilizers in the excels
+    Fert.Method[,F.Type.Codex:=paste(c(F.Category[1],F.Type[1]),collapse = "$$"),by=.(F.Category,F.Type)
+    ][,F.Type.Code:=tolower(F.Type.Codex),by=F.Type.Codex]
+    
+    # Create codes the master file to match again
+    fert_master[,F.Type.Codex:=paste(c(F.Category[1],F.Type[1]),collapse = "$$"),by=.(F.Category,F.Type)
+    ][,F.Type.Code:=tolower(F.Type.Codex),by=F.Type.Codex
+    ][,F.Type.Code2x:=paste(c(F.Category_New[1],F.Type_New[1]),collapse = "$$"),by=.(F.Category_New,F.Type_New)
+    ][,F.Type.Code2:=tolower(F.Type.Code2x),by=F.Type.Code2x
+    ][,F.Codes:=paste0(unique(sort(c(Fert.Code1,Fert.Code2,Fert.Code3,Fert.Code4))),collapse = "-"),by=F.Type.Code2x
+    ][,F.Codes:=gsub("-NA","",F.Codes),by=F.Codes]
+    
+    # Match on "old names"
+    Fert.Method<-merge(Fert.Method,fert_master[,list(F.Type.Code,F.Type.Code2x,F.Codes)],all.x=T,by="F.Type.Code")
+    
+    # Match on "new names"
+    fert_master2<-unique(fert_master[,.(F.Type.Code2x,F.Type.Code2,F.Codes)])
+    names(fert_master2)<-c("F.Type.Code2x2","F.Type.Code","F.Codes2")
+    Fert.Method<-merge(Fert.Method,fert_master2,
+                       all.x=T,by="F.Type.Code")
+    
+    # Combine merged codes from old and new names
+    Fert.Method[is.na(F.Type.Code2x),F.Codes:=F.Codes2
+    ][is.na(F.Type.Code2x),F.Type.Code2x:=F.Type.Code2x2
+    ][,c("F.Codes2","F.Type.Code2x2"):=NULL]
+    
+    # Replace values
+    Fert.Method[!is.na(F.Type.Code2x),F.Type:=unlist(tstrsplit(F.Type.Code2x,"$$",keep=2,fixed=T))
+    ][!is.na(F.Type.Code2x),F.Category:=unlist(tstrsplit(F.Type.Code2x,"$$",keep=1,fixed=T))]
+    
+    # Expose fertilizers with no match
+    fertilizer_non_match<-Fert.Method[is.na(F.Type.Code2x),list(B.Code=paste(unique(B.Code),collapse="/")),by=F.Type.Codex
+    ][,table:="Fert.Method"
+    ][,field:="F.Category-F.Type"
+    ][,table_alt:=NA
+    ][,field_alt:="F.Type_New"
+    ][,master_tab:="fert"]
+    
+    if(nrow(fertilizer_non_match)>0){
+      View(fertilizer_non_match)
     }
-    rm(FERT.Master.NonMatches)
     
-    # Add Codes
-    Fert.Method$F.Lab<-apply(Fert.Method[,c("F.Category","F.Type")],1,paste,collapse="-")
-    Fert.Method<-cbind(Fert.Method,FertCodes[match(Fert.Method$F.Lab,FertCodes$F.Lab),c("Fert.Code1","Fert.Code2","Fert.Code3")])
-    Fert.Method[,F.Codes:=paste(sort(unique(na.omit(c(Fert.Code1[1],Fert.Code2[1],Fert.Code3[1])))),collapse="-"),by=.(Fert.Code1,Fert.Code2,Fert.Code3)]
-    Fert.Method[,F.Lab:=NULL]
+    Fert.Method[,c("F.Type.Code2x","F.Type.Code","F.Type.Codex"):=NULL]
     
-    ### 2.10.4) Fert.Method: Update Fields From Harmonization Sheet ####
-      N<-match(Fert.Method$F.Method,OtherHarmonization$Fert.Method)
-      Fert.Method[,F.Method:=OtherHarmonization[N,Fert.Method.Correct]]
-      rm(N)
-    ### 2.10.5) Fert.Out: Add Fertilizer Codes from NPK rating ####
     
-    # Fert.Out - Validation: Check codes for errors
-    # View(unique(Fert.Method[!is.na(F.NPK),c("F.NPK","B.Code")][order(F.NPK)]))
+    # Harmonize units
+    h_params<-data.table(h_table="Fert.Method",
+                         h_field=c("F.Unit","F.Method","F.Source","F.Fate"),
+                         h_table_alt=c("Fert.Out",NA,"Fert.Method","Res.Method"),
+                         h_field_alt=c("F.Unit",NA,"M.Source","M.Fate"))
+    
+    results<-harmonizer_wrap(data=Fert.Method,
+                             h_params=h_params,
+                             master_codes = master_codes)
+    
+    Fert.Method<-results$data
+    
+      #### 2.10.4.1) Fert.Method: Estimate amounts if NPK given in Fert.Out and amount is a % applied or NA ####
+    # custom mappings
+    fert_remap<-rbind(
+      data.table(to="Single Super Phosphate",from=c("Super Phosphate","Superphosphate")),
+      data.table(to="Calcium Single Superphosphate",from=c("Calcium Phosphate","Calcium Superphosphate")),
+      data.table(to="Rock Single Superphosphate",from=c("Rock Superphosphate")),
+      data.table(to="Diammonium Phosphte",from=c("Ammonium Phosphate"))
+    )
+    
+    results<-infer_fert_amounts(fert_codes=master_codes$fert,
+                       Fert.Method=Fert.Method,
+                       Fert.Out=Fert.Out,
+                       remappings=fert_remap,
+                       max_diff=0.2)
+    
+    fert_infer<-results$data
+    error_dat<-results$errors  
+    error_dat[,sort(unique(B.Code))]
+    # fwrite(error_dat,"MH_fertilizer_issues.csv")
+    
+    # Subset results to new values with less than 20% variance between reported and calculated N,P and K values
+    fert_calc_vals<-fert_infer[(!is.na(F.Amount) & is.na(F.Amount_raw) & P_diff<0.2 & N_diff<0.2 & K_diff<0.2)|(!is.na(F.Amount) & grepl("%",F.Unit_raw) & F.Unit!=F.Unit_raw),.(index,F.Amount,F.Unit)]
+    colnames(fert_calc_vals)[2:3]<-c("F.Amount_calc","F.Unit_calc")
+    fert_calc_vals$calculated<-T
+    
+    # Add index to Fert.Method
+    Fert.Method[,index:=1:.N]
+    
+    # Merge new data using index
+    Fert.Method<-merge(Fert.Method,fert_calc_vals,by="index",all.x=T,sort=F)
+    
+    Fert.Method[!is.na(F.Amount_calc),`:=`(F.Amount=F.Amount_calc,F.Unit=F.Unit_calc)
+                ][,c("F.Amount_calc","F.Unit_calc"):=NULL
+                  ][is.na(calculated),calculated:=F]
+    
+      
+    ### 2.10.4) Fert.Out: Add Fertilizer Codes from NPK rating ####
     
     Fert.Method[!is.na(F.NPK),c("B.Code","F.NPK")]
     
