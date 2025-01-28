@@ -1018,7 +1018,3 @@ ERA.Reformatted[,.(N.Obs=.N),by=.(Code,CID,Outcome,Units,Partial.Outcome.Name)][
 # 5) Save Output ####
 save_name<-gsub("[.]RData","_comparisons.parquet",file_local)
 arrow::write_parquet(ERA.Reformatted,save_name)
-
-
-  
-  
