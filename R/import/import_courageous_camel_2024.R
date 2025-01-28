@@ -199,8 +199,8 @@ if(!ext_live){
     # Update the progress bar
     p()
     
-  results<-lapply(1:nrow(excel_files),FUN=function(ii){
-  cat(ii,"\n")
+ # results<-lapply(1:nrow(excel_files),FUN=function(ii){
+  #cat(ii,"\n")
     
     File <- excel_files$filename[ii]
     #cat("File",ii,basename(File),"\n")
@@ -257,6 +257,7 @@ allowed_values<-data.table(allowed_values=list(master_codes$journals$B.Journal),
 
 # Replace zeros with NAs
 results<-validator(data=Pub.Out,
+                   character_cols = template_cols,
                    compulsory_cols = c(filename="B.Code",filename="B.Author.Last",filename="B.Date"),
                    zero_cols=c("B.Url","B.DOI","B.Link1","B.Link2","B.Link3","B.Link4"),
                    allowed_values = allowed_values,
@@ -1594,6 +1595,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   
   results<-validator(data=AF.Trees,
                      tabname=table_name,
+                     character_cols = NULL,
                      compulsory_cols = c(AF.Tree="AF.Level.Name"),
                      numeric_cols = "AF.Tree.N",
                      template_cols = template_cols,
