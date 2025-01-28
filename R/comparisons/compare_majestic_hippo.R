@@ -24,7 +24,7 @@ Animals.Out<-Tables_2020$Animals.Out
 Animals.Diet<-Tables_2020$Animals.Diet
 Animals.Diet.Comp<-Tables_2020$Animals.Diet.Comp
 Data.Out<-Tables_2020$Data.Out
-Fert.Method<-Tables_2020$Fert.Method
+Fert.Method<-Tables_2020$Fert.Method[,calculated:=NULL]
 Fert.Out<-Tables_2020$Fert.Out
 Int.Out<-Tables_2020$Int.Out
 Irrig.Out<-Tables_2020$Irrig.Out
@@ -103,7 +103,7 @@ Data.Out.No.Agg[,N.Prac:=length(unlist(Final.Codes)[!is.na(unlist(Final.Codes))]
 CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year", "ED.Outcome","ED.Plant.Start","ED.Plant.End","ED.Harvest.Start",
                    "ED.Harvest.End","ED.Harvest.DAS","ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","C.Structure","P.Structure","O.Structure",
                    "W.Structure","B.Code","Country","ED.Comparison")
-  
+
     results<-compare_wrap(DATA=Data.Out.No.Agg,
                         CompareWithin=CompareWithin,
                         worker_n=worker_n,
@@ -127,7 +127,7 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
   # 1.2) Aggregated Treatments (Not Animals) ####
     # 1.2.1) Subset and prepare data ######
     # Extract Aggregated Observations
-  Data.Out.Agg<-Data.Out[grep("[.][.][.]",T.Name2)]
+  Data.Out.Agg<-Data.Out[grep("[.][.][.]",T.Name2)][,row_index:=N]
   
   # Exclude Ratios
   # Remove Controls for Ratio Comparisons
@@ -391,6 +391,15 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
                    "C.Structure","P.Structure","O.Structure","W.Structure",
                    "B.Code","Country","ED.Comparison","T.Agg.Levels3")
   
+  if(F){
+    # Developer Section for debugging issues
+  Data.Out.Agg.xfert[B.Code=="NJ0055",CompareWithin,with=F]
+  x<-Data.Out.Agg.xfert[B.Code=="NJ0055",.(T.Name,Final.Codes,Final.Codes2,T.Codes,IN.Code,Final.Residue.Code,
+                                        R.Code,F.Codes,T.Codes.No.Agg,T.Codes.Agg,T.Codes.Fert.Shared,I.Codes,T.Agg.Levels3,
+                                        row_index)]
+  x[T.Agg.Levels3=="NA---Single Super Phosphate 90"][order(row_index)]
+  }
+  
   results<-compare_wrap(DATA=Data.Out.Agg.xfert,
                         CompareWithin=CompareWithin,
                         worker_n=worker_n,
@@ -421,6 +430,12 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
     agg_comb[,sort(unique(B.Code))]
   }
   
+      # 1.2.3.1) Add T.Codes.Fert.Shared to main dataset and update final codes
+      T.Codes.Fert.Shared<-unique(Data.Out.Agg.xfert[!is.na(T.Codes.Fert.Shared) & !T.Codes.Fert.Shared %in% c("NA",""),.(B.Code,T.Name,T.Codes.Fert.Shared)])
+      Data.Out<-merge(Data.Out,T.Codes.Fert.Shared,by=c("B.Code","T.Name"),all.x=T,sort=F)
+  
+      
+      
   # 1.3) Intercropping System Outcomes ####
   
   # Extract outcomes aggregated over rot/int entire sequence or system
@@ -1938,9 +1953,17 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
   
 # 3) Combine Data ####
 Comparison.List$Simple$Analysis.Function<-"Simple"
+Comparison.List$Aggregated$Analysis.Function<-"Aggregated"
+Comparison.List$Aggregated_xfert$Analysis.Function<-"Aggregated_xfert"
+Comparison.List$Sys.Int.vs.Int$Analysis.Function<-"Sys.Int.vs.Int"
+Comparison.List$Sys.Int.vs.Mono$Analysis.Function<-"Sys.Int.vs.Mono"
+Comparison.List$Sys.Rot.vs.Rot$Analysis.Function<-"Sys.Rot.vs.Rot"
+Comparison.List$Sys.Rot.vs.Mono$Analysis.Function<-"Sys.Rot.vs.Mono"
+  
 Comparison.List$Animal.NoDietSub$Analysis.Function<-"NoDietSub"
 Comparison.List$Animal.DietSub$Analysis.Function<-"DietSub"
 Comparison.List$Animal.NoDietSub.Agg$Analysis.Function<-"NoDietSub.Agg"
+
 
 Comparison.List$Animal.NoDietSub$Control.Int<-NA
 Comparison.List$Animal.DietSub$Control.Int<-NA
@@ -1957,13 +1980,6 @@ Comparison.List$Animal.NoDietSub.Agg$Control.Rot<-NA
 Comparison.List$Animal.NoDietSub$Compare.Rot <-NA
 Comparison.List$Animal.DietSub$Compare.Rot <-NA
 Comparison.List$Animal.NoDietSub.Agg$Compare.Rot <-NA
-
-Comparison.List$Aggregated$Analysis.Function<-"Aggregated"
-Comparison.List$Aggregated_xfert$Analysis.Function<-"Aggregated_xfert"
-Comparison.List$Sys.Int.vs.Int$Analysis.Function<-"Sys.Int.vs.Int"
-Comparison.List$Sys.Int.vs.Mono$Analysis.Function<-"Sys.Int.vs.Mono"
-Comparison.List$Sys.Rot.vs.Rot$Analysis.Function<-"Sys.Rot.vs.Rot"
-Comparison.List$Sys.Rot.vs.Mono$Analysis.Function<-"Sys.Rot.vs.Mono"
 
 # Get Columns
 B<-Comparison.List$Sys.Int.vs.Mono
@@ -1989,6 +2005,8 @@ Data<-Data.Out
   #Data<-Data[!is.na(ED.Treatment)]
   
   # 4.3) Combine all Practice Codes together & remove h-codes ####
+
+    # UPDATE TO INCLUDE T.Agg.Fert.Shared!!!!!
   Join.T<-function(A,B,C,D){
     X<-c(A,B,C,D)
     X<-unlist(strsplit(X,"-"))
@@ -3431,7 +3449,7 @@ plan(sequential)
   
   Z<-ERA.Reformatted[,..Cols]
   
-  Z<-rbindlist(apply(Z,1,FUN=function(X){
+  Z<-rbindlist(pbapply(Z,1,FUN=function(X){
     A<-Mulch.C.Codes[Mulch.C.Codes %in% X[1:NCols] & Mulch.T.Codes %in% X[(NCols+1):length(X)]]
     if(length(A)>0){
       X[which(X[1:NCols] == A)] <-"h37"
@@ -3445,22 +3463,64 @@ plan(sequential)
   save_name<-gsub("[.]RData","_comparisons.parquet",file_local)
   arrow::write_parquet(ERA.Reformatted,save_name)
   
-  # Compare versions
-  if(F){
+   # 5.7.1) Compare versions #####
+  
     (files<-grep("parquet",list.files("data/","majestic",full.names = T),value=T))
     
     versions<-lapply(files,read_parquet)
     
-    v_compare<-data.table(file=basename(files),
+    (v_compare<-data.table(file=basename(files),
                           rnows=sapply(versions,nrow),
-                          studies=sapply(versions,FUN=function(x){x[,length(unique(Code))]}))
+                          studies=sapply(versions,FUN=function(x){x[,length(unique(Code))]})))
     
     studies<-lapply(versions,FUN=function(x){x[,unique(Code)]})
     
-    studies[[1]][!studies[[1]] %in% studies[[2]]]
-    studies[[1]][!studies[[1]] %in% studies[[3]]]
-    studies[[2]][!studies[[2]] %in% studies[[3]]]
     
-  }
-  
+    studies_xref<-lapply(1:length(studies),FUN=function(i){
+      n<-1:length(studies)
+      n<-n[n!=i]
+      result<-lapply(n,FUN=function(j){
+        studies[[i]][!studies[[i]] %in% studies[[j]]]
+      })
+      names(result)<-basename(files)[n]
+      result
+    })
+    
+    names(studies_xref)<-basename(files)
+    
+    tail(files,1)
+    studies_xref[[1]][[length(studies_xref)-1]]
+    studies_xref[[length(studies_xref)]][[1]]
+    
+    focal<-"NJ0055"
+    focal %in% studies[[length(studies)]]
+    nrow(Data[B.Code==focal])    
+    nrow(Comparisons[B.Code==focal])    
+    nrow(ERA.Reformatted[Code==focal])  
+    
+    Cols <- sort(paste0(c("C", "T"), rep(1:5,each=2)))
+    ERA.Reformatted[Code==focal,Cols,with=F]
+    # There is an issue, I think the code from T.Code.Fert_agg is not being used
+    
+    Data[B.Code==focal,.(T.Name,Final.Codes,T.Codes,F.Codes,T.Codes.Agg,T.Codes.No.Agg)]
+    
+    nrow(versions[[length(versions)]][Code==focal])    
+    
+    
+    j<-Comparisons[,which(B.Code==focal)]
+    i<-j[1]
+    
+    Comparisons[i]
+    Comparisons[i, Control.N]
+    Comparisons[i, Control.For]
+    
+    x<-Knit.V1(
+      Control.N = Comparisons[i, Control.N],
+      Control.For = Comparisons[i, Control.For],
+      Data = Data,
+      Mulch = Comparisons[i, Mulch.Code],
+      Analysis.Function = Comparisons[i, Analysis.Function],
+      NCols = NCols
+    )
+    
   
