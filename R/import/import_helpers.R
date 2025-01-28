@@ -281,16 +281,16 @@ fert_subset[k_no==1 & is.na(F.Unit) & is.na(F.Amount),`:=`(F.Amount=round(F.KI/F
 fert_subset[grep("%",F.Unit,fixed=T),F.Amount_perc:=F.Amount/100]
 fert_subset[grep("%",F.Unit,fixed=T),F.Amount:=NA]
 
-fert_subset[p_no==1 & grepl("%",F.Unit),`:=`(F.Amount=round(F.PI/F.P*F.Amount_perc,1),F.Unit=F.I.Unit)]
-fert_subset[n_no==1 & grepl("%",F.Unit),`:=`(F.Amount=round(F.NI/F.N*F.Amount_perc,1),F.Unit=F.I.Unit)]
-fert_subset[k_no==1 & grepl("%",F.Unit),`:=`(F.Amount=round(F.KI/F.K*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[p_no==1 & grepl("%",F.Unit) & F.Type!="P (Unspecified)",`:=`(F.Amount=round(F.PI/F.P*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[n_no==1 & grepl("%",F.Unit) & F.Type!="N (Unspecified)",`:=`(F.Amount=round(F.NI/F.N*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[k_no==1 & grepl("%",F.Unit) & F.Type!="K (Unspecified)",`:=`(F.Amount=round(F.KI/F.K*F.Amount_perc,1),F.Unit=F.I.Unit)]
 
 # Add amounts for unspecified N, P, K fertilizers (developer notes included)
 # Dev Note: Ensure logic to handle unspecified NPK is implemented when NPK totals are given but missing in the table
 # Dev Note: it may also be possible to included unspecified N,P, and K after n_no==1 records are dealt with where n_no==2
-fert_subset[n_no==1 & is.na(F.Amount) & F.Type=="N (Unspecified)",`:=`(F.Amount = F.NI / n_row, F.Unit = F.I.Unit, F.N=1/n_row)]
-fert_subset[p_no==1 & is.na(F.Amount) & F.Type=="P (Unspecified)",`:=`(F.Amount = F.PI / n_row, F.Unit = F.I.Unit, F.P=1/n_row)]
-fert_subset[k_no==1 & is.na(F.Amount) & F.Type=="K (Unspecified)",`:=`(F.Amount = F.KI / n_row, F.Unit = F.I.Unit, F.K=1/n_row)]
+fert_subset[n_no==1 & is.na(F.Amount) & F.Type=="N (Unspecified)",`:=`(F.Amount = F.NI / n_row, F.Unit = F.I.Unit, F.N=1)]
+fert_subset[p_no==1 & is.na(F.Amount) & F.Type=="P (Unspecified)",`:=`(F.Amount = F.PI / n_row, F.Unit = F.I.Unit, F.P=1)]
+fert_subset[k_no==1 & is.na(F.Amount) & F.Type=="K (Unspecified)",`:=`(F.Amount = F.KI / n_row, F.Unit = F.I.Unit, F.K=1)]
 
 # Reality check for completeness of elemental sums
 fert_subset[is.nan(F.N) & !is.na(n_no),N_sum_complete:=F
@@ -328,9 +328,9 @@ fert_subset[!is.na(F.NI_2) & is.na(F.Unit),F.Amount:=round(F.NI_2/F.N/n_row,1)]
 fert_subset[!is.na(F.KI_2) & is.na(F.Unit),F.Amount:=round(F.KI_2/F.K/n_row,1)]
 
 # Handle percentage-based units for recalculated amounts
-fert_subset[!is.na(F.PI_2) & grepl("%",F.Unit),F.Amount:=round(F.PI_2/F.P*F.Amount_perc,1)]
-fert_subset[!is.na(F.NI_2) & grepl("%",F.Unit),F.Amount:=round(F.NI_2/F.N*F.Amount_perc,1)]
-fert_subset[!is.na(F.KI_2) & grepl("%",F.Unit),F.Amount:=round(F.KI_2/F.K*F.Amount_perc,1)]
+fert_subset[!is.na(F.PI_2) & grepl("%",F.Unit) & F.Type!="P (Unspecified)",F.Amount:=round(F.PI_2/F.P*F.Amount_perc,1)]
+fert_subset[!is.na(F.NI_2) & grepl("%",F.Unit) & F.Type!="N (Unspecified)",F.Amount:=round(F.NI_2/F.N*F.Amount_perc,1)]
+fert_subset[!is.na(F.KI_2) & grepl("%",F.Unit) & F.Type!="K (Unspecified)",F.Amount:=round(F.KI_2/F.K*F.Amount_perc,1)]
 
 # Final reality checks for completeness and totals
 fert_subset[,P:=F.Amount*F.P][,N:=F.Amount*F.N][,K:=F.Amount*F.K]
