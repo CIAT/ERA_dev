@@ -218,7 +218,7 @@ if(F){
     
     # 1.2.3.2) upload excels #######
     # where is the working folder for the ERA data extractions (internal team directory)
-    folder_local<-"data_entry/majestic_hippo_2020/excel_files"
+    folder_local<-"/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2020/Quality controlled"
     project<-era_projects$majestic_hippo_2020
     folder<-file.path(era_dirs$era_dataentry_dir,
                       project,
