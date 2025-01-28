@@ -430,12 +430,10 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
     agg_comb[,sort(unique(B.Code))]
   }
   
-      # 1.2.3.1) Add T.Codes.Fert.Shared to main dataset and update final codes
+      # 1.2.3.1) Add T.Codes.Fert.Shared to main dataset and update final codes ####
       T.Codes.Fert.Shared<-unique(Data.Out.Agg.xfert[!is.na(T.Codes.Fert.Shared) & !T.Codes.Fert.Shared %in% c("NA",""),.(B.Code,T.Name,T.Codes.Fert.Shared)])
       Data.Out<-merge(Data.Out,T.Codes.Fert.Shared,by=c("B.Code","T.Name"),all.x=T,sort=F)
   
-      
-      
   # 1.3) Intercropping System Outcomes ####
   
   # Extract outcomes aggregated over rot/int entire sequence or system
@@ -2006,16 +2004,15 @@ Data<-Data.Out
   
   # 4.3) Combine all Practice Codes together & remove h-codes ####
 
-    # UPDATE TO INCLUDE T.Agg.Fert.Shared!!!!!
-  Join.T<-function(A,B,C,D){
-    X<-c(A,B,C,D)
+  Join.T<-function(A,B,C=NULL,D=NULL,E=NULL){
+    X<-c(A,B,C,D,E)
     X<-unlist(strsplit(X,"-"))
     X<-unique(X[!is.na(X)])
     if(length(X)==0){list(NA)}else{list(X)}
   }
   
   # Simple/Animal/Aggregated
-  X<-Data[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
+  X<-Data[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code,T.Codes.Fert.Shared)),by="N"]
   Data[,Final.Codes:=X$Final.Codes]
   
   # Intercrop System
@@ -2025,8 +2022,6 @@ Data<-Data.Out
   # Rotation System
   X<-Data[is.na(ED.Treatment) & is.na(ED.Int) & !is.na(ED.Rot),list(Final.Codes=Join.T(R.T.Codes.Sys,R.IN.Codes.Sys,R.Res.Codes.Sys,R.Code)),by="N"]
   Data[is.na(ED.Treatment) & is.na(ED.Int) & !is.na(ED.Rot),Final.Codes:=X$Final.Codes]
-  
-  rm(X)
   
   # 4.4) Add filler cols ####
   
@@ -3465,7 +3460,7 @@ plan(sequential)
   
    # 5.7.1) Compare versions #####
   
-    (files<-grep("parquet",list.files("data/","majestic",full.names = T),value=T))
+    (files<-grep("parquet",list.files("data/",project,full.names = T),value=T))
     
     versions<-lapply(files,read_parquet)
     
@@ -3492,27 +3487,28 @@ plan(sequential)
     studies_xref[[1]][[length(studies_xref)-1]]
     studies_xref[[length(studies_xref)]][[1]]
     
-    focal<-"NJ0055"
+    
+    if(F){
+    focal<-"AG0080"
     focal %in% studies[[length(studies)]]
     nrow(Data[B.Code==focal])    
     nrow(Comparisons[B.Code==focal])    
     nrow(ERA.Reformatted[Code==focal])  
     
-    Cols <- sort(paste0(c("C", "T"), rep(1:5,each=2)))
-    ERA.Reformatted[Code==focal,Cols,with=F]
-    # There is an issue, I think the code from T.Code.Fert_agg is not being used
-    
-    Data[B.Code==focal,.(T.Name,Final.Codes,T.Codes,F.Codes,T.Codes.Agg,T.Codes.No.Agg)]
+    Data[B.Code==focal,.(T.Name,Final.Codes,T.Codes,F.Codes,T.Codes.Agg,T.Codes.No.Agg,T.Codes.Fert.Shared,T.Agg.Levels3)]
     
     nrow(versions[[length(versions)]][Code==focal])    
     
-    
-    j<-Comparisons[,which(B.Code==focal)]
+        j<-Comparisons[,which(B.Code==focal)]
     i<-j[1]
     
     Comparisons[i]
     Comparisons[i, Control.N]
     Comparisons[i, Control.For]
+    
+    Cols <- sort(paste0(c("C", "T"), rep(1:5,each=2)))
+    ERA.Reformatted[Code==focal,Cols,with=F]
+    # There is an issue, I think the code from T.Code.Fert_agg is not being used
     
     x<-Knit.V1(
       Control.N = Comparisons[i, Control.N],
@@ -3522,5 +3518,8 @@ plan(sequential)
       Analysis.Function = Comparisons[i, Analysis.Function],
       NCols = NCols
     )
+    
+    Fert.Method[B.Code==focal,.(F.Type,F.Amount,F.Unit,F.Level.Name2)]
+    }
     
   
