@@ -1,5 +1,5 @@
 # First run R/0_set_env.R
-# 0.0) Install and load packages ####
+# 0.0) Install and load packages, load functions ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
 pacman::p_load(data.table, 
                readxl,
@@ -19,6 +19,9 @@ pacman::p_load(data.table,
                dplyr,
                tidyr,
                progressr)
+
+source(file.path(project_dir,"R/import_helpers.R"))
+
 # 0.1) Define the valid range for date checking #####
 valid_start <- as.Date("1950-01-01")
 valid_end <- as.Date("2024-12-01")
@@ -196,8 +199,8 @@ if(!ext_live){
     # Update the progress bar
     p()
     
-  #results<-lapply(1:nrow(excel_files),FUN=function(ii){
-  #cat(ii,"\n")
+  results<-lapply(1:nrow(excel_files),FUN=function(ii){
+  cat(ii,"\n")
     
     File <- excel_files$filename[ii]
     #cat("File",ii,basename(File),"\n")
@@ -1313,7 +1316,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   # Remove rows where D.Item is NA
   if(!"D.Item" %in% colnames(Animal.Diet.Digest)){
     error_dat<-data.table(B.Code=Pub.Out$B.Code,
-                          value=paste(col_check,collapse="/"),
+                          value=NA,
                           table=table_name,
                           field="D.Item",
                           issue=paste0("Structure of sheet is corrupted, D.Item is missing."))
