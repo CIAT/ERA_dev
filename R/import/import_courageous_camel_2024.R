@@ -20,7 +20,7 @@ pacman::p_load(data.table,
                tidyr,
                progressr)
 
-source(file.path(project_dir,"R/import_helpers.R"))
+source(file.path(project_dir,"R/import/import_helpers.R"))
 
 # 0.1) Define the valid range for date checking #####
 valid_start <- as.Date("1950-01-01")
@@ -181,7 +181,7 @@ if(!ext_live){
   
 # 3) Process imported data ####
   # Update saved data and errorchecking (T) or skip if file has already been processed (F)
-  overwrite<-T
+  overwrite<-F
 
   # Set up parallel back-end
   plan(multisession, workers = worker_n)
@@ -199,10 +199,10 @@ if(!ext_live){
     # Update the progress bar
     p()
     
-  results<-lapply(1:nrow(excel_files),FUN=function(ii){
+  #results<-lapply(1:nrow(excel_files),FUN=function(ii){
   
     File <- excel_files$filename[ii]
-   cat("File",ii,basename(File),"\n")
+   #cat("File",ii,basename(File),"\n")
 
     era_code <- excel_files$era_code2[ii]
     
