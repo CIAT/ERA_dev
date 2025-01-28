@@ -42,6 +42,8 @@ if(update){
     file_status<-F
   }
   
+  excel_dir<-file.path(era_dirs$era_dataentry_dir,era_projects$majestic_hippo_2020,"excel_files")
+  
   local_file<-file.path(excel_dir,basename(s3_file))
   
   if(file_status){
