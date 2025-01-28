@@ -199,11 +199,10 @@ if(!ext_live){
     # Update the progress bar
     p()
     
- # results<-lapply(1:nrow(excel_files),FUN=function(ii){
-  #cat(ii,"\n")
-    
+  results<-lapply(1:nrow(excel_files),FUN=function(ii){
+  
     File <- excel_files$filename[ii]
-    #cat("File",ii,basename(File),"\n")
+   cat("File",ii,basename(File),"\n")
 
     era_code <- excel_files$era_code2[ii]
     
@@ -1150,7 +1149,22 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
       errors<-c(errors,list(error_dat))
       Animal.Diet.Comp<-NULL
     }else{
-    
+      
+      col_check<-unlist(tstrsplit(colnames(Animal.Diet.Comp),"...",keep=1,fixed=T))
+      col_check<-table(col_check[!col_check %in% c("","0")])
+      col_check<-col_check[col_check>1]
+      if(length(col_check)>0){
+        error_dat<-data.table(B.Code=Pub.Out$B.Code,
+                              value=paste(names(col_check)[!grepl("Method|Unit|Notes",names(col_check))],collapse = "/"),
+                              table=table_name,
+                              field=NA,
+                              issue="Duplicate variables are not allowed. If measured and estimated, keep measured only.")
+        errors<-c(errors,list(error_dat))
+        Animal.Diet.Comp<-NULL
+        
+      }else{
+      
+      
     # Remove rows where D.Item is NA
     Animal.Diet.Comp<-Animal.Diet.Comp[!is.na(D.Item)]
     
@@ -1237,6 +1251,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     
   # !!!TO DO!!! Add validation for unit amounts vs unit type (e.g., if % should not be >100) #####
     }}
+    }
     # 3.10.1) Wrangle dataset into long form ######
     if(!is.null(Animal.Diet.Comp)){
       if(nrow(Animal.Diet.Comp)>1){
