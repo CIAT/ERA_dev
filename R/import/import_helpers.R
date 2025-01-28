@@ -12,6 +12,7 @@
 #' 3. Adjusts for rounding issues in fertilizer amounts.
 #' 4. Combines fertilizer and nutrient information into a single human-readable string.
 #' 5. Handles cases where no fertilizer data is available, labeling them as "No Fert Control."
+#' 
 #'
 #' ## Parameters:
 #' @param X The name of the fertilizer level to process (e.g., treatment or control group).
@@ -155,6 +156,9 @@ process_string <- function(input_string, between_delim = "..", within_delim = "|
 #' fertilizer methods, and fertilizer outputs. It handles remapping fertilizer names, calculating
 #' unknown values, and performing checks on elemental completeness.
 #'
+#' Note units in Fert.Method (`F.Unit` and `F.I.Unit`) should be `% of Total`,`kg/ha`, or `NA`. Rows
+#' with different values are removed.
+#'
 #' @param fert_codes A `data.table` from the ERA master vocabularly containing fertilizer information.
 #' @param Fert.Method A `data.table` containing fertilizer method details.
 #' @param Fert.Out A `data.table` with fertilizer output information. 
@@ -200,7 +204,7 @@ setnames(inorganic_ferts,"F.Type_New","F.Type")
 # Function to process fertilizer ratios (e.g., "10-20-30") into numeric values
 process_fert_ratios<-function(x){
   x<-strsplit(x,"-") # Split the string by hyphen
-  x<-unlist(lapply(x,FUN=function(x){mean(as.numeric(x),na.rm=T)})) # Calculate the mean of numeric values
+  x<-suppressWarnings(unlist(lapply(x,FUN=function(x){mean(as.numeric(x),na.rm=T)}))) # Calculate the mean of numeric values
   return(x)
 }
 
@@ -211,6 +215,9 @@ inorganic_ferts[, (cols_to_process) := lapply(.SD, process_fert_ratios), .SDcols
 # Copy Fert.Method data and process it for presence of N, P, and K
 fert_subset<-copy(Fert.Method)
 setnames(fert_subset,"F.Name","F.Level.Name",skip_absent = T)
+
+# Remove units when value is NA
+fert_subset[is.na(F.Amount),F.Unit:=NA]
 
 # Identify treatments that include phosphorus (P), nitrogen (N), or potassium (K)
 fert_subset[,p_present:=F][grepl("b21",F.Codes),p_present:=T]
@@ -223,10 +230,21 @@ fert_subset[n_present==T,n_no:=length(unique(F.Type)),by=.(B.Code,F.Level.Name)]
 fert_subset[k_present==T,k_no:=length(unique(F.Type)),by=.(B.Code,F.Level.Name)]
 
 # Filter only inorganic fertilizers and select relevant columns
-fert_subset<-fert_subset[F.Category=="Inorganic",.(B.Code,F.Level.Name,F.Type,F.NPK,F.Amount,F.Unit,p_no,n_no,k_no)]
+fert_subset<-fert_subset[F.Category=="Inorganic",.(index,B.Code,F.Level.Name,F.Type,F.NPK,F.Amount,F.Unit,p_no,n_no,k_no)]
 
 # Merge Fert.Out data to add N, P, and K total amounts for each treatment
 fert_subset<-merge(fert_subset,Fert.Out[,.(B.Code,F.Level.Name,F.NI,F.PI,F.P2O5,F.KI,F.K2O,F.I.Unit)],by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
+
+# Remove units that are not kg/ha
+unit_issues<-list(F.I.Unit_issue=fert_subset[F.I.Unit!="kg/ha" & !is.na(F.I.Unit),unique(F.I.Unit)],
+                  F.Unit_issue=fert_subset[!is.na(F.Unit) & !grepl("%|kg/ha",F.Unit),unique(F.Unit)])
+
+if(any(sapply(unit_issues,length)>0)){
+  warning(paste("Rows with these units will be excluded from the analysis: \n F.I.Unit = ",unit_issues$F.I.Unit_issue,
+                "\n F.Unit = ",paste(unit_issues$F.Unit_issue,collapse = ",")))
+}
+
+fert_subset<-fert_subset[F.I.Unit=="kg/ha"|is.na(F.I.Unit)][is.na(F.Unit)|grepl("%|kg/ha",F.Unit)]
 
 # Convert P2O5 to P and K2O to K
 fert_subset[is.na(F.PI)|(F.PI==0 & !is.na(F.P2O5)),F.PI:=F.P2O5*0.436]
@@ -255,24 +273,24 @@ fert_subset[,n_row:=.N,by=.(B.Code,F.Level.Name,F.Type)
               ][,F.Unit_raw:=F.Unit]
 
 # Infer missing amounts when the total elemental content is known
-fert_subset[p_no==1 & is.na(F.Unit) & is.na(F.Amount),F.Amount:=round(F.PI/F.P/n_row,1)]
-fert_subset[n_no==1 & is.na(F.Unit) & is.na(F.Amount),F.Amount:=round(F.NI/F.N/n_row,1)]
-fert_subset[k_no==1 & is.na(F.Unit) & is.na(F.Amount),F.Amount:=round(F.KI/F.K/n_row,1)]
+fert_subset[p_no==1 & is.na(F.Unit) & is.na(F.Amount),`:=`(F.Amount=round(F.PI/F.P/n_row,1),F.Unit=F.I.Unit)]
+fert_subset[n_no==1 & is.na(F.Unit) & is.na(F.Amount),`:=`(F.Amount=round(F.NI/F.N/n_row,1),F.Unit=F.I.Unit)]
+fert_subset[k_no==1 & is.na(F.Unit) & is.na(F.Amount),`:=`(F.Amount=round(F.KI/F.K/n_row,1),F.Unit=F.I.Unit)]
 
 # Handle percentages for fertilizer amounts
 fert_subset[grep("%",F.Unit,fixed=T),F.Amount_perc:=F.Amount/100]
 fert_subset[grep("%",F.Unit,fixed=T),F.Amount:=NA]
 
-fert_subset[p_no==1 & grepl("%",F.Unit),F.Amount:=round(F.PI/F.P*F.Amount_perc,1)]
-fert_subset[n_no==1 & grepl("%",F.Unit),F.Amount:=round(F.NI/F.N*F.Amount_perc,1)]
-fert_subset[k_no==1 & grepl("%",F.Unit),F.Amount:=round(F.KI/F.K*F.Amount_perc,1)]
+fert_subset[p_no==1 & grepl("%",F.Unit),`:=`(F.Amount=round(F.PI/F.P*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[n_no==1 & grepl("%",F.Unit),`:=`(F.Amount=round(F.NI/F.N*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[k_no==1 & grepl("%",F.Unit),`:=`(F.Amount=round(F.KI/F.K*F.Amount_perc,1),F.Unit=F.I.Unit)]
 
 # Add amounts for unspecified N, P, K fertilizers (developer notes included)
 # Dev Note: Ensure logic to handle unspecified NPK is implemented when NPK totals are given but missing in the table
 # Dev Note: it may also be possible to included unspecified N,P, and K after n_no==1 records are dealt with where n_no==2
-fert_subset[n_no==1 & is.na(F.Amount) & F.Type=="N (Unspecified)",F.Amount:=F.NI/n_row]
-fert_subset[n_po==1 & is.na(F.Amount) & F.Type=="P (Unspecified)",F.Amount:=F.PI/n_row]
-fert_subset[n_ko==1 & is.na(F.Amount) & F.Type=="K (Unspecified)",F.Amount:=F.KI/n_row]
+fert_subset[n_no==1 & is.na(F.Amount) & F.Type=="N (Unspecified)",`:=`(F.Amount = F.NI / n_row, F.Unit = F.I.Unit, F.N=1/n_row)]
+fert_subset[p_no==1 & is.na(F.Amount) & F.Type=="P (Unspecified)",`:=`(F.Amount = F.PI / n_row, F.Unit = F.I.Unit, F.P=1/n_row)]
+fert_subset[k_no==1 & is.na(F.Amount) & F.Type=="K (Unspecified)",`:=`(F.Amount = F.KI / n_row, F.Unit = F.I.Unit, F.K=1/n_row)]
 
 # Reality check for completeness of elemental sums
 fert_subset[is.nan(F.N) & !is.na(n_no),N_sum_complete:=F
@@ -340,18 +358,1033 @@ i<-50 # Example index for manual investigation
 # Inspect the subset of fertilizer data for identified discrepancies
 fert_subset[B.Code==check2$B.Code[1] & F.Level.Name==check2$F.Level.Name[1]]
 fert_subset[B.Code==check2$B.Code[1] & F.Level.Name==check2$F.Level.Name[1],
-            .(B.Code,F.Level.Name,F.Type,F.Type2,F.Amount,F.Amount_raw,F.Unit,F.NPK,F.N,F.P,F.K,
+            .(B.Code,F.Level.Name,F.Type,F.Type2,F.Amount,F.Amount_raw,F.I.Unit,F.Unit,F.Unit_raw,F.NPK,F.N,F.P,F.K,
               F.NI,N_sum,
               F.PI,F.P2O5,P_sum,
               F.KI,F.K2O,K_sum)]
 }
 
-errors<-fert_subset[B.Code==check2$B.Code[1] & F.Level.Name==check2$F.Level.Name[1],
-                    .(B.Code,F.Level.Name,F.Type,F.Type2,F.Amount,F.Amount_raw,F.Unit,F.NPK,F.N,F.P,F.K,
-                      F.NI,N_sum,
-                      F.PI,F.P2O5,P_sum,
-                      F.KI,F.K2O,K_sum)]
+errors<-check[,.(B.Code,F.Level.Name,F.Type,F.Type2,F.Amount,F.Amount_raw,F.I.Unit,F.Unit,F.Unit_raw,F.NPK,F.N,F.P,F.K,
+                 F.NI,N_sum,F.PI,F.P2O5,P_sum,F.KI,F.K2O,K_sum)]
 
 return(list(data=fert_subset,errors=errors))
 
+}
+replace_zero_with_NA <- function(data) {
+  data[data == 0] <- NA
+  return(data)
+}
+#' Error Tracker
+#'
+#' This function tracks errors, saves them to a CSV file, and merges new errors with existing ones.
+#'
+#' @param errors A data frame containing error information.
+#' @param filename A string representing the name of the file to save the errors to (without extension).
+#' @param error_dir A string representing the directory where the error file should be saved.
+#' @param error_list A list of existing error data frames. Defaults to `NULL`.
+#'
+#' @return A list of error data frames, updated with the new errors.
+#'
+#' @examples
+#' \dontrun{
+#' errors <- data.frame(error_message = c("Error 1", "Error 2"), stringsAsFactors = FALSE)
+#' error_tracker(errors, "errors_file", "/path/to/error_dir")
+#' }
+#' @importFrom data.table fread fwrite
+error_tracker <- function(errors, filename, error_dir, error_list = NULL) {
+  if (is.null(error_list)) {
+    error_list <- list()
+  }
+  
+  error_file <- file.path(error_dir, paste0(filename, ".csv"))
+  
+  if (nrow(errors) > 0) {
+    if (file.exists(error_file)) {
+      error_tracking <- unique(fread(error_file))
+      error_tracking[, addressed_by_whom := as.character(addressed_by_whom)]
+      
+      if ("value" %in% colnames(error_tracking)) {
+        error_tracking[, value := as.character(value)]
+      }
+      
+      if ("notes" %in% colnames(error_tracking)) {
+        error_tracking[, notes := as.character(notes)]
+      } else {
+        error_tracking[, notes := ""]
+      }
+      
+      errors <- merge(errors, error_tracking, all.x = TRUE, by = colnames(errors))
+      errors[is.na(issue_addressed), issue_addressed := FALSE
+      ][is.na(addressed_by_whom), addressed_by_whom := ""
+      ][is.na(notes), notes := ""]
+    } else {
+      errors[, issue_addressed := FALSE
+      ][, addressed_by_whom := ""
+      ][, notes := ""]
+    }
+    error_list[[filename]] <- errors
+    fwrite(errors, error_file)
+  } else {
+    unlink(error_file)
+  }
+  
+  return(error_list)
+}
+#' Convert "NA" Strings to NA Values
+#'
+#' This function converts character strings "NA" to actual NA values in a data.table for all character columns using .SD for efficiency.
+#'
+#' @param dt A data.table in which "NA" strings should be converted to NA values.
+#'
+#' @return A data.table with "NA" strings converted to NA values in all character columns.
+#'
+#' @examples
+#' \dontrun{
+#' library(data.table)
+#' dt <- data.table(a = c("NA", "1", "2"), b = c("3", "NA", "4"))
+#' convert_NA_strings_SD(dt)
+#' }
+#' @import data.table
+convert_NA_strings_SD <- function(dt) {
+  # Ensure the input is a data.table
+  if (!is.data.table(dt)) {
+    stop("Input must be a data.table")
+  }
+  
+  # Identify which columns are character type
+  char_cols <- names(dt)[sapply(dt, is.character)]
+  
+  # Perform the operation on all character columns at once
+  dt[, (char_cols) := lapply(.SD, function(x) fifelse(x == "NA", NA_character_, x)), .SDcols = char_cols]
+  
+  # Return the modified data.table
+  return(dt)
+}
+# 'harmonizer' function:
+# This function harmonizes data fields by replacing old values with new values based on master codes.
+# It supports both primary and alternate harmonization rules if provided.
+#
+# Args:
+#   data: DataFrame - The data.table to be harmonized.
+#   master_codes: List - A list containing the 'lookup_levels' DataFrame with old to new value mappings.
+#   h_table: String - The name of the table in 'lookup_levels' used for the primary harmonization.
+#   h_field: String - The name of the field in 'lookup_levels' used for the primary harmonization.
+#   h_table_alt: String - Optional. The name of the alternate table for harmonization if different from primary.
+#   h_field_alt: String - Optional. The name of the alternate field for harmonization if different from primary.
+#
+# Returns:
+#   A list containing:
+#   - 'data': DataFrame with the harmonized data.
+#   - 'h_tasks': DataFrame listing any non-matched harmonization tasks by B.Code and value.
+harmonizer <- function(data, master_codes, master_tab="lookup_levels",h_table, h_field, h_table_alt=NA, h_field_alt=NA,ignore_vals=NULL) {
+  data<-data.table(data)
+  
+  # subset master_codes to relevant tab
+  m_codes<-master_codes[[master_tab]]
+  
+  # Selecting relevant columns for output
+  h_cols <- c("B.Code", h_field)
+  
+  if(master_tab!="lookup_levels") {
+    if(is.na(h_field_alt)) {
+      stop("h_field_alt must be provided when master_table is not lookup_levels")
+    }else{
+      c_names<-c(h_field,h_field_alt)
+      h_tab<-unique(m_codes[,..c_names])
+      colnames(h_tab)<-c("Values_Old","Values_New")
+      h_tab<-h_tab[!is.na(Values_New)]
+      h_table_alt<-as.character(h_table_alt)
+    }
+  }else{
+    
+    if (is.na(h_field_alt)) {
+      # Retrieve mappings for primary fields if no alternate field is provided
+      h_tab <- m_codes[Table == h_table & Field == h_field, list(Values_New, Values_Old)]
+    } else {
+      if (is.na(h_table_alt)) {
+        # Warning if alternate field is provided without an alternate table
+        warning("If h_field_alt is provided, h_table_alt should also be provided, currently using h_table which may result in non-matches.")
+        h_table_alt <- h_table
+      }
+      
+      # Retrieve mappings for alternate fields
+      h_tab <- m_codes[Table == h_table_alt & Field == h_field_alt, list(Values_New, Values_Old)]
+    }
+  }
+  
+  # Split Values_Old by ";" and unnest the list into separate rows
+  h_tab<-rbindlist(lapply(1:nrow(h_tab),FUN=function(i){
+    data.table(Values_New=h_tab$Values_New[i],Values_Old=unlist(strsplit(h_tab$Values_Old[i],";")))
+  }))
+  
+  # Matching old values to new values and updating data
+  class<-unlist(data[, .(class=lapply(.SD,base::class)), .SDcols = h_field])
+  
+  if(class=="list"){
+    data_focal<-data[,..h_field]
+    data_focal<-lapply(1:nrow(data_focal),FUN=function(i){
+      old<-unlist(data_focal[i])
+      new<-h_tab[match(old,h_tab$Values_Old),Values_New]
+      new[is.na(old)]<-NA
+      old[!is.na(new)]<-new[!is.na(new)]
+      return(old)
+    })
+    
+    data[,(h_field):=data_focal]
+    
+    data_focal<-data[,list(vals=unique(unlist(.SD))),by=B.Code,.SDcols = h_field]
+    setnames(data_focal,"vals",h_field)
+    
+  }else{
+    N <- match(unlist(data[, ..h_field]), h_tab[, Values_Old])
+    N[is.na(unlist(data[, ..h_field]))]<-NA
+    data <- data[!is.na(N), (h_field) := h_tab[N[!is.na(N)], Values_New]]
+    data_focal<-data[,..h_cols]
+  }
+  
+  # Check for any non-matches after harmonization
+  N <- match(unlist(data_focal[, ..h_field]), h_tab[, Values_New])
+  if(!is.null(ignore_vals)){
+    if(!is.na(ignore_vals)){
+      h_tasks <- unique(data_focal[is.na(N) & !grepl(paste(ignore_vals,collapse="|"),unlist(data[, ..h_field]),ignore.case = T)])
+    }else{
+      h_tasks <- unique(data_focal[is.na(N)])
+    }
+  }else{
+    h_tasks <- unique(data_focal[is.na(N)])
+  }
+  colnames(h_tasks)[2] <- "value"
+  h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
+  
+  # Adding metadata columns to the tasks output for further tracking
+  h_tasks[, table := h_table][, field := h_field][,table_alt:=h_table_alt][,field_alt:=h_field_alt][,master_tab:=master_tab]
+  
+  return(list(data = data, h_tasks = h_tasks))
+}
+#' Harmonizer Wrapper
+#'
+#' This function wraps the harmonization process, applying the harmonizer function to the provided data according to the specified parameters and master codes.
+#'
+#' @param data A data frame or data table to be harmonized.
+#' @param h_params A data frame containing harmonization parameters, including `h_table`, `h_field`, `h_table_alt`, `h_field_alt`, and optionally `master_tab` and `ignore_vals`.
+#' @param master_codes A data frame or data table containing master codes used for harmonization.
+#'
+#' @return A list with two elements:
+#' \describe{
+#'   \item{data}{The harmonized data.}
+#'   \item{h_tasks}{A data table of harmonization tasks.}
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.frame(id = 1:3, value = c("A", "B", "C"))
+#' h_params <- data.frame(h_table = "table1", h_field = "field1", 
+#'                        h_table_alt = "table2", h_field_alt = "field2")
+#' master_codes <- data.frame(code = c("A", "B", "C"), value = c(1, 2, 3))
+#' harmonizer_wrap(data, h_params, master_codes)
+#' }
+harmonizer_wrap <- function(data, h_params, master_codes) {
+  h_tasks <- list()
+  
+  if (!any(grepl("master_tab", colnames(h_params)))) {
+    h_params$master_tab <- "lookup_levels"
+  }
+  
+  if (!any(grepl("ignore_vals", colnames(h_params)))) {
+    h_params$ignore_vals <- NA
+  }
+  
+  for (i in 1:nrow(h_params)) {
+    results <- harmonizer(
+      data = data,
+      master_codes = master_codes,
+      master_tab = h_params$master_tab[i],
+      h_table = h_params$h_table[i], 
+      h_field = h_params$h_field[i],
+      h_table_alt = h_params$h_table_alt[i],
+      h_field_alt = h_params$h_field_alt[i],
+      ignore_vals = h_params$ignore_vals[i]
+    )
+    
+    data <- results$data
+    h_tasks[[i]] <- results$h_tasks
+  }
+  
+  return(list(data = data, h_tasks = rbindlist(h_tasks)))
+}
+#' Value Checker
+#'
+#' This function checks if values in a specified field of the data exist in the master codes table. It can handle both exact and approximate matching.
+#'
+#' @param data A data frame or data table to be checked.
+#' @param tabname A string representing the name of the table in the data.
+#' @param master_codes A list of data frames or data tables containing master codes for different tabs.
+#' @param master_tab A string representing the tab name in the master codes list.
+#' @param h_field A string representing the name of the field to be checked.
+#' @param h_field_alt A string representing an alternate field to be used if `h_field` is not found. Defaults to `NA`.
+#' @param exact A logical value indicating whether to perform exact matching (`TRUE`) or approximate matching (`FALSE`). Defaults to `TRUE`.
+#' @param ignore_vals A vector of values to be ignored during the check. Defaults to `NULL`.
+#'
+#' @return If `exact` is `TRUE`, returns a data table of unmatched values. If `exact` is `FALSE`, returns a list containing a data table of unmatched values and the modified data with matched values.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.frame(B.Code = c("A1", "B2", "C3"), h_field = c("val1", "val2", "val3"))
+#' master_codes <- list(tab1 = data.frame(h_field = c("val1", "val4"), h_field_alt = c("alt1", "alt4")))
+#' val_checker(data, "example_table", master_codes, "tab1", "h_field")
+#' }
+#' @import data.table
+val_checker <- function(data, tabname, master_codes, master_tab, h_field, h_field_alt = NA, exact = TRUE, ignore_vals = NULL) {
+  
+  n_col <- c("B.Code", h_field)
+  h_tasks <- data.table(data)[, ..n_col]
+  setnames(h_tasks, h_field, "value")
+  h_tasks <- h_tasks[, .(B.Code = paste(B.Code, collapse = "/")), by = list(value)][!is.na(value)]
+  h_tasks[, field := h_field][, field_alt := h_field_alt][, table := tabname][, master_tab := master_tab]
+  
+  # Subset master_codes to relevant tab
+  m_codes <- master_codes[[master_tab]]
+  
+  # Harmonize old names to new names
+  if (is.na(h_field_alt)) {
+    # Retrieve mappings for primary fields if no alternate field is provided
+    mc_vals <- unlist(m_codes[, ..h_field])
+  } else {
+    # Retrieve mappings for alternate fields
+    mc_vals <- unlist(m_codes[, ..h_field_alt])
+  }
+  
+  # Check if values are in master codes
+  if (exact) {
+    h_tasks <- h_tasks[, check := FALSE][value %in% mc_vals, check := TRUE][check == FALSE][, check := NULL]
+    return(h_tasks)
+  } else {
+    matched <- as.character(mc_vals)[match(tolower(h_tasks$value), tolower(mc_vals))]
+    h_tasks <- h_tasks[is.na(matched)]
+    setnames(data, h_field, "value")
+    matched <- as.character(mc_vals)[match(tolower(data$value), tolower(mc_vals))]
+    data[!is.na(matched), value := matched[!is.na(matched)]]
+    setnames(data, "value", h_field)
+    if (!is.null(ignore_vals)) {
+      h_tasks <- h_tasks[!grepl(paste0(ignore_vals, collapse = "|"), value, ignore.case = TRUE)]
+    }
+    return(list(h_task = h_tasks, data = data))
+  }
+}
+#' Find and Report Non-Numeric Values
+#'
+#' This function identifies non-numeric values in specified numeric columns of a data frame or data table.
+#'
+#' @param data A data frame or data table to be checked.
+#' @param numeric_cols A vector of column names that are expected to contain numeric values.
+#' @param tabname A string representing the name of the table in the data.
+#'
+#' @return A data table of non-numeric values, including the table name and field where they were found.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.frame(B.Code = c("A1", "B2", "C3"), num_col1 = c("1", "two", "3"), num_col2 = c("4", "five", "6"))
+#' find_non_numeric(data, c("num_col1", "num_col2"), "example_table")
+#' }
+#' @import data.table
+find_non_numeric <- function(data, numeric_cols, tabname) {
+  results <- rbindlist(lapply(1:length(numeric_cols), FUN = function(i) {
+    n_col <- numeric_cols[i]
+    vals <- unlist(data[, ..n_col])
+    vals_u <- unique(vals)
+    vals_u <- vals_u[!is.na(vals_u)]
+    NAs <- vals_u[is.na(as.numeric(vals_u))]
+    n_col2 <- c("B.Code", n_col)
+    result <- unique(data[vals %in% NAs, ..n_col2])[, table := tabname][, field := n_col]
+    setnames(result, n_col, "value")
+    result
+  }))
+  
+  return(results)
+}
+#' Check Site and Time Fields
+#'
+#' This function checks if the `Site.ID` and `Time` fields in the data match the corresponding entries in the site and time tables.
+#'
+#' @param data A data frame or data table to be checked.
+#' @param tabname A string representing the name of the table in the data.
+#' @param ignore_values A vector of values to be ignored during the check.
+#' @param site_data A data frame or data table containing valid `Site.ID` entries.
+#' @param time_data A data frame or data table containing valid `Time` entries.
+#' @param do_site A logical value indicating whether to check `Site.ID`. Defaults to `TRUE`.
+#' @param do_time A logical value indicating whether to check `Time`. Defaults to `TRUE`.
+#'
+#' @return A data table of errors found, including unmatched `Site.ID` and `Time` values, with the table name, field, and issue described.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.frame(B.Code = c("A1", "B2", "C3"), Site.ID = c("S1", "S2", "S3"), Time = c("T1", "T2", "T3"))
+#' site_data <- data.frame(Site.ID = c("S1", "S2"), B.Code = c("A1", "B2"))
+#' time_data <- data.frame(Time = c("T1", "T2"), B.Code = c("A1", "B2"))
+#' check_site_time(data, "example_table", c("ignore1", "ignore2"), site_data, time_data)
+#' }
+#' @import data.table
+check_site_time <- function(data, tabname, ignore_values, site_data, time_data, do_site = TRUE, do_time = TRUE) {
+  errors <- list()
+  
+  if ("Site.ID" %in% colnames(data) & do_site) {
+    site_data <- site_data[, check := TRUE][, list(Site.ID, B.Code, check)]
+    # Non-match in Site.ID
+    errors1 <- unique(data[!grepl(paste0(ignore_values, collapse = "|"), Site.ID, ignore.case = TRUE)
+    ][!is.na(Site.ID), list(B.Code, Site.ID)])
+    errors1 <- merge(errors1, site_data, all.x = TRUE)[is.na(check)
+    ][, check := NULL
+    ][, table := tabname
+    ][, field := "Site.ID"
+    ][, issue := "A Site.ID used does not match the Site tab."]
+    setnames(errors1, "Site.ID", "value")
+    errors$errors1 <- errors1
+  }
+  
+  if ("Time" %in% colnames(data) & do_time) {
+    # Non-match in Time
+    time_data <- time_data[, check := TRUE][, list(Time, B.Code, check)]
+    errors2 <- unique(data[!grepl(paste0(ignore_values, collapse = "|"), Time, ignore.case = TRUE)
+    ][!is.na(Time), list(B.Code, Time)])
+    errors2 <- merge(errors2, time_data, all.x = TRUE)[is.na(check)
+    ][, check := NULL
+    ][, table := tabname
+    ][, field := "Time"
+    ][, issue := "A Time used does not match the Time tab."]
+    setnames(errors2, "Time", "value")
+    errors$errors2 <- errors2
+  }
+  
+  if (length(errors) > 0) {
+    errors <- rbindlist(errors)
+  } else {
+    NULL
+  }
+  
+  return(errors)
+}
+#' Check Dates
+#'
+#' This function checks if the dates in the specified date columns are within the valid date range.
+#'
+#' @param data A data frame or data table containing the data to be checked.
+#' @param date_cols A vector of column names that are expected to contain date values.
+#' @param valid_start A Date object representing the start of the valid date range.
+#' @param valid_end A Date object representing the end of the valid date range.
+#' @param tabname A string representing the name of the table in the data.
+#'
+#' @return A data table of errors found, including dates not within the valid date range, with the table name, field, and issue described.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.frame(B.Code = c("A1", "B2", "C3"), date1 = as.Date(c("2021-01-01", "2022-02-02", "2023-03-03")))
+#' check_dates(data, c("date1"), as.Date("2020-01-01"), as.Date("2022-12-31"), "example_table")
+#' }
+#' @import data.table
+check_dates <- function(data, date_cols, valid_start, valid_end, tabname) {
+  
+  results <- rbindlist(lapply(1:length(date_cols), FUN = function(i) {
+    n_col <- c("B.Code", date_cols[i])
+    data_ss <- data[, ..n_col]
+    colnames(data_ss)[2] <- "value"
+    
+    data_ss <- data_ss[!is.na(value)]
+    
+    data_ss <- data_ss[, problem := TRUE
+    ][value >= valid_start & value <= valid_end, problem := FALSE
+    ][, list(value = paste(value, collapse = "/")), by = list(B.Code, problem)
+    ][, field := date_cols[i]]
+    data_ss
+  }))
+  
+  results <- results[problem == TRUE
+  ][, table := tabname
+  ][, problem := NULL
+  ][, issue := paste("Date not between", valid_start, "&", valid_end)]
+  
+  return(results)
+}
+#' Detect Extreme Values
+#'
+#' This function detects extreme values in a specified field of the data that are outside a given range.
+#'
+#' @param data A data frame or data table containing the data to be checked.
+#' @param field A string representing the name of the field to be checked for extreme values.
+#' @param lower_bound A numeric value representing the lower bound of the acceptable range.
+#' @param upper_bound A numeric value representing the upper bound of the acceptable range.
+#' @param tabname A string representing the name of the table in the data.
+#'
+#' @return A data table of extreme values found, with the table name, field, and issue described.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.table(B.Code = c("A1", "B2", "C3"), value_field = c(1, 100, 50))
+#' detect_extremes(data, "value_field", 0, 60, "example_table")
+#' }
+#' @import data.table
+detect_extremes <- function(data, field, lower_bound, upper_bound, tabname) {
+  # Dynamically construct the filtering condition
+  condition <- paste0(field, " > ", upper_bound, " | ", field, " < ", lower_bound)
+  
+  # Evaluate the condition within the data.table context
+  errors <- data[eval(parse(text = condition))
+  ][, list(value = paste0(unique(get(field)), collapse = "/")), by = list(B.Code)
+  ][, table := tabname
+  ][, field := field
+  ][, issue := paste0("Extreme values detected in field (outside range: ", lower_bound, "-", upper_bound, ")")]
+  
+  return(errors)
+}
+#' Check Units
+#'
+#' This function checks if units are missing for fields where amounts are present in the data.
+#'
+#' @param data A data frame or data table to be checked.
+#' @param unit_pairs A data frame containing pairs of unit and variable fields along with their name fields.
+#' @param tabname A string representing the name of the table in the data.
+#'
+#' @return A data table of errors found, including instances where amounts are present but units are missing, with the table name, field, and issue described.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.table(B.Code = c("A1", "B2", "C3"), amount = c(10, NA, 30), unit = c(NA, "kg", NA), name_field = c("item1", "item2", "item3"))
+#' unit_pairs <- data.frame(unit = c("unit"), var = c("amount"), name_field = c("name_field"))
+#' check_units(data, unit_pairs, "example_table")
+#' }
+#' @import data.table
+check_units <- function(data, unit_pairs, tabname) {
+  n_cols<-table(colnames(data))
+  if(any(n_cols)>1){
+    stop(paste("Duplicate column names present:",paste0(names(n_cols)[n_cols>1],collapse = ", ")))
+  }
+  
+  results <- rbindlist(lapply(1:nrow(unit_pairs), FUN = function(i) {
+    Unit <- unit_pairs$unit[i]
+    Var <- unit_pairs$var[i]
+    Name_Field <<- unit_pairs$name_field[i]
+    
+    # Dynamically construct the filtering condition
+    condition <- paste0("is.na(", Unit, ") & !is.na(", Var, ")")
+    
+    # Use 'mget(Name_Field)' to dynamically refer to the column within .SD
+    errors <- data[eval(parse(text = condition)), 
+                   .(value = paste(unique(na.omit(.SD[[1]])), collapse = "/")), 
+                   by = B.Code, 
+                   .SDcols = Name_Field
+    ][, `:=`(table = tabname, 
+             field = Name_Field, 
+             issue = paste0("Value is present for ",Var," but associated item, value, or unit is missing in ", Unit, "."))
+    ][order(B.Code)]
+    
+    errors
+  }))
+  
+  return(results)
+}
+#' Check High and Low Values
+#'
+#' This function checks if the low values are greater than the high values for specified columns in the data.
+#'
+#' @param data A data frame or data table to be checked.
+#' @param hilo_pairs A data frame containing pairs of high and low columns along with their name fields.
+#' @param tabname A string representing the name of the table in the data.
+#'
+#' @return A data table of errors found, including instances where low values are greater than high values, with the table name, field, and issue described.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.table(B.Code = c("A1", "B2", "C3"), low_value = c(10, 30, 50), high_value = c(20, 25, 45), name_field = c("item1", "item2", "item3"))
+#' hilo_pairs <- data.frame(low_col = c("low_value"), high_col = c("high_value"), name_field = c("name_field"))
+#' check_hilow(data, hilo_pairs, "example_table")
+#' }
+#' @import data.table
+check_hilow <- function(data, hilo_pairs, tabname) {
+  results <- rbindlist(lapply(1:nrow(hilo_pairs), FUN = function(i) {
+    low_col <- hilo_pairs$low_col[i]
+    high_col <- hilo_pairs$high_col[i]
+    Name_Field <- hilo_pairs$name_field[i]
+    
+    # Dynamically construct the filtering condition
+    condition <- paste0(low_col, " > ", high_col)
+    condition2 <- paste0(Name_Field, "[!is.na(", Name_Field, ")]")
+    
+    # Evaluate the condition within the data.table context
+    errors <- data[eval(parse(text = condition))
+    ][, list(value = paste(eval(parse(text = condition2)), collapse = "/")), by = B.Code
+    ][, table := tabname
+    ][, field := Name_Field
+    ][, issue := paste0(low_col, " is greater than ", high_col, ".")
+    ][order(B.Code)]
+    errors
+  }))
+  
+  return(results)
+}
+#' Validate Data
+#'
+#' This function performs various validation checks on the data, including checking for unique values, compulsory fields, non-numeric values in numeric fields, date ranges, extreme values, missing units, and high/low pair issues.
+#'
+#' @param data A data frame or data table to be checked.
+#' @param numeric_cols A vector of column names that are expected to contain numeric values. Defaults to `NULL`.
+#' @param numeric_ignore_vals A vector of values to be ignored in numeric columns. Defaults to `NULL`.
+#' @param date_cols A vector of column names that are expected to contain date values. Defaults to `NULL`.
+#' @param zero_cols A vector of column names where zeros should be replaced with `NA`. Defaults to `NULL`.
+#' @param unique_cols A vector of column names that should contain unique values. Defaults to `NULL`.
+#' @param compulsory_cols A named vector where names are columns and values are associated compulsory fields. Defaults to `NULL`.
+#' @param extreme_cols A named list where names are columns and values are vectors with lower and upper bounds. Defaults to `NULL`.
+#' @param unit_pairs A data frame containing pairs of unit and variable fields along with their name fields. Defaults to `NULL`.
+#' @param hilo_pairs A data frame containing pairs of high and low columns along with their name fields. Defaults to `NULL`.
+#' @param tabname A string representing the name of the table in the data.
+#' @param valid_start A Date object representing the start of the valid date range.
+#' @param valid_end A Date object representing the end of the valid date range.
+#' @param site_data A data frame or data table containing valid `Site.ID` entries. Defaults to `NULL`.
+#' @param time_data A data frame or data table containing valid `Time` entries. Defaults to `NULL`.
+#' @param ignore_values A vector of values to be ignored during the checks. Defaults to `NULL`.
+#' @param allowed_values A data frame or data table containing the fields `allowed_values` (this should be a list containing a vector of the allowed values), `parent_tab_name` (a character value of where the allowed values come from), and `field` (the name of the field in `data` to be checked).
+#' @param trim_ws A logical value indicating whether to trim whitespace from character columns. Defaults to `FALSE`.
+#' @param do_site A logical value indicating whether to check `Site.ID`. Defaults to `TRUE`.
+#' @param do_time A logical value indicating whether to check `Time`. Defaults to `TRUE`.
+#' @param convert_NA_strings A logical value indicating whether to convert "NA" strings to actual `NA` values. Defaults to `FALSE`.
+#' @param duplicate_field A character value indicating the name of the field that should be used to label duplicate rows (e.g. `V.Level.Name`). Defaults to `NULL`.
+#' @param duplicate_ignore_fields A vector of column names indicating any columns that should be excluded when checking for duplicate rows. Defaults to `NULL`.
+#' @param find_duplicates A logical value indicating whether to check the data for exact duplicate rows. Defaults to `TRUE`. Only applies if `duplicate_field` is not set to `NULL.`
+#' @param rm_duplicates A logical value indicating whether to remove exact duplicate rows/ Defaults to `TRUE`. Only applies if `duplicate_field` is not set to `NULL.`
+#' @param template_cols A character vector of columns against which the columns names in data are checked again. Defaults to `NULL`.
+#'
+#' @return A list with two elements:
+#' \describe{
+#'   \item{data}{The validated data.}
+#'   \item{errors}{A data table of validation errors found.}
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.table(B.Code = c("A1", "B2", "C3"), numeric_col = c("10", "20", "non-numeric"))
+#' validator(data, numeric_cols = c("numeric_col"), tabname = "example_table", valid_start = as.Date("2020-01-01"), valid_end = as.Date("2022-12-31"))
+#' }
+#' @import data.table
+validator <- function(data,
+                      numeric_cols = NULL,
+                      numeric_ignore_vals = NULL,
+                      date_cols = NULL,
+                      zero_cols = NULL,
+                      unique_cols = NULL,
+                      compulsory_cols = NULL,
+                      extreme_cols = NULL,
+                      unit_pairs = NULL,
+                      hilo_pairs = NULL,
+                      tabname,
+                      valid_start,
+                      valid_end,
+                      site_data = NULL,
+                      time_data = NULL,
+                      ignore_values = NULL,
+                      trim_ws = FALSE,
+                      do_site = TRUE,
+                      do_time = TRUE,
+                      convert_NA_strings = FALSE,
+                      duplicate_field=NULL,
+                      duplicate_ignore_fields=NULL,
+                      find_duplicates=TRUE,
+                      template_cols=NULL,
+                      allowed_values=NULL,
+                      check_keyfields=NULL,
+                      rm_duplicates=TRUE) {
+  
+  errors <- list()
+  n <- 1
+  
+  if(!is.null(template_cols)){
+    a<-colnames(data) %in% template_cols
+    a<-colnames(data)[!a]
+    
+    if(length(a)>0){
+      errors1 <- data.table(value = paste(a, collapse = "/"), 
+                            B.Code = NA,
+                            table = tabname,
+                            field = NA,
+                            issue = "Column names in excel that do not match the master template.")
+      
+      errors[[n]] <- errors1
+      n <- n + 1
+    }
+    
+    a<-template_cols %in% colnames(data)
+    a<-template_cols[!a]
+    
+    if(length(a)>0){
+      errors1 <- data.table(value = paste(a, collapse = "/"), 
+                            B.Code = NA,
+                            table = tabname,
+                            field = NA,
+                            issue = "Column names in template that do not match the excel")
+      
+      errors[[n]] <- errors1
+      n <- n + 1
+    }
+  }
+  
+  if(convert_NA_strings){
+    data <- convert_NA_strings_SD(data)
+  }
+  
+  # zero cols
+  if (!is.null(zero_cols)) {
+    zero_cols<-zero_cols[zero_cols %in% colnames(data)]
+    data <- data[, (zero_cols) := lapply(.SD, replace_zero_with_NA), .SDcols = zero_cols]
+  }
+  
+  if (!is.null(unique_cols)) {
+    errors1 <- rbindlist(lapply(1:length(unique_cols), FUN = function(i) {
+      field <- unique_cols[i]
+      n_col <- c("B.Code", field)
+      dat <- data[, ..n_col]
+      colnames(dat)[2] <- "value"
+      errors <- dat[, list(N = .N), by = list(B.Code, value)
+      ][N > 1
+      ][, N := NULL
+      ][, list(value = paste(value, collapse = "/")), by = B.Code
+      ][, table := tabname
+      ][, field := field
+      ][, issue := "Duplicate value in unique field."
+      ][order(B.Code)]
+      errors
+    }))
+    errors[[n]] <- errors1
+    n <- n + 1
+  }
+  
+  if (!is.null(compulsory_cols)) {
+    errors1 <- rbindlist(lapply(1:length(compulsory_cols), FUN = function(i) {
+      field <- compulsory_cols[i]
+      assoc_field <- names(compulsory_cols)[i]
+      n_col <- c("B.Code", field, assoc_field)
+      dat <- data[, ..n_col]
+      colnames(dat)[2:3] <- c("focus", "value")
+      errors <- dat[is.na(focus),
+      ][, list(value = paste(unique(value), collapse = "/")), by = B.Code
+      ][, table := tabname
+      ][, field := assoc_field
+      ][, issue := paste0("Missing value in compulsory field ", compulsory_cols[i], ".")
+      ][order(B.Code)]
+      errors
+    }))
+    errors[[n]] <- errors1
+    n <- n + 1
+  }
+  
+  if (!is.null(date_cols)) {
+    numeric_cols <- unique(c(numeric_cols, date_cols))
+  }
+  
+  # Substitute , for . in numeric columns
+  if (!is.null(numeric_cols)) {
+    numeric_cols<-numeric_cols[numeric_cols %in% colnames(data)]
+    
+    
+    data[, (numeric_cols) := lapply(.SD, function(x) gsub(",|·", ".", x)), .SDcols = numeric_cols]
+    # Remove spaces in numeric columns
+    data[, (numeric_cols) := lapply(.SD, function(x) gsub(" ", "", x)), .SDcols = numeric_cols]
+    # Replace − with -
+    data[, (numeric_cols) := lapply(.SD, function(x) gsub("−", "-", x)), .SDcols = numeric_cols]
+    
+    # Look for instances where a non-numeric value is present in a numeric field
+    errors1 <- find_non_numeric(data = data, numeric_cols = numeric_cols, tabname = tabname)
+    
+    if(!is.null(ignore_values)[1]){
+      errors1<-errors1[!value %in% ignore_values]
+    }
+    
+    errors1 <- errors1[, list(value = paste(value, collapse = "/")), by = list(B.Code, table, field)
+    ][, issue := "Non-numeric value in numeric field."]
+    errors[[n]] <- errors1
+    n <- n + 1
+    # Convert numeric fields to being numeric
+    data[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
+  }
+  
+  # Detect extremes
+  if (!is.null(extreme_cols)) {
+    errors1 <- rbindlist(lapply(1:length(extreme_cols), FUN = function(i) {
+      detect_extremes(data = data,
+                      field = names(extreme_cols)[i],
+                      lower_bound = extreme_cols[[i]][1],
+                      upper_bound = extreme_cols[[i]][2],
+                      tabname = tabname)
+    }))
+    errors[[n]] <- errors1
+    n <- n + 1
+  }
+  
+  # Trim white space
+  if (trim_ws) {
+    char_cols <- sapply(data, is.character)
+    data[, (names(data)[char_cols]) := lapply(.SD, trimws), .SDcols = char_cols]
+  }
+  
+  # Check keyfields
+  if(!is.null(check_keyfields)){
+    errors1<-rbindlist(lapply(1:nrow(check_keyfields),FUN=function(i){
+      result<-check_key(parent=check_keyfields$parent_tab[[i]],
+                        child=data,
+                        tabname=tabname,
+                        tabname_parent=check_keyfields$parent_tab_name[i],
+                        keyfield=check_keyfields$keyfield[i],
+                        collapse_on_code=T)[,table:=paste0(parent_table,"/",table)][,parent_table:=NULL]
+      return(result)
+    }))
+    errors[[n]]<-errors1
+    n<-n+1
+  }
+  
+  # Check if any non-allowed values are present
+  # We may want to consider allowing trim_ws to act within this function
+  if(!is.null(allowed_values)){
+    errors1<-rbindlist(lapply(1:nrow(allowed_values), function(i){
+      focal_cols<-c("B.Code",allowed_values[i,field])
+      a_vals<-unlist(allowed_values[i,allowed_values])
+      dat<-data[,..focal_cols]
+      setnames(dat,focal_cols[2],"values")
+      dat<-unique(dat[!is.na(values)])
+      
+      if(nrow(dat)>0){
+        dat<-dat[,.(value=unique(unlist(strsplit(values,";")))),by=B.Code][!value %in% a_vals]
+        errors1<-dat[,.(value=paste(unique(value),collapse = "/")),by=B.Code
+        ][, table := paste0(tabname," & ", allowed_values[i,parent_tab_name])
+        ][, field := allowed_values[i,field]
+        ][, issue := "Values found in field that are not present in lookup values."]
+        return(errors1)
+      }else{
+        return(NULL)
+      }
+    }))
+    
+    errors[[n]] <- errors1
+    n <- n + 1
+  }
+  
+  # Convert date cols to date format
+  if (!is.null(date_cols)) {
+    # Convert Excel date numbers to R dates
+    data[, (date_cols) := lapply(.SD, function(x) as.Date(x, origin = "1899-12-30")), .SDcols = date_cols]
+    
+    # Look for dates outside of a specified range
+    errors[[n]] <- check_dates(data = data,
+                               date_cols = date_cols,
+                               valid_start = valid_start,
+                               valid_end = valid_end,
+                               tabname = tabname)[, value := as.character(value)]
+    n <- n + 1
+  }
+  
+  # Check for missing units
+  if (!is.null(unit_pairs)) {
+    errors1 <- check_units(data, unit_pairs = unit_pairs, tabname = tabname)
+    errors[[n]] <- errors1
+    n <- n + 1
+  }
+  
+  # Check for high/low pair issues
+  if (!is.null(hilo_pairs)) {
+    errors1 <- check_hilow(data, hilo_pairs = hilo_pairs, tabname = tabname)
+    errors[[n]] <- errors1
+    n <- n + 1
+  }
+  
+  # Check for non-matches between site.id and time fields and their parent tables
+  if (any(c("Site.ID", "Time") %in% colnames(data)) & tabname != "Site.Out" & (do_site|do_time)) {
+    if (is.null(ignore_values)) {
+      ignore_values <- c("All Times", "Unspecified", "Not specified", "All Sites")
+    }
+    errors1 <- check_site_time(data = data,
+                               ignore_values = ignore_values,
+                               tabname = tabname,
+                               site_data = site_data,
+                               time_data = time_data,
+                               do_site = do_site,
+                               do_time = do_time)
+    
+    if (length(errors1) > 0) {
+      errors1 <- errors1[, list(value = paste0(value, collapse = "/")), by = list(B.Code, table, field, issue)]
+      errors[[n]] <- errors1
+      n<-n+1
+    }
+  }
+  
+  if(find_duplicates & !is.null(duplicate_field)){
+    if(!is.null(duplicate_ignore_fields)){
+      keep_cols<-colnames(data)[!colnames(data) %in% duplicate_ignore_fields]
+      errors1<-data[duplicated(data[,..keep_cols])]
+    }else{
+      errors1<-data[duplicated(data)]
+    }
+    
+    if(nrow(errors1)>0){
+      setnames(errors1,duplicate_field,"value")
+      errors1<-errors1[,list(value=paste0(unique(value),collapse = "/")),by=B.Code
+      ][, table := tabname
+      ][, field := duplicate_field
+      ][, issue := "Exact Duplicate rows in table"]
+      errors[[n]] <- errors1
+      n<-n+1
+    }
+    
+    if(rm_duplicates){
+      data<-data[!duplicated(data)]
+    }
+  }
+  
+  errors <- rbindlist(errors, use.names = TRUE)
+  
+  return(list(data = data, errors = errors))
+}
+#' Check Key Field between Parent and Child Tables
+#'
+#' This function checks for mismatches in a key field between parent and child tables.
+#'
+#' @param parent A data frame or data table representing the parent table.
+#' @param child A data frame or data table representing the child table.
+#' @param tabname A string representing the name of the child table.
+#' @param keyfield A string representing the name of the key field to be checked.
+#' @param collapse_on_code A logical value indicating whether to collapse mismatched values on the B.Code. Defaults to `TRUE`.
+#' @param tabname_parent A string representing the name of the parent table. Defaults to `NULL`.
+#'
+#' @return A data table of mismatched key field values, with the table name, field, and issue described.
+#'
+#' @examples
+#' \dontrun{
+#' parent <- data.table(B.Code = c("A1", "A2"), key_field = c("key1", "key2"))
+#' child <- data.table(B.Code = c("A1", "A3"), key_field = c("key1", "key3"))
+#' check_key(parent, child, "child_table", "key_field", TRUE, "parent_table")
+#' }
+#' @import data.table
+check_key <- function(parent, child, tabname, keyfield, collapse_on_code = TRUE, tabname_parent = NULL,na_omit=T,delim=";") {
+  keyfield<-unlist(strsplit(keyfield,"/"))
+  n_col <- c("B.Code", keyfield)
+  
+  parent<-parent[, ..n_col][,check:= TRUE]
+  parent<-unique(data.table(parent))
+  
+  child<-data.table(child)
+  child<-child[, ..n_col]
+  child<-split_syn(data=child,split_col = tail(keyfield,1),delim=delim)
+  
+  child <- child[!is.na(child[[ncol(child)]])]
+  
+  mergetab<-data.table(merge(child, parent,by=n_col, all.x = TRUE))
+  mergetab <- unique(mergetab[is.na(check)][,check := NULL])
+  
+  if(length(keyfield)>1){
+    x<-mergetab[,..keyfield]
+    mergetab<-mergetab[,value:=apply(x,1,paste,collapse="-")][,.(B.Code,value)]
+  }else{
+    setnames(mergetab, keyfield, "value")
+  }
+  
+  if(na_omit){
+    mergetab<-mergetab[!is.na(value)]
+  }
+  
+  if (collapse_on_code) {
+    mergetab <- mergetab[, list(value = paste(unique(value), collapse = "/")), by = list(B.Code)]
+  } else {
+    mergetab <- mergetab[, list(B.Code, value)]
+  }
+  
+  mergetab[, table := tabname
+  ][, field := paste0(keyfield,collapse = "/")
+  ][, issue := "Mismatch in field value between parent and child tables."]
+  
+  if (!is.null(tabname_parent)) {
+    mergetab[, parent_table := tabname_parent]
+  }
+  return(mergetab)
+}
+#' Check Coordinates
+#'
+#' This function checks if the coordinates (longitude and latitude) in the data are within the boundaries of the specified countries.
+#'
+#' @param data A data frame or data table containing the coordinates and country ISO codes. The data should have columns `Site.LonD` for longitude, `Site.LatD` for latitude, and `ISO.3166.1.alpha.3` for country ISO codes.
+#'
+#' @return A logical vector indicating whether each coordinate is within the boundaries of the specified country. `NA` is returned if the country code is not found.
+#'
+#' @examples
+#' \dontrun{
+#' data <- data.frame(Site.LonD = c(10, 20, 30), Site.LatD = c(50, 60, 70), ISO.3166.1.alpha.3 = c("USA", "CAN", "MEX"))
+#' check_coordinates(data)
+#' }
+#' @importFrom rnaturalearth ne_countries
+#' @importFrom sf st_transform st_make_valid st_as_sf st_within
+#' @importFrom dplyr filter
+check_coordinates <- function(data) {
+  # Load country boundaries
+  countries <- rnaturalearth::ne_countries(scale = "large", returnclass = "sf")
+  
+  # Ensure CRS (Coordinate Reference System) is set to WGS84 (EPSG:4326)
+  countries <- st_transform(countries, crs = 4326)
+  
+  # Make geometries valid
+  countries <- sf::st_make_valid(countries)  
+  
+  # Convert data to sf object
+  data_sf <- sf::st_as_sf(data, coords = c("Site.LonD", "Site.LatD"), crs = 4326, remove = FALSE)
+  
+  # Initialize result vector
+  is_within_country <- logical(nrow(data))
+  
+  # Iterate over unique ISO codes in the data
+  for (iso3 in unique(data$ISO.3166.1.alpha.3)) {
+    # Filter country boundaries for the current ISO code
+    country_boundary <- countries %>% filter(iso_a3 == iso3)
+    
+    if (nrow(country_boundary) > 0) {
+      # Check if points are within the country boundary
+      points_in_country <- st_within(data_sf, country_boundary, sparse = FALSE)
+      
+      # Store results
+      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- apply(points_in_country, 1, any)[data$ISO.3166.1.alpha.3 == iso3]
+    } else {
+      # Assign NA if country code not found
+      is_within_country[data$ISO.3166.1.alpha.3 == iso3] <- NA
+    }
+  }
+  
+  return(is_within_country)
+}
+#' Split and Expand Delimited Values into Multiple Rows
+#'
+#' This function splits the entries of a specified column in a data frame based 
+#' on a given delimiter, creating a new row for each split value, while retaining 
+#' the values in the other columns.
+#'
+#' @param data A data frame containing the data to be split.
+#' @param split_col A character string specifying the name of the column to be split.
+#' @param delim A character string specifying the delimiter by which to split the column. 
+#' Default is `";"`.
+#'
+#' @return A data frame where each value in the `split_col` is split into multiple rows, 
+#' with other columns duplicated accordingly.
+#'
+#' @examples
+#' merge_dat <- data.frame(
+#'   C.Name = c("2,4-D;2-4D;2,4-Dichlorophenoxyacetic acid", "Aatrex", "Acetamiprid"),
+#'   C.Name.New = c("2,4-D", "aatrex", "acetamiprid"),
+#'   stringsAsFactors = FALSE
+#' )
+#' 
+#' split_syn(merge_dat, "C.Name", ";")
+#'
+#' @importFrom dplyr mutate
+#' @importFrom tidyr unnest
+#' @importFrom data.table data.table
+#' @export
+split_syn <- function(data, split_col, delim = ";") {
+  
+  # Split the values in split_col and repeat the corresponding C.Name.New for each split value
+  new_data <- data %>%
+    dplyr::mutate(!!split_col := strsplit(as.character(.data[[split_col]]), delim)) %>%
+    tidyr::unnest(cols = c(!!split_col)) %>%
+    data.table
+  
+  return(new_data)
 }
