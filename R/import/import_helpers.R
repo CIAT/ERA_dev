@@ -925,7 +925,8 @@ check_hilow <- function(data, hilo_pairs, tabname) {
 #' This function performs various validation checks on the data, including checking for unique values, compulsory fields, non-numeric values in numeric fields, date ranges, extreme values, missing units, and high/low pair issues.
 #'
 #' @param data A data frame or data table to be checked.
-#' @param numeric_cols A vector of column names that are expected to contain numeric values. Defaults to `NULL`.
+#' @param numeric_cols A vector of column names that will be enforced to be class `numeric`. Defaults to `NULL`.
+#' @param character_cols A vector of column names that will be enforced to be class `character`. Defaults to `NULL`.
 #' @param numeric_ignore_vals A vector of values to be ignored in numeric columns. Defaults to `NULL`.
 #' @param date_cols A vector of column names that are expected to contain date values. Defaults to `NULL`.
 #' @param zero_cols A vector of column names where zeros should be replaced with `NA`. Defaults to `NULL`.
@@ -965,6 +966,7 @@ check_hilow <- function(data, hilo_pairs, tabname) {
 #' @import data.table
 validator <- function(data,
                       numeric_cols = NULL,
+                      character_cols = NULL,
                       numeric_ignore_vals = NULL,
                       date_cols = NULL,
                       zero_cols = NULL,
@@ -1077,10 +1079,16 @@ validator <- function(data,
     numeric_cols <- unique(c(numeric_cols, date_cols))
   }
   
+  if(!is.null(character_cols)){
+    character_cols<-character_cols[character_cols %in% colnames(data)]
+    if(length(character_cols)>0){
+    data[, (character_cols) := lapply(.SD, function(x) as.character(x)), .SDcols = character_cols]
+    }
+  }
+  
   # Substitute , for . in numeric columns
   if (!is.null(numeric_cols)) {
     numeric_cols<-numeric_cols[numeric_cols %in% colnames(data)]
-    
     
     data[, (numeric_cols) := lapply(.SD, function(x) gsub(",|·", ".", x)), .SDcols = numeric_cols]
     # Remove spaces in numeric columns
