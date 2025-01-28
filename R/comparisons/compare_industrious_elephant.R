@@ -212,7 +212,20 @@ TreeCodes<-master_codes$trees
   
 
   Fert.Method<-copy(data$Fert.Method)[,F.Level.Name_original:=F.Level.Name]
-  Fert.Method[,Code:=F.Level.Name2][grepl("||",Code,fixed=T),Code:=tstrsplit(Code,"||",fixed=T)[[2]]]
+  sum_fun_a<-function(x){
+    x<-sum(x,na.rm = T)
+    x1<-round(x*10*round(log(x,base=10)),0)/(10*round(log(x,base=10)))
+    if(is.na(x1)|is.nan(x1)){
+      x1<-x
+    }
+    if(x1==0){
+      x1<-NA
+    }
+    return(x1)
+  }
+  
+  Fert.Method[,Code2:=paste(F.Type[1],sum_fun_a(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
+  
   sum_fun<-function(x){
     x<-sum(x,na.rm = T)
     if(x==0){
@@ -290,23 +303,16 @@ TreeCodes<-master_codes$trees
     # Update Final.Codes - Final codes in the Data.Out.Agg dataset are derived from T.Codes which in turn are taken from T.Codes.No.Agg
     # We now need to add the code that relates to the practice in T.Agg.Levels.Fert.Shared (Fert.Method$Code)
 
-    sum_fun<-function(x){
-      x<-sum(x,na.rm = T)
-      x1<-round(x*10*round(log(x,base=10)),0)/(10*round(log(x,base=10)))
-      if(is.na(x1)|is.nan(x1)){
-        x1<-x
-      }
-      if(x1==0){
-        x1<-NA
-      }
-      return(x1)
-    }
-    Fert.Method[,Code2:=paste(F.Type[1],sum_fun(F.Amount)),by=.(B.Code,F.Level.Name,F.Level.Name_original,F.Type)]
-    
+
     fcodes_focal<-unlist(pblapply(Data.Out.Agg.xfert$N,FUN=function(i){
       y<-Data.Out.Agg.xfert[N==i,.(B.Code,Time,Site.ID,T.Name,F.Level.Name,T.Agg.Levels3,T.Agg.Levels.Fert.Shared,Final.Codes)]
       x<-Fert.Method[B.Code==y$B.Code]
       x<-unique(x[F.Level.Name==y$F.Level.Name])
+      
+      if(nrow(x)==0){
+        x<-Fert.Method[B.Code==y$B.Code]
+        x<-unique(x[F.Level.Name2==y$F.Level.Name])
+      }
       
       codes2<-y[,unlist(tstrsplit(T.Agg.Levels.Fert.Shared,"---"))]
       fcodes_focal<-x[Code2 %in% codes2,F.Codes]
@@ -384,6 +390,10 @@ TreeCodes<-master_codes$trees
     Comparisons_processed<-results$Comparisons_processed
     
     Comparison.List[["Aggregated_xfert"]]<-Comparisons_processed
+    
+      # 2.2.3.1) Add T.Codes.Fert.Shared to main dataset and update final codes ####
+      T.Codes.Fert.Shared<-unique(Data.Out.Agg.xfert[!is.na(T.Codes.Fert.Shared) & !T.Codes.Fert.Shared %in% c("NA",""),.(B.Code,T.Name,T.Codes.Fert.Shared)])
+      Data.Out<-merge(Data.Out,T.Codes.Fert.Shared,by=c("B.Code","T.Name"),all.x=T,sort=F)
     
     if(F){
       # Are new aggregated comparisons added?
@@ -1578,15 +1588,15 @@ Data<-Data.Out
   #Data<-Data[!is.na(T.Name)]
   
   # 3.3) Combine all Practice Codes together & remove h-codes ####
-  Join.T<-function(A,B,C,D){
-    X<-c(A,B,C,D)
-    X<-unlist(strsplit(X,"-"))
-    X<-unique(X[!is.na(X)])
-    if(length(X)==0){list(NA)}else{list(X)}
-  }
-  
+    Join.T<-function(A,B,C=NULL,D=NULL,E=NULL){
+      X<-c(A,B,C,D,E)
+      X<-unlist(strsplit(X,"-"))
+      X<-unique(X[!is.na(X)])
+      if(length(X)==0){list(NA)}else{list(X)}
+    }
+    
   # Simple/Animal/Aggregated
-  X<-Data[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
+  X<-Data[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code,T.Codes.Fert.Shared)),by="N"]
   Data[,Final.Codes:=X$Final.Codes]
   
   # Intercrop System
@@ -2353,4 +2363,34 @@ Data<-Data.Out
   # 4.7) Save Output ####
   save_name<-file.path(era_dirs$era_masterdata_dir, gsub("[.]RData","_comparisons.parquet",file_local))
   arrow::write_parquet(ERA.Reformatted,save_name)
+  
+  # 4.7.1) Compare versions #####
+  
+  (files<-grep("parquet",list.files("data/",project,full.names = T),value=T))
+  
+  versions<-lapply(files,read_parquet)
+  
+  (v_compare<-data.table(file=basename(files),
+                         rnows=sapply(versions,nrow),
+                         studies=sapply(versions,FUN=function(x){x[,length(unique(Code))]})))
+  
+  studies<-lapply(versions,FUN=function(x){x[,unique(Code)]})
+  
+  
+  studies_xref<-lapply(1:length(studies),FUN=function(i){
+    n<-1:length(studies)
+    n<-n[n!=i]
+    result<-lapply(n,FUN=function(j){
+      studies[[i]][!studies[[i]] %in% studies[[j]]]
+    })
+    names(result)<-basename(files)[n]
+    result
+  })
+  
+  names(studies_xref)<-basename(files)
+  
+  tail(files,1)
+  studies_xref[[1]][[length(studies_xref)-1]]
+  studies_xref[[length(studies_xref)]][[1]]
+  
   
