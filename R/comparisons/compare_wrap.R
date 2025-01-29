@@ -84,7 +84,7 @@ compare_wrap <- function(DATA,
     Data.Sub <- Data.Sub[Group %in% group_n[N > 1, Group]]
     
     if (nrow(Data.Sub) > 0) {
-      comp_dat <- rbindlist(lapply(unique(Data.Sub$Group), function(i) {
+      comp_dat <-lapply(unique(Data.Sub$Group), function(i) {
         if (Verbose) {
           cat(BC, " Subgroup = ", i, "\n")
         }
@@ -101,7 +101,9 @@ compare_wrap <- function(DATA,
           p_density_similarity_threshold = p_density_similarity_threshold,
           Return.Lists = Return.Lists
         )
-      }))
+      })
+      
+      comp_dat<-rbindlist(comp_dat)
     } else {
       comp_dat <- NULL
     }
