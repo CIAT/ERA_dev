@@ -208,15 +208,15 @@ if(length(DuplicateFiles)>0){
 
 plan(multisession, workers = Cores)
 with_progress({
-  pb <- progressr::progressor(along = Files)
-
+  p <- progressr::progressor(steps = length(Files))
+  
 XL <- future_lapply(1:length(Files), function(i) {
-  pb(sprintf("Processing file %d/%d", i, length(Files)))  # Progress update
+  p(sprintf("Processing file %d/%d", i, length(Files)))  # Progress update
   File <- Files[i]
   X <- lapply(SheetNames, function(SName) {
-    cat('\r                                                                                                                                          ')
-    cat('\r', paste0("Importing File ", i, "/", length(Files), " - ", FNames[i], " | Sheet = ", SName))
-    flush.console()
+    
+    #cat("Importing File ", i, "/", length(Files), " - ", FNames[i], " | Sheet = ", SName,"         ","\r")
+    
     Y <- data.table(suppressMessages(suppressWarnings(read_excel(File, sheet = SName, trim_ws = FALSE))))
     
     if (SName == "Rot.Out") {
@@ -991,7 +991,7 @@ names(XL) <- FNames
     copy_down_cols<-grep("Unit",colnames(Fert.Out),value=T)
     Fert.Out <- Fert.Out[, (copy_down_cols) := lapply(.SD,fun1), .SDcols = copy_down_cols]
     
-    ### 2.10.5) Fert.Method: Estimate amounts if NPK given in Fert.Out and amount is a % applied or NA ####
+    ### 2.10.5) Fert.Method: Infer amounts if NPK given in Fert.Out and amount is a % applied or NA ####
     # custom mappings
     remappings<-rbind(
       data.table(to="Single Super Phosphate",from=c("Super Phosphate","Superphosphate")),
@@ -1015,7 +1015,12 @@ names(XL) <- FNames
     fwrite(error_dat,"MH_fertilizer_issues.csv")
     
     # Subset results to new values with less than 20% variance between reported and calculated N,P and K values
-    fert_calc_vals<-fert_infer[(!is.na(F.Amount) & is.na(F.Amount_raw) & P_diff<0.2 & N_diff<0.2 & K_diff<0.2)|(!is.na(F.Amount) & grepl("%",F.Unit_raw) & F.Unit!=F.Unit_raw),.(index,F.Amount,F.Unit)]
+    fert_calc_vals<-fert_infer[(!is.na(F.Amount) & 
+                                  is.na(F.Amount_raw) & 
+                                  (P_diff<0.2|is.na(P_diff)) & 
+                                  (N_diff<0.2|is.na(N_diff)) & 
+                                  (K_diff<0.2|is.na(K_diff)))|
+                                 (!is.na(F.Amount) & grepl("%",F.Unit_raw) & F.Unit!=F.Unit_raw),.(index,F.Amount,F.Unit)]
     colnames(fert_calc_vals)[2:3]<-c("F.Amount_calc","F.Unit_calc")
     fert_calc_vals$calculated<-T
     
