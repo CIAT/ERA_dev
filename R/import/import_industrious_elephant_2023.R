@@ -1754,7 +1754,7 @@ if(update){
                                              ][,field:="F.Level.Name"  
                                                ][,issue:="Name is not used in Fert.Method table and fert method table is not blank, could indicate an error."]
 
-   #### 3.11.3.2) Harmonization #######
+   #### 3.11.3.1) Harmonization #######
   h_params<-data.table(h_table="Fert.Method",
                        h_field=c("F.Unit","F.Method","F.Physical","F.Mechanization","F.Source","F.Fate"),
                        h_table_alt=c("Fert.Out",NA,NA,"Fert.Out","Fert.Method","Res.Method"),
@@ -1851,6 +1851,49 @@ if(update){
                    ][,field:="F.Category-F.Type:F.Level.Name"
                      ][,issue:="Use of Unspecified as fertilizer type name. We need to check that this truly should have been unspecfied (i.e. we know nothing about the fertilizer applied at all) or if unspecified N, P or K could have been used."]
 
+   #### 3.11.3.2) Estimate amounts if NPK given in Fert.Out and amount is a % applied or NA ####
+  # custom mappings
+  fert_remap<-rbind(
+    data.table(to="Single Super Phosphate",from=c("Super Phosphate","Superphosphate")),
+    data.table(to="Calcium Single Superphosphate",from=c("Calcium Phosphate","Calcium Superphosphate")),
+    data.table(to="Rock Single Superphosphate",from=c("Rock Superphosphate")),
+    data.table(to="Diammonium Phosphte",from=c("Ammonium Phosphate"))
+  )
+  
+  # Add index to Fert.Method
+  Fert.Method[,index:=1:.N]
+  
+  results<-infer_fert_amounts(fert_codes=master_codes$fert,
+                              Fert.Method=Fert.Method,
+                              Fert.Out=Fert.Out,
+                              remappings=fert_remap,
+                              max_diff=0.2)
+  
+  fert_infer<-results$data
+  
+  # ERROR REPORTING NEEDS WORK ####
+  error_dat<-results$errors  
+  error_dat[,sort(unique(B.Code))]
+  # fwrite(error_dat,"MH_fertilizer_issues.csv")
+  
+  # Subset results to new values with less than 20% variance between reported and calculated N,P and K values
+  fert_calc_vals<-fert_infer[(!is.na(F.Amount) & 
+                                is.na(F.Amount_raw) & 
+                                (P_diff<0.2|is.na(P_diff)) & 
+                                (N_diff<0.2|is.na(N_diff)) & 
+                                (K_diff<0.2|is.na(K_diff)))|
+                               (!is.na(F.Amount) & grepl("%",F.Unit_raw) & F.Unit!=F.Unit_raw),.(index,F.Amount,F.Unit)]
+  colnames(fert_calc_vals)[2:3]<-c("F.Amount_calc","F.Unit_calc")
+  fert_calc_vals$calculated<-T
+  
+  # Merge new data using index
+  Fert.Method<-merge(Fert.Method,fert_calc_vals,by="index",all.x=T,sort=F)
+  
+  Fert.Method[!is.na(F.Amount_calc),`:=`(F.Amount=F.Amount_calc,F.Unit=F.Unit_calc)
+  ][,c("F.Amount_calc","F.Unit_calc"):=NULL
+  ][is.na(calculated),calculated:=F
+  ][,index:=NULL]
+  
   ### 3.11.4) Save harmonization and error tasks #####
   errors<-rbindlist(list(errors_a,errors_b,errors_c))
   error_list<-error_tracker(errors=errors,filename = "fert_structure_errors",error_dir=error_dir,error_list = error_list)
