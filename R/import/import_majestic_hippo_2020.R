@@ -2,7 +2,7 @@
 
 # 0) Set-up ####
   ## 0.1) Load packages ####
-pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply,parallel,stringr)
+pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply,parallel,stringr,progressr)
 
   ## 0.2) Create helper functions ####
 waitifnot <- function(cond) {
@@ -166,7 +166,7 @@ Master<-file.path(project_dir,"data_entry",project,"excel_data_extraction_templa
 # List sheet names that we need to extract
 SheetNames<-getSheetNames(Master)[grep(".Out",getSheetNames(Master))]
 
-    ### 1.3.1) Add in sheets where Excel errors need to be fixed by extraction from entry forms ####
+    ### 1.3.1) Add in sheets where excel errors need to be fixed by extraction from entry forms ####
 SheetNames<-c(SheetNames,"Site.Soils","Times")
 
 # List column names for the sheets to be extracted
@@ -183,7 +183,7 @@ Rot1<-XL.M[["Rot.Out"]][15] # Bug in one of the rotation column names
 XL.M[["Rot.Out"]][15]<- "Rotation Treatment"
 XL.M[["AF.Out"]]<-XL.M[["AF.Out"]][1:9] # Subset Agroforesty out tab to needed columns only
 
-  ## 1.4) Check for Duplicate Files -----
+  ## 1.4) Check for duplicate files -----
 
 Files<-unlist(lapply(DataDir, list.files,".xlsm",full.names=T))
 Files<-Files[!grepl("[/][~][$]",Files)]
@@ -204,11 +204,14 @@ if(length(DuplicateFiles)>0){
   View(unlist(DuplicateFiles))
 }
 
-  ## 1.5) Load datafrom Excel Files ####
+  ## 1.5) Load data from excel files ####
 
 plan(multisession, workers = Cores)
+with_progress({
+  pb <- progressr::progressor(along = Files)
 
 XL <- future_lapply(1:length(Files), function(i) {
+  pb(sprintf("Processing file %d/%d", i, length(Files)))  # Progress update
   File <- Files[i]
   X <- lapply(SheetNames, function(SName) {
     cat('\r                                                                                                                                          ')
@@ -238,8 +241,9 @@ XL <- future_lapply(1:length(Files), function(i) {
   
   names(X) <- SheetNames
   X
+},future.seed=T)
 })
-
+plan(sequential)
 names(XL) <- FNames
 
 # 2) Process data ####
