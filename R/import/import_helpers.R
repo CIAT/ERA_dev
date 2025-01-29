@@ -273,24 +273,24 @@ fert_subset[,n_row:=.N,by=.(B.Code,F.Level.Name,F.Type)
               ][,F.Unit_raw:=F.Unit]
 
 # Infer missing amounts when the total elemental content is known
-fert_subset[p_no==1 & is.na(F.Unit) & is.na(F.Amount),`:=`(F.Amount=round(F.PI/F.P/n_row,1),F.Unit=F.I.Unit)]
-fert_subset[n_no==1 & is.na(F.Unit) & is.na(F.Amount),`:=`(F.Amount=round(F.NI/F.N/n_row,1),F.Unit=F.I.Unit)]
-fert_subset[k_no==1 & is.na(F.Unit) & is.na(F.Amount),`:=`(F.Amount=round(F.KI/F.K/n_row,1),F.Unit=F.I.Unit)]
+fert_subset[p_no==1 & is.na(F.Unit) & is.na(F.Amount) & !is.na(F.PI),`:=`(F.Amount=round(F.PI/F.P/n_row,1),F.Unit=F.I.Unit)]
+fert_subset[n_no==1 & is.na(F.Unit) & is.na(F.Amount) & !is.na(F.NI),`:=`(F.Amount=round(F.NI/F.N/n_row,1),F.Unit=F.I.Unit)]
+fert_subset[k_no==1 & is.na(F.Unit) & is.na(F.Amount) & !is.na(F.KI),`:=`(F.Amount=round(F.KI/F.K/n_row,1),F.Unit=F.I.Unit)]
 
 # Handle percentages for fertilizer amounts
 fert_subset[grep("%",F.Unit,fixed=T),F.Amount_perc:=F.Amount/100]
 fert_subset[grep("%",F.Unit,fixed=T),F.Amount:=NA]
 
-fert_subset[p_no==1 & grepl("%",F.Unit) & F.Type!="P (Unspecified)",`:=`(F.Amount=round(F.PI/F.P*F.Amount_perc,1),F.Unit=F.I.Unit)]
-fert_subset[n_no==1 & grepl("%",F.Unit) & F.Type!="N (Unspecified)",`:=`(F.Amount=round(F.NI/F.N*F.Amount_perc,1),F.Unit=F.I.Unit)]
-fert_subset[k_no==1 & grepl("%",F.Unit) & F.Type!="K (Unspecified)",`:=`(F.Amount=round(F.KI/F.K*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[p_no==1 & grepl("%",F.Unit) & F.Type!="P (Unspecified)" & !is.na(F.PI),`:=`(F.Amount=round(F.PI/F.P*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[n_no==1 & grepl("%",F.Unit) & F.Type!="N (Unspecified)" & !is.na(F.NI),`:=`(F.Amount=round(F.NI/F.N*F.Amount_perc,1),F.Unit=F.I.Unit)]
+fert_subset[k_no==1 & grepl("%",F.Unit) & F.Type!="K (Unspecified)" & !is.na(F.KI),`:=`(F.Amount=round(F.KI/F.K*F.Amount_perc,1),F.Unit=F.I.Unit)]
 
 # Add amounts for unspecified N, P, K fertilizers (developer notes included)
 # Dev Note: Ensure logic to handle unspecified NPK is implemented when NPK totals are given but missing in the table
 # Dev Note: it may also be possible to included unspecified N,P, and K after n_no==1 records are dealt with where n_no==2
-fert_subset[n_no==1 & is.na(F.Amount) & F.Type=="N (Unspecified)",`:=`(F.Amount = F.NI / n_row, F.Unit = F.I.Unit, F.N=1)]
-fert_subset[p_no==1 & is.na(F.Amount) & F.Type=="P (Unspecified)",`:=`(F.Amount = F.PI / n_row, F.Unit = F.I.Unit, F.P=1)]
-fert_subset[k_no==1 & is.na(F.Amount) & F.Type=="K (Unspecified)",`:=`(F.Amount = F.KI / n_row, F.Unit = F.I.Unit, F.K=1)]
+fert_subset[n_no==1 & is.na(F.Amount) & F.Type=="N (Unspecified)" & !is.na(F.NI),`:=`(F.Amount = F.NI / n_row, F.Unit = F.I.Unit, F.N=1)]
+fert_subset[p_no==1 & is.na(F.Amount) & F.Type=="P (Unspecified)" & !is.na(F.PI),`:=`(F.Amount = F.PI / n_row, F.Unit = F.I.Unit, F.P=1)]
+fert_subset[k_no==1 & is.na(F.Amount) & F.Type=="K (Unspecified)" & !is.na(F.KI),`:=`(F.Amount = F.KI / n_row, F.Unit = F.I.Unit, F.K=1)]
 
 # Reality check for completeness of elemental sums
 fert_subset[is.nan(F.N) & !is.na(n_no),N_sum_complete:=F
@@ -370,6 +370,19 @@ errors<-check[,.(B.Code,F.Level.Name,F.Type,F.Type2,F.Amount,F.Amount_raw,F.I.Un
 return(list(data=fert_subset,errors=errors))
 
 }
+#' Replace Zeros with NA
+#'
+#' This function replaces all zero values in a given dataset with `NA`.
+#'
+#' @param data A numeric vector, matrix, or data frame in which zeros should be replaced with `NA`.
+#' @return The input data with all zero values replaced by `NA`.
+#' @examples
+#' x <- c(1, 0, 3, 0, 5)
+#' replace_zero_with_NA(x)
+#'
+#' df <- data.frame(a = c(0, 2, 3), b = c(4, 0, 6))
+#' replace_zero_with_NA(df)
+#' @export
 replace_zero_with_NA <- function(data) {
   data[data == 0] <- NA
   return(data)
