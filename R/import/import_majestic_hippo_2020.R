@@ -873,8 +873,9 @@ names(XL) <- FNames
     
     # Split F.Codes into Fert.Codes cols (legacy for Majestic Hippo only)
     Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==0,Fert.Code1:=F.Codes,by=F.Codes]
-    Fert.Method[str_count(F.Codes,"-")>0,Fert.Code2:=tstrsplit(F.Codes[1],"-",keep=2),by=F.Codes]
-    Fert.Method[str_count(F.Codes,"-")>1,Fert.Code3:=tstrsplit(F.Codes,"-",keep=3)]
+    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==1,Fert.Code1:=tstrsplit(F.Codes,"-",keep=1),by=F.Codes]
+    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==1,Fert.Code2:=tstrsplit(F.Codes,"-",keep=2),by=F.Codes]
+    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==2,Fert.Code3:=tstrsplit(F.Codes,"-",keep=3)]
 
     Fert.Comp[!is.na(F.Type.Code2x),F.Type:=unlist(tstrsplit(F.Type.Code2x,"$$",keep=2,fixed=T))
     ][!is.na(F.Type.Code2x),F.Category:=unlist(tstrsplit(F.Type.Code2x,"$$",keep=1,fixed=T))]
