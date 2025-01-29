@@ -253,8 +253,8 @@ fert_subset[is.na(F.KI)|(F.KI==0 & !is.na(F.K2O)),F.KI:=F.K2O*0.83]
 # Optional: Remap fertilizer names based on the provided remappings table
 fert_subset[,F.Type2:=F.Type]
 if(!is.null(remappings)){
-  for(i in 1:nrow(fert_remap)){
-    fert_subset[F.Type2==fert_remap$from[i],F.Type2:=fert_remap$to[i]]
+  for(i in 1:nrow(remappings)){
+    fert_subset[F.Type2==remappings$from[i],F.Type2:=remappings$to[i]]
   }
 }
 
