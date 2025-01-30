@@ -198,7 +198,7 @@ process_string <- function(input_string, between_delim = "..", within_delim = "|
 infer_fert_amounts<-function(fert_codes,Fert.Method,Fert.Out,remappings=NULL,max_diff=0.2){
 
 # Extract only inorganic fertilizers and their NPK content
-inorganic_ferts<-fert_codes[F.Category_New=="Inorganic",.(F.Type_New,F.N,F.P,F.K)]
+inorganic_ferts<-unique(fert_codes[F.Category_New=="Inorganic",.(F.Type_New,F.N,F.P,F.K)])
 setnames(inorganic_ferts,"F.Type_New","F.Type")
 
 # Function to process fertilizer ratios (e.g., "10-20-30") into numeric values
@@ -233,7 +233,15 @@ fert_subset[,k_no:=length(unique(F.Type[k_present==T])),by=.(B.Code,F.Level.Name
 fert_subset<-fert_subset[F.Category=="Inorganic",.(index,B.Code,F.Level.Name,F.Type,F.NPK,F.Amount,F.Unit,p_no,n_no,k_no)]
 
 # Merge Fert.Out data to add N, P, and K total amounts for each treatment
-fert_subset<-merge(fert_subset,Fert.Out[,.(B.Code,F.Level.Name,F.NI,F.PI,F.P2O5,F.KI,F.K2O,F.I.Unit)],by=c("B.Code","F.Level.Name"),all.x=T,sort=F)
+n_rows<-nrow(fert_subset)
+fert_subset<-merge(fert_subset,
+                   Fert.Out[,.(B.Code,F.Level.Name,F.NI,F.PI,F.P2O5,F.KI,F.K2O,F.I.Unit)],by=c("B.Code","F.Level.Name"),
+                   all.x=T,
+                   sort=F)
+
+if(nrow(fert_subset)!=n_rows){
+  stop(paste("Merging Fert.Method and Fert.Out results in changed table length (rows)."))
+}
 
 # Remove units that are not kg/ha
 unit_issues<-list(F.I.Unit_issue=fert_subset[F.I.Unit!="kg/ha" & !is.na(F.I.Unit),unique(F.I.Unit)],
@@ -259,7 +267,13 @@ if(!is.null(remappings)){
 }
 
 # Merge with inorganic_ferts to add elemental compositions for fertilizers
+n_rows<-nrow(fert_subset)
 fert_subset<-merge(fert_subset,inorganic_ferts,by.x="F.Type2",by.y="F.Type",all.x=T,sort=F)
+
+if(nrow(fert_subset)!=n_rows){
+  stop(paste("Merging Fert.Method and master_codes$fert results in changed table length (rows)."))
+}
+
 fert_subset[,F.N:=F.N/100][,F.P:=F.P/100][,F.K:=F.K/100]
 
 # Extract fertilizer composition directly from NPK strings
