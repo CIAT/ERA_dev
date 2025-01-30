@@ -184,6 +184,7 @@ if(F){
     
     files<-list.files(folder_local,era_projects$skinny_cow_2022,full.names = T,recursive=T)
     files<-grep(".RData",files,value=T)
+    
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
@@ -201,6 +202,7 @@ if(F){
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
+    
     # 1.2.2.3) upload pdfs #######
   # 1.2.3) 2020 majestic_hippo ######
     # 1.2.3.1) upload pdfs #######
@@ -328,6 +330,21 @@ upload_files_to_s3(files = files,
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read")
+  # 1.2.5) compiled dataset
+    s3_bucket<-era_dirs$era_masterdata_s3
+    folder_local<-era_dirs$era_masterdata_dir
+    
+    files<-list.files(folder_local,"era_compiled",full.names = T,recursive=T)
+    files<-grep("comparisons",files,value=T)
+    
+    # PLEASE SELECT MOST RECENT VERSION ONLY
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+
 # 1.4) Upload environmental data ####
   # 1.4.1) Aspect, slope, elevation ######
   s3_bucket<-era_dirs$era_geodata_s3
