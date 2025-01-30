@@ -773,22 +773,22 @@ Duplicates<-master_codes$dups
 UnitHarmonization<-master_codes$unit_harmonization
 UnitHarmonization[Out.Unit.Correct==""|is.na(Out.Unit.Correct),Out.Unit.Correct:=Out.Unit]
 
-  # 1.3) Set era dataset locations ####
-# Find most recent 2018 dataset
-filename18<-grep(".parquet",tail(list.files(era_dirs$era_masterdata_dir,"v1[.]0",recursive = F,full.names = T),1),value=T)
-filename18_simple<-gsub("era_data_|[.]parquet","",basename(filename18))
-
-# Find most recent majestic hippo 2020 dataset
-filename20<-tail(grep(".parquet",list.files(era_dirs$era_masterdata_dir,"v1[.]1",recursive = F,full.names = T),value=T),1)
-filename20_simple<-gsub("era_data_|[.]parquet","",basename(filename20))
-
-# Find most recent skinny cow 2022 dataset
-filename22<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$skinny_cow_2022,recursive = F,full.names = T),value=T),value=T),1)
-filename22_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basename(filename22)))
-
-# Create combined file name (this is the name used to save the compiled dataset)
-filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filename22_simple),collapse="-")
-
+  # 1.3) Set era dataset locations #####
+    # 1.3.1) 2018 ######
+    filename18<-grep(".parquet",tail(list.files(era_dirs$era_masterdata_dir,"v1[.]0",recursive = F,full.names = T),1),value=T)
+    filename18_simple<-gsub("era_data_|[.]parquet","",basename(filename18))
+    
+    # 1.3.2) 2020 Majestic hippo ######
+    filename20<-tail(grep(".parquet",list.files(era_dirs$era_masterdata_dir,"v1[.]1",recursive = F,full.names = T),value=T),1)
+    filename20_simple<-gsub("era_data_|[.]parquet","",basename(filename20))
+    
+    # 1.3.3) 2022 Skinny cow ######
+    filename22<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$skinny_cow_2022,recursive = F,full.names = T),value=T),value=T),1)
+    filename22_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basename(filename22)))
+    
+    # Create combined file name (this is the name used to save the compiled dataset)
+    filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filename22_simple),collapse="-")
+    
   # 1.4) Read in and prepare ERA datasets ####
     # 1.4.1) 2018 ######
     era_2018<-data.table(arrow::read_parquet(filename18))
