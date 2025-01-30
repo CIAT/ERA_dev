@@ -1,5 +1,5 @@
 # First run R/0_set_env.R
-# 0.0) Install and load packages ####
+# 0.0) Install and load packages, source functions ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
 pacman::p_load(data.table, 
                readxl,
@@ -16,6 +16,8 @@ pacman::p_load(data.table,
                sf,
                dplyr,
                progressr)
+
+
 # 0.1) Define the valid range for date checking #####
 valid_start <- as.Date("1950-01-01")
 valid_end <- as.Date("2023-12-01")
@@ -59,6 +61,8 @@ if(!dir.exists(harmonization_dir)){
 # Where compiled data is to be stored
 data_dir<-era_dirs$era_masterdata_dir
 
+## 0.3) Load helper functions ####
+source(file.path(project_dir,"R/import/import_helpers.R"))
 # 1) Download  or update excel data ####
 download<-F
 update<-F
