@@ -1018,3 +1018,31 @@ ERA.Reformatted[,.(N.Obs=.N),by=.(Code,CID,Outcome,Units,Partial.Outcome.Name)][
 # 5) Save Output ####
 save_name<-gsub("[.]RData","_comparisons.parquet",file_local)
 arrow::write_parquet(ERA.Reformatted,save_name)
+  # 5.7.1) Compare versions #####
+
+(files<-grep("comparisons",grep("parquet",list.files("data/",project,full.names = T),value=T),value=T))
+options(arrow.unsafe_metadata = TRUE)
+versions<-lapply(files,read_parquet)
+
+(v_compare<-data.table(file=basename(files),
+                       rnows=sapply(versions,nrow),
+                       studies=sapply(versions,FUN=function(x){x[,length(unique(Code))]})))
+
+studies<-lapply(versions,FUN=function(x){x[,unique(Code)]})
+
+
+studies_xref<-lapply(1:length(studies),FUN=function(i){
+  n<-1:length(studies)
+  n<-n[n!=i]
+  result<-lapply(n,FUN=function(j){
+    studies[[i]][!studies[[i]] %in% studies[[j]]]
+  })
+  names(result)<-basename(files)[n]
+  result
+})
+
+names(studies_xref)<-basename(files)
+
+tail(files,1)
+studies_xref[[1]][[length(studies_xref)-1]]
+studies_xref[[length(studies_xref)]][[1]]
