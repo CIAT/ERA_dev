@@ -459,8 +459,15 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
     F.Master.Codes<-F.Master.Codes[!grepl("h",F.Master.Codes)]
     
     Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out2)[grep("Level.Name",colnames(MT.Out2))]),
-                       Codes =c("T.Residue.Code","AF.Codes","A.Codes",NA,"E.Codes","H.Codes","I.Codes","M.Codes","F.Codes",
-                                "pH.Codes",NA,"PO.Codes","Till.Codes","V.Codes","WH.Codes",NA,NA,NA))
+                       Codes =c("T.Residue.Code","F.Codes","AF.Codes","A.Codes",NA,"E.Codes","H.Codes",
+                                "I.Codes","M.Codes","pH.Codes",NA,"PO.Codes","Till.Codes","V.Codes","WH.Codes",
+                                NA,NA,NA))
+    
+    Fields<-Fields[!grepl("F.Level.Name",Levels)]
+    Fields<-rbind(Fields,data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
+    
+    N<-which(!is.na(Data.Out.Int[,ED.Int]))
+    
     Fields<-Fields[!grepl("F.Level.Name",Levels)]
     Fields<-rbind(Fields,data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
     
