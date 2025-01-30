@@ -6,9 +6,6 @@ pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr)
 source(file.path(project_dir,"R/comparisons/compare_fun.R"))
 source(file.path(project_dir,"R/comparisons/compare_wrap.R"))
 
-worker_n<-14
-
-
 # Combine all Practice Codes together & remove h-codes
 Join.T<-function(A,B,C,D){
   X<-c(A,B,C,D)
@@ -21,6 +18,13 @@ Join.T<-function(A,B,C,D){
     if(length(X)==0){list(NA)}else{list(X)}
   }
 }
+
+  # 0.1) Set workers and max globals ####
+
+  worker_n<-14
+  
+  # Set globals max size
+  options(future.globals.maxSize = 1e9) # 1 GB
 
 # 1) Read in data ####
   # 1.1) Load tables from era data model #####
@@ -240,7 +244,7 @@ TreeCodes<-master_codes$trees
       f_level_shared<-fert_shared$T.Agg.Levels.Fert.Shared[i]
       f_level_2<-fert_shared$F.Level.Name2[i]
       y<-Fert.Method[B.Code==b_code]
-      x<-y[F.Level.Name2 %in% unlist(tstrsplit(f_level_2,"...",fixed=T)) & !Code %in%  unlist(tstrsplit(f_level_shared,"---"))]
+      x<-y[F.Level.Name2 %in% unlist(tstrsplit(f_level_2,"...",fixed=T)) & !B.Code %in%  unlist(tstrsplit(f_level_shared,"---"))]
       if(f_level_2 %in% y$F.Level.Name){
         stop(paste(b_code,"-",f_level_2,"New fertilizer level name derived from F.Level.Name2 is aleady present"))
       }
@@ -426,7 +430,7 @@ TreeCodes<-master_codes$trees
     Data.Out.Int2[,T.Name:=IN.Level.Name]
     
       # 2.3.1.1) Combine intercropped treatment information using a similar process to aggregated trts in the MT.Out table ########
-
+    
     Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name$",colnames(MT.Out))]))
     Fields[,Codes:=gsub("Level.Name","Codes",Levels)
            ][,Codes:=gsub("Prev","Code",Levels)
@@ -437,7 +441,6 @@ TreeCodes<-master_codes$trees
     #F.Master.Codes<-F.Master.Codes[!grepl("h",F.Master.Codes)]
     #Fields<-Fields[!grepl("F.Level.Name",Levels)]
     #Fields<-rbind(Fields,data.table(Levels=F.Master.Codes,Codes=paste0(F.Master.Codes,".Code")))
-    
     
     N<-which(!is.na(Data.Out.Int[,IN.Level.Name]))
     
@@ -2364,9 +2367,10 @@ Data<-Data.Out
   save_name<-file.path(era_dirs$era_masterdata_dir, gsub("[.]RData","_comparisons.parquet",file_local))
   arrow::write_parquet(ERA.Reformatted,save_name)
   
-  # 4.7.1) Compare versions #####
+    # 4.7.1) Compare versions #####
   
   (files<-grep("parquet",list.files("data/",project,full.names = T),value=T))
+  files<-files[!grepl("compiled",files)]
   
   versions<-lapply(files,read_parquet)
   
