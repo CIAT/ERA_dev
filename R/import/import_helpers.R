@@ -214,6 +214,12 @@ inorganic_ferts[, (cols_to_process) := lapply(.SD, process_fert_ratios), .SDcols
 
 # Copy Fert.Method data and process it for presence of N, P, and K
 fert_subset<-copy(Fert.Method)
+
+# If F.NP2O5K2O colum present replace F.NPK with this
+if("F.NP2O5K2O" %in% colnames(fert_subset)){
+  fert_subset[is.na(F.NPK),F.NPK:=F.NP2O5K2O]
+}
+
 setnames(fert_subset,"F.Name","F.Level.Name",skip_absent = T)
 
 # Remove units when value is NA
@@ -248,7 +254,7 @@ unit_issues<-list(F.I.Unit_issue=fert_subset[F.I.Unit!="kg/ha" & !is.na(F.I.Unit
                   F.Unit_issue=fert_subset[!is.na(F.Unit) & !grepl("%|kg/ha",F.Unit),unique(F.Unit)])
 
 if(any(sapply(unit_issues,length)>0)){
-  warning(paste("Rows with these units will be excluded from the analysis: \n F.I.Unit = ",unit_issues$F.I.Unit_issue,
+  warning(paste("Rows with these units will be excluded from the analysis: \n F.I.Unit = ",paste0(unit_issues$F.I.Unit_issue,collapse=","),
                 "\n F.Unit = ",paste(unit_issues$F.Unit_issue,collapse = ",")))
 }
 
