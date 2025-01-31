@@ -866,7 +866,7 @@ errors<-c(errors,list(error_dat))
   data<-lapply(XL,"[[",table_name)
   col_names<-colnames(data[[1]][,1:19])
   
-  Animals.Out<-pblapply(1:length(data),FUN=function(i){
+  results<-pblapply(1:length(data),FUN=function(i){
     X<-data[[i]]
     setnames(X,"A.Level.Name...1","A.Level.Name",skip_absent = T)
     B.Code<-Pub.Out$B.Code[i]
@@ -883,9 +883,9 @@ errors<-c(errors,list(error_dat))
       }
     }})
   
-  errors<-list(rbindlist(lapply(Animals.Out,"[[","error")))
+  errors<-list(rbindlist(lapply(results,"[[","error")))
   
-  Animals.Out<-rbindlist(lapply(Animals.Out,"[[","data"))
+  Animals.Out<-rbindlist(lapply(results,"[[","data"))
   
   # Rename cols
   p_names_new<- c("A.Feed.Add.1","A.Feed.Add.2","A.Feed.Add.3", "A.Feed.Add.C", "A.Feed.Sub.1","A.Feed.Sub.2","A.Feed.Sub.3",
@@ -2486,7 +2486,7 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
     Data.Out=Data.Out
   )
   
-  save_file<-paste0(project,"_",as.character(Sys.Date()))
+  save_file<-paste0(project,"-",as.character(Sys.Date()))
   n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
   
   save(Tables,file=file.path("data",paste0(save_file,".",n+1,".RData")))
