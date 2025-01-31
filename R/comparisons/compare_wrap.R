@@ -133,7 +133,6 @@ compare_wrap <- function(DATA,
       b_codes <- unique(DATA[, B.Code])
       p <- progressor(steps = length(b_codes))
       future_lapply(seq_along(b_codes), function(ii) {
-        # Only pass the required subset of DATA to workers
         Data.Sub <- DATA[B.Code == b_codes[ii]]
         process_b_code(ii, b_codes, DATA=Data.Sub, CompareWithin, Verbose, Debug, Return.Lists,
                        Fert.Method, Plant.Method, Irrig.Method, Res.Method, p_density_similarity_threshold)
