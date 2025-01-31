@@ -216,7 +216,7 @@ inorganic_ferts[, (cols_to_process) := lapply(.SD, process_fert_ratios), .SDcols
 fert_subset<-copy(Fert.Method)
 
 # If F.NP2O5K2O colum present replace F.NPK with this
-if("F.NP2O5K2O" %in% colnames(fert_subset)){
+if("F.NP2O5K2O" %in% colnames(Fert.Method)){
   fert_subset[is.na(F.NPK),F.NPK:=F.NP2O5K2O]
 }
 
@@ -291,6 +291,108 @@ fert_subset[!is.na(F.NPK),F.P:=0.436*as.numeric(tstrsplit(F.NPK[1],"-",keep=2)[[
 fert_subset[,n_row:=.N,by=.(B.Code,F.Level.Name,F.Type)
             ][,F.Amount_raw:=F.Amount
               ][,F.Unit_raw:=F.Unit]
+
+# Add Unspecified F.Type if elemental NPK is present with no corresponding entry in the F.Method table
+n_add<-unique(fert_subset[n_no==0 & !(is.na(F.NI)|F.NI=="")][,`:=`(n_no=1,n_row=1,F.Type2="N (Unspecified)",index=NA,F.Type="N (Unspecified)",F.Amount=F.NI,F.N=1,F.P=NA,F.K=NA,F.Amount_raw=NA,F.Unit_raw=NA,F.Unit="kg/ha")])
+p_add<-unique(fert_subset[p_no==0 & !(is.na(F.PI)|F.PI=="")][,`:=`(p_no=1,n_row=1,F.Type2="P (Unspecified)",index=NA,F.Type="P (Unspecified)",F.Amount=F.PI,F.N=NA,F.P=1,F.K=NA,F.Amount_raw=NA,F.Unit_raw=NA,F.Unit="kg/ha")])
+k_add<-unique(fert_subset[k_no==0 & !(is.na(F.KI)|F.KI=="")][,`:=`(k_no=1,n_row=1,F.Type2="K (Unspecified)",index=NA,F.Type="K (Unspecified)",F.Amount=F.KI,F.N=NA,F.P=NA,F.K=1,F.Amount_raw=NA,F.Unit_raw=NA,F.Unit="kg/ha")])
+
+add1<-rbind(n_add,p_add,k_add)
+
+fert_subset<-rbind(fert_subset,add1)
+
+# Update n_no.p_no,k_no now a row has been introduced
+fert_subset[,n_no:=max(n_no,na.rm = T),by=.(B.Code,F.Level.Name)
+            ][,p_no:=max(p_no,na.rm = T),by=.(B.Code,F.Level.Name)
+              ][,k_no:=max(k_no,na.rm = T),by=.(B.Code,F.Level.Name)]
+
+# Add in completely missing NPK (i.e. nothing in the Fert.Methods tab for a F.Level.Name)
+fert_out<-Fert.Out[F.I.Unit=="kg/ha"]
+fert_out[is.na(F.PI)|(F.PI==0 & !is.na(F.P2O5)),F.PI:=F.P2O5*0.436]
+fert_out[is.na(F.KI)|(F.KI==0 & !is.na(F.K2O)),F.KI:=F.K2O*0.83]
+
+fert_missing<-fert_out[!(is.na(F.NI) & is.na(F.PI) & is.na(F.KI)) & !F.Level.Name %in% fert_subset$F.Level.Name,.(B.Code,F.Level.Name,F.NI,F.PI,F.P2O5,F.KI,F.K2O,F.I.Unit)]
+fm_n<-fert_missing[F.NI!=0 & !is.na(F.NI)]
+
+n_add2<-data.table(F.Type2="N (Unspecified)",
+                   B.Code=fm_n$B.Code,
+                   F.Level.Name=fm_n$F.Level.Name,
+                   index=NA,
+                   F.Type="N (Unspecified)",
+                   F.NPK=NA,
+                   F.Amount=fm_n$F.NI,
+                   F.Unit="kg/ha",
+                   p_no=0,
+                   n_no=1,
+                   k_no=0,
+                   F.NI=fm_n$F.NI,
+                   F.PI=fm_n$F.PI,
+                   F.P2O5=fm_n$F.P2O5,
+                   F.KI=fm_n$F.KI,
+                   F.K2O=fm_n$F.K2O,
+                   F.I.Unit=fm_n$F.I.Unit,
+                   F.N=1,
+                   F.P=0,
+                   F.K=0,
+                   n_row=1,
+                   F.Amount_raw=NA,
+                   F.Unit_raw=NA)
+
+p_add2<-data.table(F.Type2="P (Unspecified)",
+                   B.Code=fm_n$B.Code,
+                   F.Level.Name=fm_n$F.Level.Name,
+                   index=NA,
+                   F.Type="P (Unspecified)",
+                   F.NPK=NA,
+                   F.Amount=fm_n$F.PI,
+                   F.Unit="kg/ha",
+                   p_no=1,
+                   n_no=0,
+                   k_no=0,
+                   F.NI=fm_n$F.NI,
+                   F.PI=fm_n$F.PI,
+                   F.P2O5=fm_n$F.P2O5,
+                   F.KI=fm_n$F.KI,
+                   F.K2O=fm_n$F.K2O,
+                   F.I.Unit=fm_n$F.I.Unit,
+                   F.N=0,
+                   F.P=1,
+                   F.K=0,
+                   n_row=1,
+                   F.Amount_raw=NA,
+                   F.Unit_raw=NA)
+
+k_add2<-data.table(F.Type2="K (Unspecified)",
+                   B.Code=fm_n$B.Code,
+                   F.Level.Name=fm_n$F.Level.Name,
+                   index=NA,
+                   F.Type="K (Unspecified)",
+                   F.NPK=NA,
+                   F.Amount=fm_n$F.KI,
+                   F.Unit="kg/ha",
+                   p_no=0,
+                   n_no=0,
+                   k_no=1,
+                   F.NI=fm_n$F.NI,
+                   F.PI=fm_n$F.PI,
+                   F.P2O5=fm_n$F.P2O5,
+                   F.KI=fm_n$F.KI,
+                   F.K2O=fm_n$F.K2O,
+                   F.I.Unit=fm_n$F.I.Unit,
+                   F.N=0,
+                   F.P=0,
+                   F.K=1,
+                   n_row=1,
+                   F.Amount_raw=NA,
+                   F.Unit_raw=NA)
+
+add2<-rbind(n_add2,p_add2,k_add2)
+
+add2<-add2[,n_no:=max(n_no,na.rm = T),by=.(B.Code,F.Level.Name)
+][,p_no:=max(p_no,na.rm = T),by=.(B.Code,F.Level.Name)
+][,k_no:=max(k_no,na.rm = T),by=.(B.Code,F.Level.Name)]
+
+fert_subset<-rbind(fert_subset,add2)
 
 # Infer missing amounts when the total elemental content is known
 fert_subset[p_no==1 & is.na(F.Unit) & is.na(F.Amount) & !is.na(F.PI) & F.P!=0,`:=`(F.Amount=round(F.PI/F.P/n_row,1),F.Unit=F.I.Unit)]
@@ -387,9 +489,44 @@ fert_subset[B.Code==check2$B.Code[1] & F.Level.Name==check2$F.Level.Name[1],
 errors<-check[,.(B.Code,F.Level.Name,F.Type,F.Type2,F.Amount,F.Amount_raw,F.I.Unit,F.Unit,F.Unit_raw,F.NPK,F.N,F.P,F.K,
                  F.NI,N_sum,F.PI,F.P2O5,P_sum,F.KI,F.K2O,K_sum)]
 
-return(list(data=fert_subset,errors=errors))
+
+# Combine new data (Unspecified rows) and convert to Fert.Method format
+add12<-rbind(add1,add2)
+add12[F.Type=="N (Unspecified)",F.Codes:="b17"
+      ][F.Type=="P (Unspecified)",F.Codes:="b21"
+        ][F.Type=="K (Unspecified)",F.Codes:="b16"]
+
+fm_new<-data.table(F.Level.Name=add12$F.Level.Name,
+           F.Category="Inorganic",
+           F.Type=add12$F.Type,
+           F.NPK=add12$F.NPK,
+           F.Amount=add12$F.Amount,
+           F.Unit=add12$F.Unit,
+           F.Method=NA,
+           F.Physical=NA,
+           F.Mechanization=NA,
+           F.Source=NA,
+           F.Fate=NA,
+           Site.ID="All Sites",
+           Time="All Times",
+           F.Date.Start=NA,
+           F.Date.End=NA,
+           F.Date=NA,
+           F.Date.Stage=NA,
+           F.Date.DAP=NA,
+           F.Date.DAE=NA,
+           F.Date.Text=NA,
+           B.Code=add12$B.Code,
+           F.Codes=add12$F.Codes)
+
+if("F.NP2O5K2O" %in% colnames(Fert.Method)){
+  fm_new[,F.NP2O5K2O:=NA]
+}
+
+return(list(data=fert_subset,data_new=fm_new,errors=errors))
 
 }
+
 #' Replace Zeros with NA
 #'
 #' This function replaces all zero values in a given dataset with `NA`.
@@ -1428,4 +1565,71 @@ split_syn <- function(data, split_col, delim = ";") {
     data.table
   
   return(new_data)
+}
+#' Convert NPK Ratio from Tons to Percentage
+#'
+#' This function converts an NPK fertilizer ratio from a bulk representation (e.g., expressed in tons per unit)
+#' to a percentage-based format. If the sum of N, P, and K exceeds 100, the function assumes that the values 
+#' are expressed per ton and scales them down by a factor of 10. If the sum remains above 100 after scaling, 
+#' the function issues a warning and returns `NA`.
+#'
+#' @param y A character string representing the NPK ratio, formatted as `"N-P-K"`, where `N`, `P`, and `K` 
+#' are numerical values.
+#' @param delim A character string specifying the delimiter used in `y`. Defaults to `"-"`. 
+#'               Ensure this matches the actual delimiter used in `y`.
+#' 
+#' @return A character string representing the adjusted NPK ratio in percentage format, or `NA` if the 
+#' adjusted sum still exceeds 100 or if the input is invalid.
+#'
+#' @examples
+#' convert_npk("300-150-300")  # Returns "30-15-30"
+#' convert_npk("35-6-35")      # Returns "35-6-35" (unchanged)
+#' convert_npk("350-60-350")   # Returns "35-6-35"
+#' convert_npk("120-50-50")    # Returns "12-5-5"
+#' convert_npk("100-abc-300")  # Returns NA with a warning
+#' convert_npk("50-")          # Returns NA with a warning
+#' convert_npk("100--300")     # Returns NA with a warning
+#' convert_npk("100:50:50", delim = ":")  # Returns "10-5-5"
+#' 
+convert_npk <- function(y, delim = "-") {
+  # Ensure the delimiter is a single character and not empty
+  if (!is.character(delim) || nchar(delim) != 1) {
+    stop("Invalid delimiter: delim must be a single character string.")
+  }
+  
+  # Check if input contains at least two delimiters
+  split_values <- unlist(strsplit(y, delim, fixed = TRUE))
+  if (length(split_values) < 3) {
+    warning(y, " is not a valid NPK format. Expected format: 'N", delim, "P", delim, "K'.")
+    return(NA)
+  }
+  
+  # Convert input string to numeric vector
+  x <- suppressWarnings(as.numeric(split_values))
+  
+  # Check if conversion to numeric was successful (i.e., no non-numeric values)
+  if (any(is.na(x))) {
+    warning(y, " contains non-numeric values or missing values.")
+    return(NA)
+  }
+  
+  # Check for negative values
+  if (any(x < 0)) {
+    warning(y, " contains negative values, which are invalid.")
+    return(NA)
+  }
+  
+  # If the sum of N, P, and K exceeds 100, assume it's in tons and scale down
+  if (sum(x[1:3]) > 100) {
+    x <- x / 10
+    
+    # If sum is still greater than 100 after scaling, issue a warning and return NA
+    if (sum(x[1:3]) > 100) {
+      warning(y, " values sum to greater than 100 even when divided by 10.")
+      return(NA)
+    }
+  }
+  
+  # Return formatted NPK ratio using the default "-" delimiter for output
+  return(paste(x, collapse = "-"))
 }
