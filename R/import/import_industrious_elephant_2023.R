@@ -19,11 +19,11 @@ pacman::p_load(data.table,
   valid_start <- as.Date("1950-01-01")
   valid_end <- as.Date("2023-12-01")
   
-  ## 0.2) Set directories and parallel cores ####
+  ## 0.2) Set directories & parallel cores ####
   
   # Set cores for parallel processing
   worker_n<-parallel::detectCores()-2
-  
+ 
   # Set the project name, this should usually refer to the ERA extraction template used
   project<-era_projects$industrious_elephant_2023
   
@@ -1727,6 +1727,7 @@ if(update){
   ][,Site.ID:=Site.ID_new
   ][,Site.ID_new:=NULL]
 
+
   results<-validator(data=Fert.Method,
                      numeric_cols=c("F.Amount","F.Date.DAP","F.Date.DAE"),
                      date_cols=c("F.Date.End", "F.Date.Start", "F.Date"),
@@ -1851,9 +1852,35 @@ if(update){
                    ][,field:="F.Category-F.Type:F.Level.Name"
                      ][,issue:="Use of Unspecified as fertilizer type name. We need to check that this truly should have been unspecfied (i.e. we know nothing about the fertilizer applied at all) or if unspecified N, P or K could have been used."]
 
+     ##### 3.11.3.1.1) Refine NPK rating field #######
+    # Fix incorrect delimters used in NPK fields
+  Fert.Method[,F.NPK:=gsub(":|–","-",F.NPK)
+  ][,F.NP2O5K2O:=gsub(":|–","-",F.NP2O5K2O)
+  ][,F.NPK:=gsub(",",".",F.NPK,fixed=T)
+  ][,F.NP2O5K2O:=gsub(",",".",F.NP2O5K2O,fixed=T)
+  ][!grepl("-",F.NPK),F.NPK:=NA
+  ][!grepl("-",F.NP2O5K2O),F.NP2O5K2O:=NA]
+  
+  # Create errors for NPK rating associated with non-compound fertilizer
+  npk_check<-unique(Fert.Method[!(is.na(F.NPK) & is.na(F.NP2O5K2O)),.(B.Code,F.Type,F.NPK)])
+  compound_ferts<-c("Compound D","NPKSB","NPKS","NPK","NPSB","NPS","Mavuno")
+  errors12<-npk_check[!F.Type %in% compound_ferts,.(value=paste(unique(F.Type),collapse = "/")),by=B.Code
+  ][,table:="Fert.Method"
+  ][,field:="F.Type" 
+  ][,issue:="An NPK rating is associated with a non-compound fertilizer."]
+  
+  # set NPK to NA for non-compound fertilizers
+  Fert.Method[!F.Type %in% compound_ferts,c("F.NPK","F.NP2O5K2O"):=NA]
+  
+  npk_check<-unique(Fert.Method[!is.na(F.NPK),.(B.Code,F.Type,F.NPK)])
+  
+  # We assume if NPK is present as 300-150-300 this in tons and should be divided by 10 to get %, if values are divided and still sum to >100 the rating is set to NA
+  Fert.Method[!is.na(F.NPK),F.NPK:=convert_npk(F.NPK[1]),by=F.NPK
+  ][!is.na(F.NP2O5K2O),F.NP2O5K2O:=convert_npk(F.NP2O5K2O[1]),by=F.NP2O5K2O]
+  
    #### 3.11.3.2) Estimate amounts if NPK given in Fert.Out and amount is a % applied or NA ####
   # custom mappings
-  fert_remap<-rbind(
+  remappings<-rbind(
     data.table(to="Single Super Phosphate",from=c("Super Phosphate","Superphosphate")),
     data.table(to="Calcium Single Superphosphate",from=c("Calcium Phosphate","Calcium Superphosphate")),
     data.table(to="Rock Single Superphosphate",from=c("Rock Superphosphate")),
@@ -1862,18 +1889,18 @@ if(update){
   
   # Add index to Fert.Method
   Fert.Method[,index:=1:.N]
-  
+ 
   results<-infer_fert_amounts(fert_codes=master_codes$fert,
                               Fert.Method=Fert.Method,
                               Fert.Out=Fert.Out,
-                              remappings=fert_remap,
+                              remappings=remappings,
                               max_diff=0.2)
   
   fert_infer<-results$data
-  
+
   # ERROR REPORTING NEEDS WORK ####
-  error_dat<-results$errors  
-  error_dat[,sort(unique(B.Code))]
+  #error_dat<-results$errors  
+  #error_dat[,sort(unique(B.Code))]
   # fwrite(error_dat,"MH_fertilizer_issues.csv")
   
   # Subset results to new values with less than 20% variance between reported and calculated N,P and K values
@@ -1894,11 +1921,14 @@ if(update){
   ][is.na(calculated),calculated:=F
   ][,index:=NULL]
   
+  # Bind new rows calculated for unspecified NPK where inorganic addition is mentioned with no corresponding entry in the Fert.Method tab
+  Fert.Method<-rbind(Fert.Method,fert_new=results$data_new[,calculated:=T])
+  
   ### 3.11.4) Save harmonization and error tasks #####
   errors<-rbindlist(list(errors_a,errors_b,errors_c))
   error_list<-error_tracker(errors=errors,filename = "fert_structure_errors",error_dir=error_dir,error_list = error_list)
   
-  errors<-rbindlist(list(errors1,errors2,errors3,errors5,errors6,errors7,errors8,errors9,errors10,errors11),fill=T)[order(B.Code)]
+  errors<-rbindlist(list(errors1,errors2,errors3,errors5,errors6,errors7,errors8,errors9,errors10,errors11,errors12),fill=T)[order(B.Code)]
   error_list<-error_tracker(errors=errors,filename = "fert_other_errors",error_dir=error_dir,error_list = error_list)
   
   h_tasks<-rbindlist(list(h_tasks1,h_tasks2,h_tasks3,h_tasks4),fill=T)
@@ -5894,9 +5924,12 @@ Out.Out=Out.Out,
 Out.Econ=Out.Econ,
 Data.Out=Data.Out
 )
-
-save(Tables,file=file.path(data_dir,paste0(project,"-",Sys.Date(),".RData")))
-
+  
+  save_file<-paste0(project,"-",as.character(Sys.Date()))
+  n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
+  
+  save(Tables,file=file.path(data_dir,paste0(save_file,".",n+1,".RData")))
+  
 # 10) Summarize error tracking ####
 tracking_files<-list.files(error_dir,".csv$",full.names = T)
 tracking_files<-tracking_files[!grepl("1. QC tasks|harmonization|error_summary",tracking_files)]
