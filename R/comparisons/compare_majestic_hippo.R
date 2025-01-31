@@ -3468,7 +3468,8 @@ plan(sequential)
    # 5.7.1) Compare versions #####
   
     (files<-grep("parquet",list.files("data/",project,full.names = T),value=T))
-    
+    files<-files[!grepl("compiled",files)]
+  
     versions<-lapply(files,read_parquet)
     
     (v_compare<-data.table(file=basename(files),
@@ -3491,7 +3492,7 @@ plan(sequential)
     names(studies_xref)<-basename(files)
     
     tail(files,1)
-    studies_xref[[1]][[length(studies_xref)-1]]
+    studies_xref[[1]][[length(studies_xref)-1]] # studies in first missing in last
     studies_xref[[length(studies_xref)]][[1]]
     
     
