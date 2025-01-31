@@ -3,6 +3,7 @@ enterdata_other_errors.csv,184,184,228,228
 site_other_errors.csv,149,147,152,150
 time_other_errors.csv,82,82,85,85
 soil_errors.csv,76,76,85,85
+fert_other_errors.csv,67,67,74,74
 treatment_duplicates.csv,89,65,89,65
 pH_other_errors.csv,59,59,59,59
 treatment_other_errors.csv,49,49,52,52
@@ -10,7 +11,6 @@ wh_other_errors.csv,76,49,104,59
 intercrop_other_errors.csv,47,47,81,81
 other_other_errors.csv,80,40,80,40
 weed_other_errors.csv,37,37,37,37
-fert_other_errors.csv,35,35,38,38
 rot_other_errors.csv,21,21,21,21
 enterdata_time_errors.csv,20,20,627,627
 plant_comparison_allowed_issue.csv,18,16,18,16
