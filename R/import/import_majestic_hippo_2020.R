@@ -207,11 +207,16 @@ if(length(DuplicateFiles)>0){
   ## 1.5) Load data from excel files ####
 
 plan(multisession, workers = Cores)
+
+# Progress bar setup
+progressr::handlers(global = TRUE)
+progressr::handlers("progress")
+
 with_progress({
-  p <- progressr::progressor(steps = length(Files))
+  p <- progressr::progressor(along = 1:length(Files))
   
 XL <- future_lapply(1:length(Files), function(i) {
-  p(sprintf("Processing file %d/%d", i, length(Files)))  # Progress update
+  p()  # Progress update
   File <- Files[i]
   X <- lapply(SheetNames, function(SName) {
     
@@ -816,7 +821,6 @@ names(XL) <- FNames
     # Remove units when amount is NA
     Fert.Method[is.na(F.Amount),F.Unit:=NA]
     
-
     ### 2.10.3) Fert.Method & Fert.Comp: Harmonization ####
     
     # Update fertilizer names using fert tab of master_codes and merge associated f.codes
@@ -873,9 +877,9 @@ names(XL) <- FNames
     
     # Split F.Codes into Fert.Codes cols (legacy for Majestic Hippo only)
     Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==0,Fert.Code1:=F.Codes,by=F.Codes]
-    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==1,Fert.Code1:=tstrsplit(F.Codes,"-",keep=1),by=F.Codes]
-    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==1,Fert.Code2:=tstrsplit(F.Codes,"-",keep=2),by=F.Codes]
-    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==2,Fert.Code3:=tstrsplit(F.Codes,"-",keep=3)]
+    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")>0,Fert.Code1:=tstrsplit(F.Codes[1],"-",keep=1),by=F.Codes]
+    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")>0,Fert.Code2:=tstrsplit(F.Codes[1],"-",keep=2),by=F.Codes]
+    Fert.Method[!is.na(F.Codes) & str_count(F.Codes,"-")==2,Fert.Code3:=tstrsplit(F.Codes[1],"-",keep=3)]
 
     Fert.Comp[!is.na(F.Type.Code2x),F.Type:=unlist(tstrsplit(F.Type.Code2x,"$$",keep=2,fixed=T))
     ][!is.na(F.Type.Code2x),F.Category:=unlist(tstrsplit(F.Type.Code2x,"$$",keep=1,fixed=T))]
@@ -907,6 +911,30 @@ names(XL) <- FNames
     
     Fert.Method<-results$data
     
+    
+    
+     #### 2.10.3.1) Fert.Method: Refine NPK ratings ####
+      # Fix incorrect delimters used in NPK fields
+      Fert.Method[,F.NPK:=gsub(":|–","-",F.NPK)
+      ][,F.NPK:=gsub(",",".",F.NPK,fixed=T)
+      ][!grepl("-",F.NPK),F.NPK:=NA]
+      
+      # Create errors for NPK rating associated with non-compound fertilizer
+      npk_check<-unique(Fert.Method[!is.na(F.NPK),.(B.Code,F.Type,F.NPK)])
+      compound_ferts<-c("Compound D","NPKSB","NPKS","NPK","NPSB","NPS")
+      errors12<-npk_check[!F.Type %in% compound_ferts,.(value=paste(unique(F.Type),collapse = "/")),by=B.Code
+      ][,table:="Fert.Method"
+      ][,field:="F.Type" 
+      ][,issue:="An NPK rating is associated with a non-compound fertilizer."]
+      
+      # set NPK to NA for non-compound fertilizers
+      Fert.Method[!F.Type %in% compound_ferts,F.NPK:=NA]
+      
+      npk_check<-unique(Fert.Method[!is.na(F.NPK),.(B.Code,F.Type,F.NPK)])
+      
+      # We assume if NPK is present as 300-150-300 this in tons and should be divided by 10 to get %, if values are divided and still sum to >100 the rating is set to NA
+      Fert.Method[!is.na(F.NPK),F.NPK:=convert_npk(F.NPK[1]),by=F.NPK]
+      
     ### 2.10.4) Fert.Out ####
       #Load and Fix Potassium & Biochar Coding Errors, the latter is probably redundant and could be implemented from the Fert.Methods table
     Fert.Out<-lapply(XL,"[[",10)
@@ -1032,6 +1060,15 @@ names(XL) <- FNames
                 ][,c("F.Amount_calc","F.Unit_calc"):=NULL
                   ][is.na(calculated),calculated:=F
                     ][,index:=NULL]
+    
+    # Bind new rows calculated for unspecified NPK where inorganic addition is mentioned with no corresponding entry in the Fert.Method tab
+    if(!is.null(results$data_new)){
+      fert_new<-results$data_new
+      setnames(fert_new,"F.Level.Name","F.Name")
+      cols<-colnames(fert_new)[colnames(fert_new) %in% colnames(Fert.Method)]
+      fert_new<-fert_new[,cols,with=F][,Fert.Code1:=F.Codes][,c("Fert.Code2","Fert.Code3"):=NA][,calculated:=T]
+      Fert.Method<-rbind(Fert.Method,fert_new)
+    }
     
     ### 2.10.6) Fert.Out: Add Fertilizer Codes from NPK rating ####
     
