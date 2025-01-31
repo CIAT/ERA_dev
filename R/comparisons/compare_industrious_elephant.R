@@ -2,7 +2,7 @@
 # This script requires the compiled dataset created in import/import_industrious_elephant_2023.R ####
 
 # 0) Load packages & functions ####
-pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr)
+pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr,arrow)
 source(file.path(project_dir,"R/comparisons/compare_fun.R"))
 source(file.path(project_dir,"R/comparisons/compare_wrap.R"))
 
@@ -28,8 +28,11 @@ Join.T<-function(A,B,C,D){
 
 # 1) Read in data ####
   # 1.1) Load tables from era data model #####
+project<-era_projects$industrious_elephant_2023
 data_dir<-era_dirs$era_masterdata_dir
-file_local<-tail(list.files(data_dir,"industrious_elephant"),1)
+files<-list.files(data_dir,project)
+files<-grep(".RData",files,value=T)
+file_local<-tail(files,1)
 data<-miceadds::load.Rdata2(filename=file_local,data_dir)
 
 Data.Out<-data$Data.Out
@@ -1557,10 +1560,10 @@ TreeCodes<-master_codes$trees
   
   # 2.6) QAQC #####
     # Paths to save to project and local dirs
-    qaqc_dir<-file.path(era_dirs$era_dataentry_prj,era_projects$industrious_elephant_2023,"comparison_logic_qaqc")
+    qaqc_dir<-file.path(era_dirs$era_dataentry_prj,project,"comparison_logic_qaqc")
     if(!dir.exists(qaqc_dir)){dir.create(qaqc_dir)}
   
-    qaqc_dir2<-file.path(era_dirs$era_dataentry_prj,era_projects$industrious_elephant_2023,"comparison_logic_qaqc")
+    qaqc_dir2<-file.path(era_dirs$era_dataentry_prj,project,"comparison_logic_qaqc")
     if(!dir.exists(qaqc_dir2)){dir.create(qaqc_dir2)}
   
     # 2.6.1) Find studies that have no comparisons ######
@@ -1885,22 +1888,18 @@ Data<-Data.Out
   progressr::handlers(global = TRUE)
   progressr::handlers("progress")
   
-  # Start parallelized process with progress bar
-  b_codes<-DATA[,unique(B.Code)]
-  
+
   Verbose<-F
   
   Comparisons <- with_progress({
     # Progress indicator
-    p <- progressr::progressor(steps = nrow(Comparisons))
+    p <- progressr::progressor(along = 1:nrow(Comparisons))
   
   ERA.Reformatted <-rbindlist(
     future_lapply(1:nrow(Comparisons), function(i) {
     #pblapply(1:nrow(Comparisons), function(i) {
       if (Verbose) {
-        output <- paste(Comparisons[i, paste(B.Code, Control.N)], " | i = ", i,"/",nrow(Comparions))
-        cat(paste(output, strrep(" ", 100 - nchar(output)), "\r"))
-        flush.console()  
+        message(Comparisons[i, paste(B.Code, Control.N)], " | i = ", i, "/", nrow(Comparisons))
       }
       
       result <- Knit.V1(
@@ -2223,7 +2222,7 @@ Data<-Data.Out
   
   ERA.Reformatted <- with_progress({
     # Progress indicator
-    p <- progressor(steps = nrow(ERA.Reformatted))
+    p <- progressor(along = 1:nrow(ERA.Reformatted))
     
     # Apply function across unique B.Codes with future_lapply in parallel
     future_lapply(1:nrow(ERA.Reformatted), function(i) {
@@ -2237,7 +2236,7 @@ Data<-Data.Out
     T.Code<-as.vector(unlist(X[,paste0("T",1:NCols)]))
     T.Code<-T.Code[!is.na(T.Code)]
     
-    if(Verbose){print(paste0("row (i) = ",i))}
+    if(Verbose){message(paste0("row (i) = ",i))}
     
     if(any(T.Code %in% Dpracs)){
       C.Code<-as.vector(unlist(X[,paste0("C",1:NCols)]))
@@ -2397,4 +2396,8 @@ Data<-Data.Out
   studies_xref[[1]][[length(studies_xref)-1]]
   studies_xref[[length(studies_xref)]][[1]]
   
+  # Which studies have no comparisons
+  b_codes_in<-Data.Out[,unique(B.Code)]
+  b_codes_out<-studies[[length(studies)]]
+  b_codes_in[!b_codes_in %in% b_codes_out]  
   
