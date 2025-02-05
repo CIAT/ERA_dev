@@ -120,7 +120,7 @@
   
   #<><><><><><><><><><><><><><><><><><<><><><><><><><><><><><><><><><><><><>
 # 2) CLIMATE EXTRACTION FUNCTIONS ####
-  # 2.1) TERRACLIMATE #### 
+  # 2.1) TERRACLIMATE (depreciated) #### 
   
   # https://www.nature.com/articles/sdata2017191#data-records
   # http://www.climatologylab.org/uploads/2/2/1/3/22133936/terraclimate_downloadv2.r
@@ -245,7 +245,7 @@
   
   save(TERRA,file=paste0(ClimatePast,"/TERRA/TERRA.RData"))
   
-  # 2.2) AgMERRA ####
+  # 2.2) AgMERRA (depreciated?) ####
      if(F){
     
      Meta.Table[,Site.Key:=Site.ID]
