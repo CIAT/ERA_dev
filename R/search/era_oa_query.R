@@ -37,21 +37,25 @@
 #' }
 #' 
 #' @export
-era_oa_query<- function(search_terms, 
-                    from_date = NULL, 
-                    to_date = NULL, 
-                    continent = NULL, 
-                    download = TRUE,
-                    full = FALSE, 
-                    max_char_limit = 4000
-                    ) {
+era_oa_query <- function(search_terms, 
+                         from_date = NULL, 
+                         to_date = NULL, 
+                         continent = NULL, 
+                         download = TRUE,
+                         full = FALSE, 
+                         max_char_limit = 4000) {
   
-  if(is.null(from_date)|is.null(to_date)){
+  # Helper function: returns TRUE if the query contains the boolean operators AND or OR
+  is_boolean_query <- function(query) {
+    grepl("\\b(AND|OR)\\b", query)
+  }
+  
+  if (is.null(from_date) | is.null(to_date)) {
     stop("from_date and/or to_date not provided")
   }
   
-  if(from_date>to_date){
-    stop("from_date>to_date")
+  if (from_date > to_date) {
+    stop("from_date > to_date")
   }
   
   # If search_terms is a list, generate a boolean search string
@@ -62,11 +66,24 @@ era_oa_query<- function(search_terms,
     })
     search_string <- paste0(search_strings, collapse = " AND ")
   } else {
-    # If preformatted string is provided, use it directly
-    search_string<- search_terms
+    # If a character vector (but not a list) is provided, collapse to a single string if necessary.
+    if (is.character(search_terms) && length(search_terms) > 1) {
+      search_terms <- paste(search_terms, collapse = " ")
+    }
+    
+    # If the provided string is not a boolean query, convert it
+    if (!is_boolean_query(search_terms)) {
+      # Assume it is a plain string of terms separated by whitespace
+      terms <- unlist(strsplit(search_terms, "\\s+"))
+      terms <- add_quotes(terms)
+      search_string <- paste0("(", paste(terms, collapse = " OR "), ")")
+    } else {
+      search_string <- search_terms
+    }
   }
-
-  # Conditionally build API endpoint based on continent value
+  
+  # The remainder of your function remains unchanged...
+  
   if (is.null(continent)) {
     api_endpoint <- oa_query(
       entity = "works",
@@ -88,38 +105,33 @@ era_oa_query<- function(search_terms,
     api_endpoint <- paste0(api_endpoint, "&select=title,doi")
   }
   
-  # Check for maximum allowed length of API request
   if (nchar(api_endpoint) > max_char_limit) {
     stop(paste0("Encoded search string has ", nchar(api_endpoint), 
                 " characters. Max allowed is ", max_char_limit))
   }
   
-  # How many hits do we have?
-  search_hits<-oa_request(query_url=api_endpoint,count_only=T)$count
-  cat("search hits =",search_hits,"\n")
+  search_hits <- oa_request(query_url = api_endpoint, count_only = TRUE)$count
+  cat("search hits =", search_hits, "\n")
   
-  # Create meta-data
-  meta_data<-data.table(string=search_string,
-                        api_endpoint=api_endpoint,
-                        date_search_ran=Sys.Date(),
-                        from_date=from_date,
-                        to_date=to_date)
+  meta_data <- data.table(string = search_string,
+                          api_endpoint = api_endpoint,
+                          date_search_ran = Sys.Date(),
+                          from_date = from_date,
+                          to_date = to_date)
   
-  # Download hits if required
   if (download) {
     if (full) { 
-        cat("Running query - full")
-      }else{
-        cat("Running query - title & doi only")
+      cat("Running query - full")
+    } else {
+      cat("Running query - title & doi only")
     }
     hits <- oa_request(query_url = api_endpoint)
-    hits_tab <- data.table(oa2df(hits, entity = "works",verbose = F))
+    hits_tab <- data.table(oa2df(hits, entity = "works", verbose = FALSE))
     
     if (full) {
       hits_tab <- hits_tab[, .(id, display_name, author, ab, doi, url, relevance_score, 
                                is_oa, language, type, publication_date)]
       
-      # Convert author to non-list form
       hits_tab[, authors := unlist(lapply(1:nrow(hits_tab), FUN = function(i) {
         authors <- hits_tab[i, author][[1]]
         if (length(authors) > 1) {
@@ -130,10 +142,9 @@ era_oa_query<- function(search_terms,
       }))][, author := NULL]
     }
     
-    return(list(results=hits_tab,meta_data=meta_data))
-    
-  }else{
-    meta_data$search_hits<-search_hits
+    return(list(results = hits_tab, meta_data = meta_data))
+  } else {
+    meta_data$search_hits <- search_hits
     return(meta_data)
   }
 }
