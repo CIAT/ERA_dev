@@ -1,4 +1,5 @@
 # First run R/0_set_env.R
+# REMOVE CHIRTS WE WILL NOT USE THIS
 
 # 0) Set-up workspace ####
 # 0.1) Load packages and create functions #####
@@ -125,46 +126,6 @@ curlSetOpt(timeout = 190) # increase timeout if experiencing issues with slow co
   
 # 2) Create index of file download paths ####
   chirps_index<-rbind(
-  data.table(dataset="chirts",
-             region="global",
-             base_url="https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_tifs_p05/",
-             variable=c("HeatIndex","RH","Tmax","Tmin","vpd"),
-             variable_dir=c("HeatIndex","RHum","Tmax","Tmin","vpd"),
-             startyear=1983,
-             endyear=2016,
-             format="tif",
-             timestep="daily",
-             resolution=5),
-  data.table(dataset="chirts",
-              region="africa",
-              base_url="https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/africa_netcdf_p05/",
-              variable=c("Tmax","Tmin"),
-              variable_dir=NA,
-              startyear=1983,
-              endyear=2016,
-              format="nc",
-             timestep="daily",
-              resolution=5),
-  data.table(dataset="chirts",
-              region="africa",
-              base_url="https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/africa_netcdf_p25/",
-              variable=c("Tmax","Tmin"),
-              variable_dir=NA,
-              startyear=1983,
-              endyear=2016,
-              format="nc",
-             timestep="daily",
-              resolution=25),
-  data.table(dataset="chirts",
-             region="global",
-             base_url="https://data.chc.ucsb.edu/products/CHIRTSdaily/v1.0/global_netcdf_p05/",
-             variable=c("Tmax","Tmin"),
-             variable_dir=c("Tmax","Tmin"),
-             startyear=1983,
-             endyear=2016,
-             format="nc",
-             timestep="daily",
-             resolution=5),
   data.table(dataset="chirps",
              region="africa",
              base_url="https://data.chc.ucsb.edu/products/CHIRPS-2.0/africa_daily/tifs/p05",
@@ -263,25 +224,3 @@ curlSetOpt(timeout = 190) # increase timeout if experiencing issues with slow co
                   endyear = 2023,
                   save_dir = chirps_dir,
                   year_folder=F)
-  # 3.2) Chirts #####
-  # 3.2.1) Tmax ######
-  download_chirps(chirps_index,
-                  var="tmax",
-                  reg="global",
-                  res=5,
-                  type="tif",
-                  startyear = 1983,
-                  endyear = 2016,
-                  save_dir = file.path(chirts_dir,"Tmax"),
-                  year_folder=T)
-  
-  # 3.2.2) Tmin  ######
-  download_chirps(chirps_index,
-                  var="tmax",
-                  reg="global",
-                  res=5,
-                  type="tif",
-                  startyear = 1983,
-                  endyear = 2016,
-                  save_dir = file.path(chirts_dir,"Tmax"),
-                  year_folder=T)
