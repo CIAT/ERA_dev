@@ -44,7 +44,8 @@ data_dir_s3<-era_dirs$era_masterdata_s3
   (files<-list.files(data_dir_local,project,full.names = T))
   (files_s3<-grep(project,s3$dir_ls(data_dir_s3),value=T))
   
-  file_local<-tail(grep("RData",files,value=T),1)
+  file_local<-grep("RData",files,value=T) 
+  file_local<-tail(file_local,1)
   file_s3<-tail(grep("RData",files_s3,value=T),1)
    
   # If most recent compilation of the livestock is not available locally download it from the s3
