@@ -132,6 +132,8 @@ if(!require("exactextractr")){
   era_dirs$chirps_S3<-file.path(era_dirs$ancillary_s3,"chirps_download")
   era_dirs$chirps_S3_file<-file.path(era_dirs$chirps_S3,"chirps_download.zip")
   
+  era_dirs$aez_dir<-file.path(era_dirs$ancillary_dir,"aez")
+
   # vocabulary
   era_dirs$vocab_dir<-file.path(era_dir,"vocab")
   era_dirs$vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
@@ -171,7 +173,7 @@ if(!require("exactextractr")){
         s3$file_download(files_s3[i],file)
       }
     }
-    
+    e
   # 2.2) ERA geodata #####
     update<-F
     # List files in the specified S3 bucket and prefix
@@ -262,6 +264,66 @@ if(!require("exactextractr")){
         s3$file_download(files_s3[i],file)
       }
     }
+  # 2.6) AEZ data
+    update<-F
+    # If aez data does not exist locally download from havard dataverse
+  
+    if(update==T|!grepl("AEZ16_CLAS--SSA.tif",list.files(era_dirs$aez_dir))){
+      aez_file <- file.path(era_dirs$aez_dir,"AEZ5 AEZ8 AEZ16 r2.0 - TIF.zip")
+
+      if(!file.exists(aez_file)){
+      api_url <- "https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/M7XIUB/PW7APO"
+      
+      # Perform the API request and save the file
+      response <- httr::GET(url = api_url, httr::write_disk(aez_file, overwrite = TRUE))
+      
+      # Check if the download was successful
+      if (httr::status_code(response) == 200) {
+        print(paste0("File  downloaded successfully."))
+        
+        unzip(aez_file,exdir=era_dirs$aez_dir,junkpaths = T)
+        files<-list.files(era_dirs$aez_dir,"zip",full.names = T)
+        files<-files[files!=aez_file]
+        for(i in 1:length(files)){
+          unzip(files[i],exdir=era_dirs$aez_dir,junkpaths = T)
+        }
+        
+        unlink(list.files(era_dirs$aez_dir,"zip",full.names = T))
+        
+      } else {
+        print(paste("Failed to download file Status code:", httr::status_code(response)))
+      }
+      }
+    }
+    
+    if(update==T|!grepl("afr_aez09.asc",list.files(era_dirs$aez_dir))){
+      aez_file <- file.path(era_dirs$aez_dir,"003_afr-aez_09.zip")
+      aez_file2 <- file.path(era_dirs$aez_dir,"006_aezlegend_09.txt")
+      
+      if(!file.exists(aez_file)){
+    
+        api_url<-"https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/HJYYTI/0I9GVI"
+        api_url2<-"https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/HJYYTI/YAICMA"
+        
+        
+        # Perform the API request and save the file
+        response <- httr::GET(url = api_url, httr::write_disk(aez_file, overwrite = TRUE))
+
+        # Check if the download was successful
+        if (httr::status_code(response) == 200) {
+          print(paste0("File  downloaded successfully."))
+         response<-httr::GET(url = api_url2, httr::write_disk(aez_file2, overwrite = TRUE))
+          
+          unzip(aez_file,exdir=era_dirs$aez_dir,junkpaths = T)
+          unlink(list.files(era_dirs$aez_dir,"zip",full.names = T))
+          
+        } else {
+          print(paste("Failed to download file Status code:", httr::status_code(response)))
+        }
+      }
+    }
+    
+
 # 3) Create table of unique locations (for use with geodata functions) ####
     data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
