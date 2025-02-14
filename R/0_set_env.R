@@ -296,26 +296,39 @@ if(!require("exactextractr")){
       }
     }
     
-    if(update==T|!grepl("afr_aez09.asc",list.files(era_dirs$aez_dir))){
-      aez_file <- file.path(era_dirs$aez_dir,"003_afr-aez_09.zip")
-      aez_file2 <- file.path(era_dirs$aez_dir,"006_aezlegend_09.txt")
-      
+    # Note while a version of the file below exists in zipped format on harvard dataverse, do not use it, it is corrupted!
+    if(update==T|!grepl("004_afr-aez_09.tif",list.files(era_dirs$aez_dir))){
+      aez_file <- file.path(era_dirs$aez_dir,"004_afr-aez_09.tif")
+
       if(!file.exists(aez_file)){
     
-        api_url<-"https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/HJYYTI/0I9GVI"
-        api_url2<-"https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/HJYYTI/YAICMA"
-        
-        
+         url<-"https://files.africasis.isric.org/aez/004_afr-aez_09.tif"
+
         # Perform the API request and save the file
-        response <- httr::GET(url = api_url, httr::write_disk(aez_file, overwrite = TRUE))
+        cat("downloading file (~171mb) - the isric server is slow so this may take some time")
+        response <- httr::GET(url = url, httr::write_disk(aez_file, overwrite = TRUE))
 
         # Check if the download was successful
         if (httr::status_code(response) == 200) {
           print(paste0("File  downloaded successfully."))
+         
+         # Download value mappings 
+         api_url2<-"https://dataverse.harvard.edu/api/access/datafile/:persistentId?persistentId=doi:10.7910/DVN/HJYYTI/YAICMA" 
          response<-httr::GET(url = api_url2, httr::write_disk(aez_file2, overwrite = TRUE))
           
           unzip(aez_file,exdir=era_dirs$aez_dir,junkpaths = T)
           unlink(list.files(era_dirs$aez_dir,"zip",full.names = T))
+          
+          # Convert to tif and add mappings
+          file_path<-file.path(era_dirs$aez_dir,"004_afr-aez_09.tif")
+          dat_rast<-terra::rast(file_path)+0 # +0 just forces it into memory
+          mappings<-fread(aez_file2)
+          colnames(mappings)<-c("value","category")
+          levels<-data.frame(value=as.numeric(unique(values(dat_rast))))
+          levels<-merge(levels,mappings)
+          levels(dat_rast)<-list(levels)
+          
+          terra::writeRaster(dat_rast,file_path,overwrite=T)
           
         } else {
           print(paste("Failed to download file Status code:", httr::status_code(response)))
