@@ -101,7 +101,7 @@ era_oa_query <- function(search_terms,
                          within_block_operators = "OR",
                          between_block_operators = "AND",
                          quote_terms = TRUE,
-                         varbose=T) {
+                         verbose=T) {
   
   # Validate dates
   if (is.null(from_date) || is.null(to_date)) {
