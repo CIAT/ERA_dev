@@ -71,10 +71,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </head>
 
-<body class="fullcontent">
+<body>
 
-<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">1. Setup</a></li>
+  <li><a href="#constructing-queries-with-build_search_string" id="toc-constructing-queries-with-build_search_string" class="nav-link" data-scroll-target="#constructing-queries-with-build_search_string">2. Constructing Queries with <code>build_search_string</code></a>
+  <ul class="collapse">
+  <li><a href="#list-of-terms-vs.-a-preformatted-string" id="toc-list-of-terms-vs.-a-preformatted-string" class="nav-link" data-scroll-target="#list-of-terms-vs.-a-preformatted-string">2.1 List of Terms vs.&nbsp;a Preformatted String</a></li>
+  </ul></li>
+  <li><a href="#we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function." id="toc-we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function." class="nav-link" data-scroll-target="#we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function.">1) We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.</a></li>
+  <li><a href="#suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector." id="toc-suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector." class="nav-link" data-scroll-target="#suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector.">2) Suppose we want to provide a single preformatted string for ‘practice’ that includes OR operators, instead of a vector.</a>
+  <ul class="collapse">
+  <li><a href="#a-simple-example-and-explanation-of-quote_terms" id="toc-a-simple-example-and-explanation-of-quote_terms" class="nav-link" data-scroll-target="#a-simple-example-and-explanation-of-quote_terms">2.2 A Simple Example and Explanation of <code>quote_terms</code></a></li>
+  </ul></li>
+  <li><a href="#using-era_oa_query-for-programmatic-searches" id="toc-using-era_oa_query-for-programmatic-searches" class="nav-link" data-scroll-target="#using-era_oa_query-for-programmatic-searches">3. Using <code>era_oa_query</code> for Programmatic Searches</a>
+  <ul class="collapse">
+  <li><a href="#comparing-different-geographic-filters" id="toc-comparing-different-geographic-filters" class="nav-link" data-scroll-target="#comparing-different-geographic-filters">3.1 Comparing Different Geographic Filters</a></li>
+  </ul></li>
+  <li><a href="#using-date-filters-to-plot-yearly-publication-counts" id="toc-using-date-filters-to-plot-yearly-publication-counts" class="nav-link" data-scroll-target="#using-date-filters-to-plot-yearly-publication-counts">3.2. Using Date Filters to Plot Yearly Publication Counts</a></li>
+  <li><a href="#downloading-records" id="toc-downloading-records" class="nav-link" data-scroll-target="#downloading-records">4. Downloading Records</a></li>
+  <li><a href="#understanding-max_char_limit-and-max_term" id="toc-understanding-max_char_limit-and-max_term" class="nav-link" data-scroll-target="#understanding-max_char_limit-and-max_term">5. Understanding <code>max_char_limit</code> and <code>max_term</code></a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
@@ -132,57 +159,59 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
 <li>Provide a <strong>preformatted single string</strong> for that block, containing your boolean operators.</li>
 </ol>
+</section>
+</section>
+<section id="we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function." class="level1">
+<h1>1) We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1) We define a named list of search blocks. Each block represents a set of terms </span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># for a particular aspect of the search. Each list level is vector of character values</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># that will be combined with the within_block_operators argument given to the function.</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>terms <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">practice =</span> <span class="fu">c</span>(<span class="st">"organic fertilizer"</span>, <span class="st">"ISFM"</span>, <span class="st">"conservation agriculture"</span>, <span class="st">"integrated soil fertility"</span>),</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">geo      =</span> <span class="fu">c</span>(<span class="st">"kenya"</span>, <span class="st">"tanzania"</span>, <span class="st">"malawi"</span>),</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome  =</span> <span class="fu">c</span>(<span class="st">"yield"</span>, <span class="st">"profit margin"</span>, <span class="st">"efficiency"</span>),</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">exclude  =</span> <span class="fu">c</span>(<span class="st">"APSIM"</span>, <span class="st">"DSSAT"</span>, <span class="st">"WOFOS"</span>)</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>full_query_list <span class="ot">&lt;-</span> <span class="fu">build_search_string</span>(</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_terms           =</span> terms,</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">within_block_operators =</span> <span class="fu">c</span>(<span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"NOT"</span>),  <span class="co"># 'exclude' uses NOT</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">between_block_operators=</span> <span class="fu">c</span>(<span class="st">"AND"</span>, <span class="st">"AND"</span>, <span class="st">"AND"</span>),</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">quote_terms            =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_term               =</span> <span class="dv">100</span>,</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_char_limit         =</span> <span class="dv">4000</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"List-of-vectors query:</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">strwrap</span>(full_query_list,<span class="at">width=</span><span class="dv">80</span>), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>terms <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">practice =</span> <span class="fu">c</span>(<span class="st">"organic fertilizer"</span>, <span class="st">"ISFM"</span>, <span class="st">"conservation agriculture"</span>, <span class="st">"integrated soil fertility"</span>),</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">geo      =</span> <span class="fu">c</span>(<span class="st">"kenya"</span>, <span class="st">"tanzania"</span>, <span class="st">"malawi"</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome  =</span> <span class="fu">c</span>(<span class="st">"yield"</span>, <span class="st">"profit margin"</span>, <span class="st">"efficiency"</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">exclude  =</span> <span class="fu">c</span>(<span class="st">"APSIM"</span>, <span class="st">"DSSAT"</span>, <span class="st">"WOFOS"</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>full_query_list <span class="ot">&lt;-</span> <span class="fu">build_search_string</span>(</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_terms           =</span> terms,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">within_block_operators =</span> <span class="fu">c</span>(<span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"NOT"</span>),  <span class="co"># 'exclude' uses NOT</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">between_block_operators=</span> <span class="fu">c</span>(<span class="st">"AND"</span>, <span class="st">"AND"</span>, <span class="st">"AND"</span>),</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">quote_terms            =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_term               =</span> <span class="dv">100</span>,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_char_limit         =</span> <span class="dv">4000</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"List-of-vectors query:</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">strwrap</span>(full_query_list,<span class="at">width=</span><span class="dv">80</span>), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>List-of-vectors query:
  ("organic fertilizer" OR ISFM OR "conservation agriculture" OR "integrated soil fertility") AND (kenya OR tanzania OR malawi) AND (yield OR "profit margin" OR efficiency) AND (APSIM NOT DSSAT NOT WOFOS) </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2) Suppose we want to provide a single preformatted string for 'practice'</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#    that includes OR operators, instead of a vector.</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>preformatted_blocks <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">practice =</span> <span class="st">"organic fertilizer OR ISFM OR conservation agriculture OR integrated soil fertility"</span>,</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">geo      =</span> <span class="fu">c</span>(<span class="st">"kenya"</span>, <span class="st">"tanzania"</span>, <span class="st">"malawi"</span>),</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome  =</span> <span class="fu">c</span>(<span class="st">"yield"</span>, <span class="st">"profit margin"</span>, <span class="st">"efficiency"</span>),</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">exclude  =</span> <span class="fu">c</span>(<span class="st">"APSIM"</span>, <span class="st">"DSSAT"</span>, <span class="st">"WOFOS"</span>)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>full_query_preformatted <span class="ot">&lt;-</span> <span class="fu">build_search_string</span>(</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_terms           =</span> preformatted_blocks,</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">within_block_operators =</span> <span class="fu">c</span>(<span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"NOT"</span>),</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">between_block_operators=</span> <span class="fu">c</span>(<span class="st">"AND"</span>, <span class="st">"AND"</span>, <span class="st">"AND"</span>),</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">quote_terms            =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_term               =</span> <span class="dv">100</span>,</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_char_limit         =</span> <span class="dv">4000</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Single-string block for 'practice':</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">strwrap</span>(full_query_preformatted,<span class="at">width=</span><span class="dv">80</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector." class="level1">
+<h1>2) Suppose we want to provide a single preformatted string for ‘practice’ that includes OR operators, instead of a vector.</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>preformatted_blocks <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">practice =</span> <span class="st">"organic fertilizer OR ISFM OR conservation agriculture OR integrated soil fertility"</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">geo      =</span> <span class="fu">c</span>(<span class="st">"kenya"</span>, <span class="st">"tanzania"</span>, <span class="st">"malawi"</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome  =</span> <span class="fu">c</span>(<span class="st">"yield"</span>, <span class="st">"profit margin"</span>, <span class="st">"efficiency"</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">exclude  =</span> <span class="fu">c</span>(<span class="st">"APSIM"</span>, <span class="st">"DSSAT"</span>, <span class="st">"WOFOS"</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>full_query_preformatted <span class="ot">&lt;-</span> <span class="fu">build_search_string</span>(</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_terms           =</span> preformatted_blocks,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">within_block_operators =</span> <span class="fu">c</span>(<span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"OR"</span>, <span class="st">"NOT"</span>),</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">between_block_operators=</span> <span class="fu">c</span>(<span class="st">"AND"</span>, <span class="st">"AND"</span>, <span class="st">"AND"</span>),</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">quote_terms            =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_term               =</span> <span class="dv">100</span>,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_char_limit         =</span> <span class="dv">4000</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Single-string block for 'practice':</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">strwrap</span>(full_query_preformatted,<span class="at">width=</span><span class="dv">80</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Single-string block for 'practice':
  ("organic fertilizer" OR "ISFM" OR "conservation agriculture" OR "integrated soil fertility" OR NA) AND (kenya OR tanzania OR malawi) AND (yield OR "profit margin" OR efficiency) AND (APSIM NOT DSSAT NOT WOFOS) </code></pre>
 </div>
 </div>
-</section>
 <section id="a-simple-example-and-explanation-of-quote_terms" class="level2">
 <h2 class="anchored" data-anchor-id="a-simple-example-and-explanation-of-quote_terms">2.2 A Simple Example and Explanation of <code>quote_terms</code></h2>
 <p><code>quote_terms</code> is a parameter that, when set to <code>TRUE</code>, makes the function place multi-word terms in quotes. For example, <code>"organic fertilizer"</code> becomes <code>"(\"organic fertilizer\")"</code>, ensuring the OpenAlex API treats it as an exact phrase rather than separate words “organic” and “fertilizer.”</p>
@@ -192,7 +221,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>A single string</strong> that already includes Boolean operators. For instance: <code>"organic fertilizer OR ISFM OR conservation agriculture"</code>. If you do this and <code>quote_terms = TRUE</code>, the function will try to parse and quote non-operator tokens. Otherwise, if the string is fully boolean and you don’t want quoting, set <code>quote_terms = FALSE</code>.</li>
 </ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using only a subset of blocks (practice and geo)</span></span>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a simple search   </span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>test_blocks <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">practice =</span> <span class="fu">c</span>(<span class="st">"organic fertilizer"</span>, <span class="st">"ISFM"</span>),</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">geo      =</span> <span class="fu">c</span>(<span class="st">"kenya"</span>, <span class="st">"tanzania"</span>)</span>
@@ -262,7 +291,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="using-era_oa_query-for-programmatic-searches" class="level1">
 <h1>3. Using <code>era_oa_query</code> for Programmatic Searches</h1>
-<p>We now use the wrapper function to query OpenAlex. To being with we set <code>download = FALSE</code> to return hit counts only, rather than downloading the full records. This wis useful for formulating searches quickly withoutn having to download huge amounts of rich bibliographic data from the OA database.</p>
+<p>We now use the <code>era_oa_query</code> wrapper function to query OpenAlex. To being with we set <code>download = FALSE</code> to return hit counts only, rather than downloading the full records. This is useful for formulating searches quickly withoutn having to download huge amounts of rich bibliographic data from the OA database.</p>
 <section id="comparing-different-geographic-filters" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-different-geographic-filters">3.1 Comparing Different Geographic Filters</h2>
 <p><strong>Understanding the <code>continent</code> Argument in <code>era_oa_query</code>:</strong></p>
@@ -370,47 +399,73 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>We can see the using the <code>continent="Africa"</code> argument results in more search hits than a geographic term of African country names.</p>
-<p>According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values: • <code>Africa</code> • <code>Antarctica</code> • <code>Asia</code> • <code>Europe</code> • <code>North America</code> • <code>Oceania</code> • <code>South America</code></p>
+<p>According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values: 1. <code>Africa</code> 2. <code>Antarctica</code> 3. <code>Asia</code> 4. <code>Europe</code> 5. <code>North America</code> 6. <code>Oceania</code> 7. <code>South America</code></p>
 <p>These correspond to standard continent names. You won’t see them explicitly listed in one place in the official OpenAlex documentation, but these are the recognized values in the data. You can see references to them by exploring institutional records in the OpenAlex dataset or by checking examples in the OpenAlex docs under “Filter entity lists.” If you specify any other string, the API will simply not match any institutions.</p>
 </section>
 </section>
 <section id="using-date-filters-to-plot-yearly-publication-counts" class="level1">
-<h1>4. Using Date Filters to Plot Yearly Publication Counts</h1>
+<h1>3.2. Using Date Filters to Plot Yearly Publication Counts</h1>
 <p>We can loop over a set of years to get hit counts for each year and then plot the trend.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>year_hits <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">year =</span> <span class="dv">1995</span><span class="sc">:</span><span class="dv">2024</span>, <span class="at">hits =</span> <span class="cn">NA_integer_</span>)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(year_hits<span class="sc">$</span>year)) {</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> year_hits<span class="sc">$</span>year[i]</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># For demonstration, search for "organic fertilizer" in "kenya"</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  blocks <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">practice =</span> <span class="st">"organic fertilizer"</span>,</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">geo      =</span> east_africa</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>  start_date <span class="ot">&lt;-</span> <span class="fu">paste0</span>(y, <span class="st">"-01-01"</span>)</span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  end_date   <span class="ot">&lt;-</span> <span class="fu">paste0</span>(y, <span class="st">"-12-31"</span>)</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> <span class="fu">era_oa_query</span>(</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">search_terms =</span> blocks,</span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">from_date    =</span> start_date,</span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">to_date      =</span> end_date,</span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">download     =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">full         =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">within_block_operators =</span> <span class="fu">c</span>(<span class="st">"OR"</span>, <span class="st">"OR"</span>),</span>
-<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">between_block_operators=</span> <span class="st">"AND"</span>,</span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">quote_terms  =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">verbose=</span>F</span>
-<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>  year_hits<span class="sc">$</span>hits[i] <span class="ot">&lt;-</span> res<span class="sc">$</span>search_hits</span>
-<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(</span>
-<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>  year_hits<span class="sc">$</span>year, year_hits<span class="sc">$</span>hits, <span class="at">type=</span><span class="st">"b"</span>, <span class="at">pch=</span><span class="dv">19</span>,</span>
-<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">main=</span><span class="st">"Publications in East Africa on 'Organic Fertilizer' (2020-2024)"</span>,</span>
-<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">xlab=</span><span class="st">"Year"</span>, <span class="at">ylab=</span><span class="st">"Number of Publications"</span></span>
-<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>regions <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">East =</span> east_africa,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">West =</span> west_africa,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">North =</span> northern_africa,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">South =</span> southern_africa</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="dv">2005</span><span class="sc">:</span><span class="dv">2024</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a data frame to hold hit counts for each region and year</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>region_year_hits <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="fu">rep</span>(years, <span class="at">times =</span> <span class="fu">length</span>(regions)),</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">region =</span> <span class="fu">rep</span>(<span class="fu">names</span>(regions), <span class="at">each =</span> <span class="fu">length</span>(years)),</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">hits =</span> <span class="cn">NA_integer_</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop over each region and year, running era_oa_query and storing the hit count.</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (r <span class="cf">in</span> <span class="fu">names</span>(regions)) {</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (y <span class="cf">in</span> years) {</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    blocks <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>      <span class="at">practice =</span> <span class="st">"organic fertilizer"</span>,</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">geo      =</span> regions[[r]]</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    start_date <span class="ot">&lt;-</span> <span class="fu">paste0</span>(y, <span class="st">"-01-01"</span>)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    end_date   <span class="ot">&lt;-</span> <span class="fu">paste0</span>(y, <span class="st">"-12-31"</span>)</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    res <span class="ot">&lt;-</span> <span class="fu">era_oa_query</span>(</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">search_terms           =</span> blocks,</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">from_date              =</span> start_date,</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">to_date                =</span> end_date,</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">download               =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>      <span class="at">full                   =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">within_block_operators =</span> <span class="fu">c</span>(<span class="st">"OR"</span>, <span class="st">"OR"</span>),</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">between_block_operators=</span> <span class="st">"AND"</span>,</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">quote_terms            =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">verbose                =</span> <span class="cn">FALSE</span></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    region_year_hits<span class="sc">$</span>hits[region_year_hits<span class="sc">$</span>region <span class="sc">==</span> r <span class="sc">&amp;</span> region_year_hits<span class="sc">$</span>year <span class="sc">==</span> y] <span class="ot">&lt;-</span> res<span class="sc">$</span>search_hits</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the results with different colors for each region</span></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"blue"</span>, <span class="st">"green"</span>, <span class="st">"purple"</span>)</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(years, region_year_hits<span class="sc">$</span>hits[region_year_hits<span class="sc">$</span>region <span class="sc">==</span> <span class="st">"East"</span>],</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>     <span class="at">type =</span> <span class="st">"b"</span>, <span class="at">col =</span> colors[<span class="dv">1</span>], <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">lwd =</span> <span class="dv">2</span>,</span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Year"</span>, <span class="at">ylab =</span> <span class="st">"Number of Publications"</span>,</span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Publications on 'Organic Fertilizer' by African Region (1995-2024)"</span>,</span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylim =</span> <span class="fu">range</span>(region_year_hits<span class="sc">$</span>hits, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(years, region_year_hits<span class="sc">$</span>hits[region_year_hits<span class="sc">$</span>region <span class="sc">==</span> <span class="st">"West"</span>],</span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>      <span class="at">type =</span> <span class="st">"b"</span>, <span class="at">col =</span> colors[<span class="dv">2</span>], <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(years, region_year_hits<span class="sc">$</span>hits[region_year_hits<span class="sc">$</span>region <span class="sc">==</span> <span class="st">"North"</span>],</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>      <span class="at">type =</span> <span class="st">"b"</span>, <span class="at">col =</span> colors[<span class="dv">3</span>], <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(years, region_year_hits<span class="sc">$</span>hits[region_year_hits<span class="sc">$</span>region <span class="sc">==</span> <span class="st">"South"</span>],</span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>      <span class="at">type =</span> <span class="st">"b"</span>, <span class="at">col =</span> colors[<span class="dv">4</span>], <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend =</span> <span class="fu">names</span>(regions), <span class="at">col =</span> colors, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">pch =</span> <span class="dv">19</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -421,7 +476,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </section>
 <section id="downloading-records" class="level1">
-<h1>5. Downloading Records</h1>
+<h1>4. Downloading Records</h1>
 <p>Here we show how you can use the <code>era_oa_query</code> function to download minimal fields (faster with only doi and title fields) vs.&nbsp;full fields (slower with all bibliographic fields).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>my_blocks <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
@@ -576,7 +631,7 @@ Downloading query results...</code></pre>
 </div>
 </section>
 <section id="understanding-max_char_limit-and-max_term" class="level1">
-<h1>6. Understanding <code>max_char_limit</code> and <code>max_term</code></h1>
+<h1>5. Understanding <code>max_char_limit</code> and <code>max_term</code></h1>
 <ul>
 <li><p><strong>max_char_limit</strong>:<br>
 This parameter limits the maximum number of characters allowed in the final API URL. If your query is too large, you may exceed URL length limits. The function stops if the endpoint URL is longer than this value.</p></li>

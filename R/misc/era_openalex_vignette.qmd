@@ -1,7 +1,11 @@
 ---
 title: "Using era_oa_query and build_search_string with OpenAlexR"
-format: html
-editor: visual
+format:
+  html:
+    toc: true            # Enable the table of contents
+    toc-location: left   # Place the TOC on the left
+    toc-title: "Contents"
+    toc-depth: 3         # Up to heading level 3 (adjust as needed)editor: visual
 ---
 
 ```{r setup, include=FALSE}
@@ -46,11 +50,9 @@ Here we demonstrate that you can either:
 1. Provide a **list** of terms (each block is a vector), or  
 2. Provide a **preformatted single string** for that block, containing your boolean operators.
 
-```{r define-terms}
-# 1) We define a named list of search blocks. Each block represents a set of terms 
-# for a particular aspect of the search. Each list level is vector of character values
-# that will be combined with the within_block_operators argument given to the function.
 
+# 1) We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.
+```{r define-terms vector}
 terms <- list(
   practice = c("organic fertilizer", "ISFM", "conservation agriculture", "integrated soil fertility"),
   geo      = c("kenya", "tanzania", "malawi"),
@@ -68,9 +70,10 @@ full_query_list <- build_search_string(
 )
 
 cat("List-of-vectors query:\n", strwrap(full_query_list,width=80), "\n\n")
+```
 
-# 2) Suppose we want to provide a single preformatted string for 'practice'
-#    that includes OR operators, instead of a vector.
+# 2) Suppose we want to provide a single preformatted string for 'practice' that includes OR operators, instead of a vector.
+```{r define-terms boolean}
 preformatted_blocks <- list(
   practice = "organic fertilizer OR ISFM OR conservation agriculture OR integrated soil fertility",
   geo      = c("kenya", "tanzania", "malawi"),
@@ -100,7 +103,7 @@ You can provide:
 - **A single string** that already includes Boolean operators. For instance: `"organic fertilizer OR ISFM OR conservation agriculture"`. If you do this and `quote_terms = TRUE`, the function will try to parse and quote non-operator tokens. Otherwise, if the string is fully boolean and you don’t want quoting, set `quote_terms = FALSE`.
 
 ```{r simple-query quote true}
-# Using only a subset of blocks (practice and geo)
+# Create a simple search   
 test_blocks <- list(
   practice = c("organic fertilizer", "ISFM"),
   geo      = c("kenya", "tanzania")
@@ -162,7 +165,7 @@ test_query_F_result
 
 # 3. Using `era_oa_query` for Programmatic Searches
 
-We now use the wrapper function to query OpenAlex. To being with we set `download = FALSE` to return hit counts only, rather than downloading the full records. This wis useful for formulating searches quickly withoutn having to download huge amounts of rich bibliographic data from the OA database.
+We now use the `era_oa_query` wrapper function to query OpenAlex. To being with we set `download = FALSE` to return hit counts only, rather than downloading the full records. This is useful for formulating searches quickly withoutn having to download huge amounts of rich bibliographic data from the OA database.
 
 ## 3.1 Comparing Different Geographic Filters
 
@@ -270,58 +273,84 @@ barplot(
 
 We can see the using the `continent="Africa"` argument results in more search hits than a geographic term of African country names.
 
-According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values:
-	•	`Africa`
-	•	`Antarctica`
-	•	`Asia`
-	•	`Europe`
-	•	`North America`
-	•	`Oceania`
-	•	`South America`
+According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values: 
+  1.	`Africa`
+	2.	`Antarctica`
+	3.	`Asia`
+	4.	`Europe`
+	5.	`North America`
+	6.	`Oceania`
+	7.	`South America`
 
 These correspond to standard continent names. You won’t see them explicitly listed in one place in the official OpenAlex documentation, but these are the recognized values in the data. You can see references to them by exploring institutional records in the OpenAlex dataset or by checking examples in the OpenAlex docs under “Filter entity lists.” If you specify any other string, the API will simply not match any institutions.
 
-# 4. Using Date Filters to Plot Yearly Publication Counts
+# 3.2. Using Date Filters to Plot Yearly Publication Counts
 
 We can loop over a set of years to get hit counts for each year and then plot the trend.
 
 ```{r date-filter, warning=FALSE, message=FALSE}
-year_hits <- data.frame(year = 1995:2024, hits = NA_integer_)
+regions <- list(
+  East = east_africa,
+  West = west_africa,
+  North = northern_africa,
+  South = southern_africa
+)
 
-for (i in seq_along(year_hits$year)) {
-  y <- year_hits$year[i]
-  # For demonstration, search for "organic fertilizer" in "kenya"
-  blocks <- list(
-    practice = "organic fertilizer",
-    geo      = east_africa
-  )
-  
-  start_date <- paste0(y, "-01-01")
-  end_date   <- paste0(y, "-12-31")
-  
-  res <- era_oa_query(
-    search_terms = blocks,
-    from_date    = start_date,
-    to_date      = end_date,
-    download     = FALSE,
-    full         = FALSE,
-    within_block_operators = c("OR", "OR"),
-    between_block_operators= "AND",
-    quote_terms  = TRUE,
-    verbose=F
-  )
-  
-  year_hits$hits[i] <- res$search_hits
+years <- 2005:2024
+
+# Create a data frame to hold hit counts for each region and year
+region_year_hits <- data.frame(
+  year = rep(years, times = length(regions)),
+  region = rep(names(regions), each = length(years)),
+  hits = NA_integer_
+)
+
+# Loop over each region and year, running era_oa_query and storing the hit count.
+for (r in names(regions)) {
+  for (y in years) {
+    blocks <- list(
+      practice = "conservation agriculture",
+      geo      = regions[[r]]
+    )
+    
+    start_date <- paste0(y, "-01-01")
+    end_date   <- paste0(y, "-12-31")
+    
+    res <- era_oa_query(
+      search_terms           = blocks,
+      from_date              = start_date,
+      to_date                = end_date,
+      download               = FALSE,
+      full                   = FALSE,
+      within_block_operators = c("OR", "OR"),
+      between_block_operators= "AND",
+      quote_terms            = TRUE,
+      verbose                = FALSE
+    )
+    
+    region_year_hits$hits[region_year_hits$region == r & region_year_hits$year == y] <- res$search_hits
+  }
 }
 
-plot(
-  year_hits$year, year_hits$hits, type="b", pch=19,
-  main="Publications in East Africa on 'Organic Fertilizer' (2020-2024)",
-  xlab="Year", ylab="Number of Publications"
-)
+# Plot the results with different colors for each region
+colors <- c("red", "blue", "green", "purple")
+plot(years, region_year_hits$hits[region_year_hits$region == "East"],
+     type = "b", col = colors[1], pch = 19, lwd = 2,
+     xlab = "Year", ylab = "Number of Publications",
+     main = "Publications on 'Conservation Agriculture' by African Region (1995-2024)",
+     ylim = range(region_year_hits$hits, na.rm = TRUE))
+
+lines(years, region_year_hits$hits[region_year_hits$region == "West"],
+      type = "b", col = colors[2], pch = 19, lwd = 2)
+lines(years, region_year_hits$hits[region_year_hits$region == "North"],
+      type = "b", col = colors[3], pch = 19, lwd = 2)
+lines(years, region_year_hits$hits[region_year_hits$region == "South"],
+      type = "b", col = colors[4], pch = 19, lwd = 2)
+
+legend("topleft", legend = names(regions), col = colors, lwd = 2, pch = 19)
 ```
 
-# 5. Downloading Records
+# 4. Downloading Records
 
 Here we show how you can use the `era_oa_query` function to download minimal fields (faster with only doi and title fields) vs. full fields (slower with all bibliographic fields).
 
@@ -360,7 +389,7 @@ kable(head(res_full$results,1),caption="Complete record downloaded")
 kable(res_min$meta_data)
 ```
 
-# 6. Understanding `max_char_limit` and `max_term`
+# 5. Understanding `max_char_limit` and `max_term`
 
 - **max_char_limit**:  
   This parameter limits the maximum number of characters allowed in the final API URL. If your query is too large, you may exceed URL length limits. The function stops if the endpoint URL is longer than this value.
