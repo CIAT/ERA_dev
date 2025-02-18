@@ -1,0 +1,426 @@
+---
+title: "Using era_oa_query and build_search_string with OpenAlexR"
+format: html
+editor: visual
+---
+
+```{r setup, include=FALSE}
+# Set global chunk options
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# 1. Setup
+
+This section installs and loads required packages, and sources the custom functions from GitHub.
+
+```{r setup-packages}
+# Install and load openalexR if not already installed
+if (!require(openalexR)) {
+  devtools::install_github("https://github.com/ropensci/openalexR")
+  library(openalexR)
+}
+
+# ?openalexR  # Uncomment if you want to view the help page
+
+# Install and load pacman for package management
+if (!require("pacman", character.only = TRUE)) {
+  install.packages("pacman")
+  library(pacman)
+}
+
+# Load data.table (via pacman)
+p_load(data.table, knitr)
+
+# Source the era_oa_query function from GitHub (sourcing once is enough)
+source("https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/search/era_oa_query.R")
+```
+
+# 2. Constructing Queries with `build_search_string`
+
+Before using the full query function, we can use the helper to see how boolean queries are built.
+
+## 2.1 List of Terms vs. a Preformatted String
+
+Here we demonstrate that you can either:
+
+1. Provide a **list** of terms (each block is a vector), or  
+2. Provide a **preformatted single string** for that block, containing your boolean operators.
+
+```{r define-terms}
+# 1) We define a named list of search blocks. Each block represents a set of terms 
+# for a particular aspect of the search. Each list level is vector of character values
+# that will be combined with the within_block_operators argument given to the function.
+
+terms <- list(
+  practice = c("organic fertilizer", "ISFM", "conservation agriculture", "integrated soil fertility"),
+  geo      = c("kenya", "tanzania", "malawi"),
+  outcome  = c("yield", "profit margin", "efficiency"),
+  exclude  = c("APSIM", "DSSAT", "WOFOS")
+)
+
+full_query_list <- build_search_string(
+  search_terms           = terms,
+  within_block_operators = c("OR", "OR", "OR", "NOT"),  # 'exclude' uses NOT
+  between_block_operators= c("AND", "AND", "AND"),
+  quote_terms            = TRUE,
+  max_term               = 100,
+  max_char_limit         = 4000
+)
+
+cat("List-of-vectors query:\n", strwrap(full_query_list,width=80), "\n\n")
+
+# 2) Suppose we want to provide a single preformatted string for 'practice'
+#    that includes OR operators, instead of a vector.
+preformatted_blocks <- list(
+  practice = "organic fertilizer OR ISFM OR conservation agriculture OR integrated soil fertility",
+  geo      = c("kenya", "tanzania", "malawi"),
+  outcome  = c("yield", "profit margin", "efficiency"),
+  exclude  = c("APSIM", "DSSAT", "WOFOS")
+)
+
+full_query_preformatted <- build_search_string(
+  search_terms           = preformatted_blocks,
+  within_block_operators = c("OR", "OR", "OR", "NOT"),
+  between_block_operators= c("AND", "AND", "AND"),
+  quote_terms            = TRUE,
+  max_term               = 100,
+  max_char_limit         = 4000
+)
+
+cat("Single-string block for 'practice':\n", strwrap(full_query_preformatted,width=80), "\n")
+```
+
+## 2.2 A Simple Example and Explanation of `quote_terms`
+
+`quote_terms` is a parameter that, when set to `TRUE`, makes the function place multi-word terms in quotes. For example, `"organic fertilizer"` becomes `"(\"organic fertilizer\")"`, ensuring the OpenAlex API treats it as an exact phrase rather than separate words “organic” and “fertilizer.”
+
+You can provide:
+
+- **A list** of vectors (like in Section 2), where each vector is combined within a block (e.g., `OR`, `AND`, `NOT`), and blocks are combined between themselves.
+- **A single string** that already includes Boolean operators. For instance: `"organic fertilizer OR ISFM OR conservation agriculture"`. If you do this and `quote_terms = TRUE`, the function will try to parse and quote non-operator tokens. Otherwise, if the string is fully boolean and you don’t want quoting, set `quote_terms = FALSE`.
+
+```{r simple-query quote true}
+# Using only a subset of blocks (practice and geo)
+test_blocks <- list(
+  practice = c("organic fertilizer", "ISFM"),
+  geo      = c("kenya", "tanzania")
+)
+
+test_query_T <- build_search_string(
+  search_terms           = test_blocks,
+  within_block_operators = c("OR", "OR"),
+  between_block_operators= "AND",
+  quote_terms            = TRUE   # place multi-word terms in quotes
+)
+
+# Resulting string when quote_terms is TRUE
+test_query_T
+
+test_query_F <- build_search_string(
+  search_terms           = test_blocks,
+  within_block_operators = c("OR", "OR"),
+  between_block_operators= "AND",
+  quote_terms            = F  # place multi-word terms in quotes
+)
+
+# Resulting string when quote_terms is FALSE
+test_query_F
+```
+
+This is impact on the search results that are returned:
+
+```{r simple-query quote comparison}
+test_query_T_result <- era_oa_query(
+  search_terms = test_blocks,
+  from_date    = "2010-01-01",
+  to_date      = "2023-12-31",
+  download         = FALSE,
+  within_block_operators = c("OR", "OR"),
+  between_block_operators= "AND",
+  quote_terms            = TRUE,
+  verbose=F
+)$search_hits
+
+# Search hits quote terms:
+test_query_T_result
+
+test_query_F_result <- era_oa_query(
+  search_terms = test_blocks,
+  from_date    = "2010-01-01",
+  to_date      = "2023-12-31",
+  download         = FALSE,
+  within_block_operators = c("OR", "OR"),
+  between_block_operators= "AND",
+  quote_terms            = FALSE,
+  verbose=F
+)$search_hits
+
+# Search hits without quote terms:
+test_query_F_result
+```
+
+
+# 3. Using `era_oa_query` for Programmatic Searches
+
+We now use the wrapper function to query OpenAlex. To being with we set `download = FALSE` to return hit counts only, rather than downloading the full records. This wis useful for formulating searches quickly withoutn having to download huge amounts of rich bibliographic data from the OA database.
+
+## 3.1 Comparing Different Geographic Filters
+
+**Understanding the `continent` Argument in `era_oa_query`:**
+
+The `continent` parameter in the `era_oa_query` function is used to filter search results based on the geographical location of the authors' institutions. When you set, for example, `continent = "Africa"`, this value is passed to the OpenAlex API via the argument `authorships.institutions.continent`. This means that only works where at least one author is affiliated with an institution located in Africa will be returned.
+
+In other words, using the `continent` argument does not search for geographic terms within the paper's title or abstract. Instead, it leverages OpenAlex’s curated institutional metadata to filter results based on where the authors’ institutions are located. This allows you to focus on research outputs that originate from a specific region, which is particularly useful for regional analyses.
+
+Below, we define **six** variants for African regions:
+
+1. **EastAfrica**: A set of East African countries (geo block).
+2. **WestAfrica**: West African countries.
+3. **SouthernAfrica**: Southern African countries.
+4. **NorthernAfrica**: Northern African countries.
+5. **AfricaContinent**: No `geo` block, but we pass `continent = "Africa"`.
+6. **AfricaGeo**: A large `geo` block listing many African countries.
+
+```{r geo-searches, warning=FALSE, message=FALSE}
+# Let's define some representative countries for each region:
+# Northern Africa (AU)
+northern_africa <- c("Algeria","Egypt","Libya","Mauritania","Morocco","Tunisia")
+
+# West Africa (AU)
+west_africa <- c("Benin","Burkina Faso","Cabo Verde","Côte d’Ivoire","The Gambia","Ghana","Guinea","Guinea-Bissau","Liberia","Mali","Niger","Nigeria","Senegal","Sierra Leone","Togo")
+
+# East Africa (AU)
+east_africa <- c("Comoros","Djibouti","Eritrea","Ethiopia","Kenya","Madagascar","Mauritius","Rwanda","Seychelles","Somalia","South Sudan","Sudan","Tanzania","Uganda")
+
+# Southern Africa (AU)
+southern_africa <- c("Botswana","Eswatini","Lesotho","Malawi","Mozambique","Namibia","South Africa","Zambia","Zimbabwe")
+
+# For AfricaGeo, we combine them all (this is just an example subset, not exhaustive).
+all_africa <- c(east_africa, west_africa, southern_africa, northern_africa)
+
+search_variants <- list(
+  EastAfrica = list(
+    practice = c("organic fertilizer", "ISFM", "conservation agriculture"),
+    geo      = east_africa
+  ),
+  WestAfrica = list(
+    practice = c("organic fertilizer", "ISFM", "conservation agriculture"),
+    geo      = west_africa
+  ),
+  SouthernAfrica = list(
+    practice = c("organic fertilizer", "ISFM", "conservation agriculture"),
+    geo      = southern_africa
+  ),
+  NorthernAfrica = list(
+    practice = c("organic fertilizer", "ISFM", "conservation agriculture"),
+    geo      = northern_africa
+  ),
+  AfricaContinent = list(
+    practice = c("organic fertilizer", "ISFM", "conservation agriculture")
+    # We'll pass continent="Africa"
+  ),
+  AfricaGeo = list(
+    practice = c("organic fertilizer", "ISFM", "conservation agriculture"),
+    geo      = all_africa
+  )
+)
+
+results_list <- list()
+for (nm in names(search_variants)) {
+  blocks <- search_variants[[nm]]
+  
+  # For "AfricaContinent", pass continent = "Africa", else NULL
+  cont <- if (nm == "AfricaContinent") "Africa" else NULL
+  
+  res <- era_oa_query(
+    search_terms = blocks,
+    from_date    = "2020-01-01",
+    to_date      = "2023-12-31",
+    continent    = cont,
+    download     = FALSE,
+    full         = FALSE,
+    within_block_operators = rep("OR", length(blocks)),  # Combine terms in each block with OR
+    between_block_operators= "AND",
+    quote_terms            = TRUE,
+    verbose=F
+  )
+  
+  results_list[[nm]] <- data.frame(
+    region     = nm,
+    query      = res$query,
+    hits       = res$search_hits
+  )
+}
+
+all_res <- do.call(rbind, results_list)
+
+par(mar = c(8, 4, 4, 2))
+
+barplot(
+  all_res$hits,
+  names.arg = all_res$region,
+  main = "OpenAlex Hits by African Region Filter",
+  xlab = "Region",
+  ylab = "Number of Hits",
+  las = 2,        
+  cex.names = 0.8 
+)
+
+```
+
+We can see the using the `continent="Africa"` argument results in more search hits than a geographic term of African country names.
+
+According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values:
+	•	`Africa`
+	•	`Antarctica`
+	•	`Asia`
+	•	`Europe`
+	•	`North America`
+	•	`Oceania`
+	•	`South America`
+
+These correspond to standard continent names. You won’t see them explicitly listed in one place in the official OpenAlex documentation, but these are the recognized values in the data. You can see references to them by exploring institutional records in the OpenAlex dataset or by checking examples in the OpenAlex docs under “Filter entity lists.” If you specify any other string, the API will simply not match any institutions.
+
+# 4. Using Date Filters to Plot Yearly Publication Counts
+
+We can loop over a set of years to get hit counts for each year and then plot the trend.
+
+```{r date-filter, warning=FALSE, message=FALSE}
+year_hits <- data.frame(year = 1995:2024, hits = NA_integer_)
+
+for (i in seq_along(year_hits$year)) {
+  y <- year_hits$year[i]
+  # For demonstration, search for "organic fertilizer" in "kenya"
+  blocks <- list(
+    practice = "organic fertilizer",
+    geo      = east_africa
+  )
+  
+  start_date <- paste0(y, "-01-01")
+  end_date   <- paste0(y, "-12-31")
+  
+  res <- era_oa_query(
+    search_terms = blocks,
+    from_date    = start_date,
+    to_date      = end_date,
+    download     = FALSE,
+    full         = FALSE,
+    within_block_operators = c("OR", "OR"),
+    between_block_operators= "AND",
+    quote_terms  = TRUE,
+    verbose=F
+  )
+  
+  year_hits$hits[i] <- res$search_hits
+}
+
+plot(
+  year_hits$year, year_hits$hits, type="b", pch=19,
+  main="Publications in East Africa on 'Organic Fertilizer' (2020-2024)",
+  xlab="Year", ylab="Number of Publications"
+)
+```
+
+# 5. Downloading Records
+
+Here we show how you can use the `era_oa_query` function to download minimal fields (faster with only doi and title fields) vs. full fields (slower with all bibliographic fields).
+
+```{r download-results, warning=FALSE, message=FALSE}
+my_blocks <- list(
+  practice = c("organic fertilizer"),
+  geo      = c("kenya"),
+  outcome  = c("yield", "profit margin")
+)
+
+# Download minimal fields (title, doi)
+res_min <- era_oa_query(
+  search_terms = my_blocks,
+  from_date    = "2020-01-01",
+  to_date      = "2023-12-31",
+  download     = TRUE,
+  full         = FALSE,
+  quote_terms  = TRUE
+)
+
+kable(head(res_min$results,5),caption="Title and doi only downloaded")
+
+# Download full fields (including abstracts)
+res_full <- era_oa_query(
+  search_terms = my_blocks,
+  from_date    = "2020-01-01",
+  to_date      = "2023-12-31",
+  download     = TRUE,
+  full         = TRUE,
+  quote_terms  = TRUE
+)
+
+kable(head(res_full$results,1),caption="Complete record downloaded")
+
+# The search details are also returned
+kable(res_min$meta_data)
+```
+
+# 6. Understanding `max_char_limit` and `max_term`
+
+- **max_char_limit**:  
+  This parameter limits the maximum number of characters allowed in the final API URL. If your query is too large, you may exceed URL length limits. The function stops if the endpoint URL is longer than this value.
+
+- **max_term**:  
+  This parameter is used by `build_search_string` (which employs advanced token splitting) to warn if the query is too big. Large queries can cause performance issues or exceed the API constraints.
+
+These parameters help manage limitations of the OpenAlex API, ensuring your queries remain within acceptable bounds.
+
+```{r dummy terms, warning=FALSE, message=FALSE}
+# Create a dummy search list with a large search string that is too long
+dummy_terms_long <- list(
+  dummy = rep("extremely long winded search term that yields a search string that is waaaaaaaaaaaay too long", 99)
+)
+
+dummy_result_long <- tryCatch(
+  era_oa_query(
+    search_terms   = dummy_terms_long,
+    from_date      = "2020-01-01",
+    to_date        = "2023-12-31",
+    download       = FALSE,
+    full           = FALSE,
+    quote_terms    = TRUE,
+    max_term       = 100,
+    max_char_limit = 4000
+  ),
+  error = function(e) e
+)
+
+dummy_result_long$message
+
+
+# Create a dummy search list with a large search string that has too many terms
+dummy_terms_many <- list(
+  dummy = rep("a", 300)  # 300 terms in one block
+)
+
+dummy_result_many <- tryCatch(
+  era_oa_query(
+    search_terms   = dummy_terms_many,
+    from_date      = "2020-01-01",
+    to_date        = "2023-12-31",
+    download       = FALSE,
+    full           = FALSE,
+    quote_terms    = TRUE,
+    max_term       = 100,
+    max_char_limit = 4000
+  ),
+  error = function(e) e
+)
+
+dummy_result_many$message
+```
+
+# Summary
+
+- **build_search_string**:  
+  Allows you to flexibly build boolean queries from lists of blocks, specifying within‐ and between‐block operators, and optionally quoting multi‐word terms. You can also pass a single string containing Boolean logic.
+  
+- **era_oa_query**:  
+  Wraps the query construction and uses OpenAlexR to retrieve results. It supports date filters, continent filters, minimal/full downloads, and checks on query length.
+
+You can experiment with different filters, date ranges, and download options to tailor your search to your needs.
