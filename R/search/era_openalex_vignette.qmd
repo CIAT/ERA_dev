@@ -47,11 +47,11 @@ Before using the full query function, we can use the helper to see how boolean q
 
 Here we demonstrate that you can either:
 
-1. Provide a **list** of terms (each block is a vector), or  
-2. Provide a **preformatted single string** for that block, containing your boolean operators.
+a. Provide a **list** of terms (each block is a vector), or  
+b. Provide a **preformatted single string** for that block, containing your boolean operators.
 
 
-# 1) We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.
+a) We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.
 ```{r define-terms vector}
 terms <- list(
   practice = c("organic fertilizer", "ISFM", "conservation agriculture", "integrated soil fertility"),
@@ -72,7 +72,7 @@ full_query_list <- build_search_string(
 cat("List-of-vectors query:\n", strwrap(full_query_list,width=80), "\n\n")
 ```
 
-# 2) Suppose we want to provide a single preformatted string for 'practice' that includes OR operators, instead of a vector.
+b) Suppose we want to provide a single preformatted string for 'practice' that includes OR operators, instead of a vector.
 ```{r define-terms boolean}
 preformatted_blocks <- list(
   practice = "organic fertilizer OR ISFM OR conservation agriculture OR integrated soil fertility",

@@ -83,10 +83,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#constructing-queries-with-build_search_string" id="toc-constructing-queries-with-build_search_string" class="nav-link" data-scroll-target="#constructing-queries-with-build_search_string">2. Constructing Queries with <code>build_search_string</code></a>
   <ul class="collapse">
   <li><a href="#list-of-terms-vs.-a-preformatted-string" id="toc-list-of-terms-vs.-a-preformatted-string" class="nav-link" data-scroll-target="#list-of-terms-vs.-a-preformatted-string">2.1 List of Terms vs.&nbsp;a Preformatted String</a></li>
-  </ul></li>
-  <li><a href="#we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function." id="toc-we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function." class="nav-link" data-scroll-target="#we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function.">1) We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.</a></li>
-  <li><a href="#suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector." id="toc-suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector." class="nav-link" data-scroll-target="#suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector.">2) Suppose we want to provide a single preformatted string for ‘practice’ that includes OR operators, instead of a vector.</a>
-  <ul class="collapse">
   <li><a href="#a-simple-example-and-explanation-of-quote_terms" id="toc-a-simple-example-and-explanation-of-quote_terms" class="nav-link" data-scroll-target="#a-simple-example-and-explanation-of-quote_terms">2.2 A Simple Example and Explanation of <code>quote_terms</code></a></li>
   </ul></li>
   <li><a href="#using-era_oa_query-for-programmatic-searches" id="toc-using-era_oa_query-for-programmatic-searches" class="nav-link" data-scroll-target="#using-era_oa_query-for-programmatic-searches">3. Using <code>era_oa_query</code> for Programmatic Searches</a>
@@ -154,15 +150,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="list-of-terms-vs.-a-preformatted-string" class="level2">
 <h2 class="anchored" data-anchor-id="list-of-terms-vs.-a-preformatted-string">2.1 List of Terms vs.&nbsp;a Preformatted String</h2>
 <p>Here we demonstrate that you can either:</p>
-<ol type="1">
+<ol type="a">
 <li>Provide a <strong>list</strong> of terms (each block is a vector), or<br>
 </li>
 <li>Provide a <strong>preformatted single string</strong> for that block, containing your boolean operators.</li>
 </ol>
-</section>
-</section>
-<section id="we-define-a-named-list-of-search-blocks.-each-block-represents-a-set-of-terms-for-a-particular-aspect-of-the-search.-each-list-level-is-vector-of-character-values-that-will-be-combined-with-the-within_block_operators-argument-given-to-the-function." class="level1">
-<h1>1) We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.</h1>
+<ol type="a">
+<li>We define a named list of search blocks. Each block represents a set of terms for a particular aspect of the search. Each list level is vector of character values that will be combined with the within_block_operators argument given to the function.</li>
+</ol>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>terms <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">practice =</span> <span class="fu">c</span>(<span class="st">"organic fertilizer"</span>, <span class="st">"ISFM"</span>, <span class="st">"conservation agriculture"</span>, <span class="st">"integrated soil fertility"</span>),</span>
@@ -186,9 +181,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  ("organic fertilizer" OR ISFM OR "conservation agriculture" OR "integrated soil fertility") AND (kenya OR tanzania OR malawi) AND (yield OR "profit margin" OR efficiency) AND (APSIM NOT DSSAT NOT WOFOS) </code></pre>
 </div>
 </div>
-</section>
-<section id="suppose-we-want-to-provide-a-single-preformatted-string-for-practice-that-includes-or-operators-instead-of-a-vector." class="level1">
-<h1>2) Suppose we want to provide a single preformatted string for ‘practice’ that includes OR operators, instead of a vector.</h1>
+<ol start="2" type="a">
+<li>Suppose we want to provide a single preformatted string for ‘practice’ that includes OR operators, instead of a vector.</li>
+</ol>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>preformatted_blocks <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">practice =</span> <span class="st">"organic fertilizer OR ISFM OR conservation agriculture OR integrated soil fertility"</span>,</span>
@@ -212,6 +207,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  ("organic fertilizer" OR "ISFM" OR "conservation agriculture" OR "integrated soil fertility" OR NA) AND (kenya OR tanzania OR malawi) AND (yield OR "profit margin" OR efficiency) AND (APSIM NOT DSSAT NOT WOFOS) </code></pre>
 </div>
 </div>
+</section>
 <section id="a-simple-example-and-explanation-of-quote_terms" class="level2">
 <h2 class="anchored" data-anchor-id="a-simple-example-and-explanation-of-quote_terms">2.2 A Simple Example and Explanation of <code>quote_terms</code></h2>
 <p><code>quote_terms</code> is a parameter that, when set to <code>TRUE</code>, makes the function place multi-word terms in quotes. For example, <code>"organic fertilizer"</code> becomes <code>"(\"organic fertilizer\")"</code>, ensuring the OpenAlex API treats it as an exact phrase rather than separate words “organic” and “fertilizer.”</p>
