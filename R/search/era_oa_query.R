@@ -100,7 +100,8 @@ era_oa_query <- function(search_terms,
                          max_term = 100,
                          within_block_operators = "OR",
                          between_block_operators = "AND",
-                         quote_terms = TRUE) {
+                         quote_terms = TRUE,
+                         varbose=T) {
   
   # Validate dates
   if (is.null(from_date) || is.null(to_date)) {
@@ -151,10 +152,10 @@ era_oa_query <- function(search_terms,
   
   # Get the number of search hits.
   search_hits <- oa_request(query_url = api_endpoint, count_only = TRUE)$count
-  cat("Search hits =", search_hits, "\n")
+  if(verbose){cat("Search hits =", search_hits, "\n")}
   
   if (download) {
-    cat("Downloading query results...\n")
+    if(verbose){cat("Downloading query results...\n")}
     hits <- oa_request(query_url = api_endpoint)
     hits_tab <- data.table(oa2df(hits, entity = "works", verbose = FALSE))
     
@@ -504,7 +505,7 @@ result1 <- build_search_string(
   quote_terms    = TRUE,
   max_char_limit = 1000
 )
-cat("Result 1:\n", result1, "\n\n")
+#cat("Result 1:\n", result1, "\n\n")
 
 result2 <- build_search_string(
   search_terms = search2,
@@ -514,7 +515,7 @@ result2 <- build_search_string(
   quote_terms    = TRUE,
   max_char_limit = 1000
 )
-cat("Result 2:\n", result2, "\n\n")
+#cat("Result 2:\n", result2, "\n\n")
 
 # Example of how you might use the resulting search string with OpenAlex:
 # (Note: oa_query and oa_request are functions from the openalexR package.)
