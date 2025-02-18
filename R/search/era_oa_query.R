@@ -121,6 +121,16 @@ era_oa_query <- function(search_terms,
     max_char_limit = max_char_limit
   )
   
+  tokens <- unlist(strsplit(gsub("[()]", "", search_string), "\\s+(?i:AND|OR|NOT)\\s+", perl = TRUE))
+  if(verbose){cat("Token count =", length(tokens), "\n")}
+  if (length(tokens) > max_term) {
+    stop(
+      "Number of terms (", length(tokens),
+      ") exceeds the maximum allowed (", max_term, ")."
+    )
+  }
+  
+  
   # Construct the API endpoint using openalexR's oa_query.
   if (is.null(continent)) {
     api_endpoint <- oa_query(
