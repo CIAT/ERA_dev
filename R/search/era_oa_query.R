@@ -112,7 +112,7 @@ era_oa_query <- function(search_terms,
   }
   
   # Build the boolean search string using the helper function.
-  search_string <- build_search_string(
+  search_string <- build_search_string2(
     search_terms = search_terms,
     within_block_operators = within_block_operators,
     between_block_operators = between_block_operators,
@@ -343,151 +343,98 @@ add_quotes <- function(vector) {
 #' }
 #'
 #' @export
-build_search_string <- function(search_terms, 
-                                within_block_operators  = "OR",
+build_search_string<- function(search_terms,
+                                within_block_operators = "OR",
                                 between_block_operators = "AND",
-                                quote_terms             = FALSE,
-                                max_term                = 100,
-                                max_char_limit          = 4000) {
-  
-  # --- Internal helper: process a boolean expression string ---
-  process_boolean_string <- function(s) {
-    # Split s on operators (AND, OR, NOT) with spaces (case-insensitive)
-    tokens <- unlist(strsplit(s, "\\s+(?i:AND|OR|NOT)\\s+", perl = TRUE))
-    tokens <- trimws(tokens)
-    # Extract the operators in order.
-    op_matches <- regmatches(s, gregexpr("(?i:AND|OR|NOT)", s, perl = TRUE))[[1]]
-    
-    # Quote each token using shQuote.
-    processed_tokens <- sapply(tokens, function(token) {
-      if (token %in% c("(", ")") || token == "") {
-        token
-      } else {
-        shQuote(token, type = "cmd")
-      }
-    })
-    
-    # Reassemble the tokens with the operators.
-    out <- processed_tokens[1]
-    if (length(op_matches) > 0) {
-      for (i in seq_along(op_matches)) {
-        out <- c(out, toupper(op_matches[i]), processed_tokens[i + 1])
-      }
-    }
-    paste(out, collapse = " ")
-  }
-  
-  # Helper to detect boolean operators in a string.
-  has_boolean_ops <- function(x) {
-    any(grepl("\\b(AND|OR|NOT)\\b", x, ignore.case = TRUE))
-  }
-  
-  # ------------------------------------------------------------------
-  # CASE A: search_terms is a list of blocks.
-  # ------------------------------------------------------------------
+                                max_term = 100,
+                                max_char_limit = 4000,
+                                quote_terms = TRUE) {
+  # Process when search_terms is a list:
   if (is.list(search_terms)) {
     n_blocks <- length(search_terms)
+    block_strings <- vector("character", n_blocks)
     
-    # (A1) Ensure within_block_operators is of proper length.
+    # Ensure within_block_operators is a vector of length n_blocks
     if (length(within_block_operators) == 1) {
       within_block_operators <- rep(within_block_operators, n_blocks)
     } else if (length(within_block_operators) != n_blocks) {
-      stop("Length of 'within_block_operators' (", length(within_block_operators), 
-           ") must be 1 or match the number of blocks (", n_blocks, ").")
+      stop("Length of within_block_operators must be 1 or equal to the number of blocks")
     }
     
-    # (A2) Ensure between_block_operators is of proper length.
-    if (length(between_block_operators) == 1 && n_blocks > 1) {
-      between_block_operators <- rep(between_block_operators, n_blocks - 1)
-    } else if ((length(between_block_operators) != (n_blocks - 1)) && n_blocks > 1) {
-      stop("Length of 'between_block_operators' (", length(between_block_operators), 
-           ") must be 1 or exactly n_blocks - 1 (", n_blocks - 1, ").")
-    }
-    
-    # (A3) Build each block.
-    block_strings <- vector("character", length = n_blocks)
+    # Process each block individually
     for (i in seq_len(n_blocks)) {
-      block_terms <- search_terms[[i]]
-      op_in_block <- within_block_operators[i]
-      
-      if (length(block_terms) > 1) {
-        # Multiple terms: optionally quote each term.
-        terms_to_use <- if (quote_terms) add_quotes(block_terms) else block_terms
-        block_strings[i] <- paste0("(", paste(terms_to_use, collapse = paste0(" ", op_in_block, " ")), ")")
-      } else if (length(block_terms) == 1) {
-        one_term <- block_terms[1]
-        if (has_boolean_ops(one_term)) {
-          # A single string that already contains boolean operators.
+      block <- search_terms[[i]]
+      op <- within_block_operators[i]
+      if (length(block) > 1) {
+        # If block is a vector of terms, simply wrap each term in quotes (if requested) and join them.
+        if (quote_terms) {
+          block_strings[i] <- paste0("(", paste0('"', block, '"', collapse = paste0(" ", op, " ")), ")")
+        } else {
+          block_strings[i] <- paste0("(", paste(block, collapse = paste0(" ", op, " ")), ")")
+        }
+      } else if (length(block) == 1) {
+        # For a single-element block:
+        if (grepl("(?i)\\b(AND|OR|NOT)\\b", block[1])) {
+          # The block appears preformatted; apply a simple split on " OR " to quote individual tokens.
+          tokens <- strsplit(block[1], "\\s+OR\\s+", perl = TRUE)[[1]]
           if (quote_terms) {
-            processed <- process_boolean_string(one_term)
-            block_strings[i] <- paste0("(", processed, ")")
+            block_strings[i] <- paste0("(", paste0('"', tokens, '"', collapse = " OR "), ")")
           } else {
-            block_strings[i] <- paste0("(", one_term, ")")
+            block_strings[i] <- paste0("(", block[1], ")")
           }
         } else {
-          # A single plain phrase.
-          term_used <- if (quote_terms) add_quotes(one_term) else one_term
-          block_strings[i] <- paste0("(", term_used, ")")
+          # Single plain phrase:
+          if (quote_terms) {
+            block_strings[i] <- paste0("(", '"', block[1], '"', ")")
+          } else {
+            block_strings[i] <- paste0("(", block[1], ")")
+          }
         }
       } else {
-        stop("Encountered an empty block (no terms).")
+        stop("Empty block encountered.")
       }
     }
     
-    # (A4) Combine blocks with between_block_operators.
+    # Combine blocks with between_block_operators
     if (n_blocks == 1) {
       search_string <- block_strings[1]
     } else {
+      if (length(between_block_operators) == 1) {
+        between_block_operators <- rep(between_block_operators, n_blocks - 1)
+      } else if (length(between_block_operators) != (n_blocks - 1)) {
+        stop("Length of between_block_operators must be 1 or equal to n_blocks - 1")
+      }
       search_string <- block_strings[1]
       for (j in seq_len(n_blocks - 1)) {
         search_string <- paste(search_string, between_block_operators[j], block_strings[j + 1])
       }
     }
-    
-    # ------------------------------------------------------------------
-    # CASE B: search_terms is a character vector.
-    # ------------------------------------------------------------------
   } else if (is.character(search_terms)) {
-    if (length(search_terms) == 1) {
-      if (has_boolean_ops(search_terms)) {
-        stop("The provided search string appears to contain boolean operators (AND/OR/NOT). ",
-             "This helper is not designed to accept an already-boolean query at the top level. ",
-             "If you need a 'simple boolean' expression, place it in a list block of length 1.")
+    # If search_terms is a character vector (not a list)
+    if (length(search_terms) > 1) {
+      # Treat it as one block
+      if (quote_terms) {
+        search_string <- paste0("(", paste0('"', search_terms, '"', collapse = " OR "), ")")
       } else {
-        term_used <- if (quote_terms) add_quotes(search_terms) else search_terms
-        search_string <- paste0("(", term_used, ")")
+        search_string <- paste0("(", paste(search_terms, collapse = " OR "), ")")
       }
     } else {
-      # Treat as one block.
-      if (length(within_block_operators) > 1) {
-        warning("Multiple within_block_operators provided, but there's only one block. Using the first one.")
+      # Single string provided
+      if (quote_terms && grepl("(?i)\\b(AND|OR|NOT)\\b", search_terms[1])) {
+        stop("This function cannot yet quote a boolean search string provided as a string.")
+      } else {
+        if (quote_terms) {
+          search_string <- paste0("(", '"', search_terms[1], '"', ")")
+        } else {
+          search_string <- paste0("(", search_terms[1], ")")
+        }
       }
-      op_in_block <- within_block_operators[1]
-      terms_to_use <- if (quote_terms) add_quotes(search_terms) else search_terms
-      search_string <- paste0("(", paste(terms_to_use, collapse = paste0(" ", op_in_block, " ")), ")")
     }
-    
   } else {
     stop("search_terms must be either a list or a character vector.")
   }
   
-  # ------------------------------------------------------------------
-  # FINAL CHECKS / Advanced Token Splitting for Term Count.
-  # ------------------------------------------------------------------
-  cleaned_str <- gsub("[()]", "", search_string)
-  tokens <- unlist(strsplit(cleaned_str, "\\s+(?i:AND|OR|NOT)\\s+", perl = TRUE))
-  tokens <- tokens[nzchar(tokens)]
-  
-  if (length(tokens) > max_term) {
-    warning("Advanced term splitting detected ", length(tokens), 
-            " tokens, which exceeds the recommended maximum (", max_term, ").")
-  }
-  
-  if (nchar(search_string) > max_char_limit) {
-    warning("The raw search string has ", nchar(search_string), 
-            " characters, exceeding max_char_limit (", max_char_limit, "). ",
-            "The final URL may fail if it becomes too large.")
-  }
+  # (Optional) Check for max_term and max_char_limit could be added here.
   
   return(search_string)
 }
