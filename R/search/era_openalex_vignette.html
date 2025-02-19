@@ -88,8 +88,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#using-era_oa_query-for-programmatic-searches" id="toc-using-era_oa_query-for-programmatic-searches" class="nav-link" data-scroll-target="#using-era_oa_query-for-programmatic-searches">3. Using <code>era_oa_query</code> for Programmatic Searches</a>
   <ul class="collapse">
   <li><a href="#comparing-different-geographic-filters" id="toc-comparing-different-geographic-filters" class="nav-link" data-scroll-target="#comparing-different-geographic-filters">3.1 Comparing Different Geographic Filters</a></li>
-  </ul></li>
   <li><a href="#using-date-filters-to-plot-yearly-publication-counts" id="toc-using-date-filters-to-plot-yearly-publication-counts" class="nav-link" data-scroll-target="#using-date-filters-to-plot-yearly-publication-counts">3.2. Using Date Filters to Plot Yearly Publication Counts</a></li>
+  </ul></li>
   <li><a href="#downloading-records" id="toc-downloading-records" class="nav-link" data-scroll-target="#downloading-records">4. Downloading Records</a></li>
   <li><a href="#understanding-max_char_limit-and-max_term" id="toc-understanding-max_char_limit-and-max_term" class="nav-link" data-scroll-target="#understanding-max_char_limit-and-max_term">5. Understanding <code>max_char_limit</code> and <code>max_term</code></a></li>
   <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
@@ -395,12 +395,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>We can see the using the <code>continent="Africa"</code> argument results in more search hits than a geographic term of African country names.</p>
-<p>According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values: 1. <code>Africa</code> 2. <code>Antarctica</code> 3. <code>Asia</code> 4. <code>Europe</code> 5. <code>North America</code> 6. <code>Oceania</code> 7. <code>South America</code></p>
+<p>According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values: 1. <code>africa</code> 2. <code>antarctica</code> 3. <code>asia</code> 4. <code>aurope</code> 5. <code>north_america</code> 6. <code>oceania</code> 7. <code>south_america</code></p>
 <p>These correspond to standard continent names. You won’t see them explicitly listed in one place in the official OpenAlex documentation, but these are the recognized values in the data. You can see references to them by exploring institutional records in the OpenAlex dataset or by checking examples in the OpenAlex docs under “Filter entity lists.” If you specify any other string, the API will simply not match any institutions.</p>
 </section>
-</section>
-<section id="using-date-filters-to-plot-yearly-publication-counts" class="level1">
-<h1>3.2. Using Date Filters to Plot Yearly Publication Counts</h1>
+<section id="using-date-filters-to-plot-yearly-publication-counts" class="level2">
+<h2 class="anchored" data-anchor-id="using-date-filters-to-plot-yearly-publication-counts">3.2. Using Date Filters to Plot Yearly Publication Counts</h2>
 <p>We can loop over a set of years to get hit counts for each year and then plot the trend.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>regions <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
@@ -470,6 +469,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
+</section>
 </section>
 <section id="downloading-records" class="level1">
 <h1>4. Downloading Records</h1>

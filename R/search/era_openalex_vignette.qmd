@@ -274,17 +274,17 @@ barplot(
 We can see the using the `continent="Africa"` argument results in more search hits than a geographic term of African country names.
 
 According to the OpenAlex API, the authorships.institutions.continent filter recognizes the following continent values: 
-  1.	`Africa`
-	2.	`Antarctica`
-	3.	`Asia`
-	4.	`Europe`
-	5.	`North America`
-	6.	`Oceania`
-	7.	`South America`
+  1.	`africa`
+	2.	`antarctica`
+	3.	`asia`
+	4.	`aurope`
+	5.	`north_america`
+	6.	`oceania`
+	7.	`south_america`
 
 These correspond to standard continent names. You won’t see them explicitly listed in one place in the official OpenAlex documentation, but these are the recognized values in the data. You can see references to them by exploring institutional records in the OpenAlex dataset or by checking examples in the OpenAlex docs under “Filter entity lists.” If you specify any other string, the API will simply not match any institutions.
 
-# 3.2. Using Date Filters to Plot Yearly Publication Counts
+## 3.2. Using Date Filters to Plot Yearly Publication Counts
 
 We can loop over a set of years to get hit counts for each year and then plot the trend.
 
