@@ -134,6 +134,11 @@ if(!require("exactextractr")){
   
   era_dirs$aez_dir<-file.path(era_dirs$ancillary_dir,"aez")
 
+  era_dirs$ilri_feed_db_dir<-file.path(era_dirs$ancillary_dir,"ilri_feed_db")
+  era_dirs$ilri_feed_db_S3<-file.path(era_dirs$ancillary_s3,"ilri_feed_db")
+  era_dirs$ilri_feed_db_file<-file.path(era_dirs$ilri_feed_db_S3,"ilri_feed_db.csv")
+  
+  
   # vocabulary
   era_dirs$vocab_dir<-file.path(era_dir,"vocab")
   era_dirs$vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
@@ -173,7 +178,7 @@ if(!require("exactextractr")){
         s3$file_download(files_s3[i],file)
       }
     }
-    e
+    
   # 2.2) ERA geodata #####
     update<-F
     # List files in the specified S3 bucket and prefix
@@ -264,11 +269,11 @@ if(!require("exactextractr")){
         s3$file_download(files_s3[i],file)
       }
     }
-  # 2.6) AEZ data
+  # 2.6) AEZ data ####
     update<-F
     # If aez data does not exist locally download from havard dataverse
   
-    if(update==T|!grepl("AEZ16_CLAS--SSA.tif",list.files(era_dirs$aez_dir))){
+    if(update==T|!any(grepl("AEZ16_CLAS--SSA.tif",list.files(era_dirs$aez_dir)))){
       aez_file <- file.path(era_dirs$aez_dir,"AEZ5 AEZ8 AEZ16 r2.0 - TIF.zip")
 
       if(!file.exists(aez_file)){
@@ -297,7 +302,7 @@ if(!require("exactextractr")){
     }
     
     # Note while a version of the file below exists in zipped format on harvard dataverse, do not use it, it is corrupted!
-    if(update==T|!grepl("004_afr-aez_09.tif",list.files(era_dirs$aez_dir))){
+    if(update==T|!any(grepl("004_afr-aez_09.tif",list.files(era_dirs$aez_dir)))){
       aez_file <- file.path(era_dirs$aez_dir,"004_afr-aez_09.tif")
 
       if(!file.exists(aez_file)){
@@ -337,6 +342,20 @@ if(!require("exactextractr")){
     }
     
 
+  # 2.6) Ancillary datasets ####
+    # 2.6.1) ILRI Feed db ####
+    update<-F
+    # List files in the specified S3 bucket and prefix
+    files_s3<-s3$dir_ls(era_dirs$ilri_feed_db_dir)
+    files_local<-gsub(era_dirs$ancillary_s3,era_dirs$ancillary_dir,files_s3)
+    
+    for(i in 1:length(files_local)){
+      file<-files_local[i]
+      if(!file.exists(file)|update==T){
+        s3$file_download(files_s3[i],file)
+      }
+    }
+    
 # 3) Create table of unique locations (for use with geodata functions) ####
     data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
