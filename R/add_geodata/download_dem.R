@@ -109,78 +109,78 @@ extra_margin <- if (calc_topo) 3 * approx_pixel_size else 0
 
 # Core processing function for one site
 process_one <- function(i) {
-
-stat_tab<-list()
-
-this_id <- ids[i]
-padded_buff <- buffs[i] + extra_margin
-# Create point using sf (for bounding box creation)
-pt <- terra::vect(data.frame(lon = lons[i], lat = lats[i]), geom = c("lon", "lat"), crs = "EPSG:4326")
-
-# Create buffer
-buf <- terra::buffer(pt, width = buffs[i])
-buf_pad <- terra::buffer(pt, width = padded_buff)
-
-# Define output file name
-out_file <- file.path(out_dir, paste0(this_id, ".tif"))
-stats_file <- file.path(out_dir,paste0(this_id, "_stats.csv"))
-
-if (file.exists(out_file) && !overwrite) {
-return(list(id = this_id, file = out_file, status = "SKIP"))
-}
-
-attempt <- 0
-success <- FALSE
-last_error <- ""
-while (attempt < max_tries && !success) {
-attempt <- attempt + 1
-if (file.exists(out_file)) file.remove(out_file)
-
-tryCatch({
-  dem_rast <- suppressMessages(
-    elevatr::get_elev_raster(locations = sf::st_as_sf(buf_pad), z = z, clip = "locations", src = "aws",verbose=F)
-  )
-  dem <- terra::rast(dem_rast)
   
-  if (calc_topo) {
-    slope <-suppressMessages(terra::terrain(dem, v = "slope", unit = "degrees"))
-    slope <- terra::mask(slope, buf)
-    aspect <- suppressMessages(terra::terrain(dem, v = "aspect", unit = "degrees"))
-    aspect <- terra::mask(aspect, buf)
-    dem <- terra::mask(dem, buf)
-    
-    slope_file <- file.path(out_dir, paste0(this_id, "_slope.tif"))
-    aspect_file <- file.path(out_dir, paste0(this_id, "_aspect.tif"))
-    tryCatch({
-      terra::writeRaster(slope, slope_file, overwrite = TRUE)
-      terra::writeRaster(aspect, aspect_file, overwrite = TRUE)
-      
-      stat_tab<-c(stat_tab,list(stats_fun(df=df[i,],vals=values(slope),variable="slope")))
-      stat_tab<-c(stat_tab,list(stats_fun(df=df[i,],vals=values(aspect),variable="aspect")))
-      
-    }, error = function(e) {
-      last_error <<- paste("Topography calculation error:", e$message)
-      success <<- FALSE
-    })
+  stat_tab<-list()
+  
+  this_id <- ids[i]
+  padded_buff <- buffs[i] + extra_margin
+  # Create point using sf (for bounding box creation)
+  pt <- terra::vect(data.frame(lon = lons[i], lat = lats[i]), geom = c("lon", "lat"), crs = "EPSG:4326")
+  
+  # Create buffer
+  buf <- terra::buffer(pt, width = buffs[i])
+  buf_pad <- terra::buffer(pt, width = padded_buff)
+  
+  # Define output file name
+  out_file <- file.path(out_dir, paste0(this_id, ".tif"))
+  stats_file <- file.path(out_dir,paste0(this_id, "_stats.csv"))
+  
+  if (file.exists(out_file) && !overwrite) {
+  return(list(id = this_id, file = out_file, status = "SKIP"))
   }
   
-  stat_tab<-c(stat_tab,list(stats_fun(df=df[i,],vals=values(dem),variable="elevation")))
+  attempt <- 0
+  success <- FALSE
+  last_error <- ""
+  while (attempt < max_tries && !success) {
+  attempt <- attempt + 1
+  if (file.exists(out_file)) file.remove(out_file)
   
-  terra::writeRaster(dem, out_file, overwrite = TRUE)
-  data.table::fwrite(rbindlist(stat_tab),file=stats_file)
-  test <- terra::rast(out_file)
-  success <- TRUE
+  tryCatch({
+    dem_rast <- suppressWarnings(suppressMessages(
+      elevatr::get_elev_raster(locations = sf::st_as_sf(buf_pad), z = z, clip = "locations", src = "aws",verbose=F)
+    ))
+    dem <- terra::rast(dem_rast)
+    
+    if (calc_topo) {
+      slope <-suppressMessages(terra::terrain(dem, v = "slope", unit = "degrees"))
+      slope <- terra::mask(slope, buf)
+      aspect <- suppressMessages(terra::terrain(dem, v = "aspect", unit = "degrees"))
+      aspect <- terra::mask(aspect, buf)
+      dem <- terra::mask(dem, buf)
+      
+      slope_file <- file.path(out_dir, paste0(this_id, "_slope.tif"))
+      aspect_file <- file.path(out_dir, paste0(this_id, "_aspect.tif"))
+      tryCatch({
+        terra::writeRaster(slope, slope_file, overwrite = TRUE)
+        terra::writeRaster(aspect, aspect_file, overwrite = TRUE)
+        
+        stat_tab<-c(stat_tab,list(stats_fun(df=df[i,],vals=values(slope),variable="slope")))
+        stat_tab<-c(stat_tab,list(stats_fun(df=df[i,],vals=values(aspect),variable="aspect")))
+        
+      }, error = function(e) {
+        last_error <<- paste("Topography calculation error:", e$message)
+        success <<- FALSE
+      })
+    }
+    
+    stat_tab<-c(stat_tab,list(stats_fun(df=df[i,],vals=values(dem),variable="elevation")))
+    
+    terra::writeRaster(dem, out_file, overwrite = TRUE)
+    data.table::fwrite(rbindlist(stat_tab),file=stats_file)
+    test <- terra::rast(out_file)
+    success <- TRUE
+    
+  }, error = function(e) {
+    last_error <<- e$message
+  })
+  }
   
-}, error = function(e) {
-  last_error <<- e$message
-})
-}
-
-if (!success) {
-return(list(id = this_id, file = NA, status = "ERROR", error = last_error))
-}
-
-return(list(id = this_id, file = out_file, status = "OK"))
+  if (!success) {
+  return(list(id = this_id, file = NA, status = "ERROR", error = last_error))
+  }
+  
+  return(list(id = this_id, file = out_file, status = "OK"))
 }
 
 # Process sites sequentially or in parallel
@@ -213,14 +213,14 @@ future::plan(future::sequential)
 res_df <- rbindlist(lapply(results_list, as.data.table), fill = TRUE)
 stats_tab<-rbindlist(lapply(list.files(out_dir,".csv$",full.names = T),fread))
 result<-list(results=res_df,stats=stats_tab)
-return(res_df)
+return(result)
 }
 
   ## 1.3) Increase globals size ####
   options(future.globals.maxSize = 2 * 1024^3)
 # 2) Download data ####
   
-  results<-download_dem(df=era_locations[order(Buffer)][1:20],
+  results<-download_dem(df=era_locations[order(Buffer)],
                       out_dir=era_dirs$dem_dir,
                       z = 12,
                       overwrite = FALSE,
