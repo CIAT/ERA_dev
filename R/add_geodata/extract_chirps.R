@@ -1,88 +1,116 @@
 # First run R/0_set_env.R and R/add_geodata/download_chirps_chirts.R
-# Updated script was lost by SCiO in CGlabs, but needs updating to an exactextractR based approach
-# 0) Set-up workspace ####
-# 0.1) Load packages and create functions #####
-packages<-c("terra","data.table","arrow","pbapply","future","future.apply","sf","exactextractr")
-pacman::p_load(char=packages)
+# Note: This updated script was lost by SCiO in CGlabs but now uses an exactextractr‐based approach.
 
+# 0) Set-up workspace ####
+
+# 0.1) Load packages and create functions #####
+# Define the required packages and load them using pacman::p_load.
+packages <- c("terra", "data.table", "arrow", "pbapply", "future", "future.apply", "sf", "exactextractr")
+pacman::p_load(char = packages)
+
+# 0.2) Set workers for parallel ####
+worker_n <- parallel::detectCores() 
 
 # 1) Prepare ERA data ####
-SS<-era_locations[Buffer<50000]
-extract_by<-era_locations_vect_g[era_locations[,Buffer<50000]]
-extract_by<-sf::st_as_sf(extract_by)
 
-# 2) Index climate files ####
-# 2.1) Chirps ####
-file_index_chirps<-data.table(file_path=list.files(chirps_dir,".tif$",full.names = T,recursive = T))
-file_index_chirps[,file_name:=basename(file_path)
-][,date:=gsub(".tif","",gsub("chirps-v2.0.","",file_name))
-][,date:=as.Date(date,format="%Y.%m.%d")
-][,file_size:=(file.info(file_path)$size/10^6)
-][,year:=format(date,"%Y")
-][,var:="prec"
-][,dataset:="chirps_v2.0"]
+# Subset ERA locations with a buffer less than 50,000 (the unit depends on your CRS)
+SS <- era_locations[Buffer < 50000]
 
-# File size
-(file_size<-file_index[,sum(file_size[1])])
-# Total dataset size Gb
-if(T){
-  file_index[,sum(file_size/1000)]
-  file_index[year==2000,sum(file_size)/1000]
+# Subset the spatial vector of ERA locations based on the same buffer criteria.
+# Convert the subset to an sf object for compatibility with exact_extract.
+extract_by <- era_locations_vect_g[era_locations[, Buffer < 50000]]
+extract_by <- sf::st_as_sf(extract_by)
+
+# 2) Index CHIRPS files ####
+
+# List all .tif files from the 'chirps_dir' directory (recursively) and store in a data.table.
+file_index_chirps <- data.table(file_path = list.files(chirps_dir, ".tif$", full.names = TRUE, recursive = TRUE))
+
+# Process the file_index_chirps to extract file names, dates, file sizes, years, and add metadata:
+file_index_chirps[, file_name := basename(file_path)]                      # Get the file name from the path.
+file_index_chirps[, date := gsub(".tif", "", gsub("chirps-v2.0.", "", file_name))]  # Remove prefix and extension to isolate the date string.
+file_index_chirps[, date := as.Date(date, format = "%Y.%m.%d")]              # Convert the string to a Date object.
+file_index_chirps[, file_size := (file.info(file_path)$size / 10^6)]           # Calculate file size in MB.
+file_index_chirps[, year := format(date, "%Y")]                              # Extract the year from the date.
+file_index_chirps[, var := "prec"]                                           # Add a column for variable name (precipitation).
+file_index_chirps[, dataset := "chirps_v2.0"]                                # Add a column for the dataset identifier.
+
+# Check overall file size (for informational purposes)
+(file_size <- file_index[, sum(file_size[1])])
+# Optionally, print total dataset size in GB and size for the year 2000.
+if (TRUE) {
+  file_index[, sum(file_size / 1000)]
+  file_index[year == 2000, sum(file_size) / 1000]
 }
 
-# 2.2) Chirts ####
-if(F){
-  file_index_chirts<-data.table(file_path=list.files(chirts_dir,".tif$",full.names = T,recursive = T))
-}
+# 3) Extract sites ####
 
-# 3) Extract era buffers
-# 3.1) Chirps ####
-# Chunk by years
-file_index<-file_index_chirps
+# Use the file_index_chirps as the primary index for processing.
+file_index <- file_index_chirps
 
-worker_n<-30
-files_per_worker<-10
-worker_n*file_size*files_per_worker/1000
+# Define parallel processing parameters:
+files_per_worker <- 10    # Number of files to process per worker.
+# The following line appears to compute a rough estimate (not stored) of total workload:
+worker_n * file_size * files_per_worker / 1000
 
-file_index[, index := ceiling(.I / 10)] # I means the row number in data.table
+# Create an 'index' column to group files into chunks of 10 (i.e. one group per worker task).
+file_index[, index := ceiling(.I / files_per_worker)]  # .I represents the row number in data.table.
 
-future::plan("multisession",workers=worker_n)
+# Set up a multisession future plan for parallel processing.
+future::plan("multisession", workers = worker_n)
 
-# Enable progressr
+# Set up progress reporting using the progressr package.
 progressr::handlers(global = TRUE)
 progressr::handlers("progress")
 
-p<-progressr::with_progress({
-  progress <- progressr::progressor(along =1:max(file_index$index))
+# Use progressr to wrap the extraction process.
+p <- progressr::with_progress({
+  # Create a progressor that will iterate over the number of chunks.
+  progress <- progressr::progressor(along = 1:max(file_index$index))
   
-  data_ex<-future.apply::future_lapply(1:max(file_index$index),FUN=function(i){
+  # Process each chunk in parallel.
+  data_ex <- future.apply::future_lapply(1:max(file_index$index), FUN = function(i) {
+    # Update progress with the current block number.
     progress(sprintf("Block %d/%d", i, max(file_index$index)))
-    files<-unlist(file_index[file_index$index==i,"file_path"])
-    data<-terra::rast(files)
-    data_ex<-data.table::rbindlist(exact_extract(data,extract_by,fun=NULL,include_cols="Site.Key"))
+    # Retrieve the file paths for the current chunk.
+    files <- unlist(file_index[file_index$index == i, "file_path"])
+    # Read the raster files using terra::rast.
+    data <- terra::rast(files)
+    # Extract values from the raster for each ERA site polygon using exact_extract.
+    # The 'include_cols' argument pulls the 'Site.Key' from the spatial object.
+    data_ex <- data.table::rbindlist(exactextractr::exact_extract(data, extract_by, fun = NULL, include_cols = "Site.Key"))
     return(data_ex)
   })
-  
 })
 
+# Reset the future plan to sequential processing.
 future::plan(sequential)
 
-# Melt and average extracted data
-data_ex_melt<-rbindlist(pbapply::pblapply(1:length(data_ex),FUN=function(i){
-  dat<-data_ex[[i]]
-  dat<-melt(dat,id.vars = c("Site.Key","coverage_fraction"))
-  dat<-dat[,list(mean=weighted.mean(value,coverage_fraction,na.rm=T),
-                 max=max(value,na.rm = T),
-                 min=min(value,na.rm = T)),by=.(Site.Key,variable)]
+# Melt and average the extracted data from each chunk:
+# Iterate over the list 'data_ex' using pbapply for progress reporting.
+data_ex_melt <- rbindlist(pbapply::pblapply(1:length(data_ex), FUN = function(i) {
+  dat <- data_ex[[i]]
+  # Melt the data.table from wide to long format using 'Site.Key' and 'coverage_fraction' as id variables.
+  dat <- melt(dat, id.vars = c("Site.Key", "coverage_fraction"))
+  # Calculate weighted mean, maximum, and minimum for each Site.Key and variable.
+  dat <- dat[, list(
+    mean = weighted.mean(value, coverage_fraction, na.rm = TRUE),
+    max  = max(value, na.rm = TRUE),
+    min  = min(value, na.rm = TRUE)
+  ), by = .(Site.Key, variable)]
   return(dat)
 }))
 
+# Post-process the melted data:
+# Round the computed statistics to one decimal place,
+# extract the date from the variable name,
+# and then remove the now redundant 'variable' column.
+data_ex_melt[, mean := round(mean, 1)
+][, max := round(max, 1)
+][, min := round(min, 1)
+][, date := as.Date(gsub("chirps-v2.0.", "", variable), format = "%Y.%m.%d")
+][, variable := NULL]
 
-data_ex_melt[,mean:=round(mean,1)
-             ][,max:=round(max,1)
-               ][,min:=round(min,1)
-                 ][,date:=as.Date(gsub("chirps-v2.0.","",variable),format="%Y.%m.%d")
-                   ][,variable:=NULL]
-
-# 3.1.1) Save chirps ######
-arrow::write_parquet(data_ex_melt,file.path(era_dirs$era_geodata_dir,paste0("CHIRPS_",Sys.Date(),".parquet")))
+# 3.1) Save results ######
+# Write the final processed data to a Parquet file with the current date in the filename.
+arrow::write_parquet(data_ex_melt, file.path(era_dirs$era_geodata_dir, paste0("CHIRPS_", Sys.Date(), ".parquet")))
