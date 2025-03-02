@@ -454,7 +454,8 @@ upload_files_to_s3(files = files,
                      overwrite=T,
                      mode="public-read")
   
-  # 1.4.4) Other linked datasets  ######
+  # 1.4.4) Legacy - Other linked datasets  ######
+  if(F){
   data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Other Linked Datasets"
   s3_bucket<-era_dirs$era_geodata_s3
   files<- list.files(data_dir,".csv$",full.names = T)
@@ -476,7 +477,7 @@ upload_files_to_s3(files = files,
                      max_attempts = 3,
                      overwrite=T,
                      mode="public-read") 
-  
+  }
   # 1.4.5) LULC  ######
   data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Landscape"
   s3_bucket<-era_dirs$era_geodata_s3
@@ -550,4 +551,25 @@ upload_files_to_s3(files = files,
                        overwrite=F,
                        mode="public-read")
     
+    
+
+  # 1.4.8) AEZ ####
+    s3_bucket<-era_dirs$era_geodata_s3
+    (files<- list.files(era_dirs$era_geodata_dir,"aez_",full.names = T))
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=T,
+                       mode="public-read") 
+    
+  # 1.4.9) ILRI feed db ####
+    s3_bucket<-era_dirs$ilri_feed_db_S3
+    (files<- list.files(era_dirs$ilri_feed_db_dir,full.names = T))
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=T,
+                       mode="public-read") 
     
