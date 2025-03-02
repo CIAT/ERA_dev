@@ -70,8 +70,19 @@ download_power <- function(site_vect,
                            attempts = 3, 
                            worker_n = 1) {
   
+  
+  site_extents<-rbindlist(pblapply(1:length(site_vect),FUN=function(i){
+    site_extent<-round(terra::ext(site_vect[i]),5)
+    data.frame(xmin=site_extent[1],
+               xmax=site_extent[1],
+               ymin=site_extent[1],
+               ymax=site_extent[1])
+  }))
+  
+  site_extents<-cbind(data.frame(site_vect),site_extents)
+  
   # Inner function: Downloads POWER data for a single spatial object (site)
-  download_power_for_site <- function(vect_data,
+  download_power_for_site <- function(site_extents,
                                       date_start, 
                                       date_end, 
                                       save_dir, 
@@ -83,12 +94,10 @@ download_power <- function(site_vect,
                                       overwrite, 
                                       attempts) {
     # Extract site ID from the spatial object using the specified field
-    id <- values(vect_data[, id_field])
-    
-    altitude<-values(vect_data[, altitude_field])
+    id <- site_extents[, id_field]
+    altitude<-site_extents[, altitude_field]
     
     # Get the spatial extent and round to 5 decimals
-    vect_ext <- round(terra::ext(vect_data), 5)
     base_url <- "https://power.larc.nasa.gov/api/temporal/daily/"
     
     # Convert date strings to Date objects
@@ -97,10 +106,10 @@ download_power <- function(site_vect,
     options(warn = -1)
     
     # Extract extent boundaries
-    lonmin <- vect_ext[1]
-    lonmax <- vect_ext[2]
-    latmin <- vect_ext[3]
-    latmax <- vect_ext[4]
+    lonmin <- site_extents$xmin
+    lonmax <- site_extents$xmax
+    latmin <- site_extents$ymin
+    latmax <- site_extents$ymax
     
     # Define grid sequences for snapping boundaries
     lat_vals <- seq(-89.75, 89.75, 0.5)
@@ -159,11 +168,11 @@ download_power <- function(site_vect,
   
   # Wrapper: Process each site in site_vect, either sequentially or in parallel.
   if (worker_n == 1) {
-    results <- vector("list", length(site_vect))
+    results <- vector("list", nrow(site_extents))
     for (i in seq_along(site_vect)) {
-      cat(sprintf("\rProcessing site %d/%d", i, length(site_vect)))
+      cat(sprintf("\rProcessing site %d/%d", i, nrow(site_extents)))
       flush.console()
-      results[[i]] <- download_power_for_site(vect_data=site_vect[i],
+      results[[i]] <- download_power_for_site(site_extents=site_extents[i,],
                                               date_start=date_start, 
                                               date_end=date_end, 
                                               save_dir=save_dir, 
@@ -179,9 +188,9 @@ download_power <- function(site_vect,
   } else {
     future::plan(future::multisession, workers = worker_n)
     results <- progressr::with_progress({
-      p <- progressr::progressor(steps = length(site_vect))
-      future.apply::future_lapply(seq_along(site_vect), function(i) {
-        out <- download_power_for_site(site_vect[i],
+      p <- progressr::progressor(steps = nrow(site_extents))
+      future.apply::future_lapply(1:nrow(site_extents), function(i) {
+        out <- download_power_for_site(site_extents=site_extents[i,],
                                        date_start=date_start, 
                                        date_end=date_end, 
                                        save_dir=save_dir, 
@@ -192,7 +201,7 @@ download_power <- function(site_vect,
                                        verbose=verbose, 
                                        overwrite=overwrite, 
                                        attempts=attempts)
-        p(sprintf("Processed site %d/%d", i, length(site_vect)))
+        p(sprintf("Processed site %d/%d", i, nrow(site_extents)))
         out
       }, future.seed = TRUE)
     })
