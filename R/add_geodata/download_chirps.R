@@ -2,9 +2,11 @@
 
 # 0) Set-up workspace ####
 # 0.1) Load packages and create functions #####
-packages<-c("data.table","pbapply","future","future.apply")
-pacman::p_load(char=packages)
+pacman::p_load(data.table,pbapply,future,future.apply,R.utils,progressr,RCurl)
 curlSetOpt(timeout = 190) # increase timeout if experiencing issues with slow connection
+
+# 0.2) Set parallel workers ####
+worker_n<-10
 
 # 1) Create functions ####
 
@@ -218,5 +220,22 @@ curlSetOpt(timeout = 190) # increase timeout if experiencing issues with slow co
                   type="tif",
                   startyear = 1981,
                   endyear = 2023,
-                  save_dir = chirps_dir,
+                  save_dir = era_dirs$chirps_dir,
                   year_folder=F)
+  
+# 4) Unzip gz files ####
+  files<-list.files(era_dirs$chirps_dir,".gz$",full.names = T)
+  
+  # Setup parallel plan
+  future::plan(multisession, workers = worker_n)
+  handlers("progress")
+  # Track progress
+  with_progress({
+    p <- progressor(along = files)
+    results <- future_lapply(seq_along(files), function(i) {
+      gunzip(files[i], remove = TRUE)
+      p(message = sprintf("Processed file %d/%d", i, length(files)))
+    })
+  })
+  # Reset to sequential if needed
+  future::plan(sequential)  
