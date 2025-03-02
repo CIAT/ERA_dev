@@ -232,5 +232,7 @@ return(result)
                       lon_col = "Longitude",
                       id_col = "Site.Key",
                       buffer_col = "Buffer")
+  
+  fwrite(results$stats,file=file.path(era_dirs$era_geodata_dir,"elevation.csv"))
 
   
