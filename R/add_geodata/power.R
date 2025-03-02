@@ -1,20 +1,112 @@
 # This script downloads NASA POWER data for unique locations in ERA. 
-# Run ERA_dev/R/0_set_env before executing this script
+# Run ERA_dev/R/0_set_env.R
 # This script is also dependent on altitude data having been calculated for ERA locations:
-# Run ERA_dev/R/add_geodata/elevation.R before executing this script
+# Run ERA_dev/R/add_geodata/download_dem.R before executing this script
 # Functions used are here https://raw.githubusercontent.com/CIAT/ERA_dev/main/R/0_functions.R
 
 # 0) Set-up workspace ####
-  # 0.1) Load packages #####
-  packages<-c("terra","data.table","arrow","pbapply","ERAgON")
-  p_load(char=packages)
+  # 0.1) Load packages & functions #####
+  p_load(terra,sf,data.table,RCurl,future,future.apply,progressr)
+  
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/PETcalc.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/download_power.R")
+  
+  
+  # 0.2) Create functions ####
 
-  # 0.2) Subset era sites according to buffer distance #####
+  process_power<-function(files,
+           parameters,
+           rename,
+           id_field,
+           add_date = TRUE,
+           add_daycount = TRUE,
+           time_origin,
+           add_pet = TRUE,
+           altitude_data) {
+    cat("Loading power csv files", "\n")
+    
+    # Load data from all files and combine into one data.table
+    data <- rbindlist(pbapply::pblapply(1:length(files), FUN = function(i) {
+      file <- files[i]
+      id <- basename(file)
+      data <- data.table(id = id, data.table::fread(file))
+    }), use.names = TRUE, fill = TRUE)
+    
+    # Process ID field
+    data[, id := gsub(" -", " m", basename(id[1])), by = id]
+    data[, id := gsub("m", "-", unlist(data.table::tstrsplit(gsub("POWER ", "", id[1]), "-", keep = 1))), by = id]
+    
+    # Identify parameter columns
+    param_cols <- colnames(data)[-(1:3)]
+    data[, N := .N, by = list(id, YEAR, DOY)]
+    
+    cat("Averaging data for sites with multiple cells, this may take some time.", "\n")
+    
+    # Calculate means and round them for each group
+    means <- data[N > 1, lapply(.SD, function(x) mean(x, na.rm = TRUE)), 
+                  .SDcols = param_cols, by = .(id, YEAR, DOY)]
+    
+    means[, `:=`((param_cols), round(.SD, 2)), .SDcols = param_cols]
+    
+    data <- rbind(data[N == 1][, N := NULL], means)
+    
+    # Extract latitude and longitude from ID
+    data[, Latitude := as.numeric(unlist(tstrsplit(id[1], " ", keep = 1))), by = id]
+    data[, Longitude := as.numeric(unlist(tstrsplit(id[1], " ", keep = 1))), by = id]
+    
+    # Rename columns
+    setnames(data,
+             c("id", "DOY", "YEAR", "PRECTOTCORR"),
+             c(id_field, "Day", "Year", "PRECTOT"),
+             skip_absent = TRUE)
+    
+    # Merge with altitude data
+    data <- merge(data, altitude_data, by = id_field, all.x = TRUE)
+    
+    # Calculate PET if required
+    if (add_pet) {
+      data[, ETo :=PETcalc(Tmin = T2M_MIN,
+                                    Tmax = T2M_MAX,
+                                    SRad = ALLSKY_SFC_SW_DWN,
+                                    Wind = WS2M,
+                                    Rain = PRECTOT,
+                                    Pressure = PSC,
+                                    Humid = RH2M,
+                                    YearDay = Day,
+                                    Latitude = Latitude,
+                                    Altitude = Altitude)[, 1]]
+    }
+    
+    # Rename parameters
+    setnames(data, parameters, rename, skip_absent = TRUE)
+    
+    # Add date field if required
+    if (add_date) {
+      data[, Date := as.Date(paste0(Year[1], "-", Day[1]), format = "%Y-%j"), by = list(Day, Year)]
+    }
+    
+    # Add day count field if required
+    if (add_daycount) {
+      data[, DayCount := as.integer(floor(unclass(Date[1] - time_origin))), by = Date]
+    }
+    
+    return(data)
+  }
+
+  # 0.3) Subset era sites according to buffer distance #####
   # Set max buffer allowed
   SS<-era_locations[Buffer<50000]
-  pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
-
-  # 0.3) Create POWER parameter object #####
+  pbuf_g<-era_locations_vect_g[era_locations_vect_g$Buffer<50000,]
+  
+  # 0.4) Merge altitude data ####
+  era_elevation<-fread(file.path(era_dirs$era_geodata_dir,"elevation.csv"))
+  altitude_data<-era_elevation[variable=="elevation" & stat=="mean",.(Site.Key,value)]
+  setnames(altitude_data,"value","Altitude")
+  
+  # Merge altitude with site buffer vector
+  pbuf_g<-merge(pbuf_g,altitude_data,by="Site.Key")
+  
+  # 0.5) Create POWER parameter object #####
   # Need to incorporate correction for PS to PSC - so altitude data from physical layer needs to be read in here
   parameters<-c(
     SRad="ALLSKY_SFC_SW_DWN", # Insolation Incident on a Horizontal Surface - MJ/m^2/day
@@ -28,25 +120,66 @@
     Temp.Min="T2M_MIN", # Minimum Temperature at 2 Meters - C
     WindSpeed="WS2M" # Wind Speed at 2 Meters - m/s
   )
-  # 0.4) Set power data start and end dates #####
-  date_start<-"1984-01-01"
-  date_end<-"2023-12-31"
   
-  # 0.5) Update sites whose max(date)<end_date? #####
-  update_missing_times<-F
+  # 0.6) Set power data start and end dates #####
+  date_start<-"1984-01-01"
+  date_end<-"2024-12-31"
+  
+  # 0.7) Set workers for parallel downloads ####
+  worker_n<-10
+  
+# 1) Download POWER ####
+  # 1.1) Run download function ####
+  curlSetOpt(timeout = 190) # increase timeout if experiencing issues with slow connection
+  
+  # Need to create loop that incorporates updated dates
+  # Names for min and max were the wrong way around in the previous version of this function
+  # Split download and compilation functions
+  overwrite<-F
+    
+  dl_errors<-download_power(site_vect=pbuf_g,
+                 date_start=date_start,
+                 date_end=date_end,
+                 altitude_field="Altitude",
+                 save_dir=era_dirs$power_dir,
+                 parameters=parameters,
+                 user_name="CIAT", 
+                 id="Site.Key",
+                 verbose=F,
+                 attempts=3,
+                 worker_n=worker_n,
+                 overwrite=overwrite)
+  
+  # 2.3) Recompile Data
+  files<-list.files(era_dirs$power_dir,".csv$",full.names = T)
+  files<-grep(paste0(pbuf_g$Site.Key,collapse="|"),files,value=T)
+  power_data_new<-process_power(files=files,
+                                parameters = parameters,
+                                rename = names(parameters),
+                                id_field= "Site.Key",
+                                add_date=T,
+                                add_daycount = T,
+                                time_origin = time_origin,
+                                add_pet=T,
+                                altitude_data=altitude_data)
+  
+  power_data_new[!grep("B",Site.Key),unique(Site.Key)]
+  
+  power_data<-unique(rbind(power_data,power_data_new))
+  
+  arrow::write_parquet(power_data,power_file)
+  
+  # Problem rows
+  power_data[,is.na(Year)]
+  
+  
   
 # 1) Download existing Data from S3 ####
-  # 1.1) Altitude #####
-  # Load altitude data
-  era_elevation<-data.table(arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_topography.parquet")))
-  # Merge altitude with site buffer vector
-  pbuf_g<-merge(pbuf_g,era_elevation[,list(Site.Key,Altitude.mean)])
-  
-  altitude_data<-era_elevation[,list(Site.Key,Altitude.mean)]
-  setnames(altitude_data,"Altitude.mean","Altitude")
-  
+
   # 1.2) POWER ##### 
     # 1.2.1) Download POWER files ######
+  
+  # UPDATE THIS SECTION TO DOWNLOAD INDIVIDUAL FILES IN PARALLEL RATHER THAN MESSING ABOUT WITH A ZIP ####
   s3_file<-gsub(era_s3,era_s3_http,era_dirs$power_S3_file)
   zip_file<-gsub(era_dirs$power_S3,era_dirs$power_dir,era_dirs$power_S3_file)
   
@@ -54,7 +187,8 @@
   
   update<-F
   rm_zip<-T
-  if(update){
+  if(update|length(list.files(era_dirs$power_dir))==0){
+    # Note this is a large file >0.5Gb 
     download.file(url=s3_file,destfile=zip_file)
     unzip(zipfile=zip_file,overwrite = T,exdir=era_dirs$power_dir,junkpaths = T)
     if(rm_zip){
