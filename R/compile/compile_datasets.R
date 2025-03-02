@@ -1527,6 +1527,7 @@ era_merged<-era_merged[!Index %in% DataX[!is.na(NotInT),Index]]
   # 3.1) Prepare data ####
   # Note that environmental data scripts must have been run on the compiled ERA dataset, see ERA_dev/R/add_geodata
     # 3.1.1) Load environmental data
+    # UPDATE TO USE "aez_2025-02-14.parquet" ####
     Env.Data<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_others.parquet"))
     POWER<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"POWER_ltavg.parquet"))
     Soils<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet"))
@@ -1540,14 +1541,16 @@ era_merged<-era_merged[!Index %in% DataX[!is.na(NotInT),Index]]
                        ][,.(Total.Rain=mean(Total.Rain,na.rm=T),Mean.Annual.Temp=mean(Mean.Annual.Temp,na.rm=T)),by=.(Site.ID,Latitude,Longitude,Buffer)
                          ][,Site.Key:=paste0(sprintf("%07.4f", Latitude[1]), " ", sprintf("%07.4f", Longitude[1]), " B", Buffer[1]),by=.(Latitude,Longitude,Buffer)]
     
+    # 3.1.2) Prepare climate data ######
+    # Subset Data to unique Site.Keys
+    Climate<-unique(ERA.Compiled[!is.na(Site.Key),"Site.Key"])
+    
+    # 3.1.2.1) Add AEZ #######
+    # UPDATE TO USE "aez_2025-02-14.parquet" ####
+    
     # Initialize AEZ mappings from era_master_table
     AEZ.Mappings<-master_codes$aez
     
-    # Subset Data to Site.Keys
-    Climate<-unique(ERA.Compiled[!is.na(Site.Key),"Site.Key"])
-    
-    # 3.1.2) Prepare climate data ######
-    # Add AEZ
     Climate[,AEZCode:=Env.Data[match(Climate[,Site.Key],Site.Key),'SSA-aez09.Mode']]
     Climate[,AEZ16simple:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ.TempHumid.Name]]
     Climate[,AEZ16:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ16.Name]]
@@ -1555,10 +1558,10 @@ era_merged<-era_merged[!Index %in% DataX[!is.na(NotInT),Index]]
     Climate[,AEZ5:=AEZ.Mappings[match(Climate[,AEZCode],AEZ5.Value),AEZ5.Name]]
     Climate[,AEZCode:=NULL]
     
-    # Add CHIRPS
+    # 3.1.2.2) Add CHIRPS ######
     Climate[,Mean.Annual.Precip:=CHIRPS[match(Climate[,Site.Key],Site.Key),Total.Rain]]
     
-    # Add POWER
+    # 3.1.2.3) Add POWER ######
     Climate[,Mean.Annual.Temp:=POWER[match(Climate[,Site.Key],Site.Key),Temp.Mean.Mean]]
     
     # Save climate file
