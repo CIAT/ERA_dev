@@ -1,5 +1,4 @@
 # First run R/0_set_env.R
-# REMOVE CHIRTS WE WILL NOT USE THIS
 
 # 0) Set-up workspace ####
 # 0.1) Load packages and create functions #####
@@ -211,10 +210,7 @@ curlSetOpt(timeout = 190) # increase timeout if experiencing issues with slow co
                      ][grepl("nc",format),format:="nc"
                        ][,base_url:=NULL]
   
-
-  
 # 3) Download data
-  # 3.1) Chirps #####
   download_chirps(chirps_index,
                   var="prec",
                   reg="global",
