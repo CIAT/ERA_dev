@@ -138,7 +138,6 @@ if(!require("exactextractr")){
   era_dirs$ilri_feed_db_S3<-file.path(era_dirs$ancillary_s3,"ilri_feed_db")
   era_dirs$ilri_feed_db_file<-file.path(era_dirs$ilri_feed_db_S3,"ilri_feed_db.csv")
   
-  
   # vocabulary
   era_dirs$vocab_dir<-file.path(era_dir,"vocab")
   era_dirs$vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
@@ -345,6 +344,8 @@ if(!require("exactextractr")){
   # 2.6) Ancillary datasets ####
     # 2.6.1) ILRI Feed db ####
     update<-F
+    
+    if(F){
     # List files in the specified S3 bucket and prefix
     files_s3<-s3$dir_ls(era_dirs$ilri_feed_db_dir)
     files_local<-gsub(era_dirs$ancillary_s3,era_dirs$ancillary_dir,files_s3)
@@ -354,6 +355,7 @@ if(!require("exactextractr")){
       if(!file.exists(file)|update==T){
         s3$file_download(files_s3[i],file)
       }
+    }
     }
     
 # 3) Create table of unique locations (for use with geodata functions) ####
