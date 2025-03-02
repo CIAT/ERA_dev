@@ -61,10 +61,12 @@ process_power <- function(files,
                           parameters,
                           rename,
                           id_field,
+                          altitude_field,
                           add_date     = TRUE,
                           add_daycount = TRUE,
                           time_origin,
                           add_pet      = TRUE,
+                          worker_n=1,
                           altitude_data) {
   
   # Inform the user that CSV files are being read
@@ -102,9 +104,11 @@ process_power <- function(files,
   cat("Averaging data for sites with multiple cells, this may take some time.", "\n")
   
   # For sites with more than one cell in a given (id, YEAR, DOY), compute the mean for each parameter.
+  data.table::setDTthreads(worker_n) 
   means <- data[N > 1, lapply(.SD, mean, na.rm = TRUE),
                 .SDcols = param_cols,
                 by = .(id, YEAR, DOY)]
+  data.table::setDTthreads(1) 
   
   # Round these averaged values to 2 decimal places.
   means[, (param_cols) := lapply(.SD, round, digits = 2), .SDcols = param_cols]
@@ -129,10 +133,6 @@ process_power <- function(files,
     skip_absent = TRUE
   )
   
-  # Merge the altitude data into the main table by the user-specified id_field.
-  # 'all.x' ensures all rows in 'data' are preserved even if altitude_data is incomplete.
-  data <- merge(data, altitude_data, by = id_field, all.x = TRUE)
-  
   # If requested, check that all required columns for PET calculation exist.
   if (add_pet) {
     required_pet_cols <- c("T2M_MIN", "T2M_MAX", "ALLSKY_SFC_SW_DWN", "WS2M", 
@@ -142,7 +142,12 @@ process_power <- function(files,
       stop("When add_pet = TRUE, the following required columns are missing: ",
            paste(missing_cols, collapse = ", "))
     }
-    
+  
+  # Merge the altitude data into the main table by the user-specified id_field.
+  # 'all.x' ensures all rows in 'data' are preserved even if altitude_data is incomplete.
+  setnames(altitude_data,altitude_field,"Altitude")
+  data <- merge(data, altitude_data, by = id_field, all.x = TRUE)
+  
     # If all are present, calculate PET
     data[, ETo := PETcalc(
       Tmin     = T2M_MIN,
