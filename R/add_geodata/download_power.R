@@ -35,7 +35,7 @@
 #' @importFrom future plan
 #' @importFrom future.apply future_lapply
 #' @importFrom progressr with_progress progressor
-#' @importFrom sf st_as_sf
+#' @importFrom pbapply pblapply
 #'
 #' @examples
 #' \dontrun{
@@ -74,15 +74,15 @@ download_power <- function(site_vect,
   site_extents<-rbindlist(pblapply(1:length(site_vect),FUN=function(i){
     site_extent<-round(terra::ext(site_vect[i]),5)
     data.frame(xmin=site_extent[1],
-               xmax=site_extent[1],
-               ymin=site_extent[1],
-               ymax=site_extent[1])
+               xmax=site_extent[2],
+               ymin=site_extent[3],
+               ymax=site_extent[4])
   }))
   
   site_extents<-cbind(data.frame(site_vect),site_extents)
   
   # Inner function: Downloads POWER data for a single spatial object (site)
-  download_power_for_site <- function(site_extents,
+  download_power_for_site <- function(site_extent,
                                       date_start, 
                                       date_end, 
                                       save_dir, 
@@ -94,8 +94,8 @@ download_power <- function(site_vect,
                                       overwrite, 
                                       attempts) {
     # Extract site ID from the spatial object using the specified field
-    id <- site_extents[, id_field]
-    altitude<-site_extents[, altitude_field]
+    id <- site_extent[, id_field]
+    altitude<-site_extent[, altitude_field]
     
     # Get the spatial extent and round to 5 decimals
     base_url <- "https://power.larc.nasa.gov/api/temporal/daily/"
@@ -106,10 +106,10 @@ download_power <- function(site_vect,
     options(warn = -1)
     
     # Extract extent boundaries
-    lonmin <- site_extents$xmin
-    lonmax <- site_extents$xmax
-    latmin <- site_extents$ymin
-    latmax <- site_extents$ymax
+    lonmin <- site_extent$xmin
+    lonmax <- site_extent$xmax
+    latmin <- site_extent$ymin
+    latmax <- site_extent$ymax
     
     # Define grid sequences for snapping boundaries
     lat_vals <- seq(-89.75, 89.75, 0.5)
@@ -172,7 +172,7 @@ download_power <- function(site_vect,
     for (i in seq_along(site_vect)) {
       cat(sprintf("\rProcessing site %d/%d", i, nrow(site_extents)))
       flush.console()
-      results[[i]] <- download_power_for_site(site_extents=site_extents[i,],
+      results[[i]] <- download_power_for_site(site_extent=site_extents[i,],
                                               date_start=date_start, 
                                               date_end=date_end, 
                                               save_dir=save_dir, 
@@ -190,7 +190,7 @@ download_power <- function(site_vect,
     results <- progressr::with_progress({
       p <- progressr::progressor(steps = nrow(site_extents))
       future.apply::future_lapply(1:nrow(site_extents), function(i) {
-        out <- download_power_for_site(site_extents=site_extents[i,],
+        out <- download_power_for_site(site_extent=site_extents[i,],
                                        date_start=date_start, 
                                        date_end=date_end, 
                                        save_dir=save_dir, 
@@ -210,4 +210,3 @@ download_power <- function(site_vect,
   
   return(results)
 }
-
