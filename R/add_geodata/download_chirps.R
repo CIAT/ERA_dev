@@ -239,3 +239,17 @@ worker_n<-10
   })
   # Reset to sequential if needed
   future::plan(sequential)  
+  
+  # 4.1) Check files are complete ####
+  files<-list.files(era_dirs$chirps_dir,".tif$",full.names = T)
+  dates<-gsub(".tif","",basename(files))
+  file_prefix<-"chirps-v2.0."
+  dates<-gsub(file_prefix,"",dates)
+  dates<-as.Date(dates,"%Y.%m.%d")
+  
+  # Create sequence of all days in chirps timeseries download range
+  dates_seq <- seq.Date(from = as.Date("1981-01-01"), by = "day", to = as.Date("2023-12-31"))
+  
+  # Check all days are included
+  dates_seq[!dates_seq %in% dates]
+  
