@@ -171,12 +171,14 @@ process_power <- function(files,
   if (add_date) {
     data[, Date := as.Date(paste0(Year[1], "-", Day[1]), format = "%Y-%j"), 
          by = list(Day, Year)]
+    
+    # If requested, add a DayCount column (days since 'time_origin').
+    if (add_daycount) {
+      data[, DayCount := as.integer(floor(unclass(Date[1] - time_origin))), by = Date]
+    }
+    
   }
   
-  # If requested, add a DayCount column (days since 'time_origin').
-  if (add_daycount) {
-    data[, DayCount := as.integer(floor(unclass(Date[1] - time_origin))), by = Date]
-  }
-  
+
   return(data)
 }
