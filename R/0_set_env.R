@@ -28,7 +28,7 @@ if(!require("exactextractr")){
 }
 
 
-# 1) Set directories ####
+# 1) Set directories & parameters ####
   if(!exists("project_dir")){
     project_dir<-getwd()
   }
@@ -164,6 +164,8 @@ if(!require("exactextractr")){
     chirps_dir<-"/cluster01/workspace/common/climate/chirps/global_daily/tifs/p05"
     chirts_dir<-NA
   }
+  # 1.6) Set time origin ####
+  time_origin<-"1900-01-01"
 # 2) Download core datasets ####
   # 2.1) ERA master datasets #####
   update<-F
