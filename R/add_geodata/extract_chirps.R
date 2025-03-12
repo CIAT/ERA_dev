@@ -18,8 +18,8 @@ SS <- era_locations[Buffer < 50000]
 
 # Subset the spatial vector of ERA locations based on the same buffer criteria.
 # Convert the subset to an sf object for compatibility with exact_extract.
-extract_by <- era_locations_vect_g[era_locations[, Buffer < 50000]]
-extract_by <- sf::st_as_sf(extract_by)
+sites_vect <- era_locations_vect_g[era_locations[, Buffer < 50000]]
+sites_vect <- sf::st_as_sf(sites_vect)
 
 # 2) Index CHIRPS files ####
 
@@ -78,7 +78,7 @@ p <- progressr::with_progress({
     data <- terra::rast(files)
     # Extract values from the raster for each ERA site polygon using exact_extract.
     # The 'include_cols' argument pulls the 'Site.Key' from the spatial object.
-    data_ex <- data.table::rbindlist(exactextractr::exact_extract(data, extract_by, fun = NULL, include_cols = "Site.Key"))
+    data_ex <- data.table::rbindlist(exactextractr::exact_extract(data, sites_vect, fun = NULL, include_cols = "Site.Key"))
     return(data_ex)
   })
 })
@@ -111,6 +111,31 @@ data_ex_melt[, mean := round(mean, 1)
 ][, date := as.Date(gsub("chirps-v2.0.", "", variable), format = "%Y.%m.%d")
 ][, variable := NULL]
 
+
 # 3.1) Save results ######
 # Write the final processed data to a Parquet file with the current date in the filename.
 arrow::write_parquet(data_ex_melt, file.path(era_dirs$era_geodata_dir, paste0("CHIRPS_", Sys.Date(), ".parquet")))
+
+# 4) Calculate annual and long-term averages ####
+# NEED TO PICK UP FROM HERE!!!##### 
+
+data_ex_melt[,Year:=format(Date,"%Y"),by=Date]
+
+# Remove incomplete years
+if(length(CHIRPS[Site.Key==CHIRPS$Site.Key[1],list(N=.N),by=Year][N<365,Year])>0){
+  CHIRPS<-CHIRPS[!Year==CHIRPS[Site.Key==CHIRPS$Site.Key[1],list(N=.N),by=Year][N<365,Year]]
+}
+
+# Calculate annual data 
+CHIRPS.Annual<-CHIRPS[,list(Total.Rain=sum(Rain)),by=c("Site.Key","Year")]
+
+# Calculate LT Data
+CHIRPS.LT<-CHIRPS.Annual[,list(Total.Rain=mean(Total.Rain),Total.Rain.sd=sd(Total.Rain)),by=c("Site.Key")]
+
+# Round results
+CHIRPS.Annual[,3:ncol(CHIRPS.Annual)]<-round(CHIRPS.Annual[,-c(1:2)],3)
+CHIRPS.LT[,2:ncol(CHIRPS.LT)]<-round(CHIRPS.LT[,-c(1)],3)
+
+# Save results
+save(CHIRPS.Annual,file=paste0(ClimatePast,"CHIRPS/CHIRPS Annual.RData"))
+save(CHIRPS.LT,file=paste0(ClimatePast,"CHIRPS/CHIRPS.LT.RData"))
