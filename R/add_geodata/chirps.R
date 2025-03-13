@@ -5,8 +5,8 @@
 pacman::p_load(data.table,pbapply,future,future.apply,R.utils,progressr,RCurl,exactextractr,sf)
 curlSetOpt(timeout = 190) # increase timeout if experiencing issues with slow connection
 
-source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/download_chirps.R")
-source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/process_chirps.R")
+source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/download_chirps.R")
+source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/process_chirps.R")
 
 
   # 1.2) Set parallel workers ####
