@@ -134,9 +134,7 @@ if(!require("exactextractr")){
   
   era_dirs$aez_dir<-file.path(era_dirs$ancillary_dir,"aez")
 
-  era_dirs$ilri_feed_db_dir<-file.path(era_dirs$ancillary_dir,"ilri_feed_db")
-  era_dirs$ilri_feed_db_S3<-file.path(era_dirs$ancillary_s3,"ilri_feed_db")
-  era_dirs$ilri_feed_db_file<-file.path(era_dirs$ilri_feed_db_S3,"ilri_feed_db.csv")
+  era_dirs$ecocrop_dir<-file.path(era_dirs$ancillary_dir,"ecocrop")
   
   # vocabulary
   era_dirs$vocab_dir<-file.path(era_dir,"vocab")
@@ -151,8 +149,6 @@ if(!require("exactextractr")){
     }
   }
 
-  era_dirs$era_masterdata_s3
-  
   # 1.5) Set urls #####
   # 1.4) Set directories of external datasets (e.g. chirps)
   if(CGlabs){
@@ -165,7 +161,7 @@ if(!require("exactextractr")){
     chirts_dir<-NA
   }
   # 1.6) Set time origin ####
-  time_origin<-"1900-01-01"
+  time_origin<-as.Date("1900-01-01")
 # 2) Download core datasets ####
   # 2.1) ERA master datasets #####
   update<-F
@@ -344,20 +340,13 @@ if(!require("exactextractr")){
     
 
   # 2.6) Ancillary datasets ####
-    # 2.6.1) ILRI Feed db ####
-    update<-F
+    # 2.6.1) EcoCrop
+    file<-file.path(era_dirs$ecocrop_dir,"ecocrop.csv")
     
-    if(F){
-    # List files in the specified S3 bucket and prefix
-    files_s3<-s3$dir_ls(era_dirs$ilri_feed_db_dir)
-    files_local<-gsub(era_dirs$ancillary_s3,era_dirs$ancillary_dir,files_s3)
-    
-    for(i in 1:length(files_local)){
-      file<-files_local[i]
-      if(!file.exists(file)|update==T){
-        s3$file_download(files_s3[i],file)
-      }
-    }
+    if(!file.exists(file)){
+    ecocrop_url<-"https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/main/metadata/ecocrop.csv"
+    ecocrop<-fread(ecocrop_url, showProgress = FALSE)
+    fwrite(ecocrop,file)
     }
     
 # 3) Create table of unique locations (for use with geodata functions) ####
