@@ -101,7 +101,7 @@ transpose_chirps <- function(data_dir,
 extract_chirps <- function(site_vect,
                            id_field,
                            data_dir,
-                           save_dir,
+                           existing_data=NULL,
                            round_digits = NULL,
                            add_daycount = TRUE,
                            time_origin,
@@ -109,25 +109,18 @@ extract_chirps <- function(site_vect,
                            delete_temp = TRUE,
                            overwrite = FALSE) {
   
-  # Check and create output directory if necessary
-  if (!dir.exists(save_dir)) {
-    dir.create(save_dir, recursive = TRUE)
-  }
-  
   sites <- unique(data.frame(site_vect)[, id_field])
-  save_file <- file.path(save_dir, "chirps.parquet")
-  
+
   # Load existing data if present and handle overwrite logic
-  if (file.exists(save_file)) {
-    results_old <- data.table(arrow::read_parquet(save_file))
+  if (!is.null(existing_data)) {
     if (!overwrite) {
-      sites <- sites[!sites %in% results_old[[id_field]]]
+      sites <- sites[!sites %in% existing_data[[id_field]]]
       site_vect <- site_vect[site_vect[[id_field]] %in% sites, ]
     } else {
-      results_old <- NULL
+      existing_data <- NULL
     }
   } else {
-    results_old <- NULL
+    existing_data <- NULL
   }
   
   if (length(site_vect) > 0) {
@@ -197,16 +190,19 @@ extract_chirps <- function(site_vect,
     setnames(results, "id", id_field)
     
     # Combine with previous results if needed
-    if (!is.null(results_old)) {
-      results <- rbind(results_old, results)
+    if (!is.null(existing_data)) {
+      results <- rbind(existing_data, results)
     }
-    
-    # Save final combined results
-    arrow::write_parquet(results, save_file)
     
     # Delete temporary files if requested
     if (delete_temp) {
       unlink(temp_dir, recursive = TRUE)
     }
+    
+    return(results)
+    
+  }else{
+    warning("No new sites discovered")
+    return(NULL)
   }
 }

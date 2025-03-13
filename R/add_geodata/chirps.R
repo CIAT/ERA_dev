@@ -176,41 +176,56 @@ dates_seq[!dates_seq %in% dates]
   ## 5.2) Extract CHIRPS ####
   
   terra::gdalCache(size=20000)
+    
+  files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T)
+  (files<-files[!grepl("annual|ltavg",files)])
+  (files<-tail(files,1)  )
   
-  extract_chirps(site_vect=era_locations_vect_g,
+  if(length(files)==1){
+    chirps<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"chirps.parquet"))
+  }else{
+    chirps<-NULL
+  }
+  
+  chirps_new<-extract_chirps(site_vect=era_locations_vect_g,
                  id_field="Site.Key",
                  data_dir=era_dirs$chirps_dir,
-                 save_dir=era_dirs$era_geodata_dir,
+                 existing_data=chirps, 
                  round_digits=2,
                  add_daycount = TRUE,
                  time_origin=time_origin,
                  max_cells_in_memory = 3e+08,
                  overwrite=F)
   
-    ### 5.2.1) Calculate Annual & LT Data ####  
-  # Load CHIRPS
-  CHIRPS<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"chirps.parquet"))
+  if(!is.null(chirps_new)){
+    arrow::write_parquet(chirps_new,file.path(era_dirs$era_geodata_dir,paste0("chirps_",Sys.Date(),".parquet")))
+  }
   
-  CHIRPS[,Year:=format(date[1],"%Y"),by=date]
+  
+  ### 5.2.1) Calculate Annual & LT Data ####  
+    if(!is.null(chirps_new)){
+      
+  # Load CHIRPS
+  chirps_new[,Year:=format(date[1],"%Y"),by=date]
   
   # Remove incomplete years
-  CHIRPS[,n:=.N,by=.(Site.Key,Year)][!n<365][,n:=NULL][,Year:=NULL]
+  chirps_new[,n:=.N,by=.(Site.Key,Year)][!n<365][,n:=NULL][,Year:=NULL]
   
   # Calculate annual data 
-  CHIRPS.Annual<-CHIRPS[,list(Total.Rain=sum(Rain)),by=c("Site.Key","Year")]
+  chirps_annual<-chirps_new[,list(Total.Rain=sum(Rain)),by=c("Site.Key","Year")]
   
   # Calculate LT Data
-  CHIRPS.LT<-CHIRPS.Annual[,list(Total.Rain.mean=mean(Total.Rain),Total.Rain.sd=sd(Total.Rain)),by=c("Site.Key")]
+  chirps_ltavg<-chirps_annual[,list(Total.Rain.mean=mean(Total.Rain),Total.Rain.sd=sd(Total.Rain)),by=c("Site.Key")]
   
   # Round results
   round_digits<-2
-  CHIRPS.Annual[,Total.Rain:=round(Total.Rain,round_digits)]
-  CHIRPS.LT[,Total.Rain:=round(Total.Rain.mean,round_digits)
+  chirps_annual[,Total.Rain:=round(Total.Rain,round_digits)]
+  chirps_ltavg[,Total.Rain:=round(Total.Rain.mean,round_digits)
   ][,Total.Rain.sd:=round(Total.Rain.sd,round_digits)]
   
   # Save results
-  arrow::write_parquet(CHIRPS.Annual,paste0(era_dirs$era_geodata_dir,"chirps_annual.parquet"))
-  arrow::write_parquet(CHIRPS.LT,paste0(era_dirs$era_geodata_dir,"chirps_ltavg.parquet"))
+  arrow::write_parquet(chirps_annual,file.path(era_dirs$era_geodata_dir,paste0("chirps_annual_",Sys.Date(),".parquet")))
+  arrow::write_parquet(chirps_ltavg,file.path(era_dirs$era_geodata_dir,paste0("chirps_ltavg_",Sys.Date(),".parquet")))
   
-  
+  }
   
