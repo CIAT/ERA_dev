@@ -1,160 +1,148 @@
-# 1.1) Load Packages ####
+# First run:
+  # R/0_set_env.R
+  # If you are a super-user and need to calculate from scratch or add new sites then you may also need to run:
+    # R/add_geodata/chirps.R,
+    # R/add_geodata/power.R
+    # R/elevation.R
 
-if(!require("pacman", character.only = TRUE)){
-  install.packages("pacman",dependencies = T)
-}
-
-required.packages <- c("ggplot2","circular","data.table","doSNOW","zoo","pbapply","ERAg","dismo","miceadds")
-p_load(char=required.packages,install = T,character.only = T)
-
-# 1.2) Set directories and read in ERA dataset ####
-
-options(scipen=999)
-
-# Set the data directory (should be /Data folder in the Git repository, otherwise please specify for your system)
-setwd(paste0(getwd(),"/Data"))
-
-# Read in compendium - it should be stored in the \CSA-Compendium\Data\Compendium Master Database folder of the Git
-list.dirs(recursive = F)[grep("Comb", list.dirs(recursive = F))]
-
-FilenameSimple<-list.dirs(recursive = F,full.names = T)[grep("Comb", list.dirs(recursive = F))][1]
-grep("Wide.R",list.files(FilenameSimple),value=T)
-Filename<-paste0(FilenameSimple,"/",grep("Wide.R",list.files(FilenameSimple),value=T))
-
-# Read in Meta.Table ####
-Meta.Table<-miceadds::load.Rdata2(filename=Filename)
-
-# Set paths for save directories ####
-
-# Create a Save Directory for Historical Climate Data:
-ClimatePast<-paste0(getwd(),"/Climate/Climate Past/")
-if(!dir.exists(ClimatePast)){
-  dir.create(ClimatePast,recursive = T)
-}
-
-# Create a Save Directory for strange or incorrect compendium values to investigate:
-ErrorDir<-paste0(FilenameSimple,"/Errors/")
-if(!dir.exists(ErrorDir)){
-  dir.create(ErrorDir,recursive = T)
-}
-
-# Set paths for data directories ####
-
-# Set Crop Data Directory:
-CROP_dir<-paste0(getwd(),"/Crops/")
-
-#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-# 1.3) Set analysis and plotting parameters #####
-
-# Set date origin for meta-analysis
-M.ORIGIN<-"1900-01-01"
-
-# Set cores for parallel processing
-cores<-max(1, parallel::detectCores() - 1)
-
-ID<-"Site.Key"
-
-# Set plotting parameters
-DPI<-600
-Width<-210-40 #mm 210 × 297 = A4
-Type<-"png"
-Units<-"mm"
-
-# 1.4) Create season code field & turn M.Year blanks to NAs ####
-
-Meta.Table[Season.Start==1 & Season.End==1,M.Year.Code:="1"
-           ][Season.Start==2 & Season.End==2,M.Year.Code:="2"
-             ][Season.Start==1 & Season.End==2,M.Year.Code:="1&2"
-               ][M.Year=="",M.Year:=NA]
-
-# 1.5) Add altitude ####
-
-# Update missing altitudes with those estimated from DEM
-Physical<-data.table(ERA_Physical)
-suppressWarnings(Meta.Table[!is.na(Latitude),Altitude.DEM:=Physical[match(unlist(Meta.Table[!is.na(Latitude),..ID]),unlist(Physical[,..ID])),Altitude.mean]])
-
-# Replace blanks
-Meta.Table[,Altitude:=Elevation
-           ][is.na(Altitude)|Altitude=="",Altitude:=Altitude.DEM]
-
-# 2) Read in and merge climate datasets ####
-MergeClimate=F
-
-if(MergeClimate){
+# 1). Set-up environment ####
+  ## 1.1) Load Packages & source functions ####
   
-  # CHIRPS 
-  CHIRPS<-miceadds::load.Rdata2("CHIRPS.RData",path="Large Files/")
-  colnames(CHIRPS)[which(colnames(CHIRPS)=="RAIN")]<-"Rain"
-  CHIRPS<-as.data.frame(CHIRPS)
-  
-  #POWER
-  POWER<-data.table(miceadds::load.Rdata2("POWER.RData",path="Large Files/"))
-  colnames(POWER)[which(colnames(POWER)=="SRad")]<-"Solar.Rad"
-  
-  # ADD PET TO AgMERRA 
-  POWER$Altitude<-Physical[match(as.factor(unlist(POWER[,..ID])),as.factor(unlist(Physical[,..ID]))),Altitude.mean]
-  POWER<-data.frame(POWER[!is.na(Altitude)][,!"Rain"])
-  
-  POWER.CHIRPS<-dplyr::left_join(POWER,CHIRPS[,c("DayCount",ID,"Rain")],by = c(ID,"DayCount"))
-  
-  POWER.CHIRPS$ETo<-PETcalc(Tmin=POWER.CHIRPS$Temp.Min,
-                            Tmax=POWER.CHIRPS$Temp.Max,
-                            SRad=POWER.CHIRPS$Solar.Rad ,
-                            Wind=POWER.CHIRPS$WindSpeed,
-                            Rain=POWER.CHIRPS$Rain,
-                            Pressure=POWER.CHIRPS$Pressure,
-                            Humid=POWER.CHIRPS$Humid,
-                            YearDay=POWER.CHIRPS$Day,
-                            Latitude=POWER.CHIRPS$Latitude,
-                            Altitude=POWER.CHIRPS$Altitude)[,1]
-  
-  str(POWER.CHIRPS)
-  POWER.CHIRPS<-data.table(POWER.CHIRPS)[,Site.Key :=as.factor(Site.Key )
-  ][,Year:=as.factor(POWER.CHIRPS$Year)
-  ][,Day:=as.factor(POWER.CHIRPS$Day)
-  ][,Altitude:=as.integer(Altitude)]
-  
-  save(POWER.CHIRPS,file=paste0(ClimatePast,"POWER.CHIRPS.RData"))
-  
-  rm(POWER,Physical,CHIRPS)
-  
-}else{
-  POWER.CHIRPS<-miceadds::load.Rdata2("POWER.CHIRPS.RData","Large Files/")
-  CHIRPS<-miceadds::load.Rdata2("CHIRPS.RData","Large Files/")
-  colnames(CHIRPS)[which(colnames(CHIRPS)=="RAIN")]<-"Rain"
-}
+  p_load(ggplot2,circular,data.table,zoo,pbapply,arrow,ERAg,dismo,hexbin)
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/add_ecocrop.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/est_pday.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/est_slen.R")
 
 
+  ## 1.2) Read in ERA compiled dataset ####
+  
+  options(scipen=999)
+  
+  era_file<-list.files(era_dirs$era_masterdata_dir,"era_compiled",full.names = T)
+  era_file<-tail(grep("parquet",era_file,value=T),1)
+  
+  era_data<-data.table(arrow::read_parquet(era_file))
+  
+   ## 1.2.1) Create season code field & turn M.Year blanks to NAs ####
+  
+  era_data[Season.Start==1 & Season.End==1,M.Year.Code:="1"
+  ][Season.Start==2 & Season.End==2,M.Year.Code:="2"
+  ][Season.Start==1 & Season.End==2,M.Year.Code:="1&2"
+  ][M.Year=="",M.Year:=NA]
+  
+  ## 1.3) Load and merge geodata ####
+    ### 1.3.1) Climate (POWER, CHIRPS) ####
+    files<-list.files(era_dirs$era_geodata_dir,"power.*parquet",full.names = T,ignore.case = T)
+    (files<-files[!grepl("annual|ltavg",files)])
+    (files<-files[!grepl("annual|ltavg",files)])
+    
+    power<-arrow::read_parquet(files)
+    
+    files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T,ignore.case = T)
+    (files<-files[!grepl("annual|ltavg",files)])
+    (files<-files[!grepl("annual|ltavg",files)])
+    
+    chirps<-arrow::read_parquet(files) 
+    
+    # Replace rain in power with rain from chirps
+    setnames(chirps,c("Rain","day_count"),c("Rain_chirps","DayCount"),skip_absent = T)
+    
+    power_chirps<-merge(power,chirps[,.(Site.Key,DayCount,Rain_chirps)],by=c("Site.Key","DayCount"),all.x=T,sort=F)  
+    
+    
+    # correlation between power and chirps daily
+    correlation <- cor(power_chirps$Rain, power_chirps$Rain_chirps, use = "complete.obs", method = "pearson")
+    print(correlation)
+    
+    # Determine axis limits
+    max_val <- max(c(power_chirps$Rain, power_chirps$Rain_chirps), na.rm = TRUE)  # Max of both variables
+    
+    ggplot(power_chirps, aes(x = Rain, y = Rain_chirps)) +
+      geom_hex(bins = 30) +  # Adjust `bins` for resolution
+      geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", size = 1) +  # 1:1 reference line
+      coord_fixed(xlim = c(0, max_val), ylim = c(0, max_val)) +  # Fix axes to max value
+      scale_fill_viridis_c(trans = "log", name = "Count") +  # Log scale for density
+      labs(title = paste("Hexbin Plot: Rain POWER vs CHIRPS (r =", round(correlation, 2), ")"),
+           x = "Rain (POWER)",
+           y = "Rain (CHIRPS)") +
+      theme_minimal()
+    
+    # Daily correlation is not great, monthly or dekadal correlations might be better.
+    # CHIRPS should be superior data.
+    
+    # Replace POWER rain with CHIRPS rain
+    power_chirps[,Rain:=Rain_chirps][,Rain_chirps:=NULL]
+    power<-NULL
+    chirps<-NULL
+    
+    ### 1.3.2) Load elevation & merge with era_data ####
+    elevation<-fread(file.path(era_dirs$era_geodata_dir,"elevation.csv"))
+    elevation<-elevation[variable=="elevation" & stat=="mean",.(Site.Key,value)][,value:=as.integer(value)]
+    setnames(elevation,"value","Altitude.DEM")
+    
+    era_data<-merge(era_data,elevation,by=id_field,all.x=T,sort=F)
+    
+    # Replace blanks
+    era_data[,Altitude:=Elevation
+    ][is.na(Altitude)|Altitude=="",Altitude:=Altitude.DEM]
+    
+  ## 1.4) Set analysis and plotting parameters #####
+  # Set cores for parallel processing
+  worker_n<-max(1, parallel::detectCores() - 1)
+  
+  id_field<-"Site.Key"
+  
+  # Set plotting parameters
+  DPI<-600
+  Width<-210-40 #mm 210 × 297 = A4
+  Type<-"png"
+  Units<-"mm"
+  
+  
+  
+  
+  ## 1.5) Load master codes ####
+  # Get names of all sheets in the workbook
+  sheet_names <- readxl::excel_sheets(era_vocab_local)
+  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
+  
+  # Read each sheet into a list
+  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
+  
+  PracticeCodes<-master_codes$prac
+  OutcomeCodes<-master_codes$out
+  EUCodes<-master_codes$prod
+  
+  ## 1.6) Load eco crop ####
+  ecocrop<-fread(file.path(era_dirs$ecocrop_dir,"ecocrop.csv"))
+  
 # 2) Subset ERA data #####
 
-# Ensure code tables are data.table format
-PracticeCodes<-data.table(PracticeCodes)
-OutcomeCodes<-data.table(OutcomeCodes)
-EUCodes<-data.table(EUCodes)
-
 # Subset data to crop yields of annual products with no temporal aggregation and no combined products
-
-Meta.Table.Yields<-Meta.Table[Outcode == 101 &  # Subset to crop yield outcomes
+perennial_subtypes<-c("Fibre & Wood","Tree","Fodders","Nuts") 
+perennial_crops<-c("Sugar Cane (Cane)","Sugar Cane (Sugar)","Coffee","Gum arabic","Cassava or Yuca","Pepper","Vanilla","Tea",
+                   "Plantains and Cooking Bananas","Jatropha (oil)","Palm Oil","Olives (fruits)" , "Olives (oil)",
+                   "Taro or Cocoyam or Arrowroot","Palm Fruits (Other)","Turmeric","Ginger", "Cardamom",
+                   "Apples","Oranges","Grapes (Wine)","Peaches and Nectarines","Jujube","Jatropha (seed)","Vegetables (Other)",
+                   "Herbs","Pulses (Other)","Beans (Other)","Leafy Greens (Other)","Bananas (Ripe Sweet)","Jatropha") 
+  
+era_data_yields<-era_data[Outcode == 101 &  # Subset to crop yield outcomes
                                 !nchar(M.Year)>6 &  # Remove observations aggregated over time
-                                !Product.Subtype %in% c("Fibre & Wood","Tree","Fodders","Nuts") & # Remove observations where yields are from perennial crops
-                                !Product %in% c("Sugar Cane (Cane)","Sugar Cane (Sugar)","Coffee","Gum arabic","Cassava or Yuca","Pepper","Vanilla","Tea",
-                                                "Plantains and Cooking Bananas","Jatropha (oil)","Palm Oil","Olives (fruits)" , "Olives (oil)",
-                                                "Taro or Cocoyam or Arrowroot","Palm Fruits (Other)","Turmeric","Ginger", "Cardamom",
-                                                "Apples","Oranges","Grapes (Wine)","Peaches and Nectarines","Jujube","Jatropha (seed)","Vegetables (Other)",
-                                                "Herbs","Pulses (Other)","Beans (Other)","Leafy Greens (Other)","Bananas (Ripe Sweet)","Jatropha")  # Remove observations where yields are from perennial crops
+                                !Product.Subtype %in% perennial_subtypes & # Remove observations where yields are from perennial crops
+                                !Product %in% perennial_crops # Remove observations where yields are from perennial crops
                               ][!grepl(" x |-",Product),] # Remove observations where yields are from multiple products are combined
 
 # Remove sites spatially aggregated over a large area
-Meta.Table.Yields<-Meta.Table.Yields[!Buffer>50000]
+era_data_yields<-era_data_yields[!Buffer>50000]
 
-# 4) Add Ecocrop ####
-
+# 3) Add Ecocrop ####
 # When harvest dates are not reported in the studies that comprise ERA we can substitute season length values from the EcoCrop dataset. 
-# First we need to merge EcoCrop data with `ERAg::AddEcoCrop` function.
 
-ERA<-cbind(Meta.Table.Yields,ERAgON::AddEcoCrop(Products = Meta.Table.Yields[,Product]))
+# First we need to merge EcoCrop parameters for the crops in ERA
+ecocrop_data<-add_ecocrop(crop_names = era_data_yields[,Product],ecocrop = ecocrop, EUCodes = EUCodes)
+ERA<-cbind(era_data_yields,ecocrop_data)
 
-# 5) Refine Ecocrop cycle lengths ####
+# 4) Refine cycle lengths ####
 
 # EcoCrop data for crop cycle length estimates (how long a crop takes to grow) can have a large range, especially for crops that can be 
 # grown in temperate and tropical regions. Maize, for example, as a season length of 65-365 days with midpoint 215 days, 
@@ -163,74 +151,92 @@ ERA<-cbind(Meta.Table.Yields,ERAgON::AddEcoCrop(Products = Meta.Table.Yields[,Pr
 
 ERA.Yields<-ERA[Out.SubInd=="Crop Yield"]
 
-# Estimate season length from date allowing 7 days uncertainty in planting and harvest dates
-A<-ERA.Yields
-A<-unique(A[!(is.na(Plant.Start)|is.na(Plant.End)|is.na(Harvest.End)|is.na(Harvest.End))
-][,PLANT.AVG:=Plant.Start+(Plant.End-Plant.Start)/2
-][,HARVEST.AVG:=Harvest.Start+(Harvest.End-Harvest.Start)/2
-][!(((Plant.End-Plant.Start)>7)|((Harvest.End-Harvest.Start)>7))
-][,SLEN:=round(HARVEST.AVG-PLANT.AVG,0)
-][!SLEN<30,c("Product",..ID,"Code","Variety","M.Year","PLANT.AVG","SLEN","Country")])
+# This script estimates crop season length based on planting and harvest dates, allowing for a 7-day uncertainty in planting and harvest periods.
 
-B<-A[,list(SLEN.mean=mean(SLEN),SLEN.med=median(SLEN),N=.N),by=c("Product")
-][,SLEN.mean:=round(as.numeric(SLEN.mean),0)
-][,SLEN.med:=round(as.numeric(SLEN.med),0)]
+season_data <- ERA.Yields
 
-B[,SLEN.EcoC:=round(apply(ERA.Yields[match(B$Product,ERA.Yields$Product),c("cycle_min","cycle_max")],1,mean),0)]
+# Filter out records with missing planting or harvest dates
+season_data <- unique(season_data[!(is.na(Plant.Start) | is.na(Plant.End) | is.na(Harvest.Start) | is.na(Harvest.End))
+][, Planting_Avg := Plant.Start + (Plant.End - Plant.Start) / 2
+][, Harvest_Avg := Harvest.Start + (Harvest.End - Harvest.Start) / 2
+  # Exclude records where planting or harvest uncertainty exceeds 7 days
+][!(((Plant.End - Plant.Start) > 7) | ((Harvest.End - Harvest.Start) > 7))
+  
+  # Calculate season length and filter out unrealistic values
+][, Season_Length := round(Harvest_Avg - Planting_Avg, 0)
+][!Season_Length < 30, c("Product", ..id_field, "Code", "Variety", "M.Year", "Planting_Avg", "Season_Length", "Country")])
 
-# Replace EcoCrop values where we have >=5 observation from our data
-B<-B[N>=5]
+# Aggregate season length statistics by product
+season_summary <- season_data[, .(Season_Length_Mean = mean(Season_Length),
+                                  Season_Length_Median = median(Season_Length),
+                                  Observations = .N), by = "Product"
+][, Season_Length_Mean := round(as.numeric(Season_Length_Mean), 0)
+][, Season_Length_Median := round(as.numeric(Season_Length_Median), 0)]
 
-# Save estimate crop length datasets
-#fwrite(B,paste0(CROP_dir,"Crop Season Lengths Estimated From Data.csv"))
+# Add EcoCrop-based estimated season length
+season_summary[, Season_Length_EcoCrop := round(apply(ERA.Yields[match(season_summary$Product, ERA.Yields$Product), c("cycle_min", "cycle_max")], 1, mean), 0)]
 
-# Add estimate season lengths to ERA where season length values are missing
-N<-match(ERA.Yields$Product,B$Product)
-N1<-which(!is.na(N))
-ERA.Yields$cycle_min[N1]<-B$SLEN.med[N[N1]]
-ERA.Yields$cycle_max[N1]<-B$SLEN.med[N[N1]]
+# Retain records where there are at least 5 observations
+season_summary <- season_summary[Observations >= 5]
 
-ERA.Yields<-ERA.Yields[Product!=""]
+# Save estimated crop season lengths
+fwrite(season_summary, file.path(era_dirs$era_geodata_dir, "Crop_Season_Lengths_Estimated_From_Data.csv"))
 
-# 6) Estimate unreported plantings dates using nearby data ####
+# Update ERA.Yields dataset where season length values are missing
+product_match <- match(ERA.Yields$Product, season_summary$Product)
+valid_indices <- which(!is.na(product_match))
+ERA.Yields$cycle_min[valid_indices] <- season_summary$Season_Length_Median[product_match[valid_indices]]
+ERA.Yields$cycle_max[valid_indices] <- season_summary$Season_Length_Median[product_match[valid_indices]]
 
-# We may wish to substitute NA values of planting date in ERA with estimates derived from the `EstPDayData` function which searches for 
-# planting dates for the same `Product/Product.Subtype`, year and growing season which are spatially nearby.  
-# The function uses an iterative search over five levels of increasing distance corresponding to latitude and longitude recorded from
-# 5 to 1 decimal places. If there is more than one planting date value for a `Product x M.Year.Start x M.Year.End x Season.Start x Season.End` 
-# combination then values are averaged. If no corresponding planting dates are found matching on product then matching is attempted on 
-# `Product.Subtype` (e.g. cereals or legumes).  
-# If Latitude + Longitude combinations have a mixture of season = 1 or 2 and season = NA values then this suggests a potential issue with 
-# the consistency of temporal recording at the spatial coordinates. Observations with such issues are excluded from the `EstPDayData` 
-# analysis and flagged in an output `[[Season.Issues]]` list object.
+# Remove empty product entries
+ERA.Yields <- ERA.Yields[Product != ""]
 
-ERA.Yields<-ERAg::EstPDayData(DATA=ERA.Yields)$DATA
+# 5) Estimate unreported plantings dates using nearby data ####
+# This script substitutes missing planting date (`Plant.Start`) values in the `ERA.Yields` dataset using estimates from the `EstPDayData` function.
+ 
+# The `EstPDayData` function searches for planting dates based on spatial proximity, matching on `Product` or `Product.Subtype` (e.g., cereals, legumes), year, and growing season.
+# The function runs an iterative search over five levels of increasing distance by reducing the precision of recorded latitude and longitude (from 5 to 1 decimal places).
+# If multiple planting date values exist for the same `Product x M.Year.Start x M.Year.End x Season.Start x Season.End` combination, they are averaged.
+ 
+# If no exact `Product` matches are found, the function attempts substitution using `Product.Subtype`.
 
-# Estimate % of missing data that could be substituted using EstPDayData estimates
-round(sum(!is.na(ERA.Yields$Data.PS.Date))/sum(is.na(ERA.Yields$Plant.Start))*100,2)
+# Handling Spatial-Temporal Inconsistencies:
+# If a location (`Latitude + Longitude`) has a mixture of `Season = 1` or `Season = 2` alongside missing (`NA`) values, this suggests inconsistencies in temporal recording at that location. Such observations are excluded from estimation and flagged in the `[[Season.Issues]]` list output.
 
-# Which ERA observations have high planting uncertainty?
-ERA.Yields[,Plant.Diff.Raw:=as.integer(Plant.End-Plant.Start),by=list(Plant.Start,Plant.End)]
+# Apply EstPDayData to Estimate Missing Planting Dates
+ERA.Yields <- est_pday(data = ERA.Yields)$result
 
-# Uncertainty needed to substitute planting dates
-Uncertainty.Max<-90
+# Estimate the percentage of missing planting dates that were substituted
+missing_planting_substituted <- round(sum(!is.na(ERA.Yields$Data.PS.Date)) / sum(is.na(ERA.Yields$Plant.Start)) * 100, 2)
+cat("Missing data subsituted using nearby data = ",missing_planting_substituted,"%")
 
-# Use nearby data where other sources of data are not available
-N<-as.numeric(unlist(ERA.Yields[,lapply(strsplit(Data.Date.Acc,"-"),"[[",1)]))
+# Identify ERA observations with high planting date uncertainty
+ERA.Yields[, Planting_Uncertainty := as.integer(Plant.End - Plant.Start), by = list(Plant.Start, Plant.End)]
 
-ERA.Yields[!is.na(Plant.Start),Plant.Source:="Pub"]
+# Define the maximum uncertainty threshold for substitution
+Uncertainty_Max <- 90  # Days
 
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N>1 & (Plant.Diff.Raw>Uncertainty.Max|is.na(Plant.Diff.Raw)),Plant.Source:="Nearby 1km"]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N>1 & (Plant.Diff.Raw>Uncertainty.Max|is.na(Plant.Diff.Raw)),Plant.End:=Data.PE.Date]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N>1 & (Plant.Diff.Raw>Uncertainty.Max|is.na(Plant.Diff.Raw)),Plant.Start:=Data.PS.Date]
+# Extract spatial accuracy in kilometers
+N <- as.numeric(unlist(ERA.Yields[, lapply(strsplit(Data.Date.Acc, "-"), "[[", 1)]))
 
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N==1 & (Plant.Diff.Raw>Uncertainty.Max|is.na(Plant.Diff.Raw)),Plant.Source:="Nearby 10km"]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N==1 & (Plant.Diff.Raw>Uncertainty.Max|is.na(Plant.Diff.Raw)),Plant.End:=Data.PE.Date]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N==1 & (Plant.Diff.Raw>Uncertainty.Max|is.na(Plant.Diff.Raw)),Plant.Start:=Data.PS.Date]
+# Label sources of planting date information
+ERA.Yields[!is.na(Plant.Start), Plant.Source := "Published"]
+
+# Substituting planting dates using spatially nearby data:
+# Nearby 1km: Used when at least one other source exists (`N > 1`) and the planting uncertainty exceeds the threshold.
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Source := "Nearby 1km"]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.End := Data.PE.Date]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Start := Data.PS.Date]
+
+# Nearby 10km Used when only one other source exists (`N == 1`) and the planting uncertainty exceeds the threshold.
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Source := "Nearby 10km"]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.End := Data.PE.Date]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Start := Data.PS.Date]
+
 
 # 7) Estimate season lengths where harvest dates are missing using nearby data ####
 # Using similar methods to the `EstPDayData` function, the `EstSLenData` estimates season length values from similar crops and locations nearby to missing values.
-ERA.Yields<-ERAg::EstSLenData(DATA=ERA.Yields)
+ERA.Yields<-est_slen(ERA.Yields)
 
 # Use nearby data where other sources of data are not available
 N<-as.numeric(unlist(ERA.Yields[,lapply(strsplit(Data.SLen.Acc,"-"),"[[",1)]))
@@ -274,8 +280,8 @@ SeasonalSOS<-merge(SeasonalSOS,Dekad.Dates,by=c("Start.Year","SOS"),all.x=T)
 # So, here, where uncertainty is >90 days we will substitute onset data if a single onset date exists within the planting window provided. If >1 onset date is present NA is returned. 
 # Start of Season (rainfall onset) data should  occur before Plant.Start so we will need to substract some days from Plant Start.
 
-MatchSOS<-function(SeasonalSOS,ID,Plant.Start,Plant.End){
-  X<-SeasonalSOS[Site.Key == ID & Dekad.Start>=Plant.Start & Dekad.Start<=Plant.End]
+MatchSOS<-function(SeasonalSOS,id_field,Plant.Start,Plant.End){
+  X<-SeasonalSOS[Site.Key == id_field & Dekad.Start>=Plant.Start & Dekad.Start<=Plant.End]
   if(nrow(X)>1 | length(X[,Dekad.Start])==0){
     return(as.Date(NA))
   }else{
@@ -291,7 +297,7 @@ ERA.Yields[,Plant.Diff.Raw:=as.integer(Plant.End-Plant.Start),by=list(Plant.Star
 # Rain onset may occur before the planting window indicated as there is usually a lag between onset of rains and planting of crops
 # In that case you may want to consider subtracting days from Plant.Start and amending the logic where SOS>=Plant.Start in the subsequent section
 ERA.Yields[Plant.Diff.Raw>Uncertainty.Max,SOS:=MatchSOS(SeasonalSOS = data.table::copy(SeasonalSOS),
-                                                        ID=Site.Key[1],
+                                                        id_field=Site.Key[1],
                                                         Plant.Start=Plant.Start[1],
                                                         Plant.End=Plant.End[1]),
            by=list(Site.Key,Plant.Start,Plant.End)]
@@ -316,10 +322,10 @@ Date.Lookup<-data.table(Date=seq(as.Date("1984-01-01"),as.Date("2019-12-31"),1))
 Date.Lookup[,Dekad:=SOS_Dekad(Date,type="year")
 ][,Year:=format(Date,"%Y")]
 
-SOSLTmatch<-function(ID,SOS.XB,SeasonalSOS,M.Year){
+SOSLTmatch<-function(id_field,SOS.XB,SeasonalSOS,M.Year){
   M.Year<-as.numeric(M.Year)
-  if(ID %in% SOS.XB & !is.na(M.Year)){
-    DekadX<-SeasonalSOS[Site.Key==ID & Start.Year==M.Year,SOS]
+  if(id_field %in% SOS.XB & !is.na(M.Year)){
+    DekadX<-SeasonalSOS[Site.Key==id_field & Start.Year==M.Year,SOS]
     if(length(DekadX)==0){
       X<-as.Date(NA)  
     }else{  
@@ -332,7 +338,7 @@ SOSLTmatch<-function(ID,SOS.XB,SeasonalSOS,M.Year){
 }
 
 ERA.Yields[is.na(Plant.Start) & !grepl("[.]",M.Year),
-           SOS2:=SOSLTmatch(ID=Site.Key[1],SOS.XB=SOS.XB,SeasonalSOS=SeasonalSOS,M.Year=M.Year[1]),
+           SOS2:=SOSLTmatch(id_field=Site.Key[1],SOS.XB=SOS.XB,SeasonalSOS=SeasonalSOS,M.Year=M.Year[1]),
            by=list(Site.Key,M.Year)]
 
 # Note we subtract 5 days from Plant.Start in case this is an event enough to trigger the planting threshold too
@@ -365,7 +371,7 @@ ERA.Yields[grepl("SOS",Plant.Source) & is.na(Harvest.Start) & N==1,SLen.Source:=
 # By setting the `Use.Data.Dates` argument to `TRUE` we are substituting `NA` planting dates in ERA with values calculated by `EstPDayData` and refining these with the `EstPDayRain` function.
 
 ERA.Yields<-ERAg::EstPDayRain(Data=ERA.Yields, 
-                              ID=ID, 
+                              id_field=id_field, 
                               Rain.Data = POWER.CHIRPS, 
                               Rain.Data.Name = "CHIRPS", 
                               Rain.Field ="Rain", 
@@ -393,7 +399,7 @@ ERA.Yields<-ERAg::EstPDayRain(Data=ERA.Yields,
                               Use.Data.Dates = T)
 
 # 10) Consolidate Dates ####
-SLen<-function(RName,DATA,ErrorDir,EC.Diff,Exclude.EC.Diff,ID,Uncertainty.Max){
+SLen<-function(RName,DATA,ErrorDir,EC.Diff,Exclude.EC.Diff,id_field,Uncertainty.Max){
   RName1<-RName
   RName<-paste0("UnC.",RName,".P.Date")
   DATA$Focus<-DATA[,..RName]
@@ -431,7 +437,7 @@ SLen<-function(RName,DATA,ErrorDir,EC.Diff,Exclude.EC.Diff,ID,Uncertainty.Max){
   
   
   # Create unique dataset of sites x seasons, removing data where is there is no data on planting date or season length
-  SS<-unique(DATA[,c(..ID,"Code","Latitude","Longitude","EU","Product","M.Year","M.Year.Code","P.Date.Merge","SLen.EcoCrop",
+  SS<-unique(DATA[,c(..id_field,"Code","Latitude","Longitude","EU","Product","M.Year","M.Year.Code","P.Date.Merge","SLen.EcoCrop",
                      "Plant.Start","Plant.End","Plant.Diff.Raw","Harvest.Start","Harvest.End","SLen","Data.SLen","Data.PS.Date","Data.PE.Date","SOS","SOS2","Topt.low", "Topt.high","Tlow", "Thigh","P.Date.Merge.Source","SLen.Source")])
   
   # Create Error Save Directory if  Required
@@ -481,7 +487,7 @@ SS<-SLen(RName="CHIRPS",
          ErrorDir=NA,
          EC.Diff=F,
          Exclude.EC.Diff=0.6,
-         ID="Site.Key",
+         id_field="Site.Key",
          Uncertainty.Max=20)
 
 ERA.Yields<-SS$DATA
@@ -507,7 +513,7 @@ SS[,PlantingDate:=P.Date.Merge
 
 # 11) Generate Climate Variables  ####
 Climate<-ERAg::CalcClimate2(Data=SS,
-                      ID=ID,
+                      id_field=id_field,
                       CLIMATE=POWER.CHIRPS,
                       Rain.Data.Name="CHIRPS", 
                       Temp.Data.Name="POWER",
@@ -534,8 +540,8 @@ Climate<-ERAg::CalcClimate2(Data=SS,
 
 
 
-Climate<-CalcClimate2(DATA=Meta.Table.Yields,
-                ID=ID,
+Climate<-CalcClimate2(DATA=era_data_yields,
+                id_field=id_field,
                 CLIMATE=POWER.CHIRPS,
                 Rain.Data.Name="CHIRPS", 
                 Temp.Data.Name="POWER",
