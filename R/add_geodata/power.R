@@ -16,9 +16,9 @@
   
   # Source external R scripts for PET calculations and POWER data functions.
   # These functions are hosted on GitHub and must be accessible.
-  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/PETcalc.R")
-  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/download_power.R")
-  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/process_power.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/PETcalc.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/download_power.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/process_power.R")
   
   ## 0.2) Subset ERA sites according to buffer distance #####
   # Limit to sites with a buffer distance below 50,000 units.
