@@ -10,10 +10,11 @@
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/water_balance.R")
   
   ## 0.2) Set workers for parallel processing ####
-  worker_n<-detectCores()-1
+  worker_n<-4
   
 # 1) Read in horizon data ####
-horizon_data <- arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet"))
+horizon_data <- data.table(arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet")))
+
 (horizon_metadata<-unique(fread(file.path(era_dirs$era_geodata_dir,"soil_af_isda_metadata.csv"))))
 vars<-data.table(from=c("depth","sand.tot.psa","silt.tot.psa","clay.tot.psa","oc","db.od","ecec.f","ph.h2o"),
                  to=c("depth","SNDPPT", "SLTPPT", "CLYPPT", "ORCDRC", "BLD", "CEC", "PHIHOX"),
@@ -22,6 +23,7 @@ vars<-data.table(from=c("depth","sand.tot.psa","silt.tot.psa","clay.tot.psa","oc
 horizon_data<-horizon_data[variable %in% vars[,from] & stat=="mean"]
 horizon_data<-dcast(horizon_data,Site.Key+depth~variable,value.var = "value")
 horizon_data[,depth:=gsub("0-20cm",10,depth)][,depth:=gsub("20-50cm",35,depth)][,depth:=as.numeric(depth)]
+
 
 for (i in seq_len(nrow(vars))) {
   old_col <- vars$from[i]
@@ -36,6 +38,9 @@ for (i in seq_len(nrow(vars))) {
     horizon_data[[new_col]] <- horizon_data[[new_col]] * conv
   }
 }
+
+horizon_data[is.na(CLYPPT)]
+
 
 setDT(horizon_data)
 
@@ -76,12 +81,10 @@ weather_data<-weather_data[!is.na(TMIN) & !is.na(RAIN)]
 # 3) Run the water balance pipeline ####
 site<-horizon_data[,unique(Site.Key)[1]]
 
-options(future.globals.maxSize = 11 * 1024^3)  # 11 GB limit
-
 watbal_result <- run_full_water_balance(
   horizon_data  = horizon_data,
   weather_data  = weather_data,
-  worker_n=worker_n,
+  worker_n=1,
   root_depth    = 60,
   min_depth     = 45,
   max_depth     = 100,
