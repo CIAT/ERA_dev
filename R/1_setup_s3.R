@@ -563,13 +563,3 @@ upload_files_to_s3(files = files,
                        overwrite=T,
                        mode="public-read") 
     
-  # 1.4.9) ILRI feed db ####
-    s3_bucket<-era_dirs$ilri_feed_db_S3
-    (files<- list.files(era_dirs$ilri_feed_db_dir,full.names = T))
-    
-    upload_files_to_s3(files = files,
-                       selected_bucket=s3_bucket,
-                       max_attempts = 3,
-                       overwrite=T,
-                       mode="public-read") 
-    
