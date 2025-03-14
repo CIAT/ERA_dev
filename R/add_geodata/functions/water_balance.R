@@ -646,27 +646,23 @@ run_full_water_balance <- function(
     # ---------------------------
     # PARALLEL: future_lapply + progressr
     # ---------------------------
-    # Set up your parallel plan:
-    # plan(multisession, workers=worker_n) or plan(multicore, etc. 
-    # That call typically goes outside the function or at the top 
-    # (depending on your preference).
-    # We'll just demonstrate usage here:
-    
+    # Set up parallel plan:
     future::plan(future::multisession, workers = worker_n)
     
     # Use progressr:
     progressr::with_progress({
       p <- progressr::progressor(steps = length(site_list))
       result_list <- future.apply::future_lapply(
-        X = site_list,
-        FUN = function(subdt) {
+        1:length(site_list),
+        FUN = function(i) {
           p()  # increment progress
+          subdt<-site_list[[i]]
           sscp  <- unique(subdt$scp)
           sssat <- unique(subdt$ssat)
           if (length(sscp) != 1 || length(sssat) != 1) {
             stop("Multiple scp/ssat values found for the same Site.Key. Check data.")
           }
-          subdt <- subdt[order(subdt[["DATE"]])]
+          subdt <- subdt[order(DATE)]
           out   <- calc_watbal_series(
             dt         = subdt,
             soilcp     = sscp,
@@ -679,18 +675,19 @@ run_full_water_balance <- function(
     })
   } else {
     # ---------------------------
-    # SERIAL: pblapply
+    # SERIAL
     # ---------------------------
-    # This requires library(pbapply)
-    result_list <- pbapply::pblapply(
-      X = site_list,
-      FUN = function(subdt) {
+    result_list <- lapply(
+      1:length(site_list),
+      FUN = function(i) {
+        subdt<-site_list[[i]]
         sscp  <- unique(subdt$scp)
         sssat <- unique(subdt$ssat)
+        cat("Processing site",unique(subdt$Site.Key),i,"/",length(site_list),"         \r")
         if (length(sscp) != 1 || length(sssat) != 1) {
           stop(paste0("Multiple scp/ssat values found for the same Site.Key. Check data. Site Key = ",unique(subdt$Site.Key)))
         }
-        subdt <- subdt[order(subdt[["DATE"]])]
+        subdt <- subdt[order(DATE)]
         out   <- calc_watbal_series(
           dt         = subdt,
           soilcp     = sscp,
