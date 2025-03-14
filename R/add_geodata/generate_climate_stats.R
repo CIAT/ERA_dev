@@ -3,15 +3,20 @@
   # If you are a super-user and need to calculate from scratch or add new sites then you may also need to run:
     # R/add_geodata/chirps.R,
     # R/add_geodata/power.R
-    # R/elevation.R
+    # R/add_geodata/elevation.R
+    # R/add_geodata/calc_sos.R
 
 # 1). Set-up environment ####
   ## 1.1) Load Packages & source functions ####
   
-  p_load(ggplot2,circular,data.table,zoo,pbapply,arrow,ERAg,dismo,hexbin)
-  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/add_ecocrop.R")
-  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/est_pday.R")
-  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/est_slen.R")
+  p_load(ggplot2,circular,data.table,zoo,pbapply,arrow,ERAg,dismo,hexbin,miceadds)
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/add_ecocrop.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/est_pday.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/est_pday_rain.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/est_slen.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/date_to_dekad.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/clim_functions.R")
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/calc_clim_stats.R")
 
 
   ## 1.2) Read in ERA compiled dataset ####
@@ -86,6 +91,11 @@
     era_data[,Altitude:=Elevation
     ][is.na(Altitude)|Altitude=="",Altitude:=Altitude.DEM]
     
+    ### 1.3.3) Load SOS ####
+    (files<-list.files(era_dirs$era_geodata_dir,"sos_.*RData",full.names = T,ignore.case = T))
+    (files<-tail(files,1))
+    SOS<-miceadds::load.Rdata2(file=basename(files),path=dirname(files))
+  
   ## 1.4) Set analysis and plotting parameters #####
   # Set cores for parallel processing
   worker_n<-max(1, parallel::detectCores() - 1)
@@ -214,7 +224,7 @@ cat("Missing data subsituted using nearby data = ",missing_planting_substituted,
 ERA.Yields[, Planting_Uncertainty := as.integer(Plant.End - Plant.Start), by = list(Plant.Start, Plant.End)]
 
 # Define the maximum uncertainty threshold for substitution
-Uncertainty_Max <- 90  # Days
+max_uncertainty <- 90  # Days
 
 # Extract spatial accuracy in kilometers
 N <- as.numeric(unlist(ERA.Yields[, lapply(strsplit(Data.Date.Acc, "-"), "[[", 1)]))
@@ -224,17 +234,17 @@ ERA.Yields[!is.na(Plant.Start), Plant.Source := "Published"]
 
 # Substituting planting dates using spatially nearby data:
 # Nearby 1km: Used when at least one other source exists (`N > 1`) and the planting uncertainty exceeds the threshold.
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Source := "Nearby 1km"]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.End := Data.PE.Date]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Start := Data.PS.Date]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > max_uncertainty | is.na(Planting_Uncertainty)), Plant.Source := "Nearby 1km"]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > max_uncertainty | is.na(Planting_Uncertainty)), Plant.End := Data.PE.Date]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N > 1 & (Planting_Uncertainty > max_uncertainty | is.na(Planting_Uncertainty)), Plant.Start := Data.PS.Date]
 
 # Nearby 10km Used when only one other source exists (`N == 1`) and the planting uncertainty exceeds the threshold.
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Source := "Nearby 10km"]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.End := Data.PE.Date]
-ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > Uncertainty_Max | is.na(Planting_Uncertainty)), Plant.Start := Data.PS.Date]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > max_uncertainty | is.na(Planting_Uncertainty)), Plant.Source := "Nearby 10km"]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > max_uncertainty | is.na(Planting_Uncertainty)), Plant.End := Data.PE.Date]
+ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncertainty > max_uncertainty | is.na(Planting_Uncertainty)), Plant.Start := Data.PS.Date]
 
 
-# 7) Estimate season lengths where harvest dates are missing using nearby data ####
+# 6) Estimate season lengths where harvest dates are missing using nearby data ####
 # Using similar methods to the `EstPDayData` function, the `EstSLenData` estimates season length values from similar crops and locations nearby to missing values.
 ERA.Yields<-est_slen(ERA.Yields)
 
@@ -250,26 +260,24 @@ ERA.Yields[is.na(SLen) & !is.na(Data.SLen.Acc) & N==1,SLen.Source:=paste0(Plant.
 ERA.Yields[is.na(SLen) & !is.na(Data.SLen.Acc) & N==1,SLen:=Data.SLen]
 
 
-# 8) Where we have no information about planting dates at all substitute SOS rain onset data ####
-# based on logic provided by Chris Funk, UC Davis
-
-SOS<-miceadds::load.Rdata2(file="Large Files/ERA_SOS.RData")
+# 7) Where we have no information about planting dates at all substitute SOS rain onset data ####
+  # SOS is calculate in script R/add_geodata/calc_sos.R
 
 # Add Dekad to daily weather data
-POWER.CHIRPS[,Dekad:=ERAg::SOS_Dekad(Date,type="year"),by=Date]
+power_chirps[,Dekad:=date_to_dekad(Date[1],type="year"),by=Date]
 # Convert Year to Numeric
-POWER.CHIRPS[,Year:=as.numeric(as.character(Year))]
+power_chirps[,Year:=as.numeric(as.character(Year))]
 
 # Find start dates of dekads
-Dekad.Dates<-POWER.CHIRPS[,list(Dekad.Start=Date[1]),by=list(Dekad,Year)]
-setnames(Dekad.Dates,c("Dekad","Year"),c("SOS","Start.Year"))
+dekad_dates<-power_chirps[,list(Dekad.Start=Date[1]),by=list(Dekad,Year)]
+setnames(dekad_dates,c("Dekad","Year"),c("SOS","Start.Year"))
 
 # Access Seasonal Rain onset data
 SeasonalSOS<-SOS$Seasonal_SOS2
 SeasonalSOS[,Season:=Season.Ordered][,EstSeasons:=Seasons]
 
 # Merge start dates with Seasonal SOS data
-SeasonalSOS<-merge(SeasonalSOS,Dekad.Dates,by=c("Start.Year","SOS"),all.x=T)
+SeasonalSOS<-merge(SeasonalSOS,dekad_dates,by=c("Start.Year","SOS"),all.x=T)
 
 # We are matching on planting date rather than measurement season (M.Year + Season) as the planting year could be the same, before or after the planting year.
 # As such we've revisited ERA records to ensure some information about planting date is present even if this is an entire year.
@@ -280,15 +288,19 @@ SeasonalSOS<-merge(SeasonalSOS,Dekad.Dates,by=c("Start.Year","SOS"),all.x=T)
 # So, here, where uncertainty is >90 days we will substitute onset data if a single onset date exists within the planting window provided. If >1 onset date is present NA is returned. 
 # Start of Season (rainfall onset) data should  occur before Plant.Start so we will need to substract some days from Plant Start.
 
-MatchSOS<-function(SeasonalSOS,id_field,Plant.Start,Plant.End){
-  X<-SeasonalSOS[Site.Key == id_field & Dekad.Start>=Plant.Start & Dekad.Start<=Plant.End]
-  if(nrow(X)>1 | length(X[,Dekad.Start])==0){
+# This function finds the start of season (SOS) rainfall onset date that falls within the specified planting window.
+# If multiple SOS dates exist within the planting window, the function returns NA.
+match_sos <- function(SeasonalSOS, id_field, Plant.Start, Plant.End) {
+  # Filter SOS data for the given site within the specified planting window
+  X <- SeasonalSOS[Site.Key == id_field & Dekad.Start >= Plant.Start & Dekad.Start <= Plant.End]
+  
+  # If multiple matches are found or no matches exist, return NA
+  if (nrow(X) > 1 || length(X[, Dekad.Start]) == 0) {
     return(as.Date(NA))
-  }else{
-    return(X[,Dekad.Start])
+  } else {
+    return(X[, Dekad.Start])
   }
 }
-
 
 # Recalculate Plant.Diff.Raw
 ERA.Yields[,Plant.Diff.Raw:=as.integer(Plant.End-Plant.Start),by=list(Plant.Start,Plant.End)]
@@ -296,7 +308,7 @@ ERA.Yields[,Plant.Diff.Raw:=as.integer(Plant.End-Plant.Start),by=list(Plant.Star
 # Look for onset of rains date where planting uncertainty is high
 # Rain onset may occur before the planting window indicated as there is usually a lag between onset of rains and planting of crops
 # In that case you may want to consider subtracting days from Plant.Start and amending the logic where SOS>=Plant.Start in the subsequent section
-ERA.Yields[Plant.Diff.Raw>Uncertainty.Max,SOS:=MatchSOS(SeasonalSOS = data.table::copy(SeasonalSOS),
+ERA.Yields[Plant.Diff.Raw>max_uncertainty,SOS:=match_sos(SeasonalSOS = data.table::copy(SeasonalSOS),
                                                         id_field=Site.Key[1],
                                                         Plant.Start=Plant.Start[1],
                                                         Plant.End=Plant.End[1]),
@@ -305,13 +317,12 @@ ERA.Yields[Plant.Diff.Raw>Uncertainty.Max,SOS:=MatchSOS(SeasonalSOS = data.table
 
 # Over-write Plant.Start and Plant.End values where Plant.Diff>N
 # Note we subtract 5 days from Plant.Start in case this is an event enough to trigger the planting threshold too
-ERA.Yields[Plant.Diff.Raw>Uncertainty.Max & !is.na(SOS) & SOS>=Plant.Start & SOS<=Plant.End,Plant.Source:=paste0("SOS + ",Plant.Source)
-][Plant.Diff.Raw>Uncertainty.Max & !is.na(SOS) & SOS>=Plant.Start & SOS<=Plant.End,Plant.Start:=SOS-5
-][Plant.Diff.Raw>Uncertainty.Max  & !is.na(SOS) & (SOS+Uncertainty.Max)<Plant.End,Plant.End:=SOS+Uncertainty.Max]
+ERA.Yields[Plant.Diff.Raw>max_uncertainty & !is.na(SOS) & SOS>=Plant.Start & SOS<=Plant.End,Plant.Source:=paste0("SOS + ",Plant.Source)
+][Plant.Diff.Raw>max_uncertainty & !is.na(SOS) & SOS>=Plant.Start & SOS<=Plant.End,Plant.Start:=SOS-5
+][Plant.Diff.Raw>max_uncertainty  & !is.na(SOS) & (SOS+max_uncertainty)<Plant.End,Plant.End:=SOS+max_uncertainty]
 
 
 # For sites with no planting information if they are unimodal with a seasonality that does not overlap the end of year boundary then we can use the M.Year value in the ERA data to match to the estimated onset data from CHIRPS
-
 SOS.LT<-SOS$LTAvg_SOS3
 
 # Subset to locations where there is 1 season, start of season is before end of season (i.e. EOS is not on the other side of the year boundary) and where EOS is not in December (where there is a risk the measurement date (harvest) could fall in the subsequent year)
@@ -322,18 +333,29 @@ Date.Lookup<-data.table(Date=seq(as.Date("1984-01-01"),as.Date("2019-12-31"),1))
 Date.Lookup[,Dekad:=SOS_Dekad(Date,type="year")
 ][,Year:=format(Date,"%Y")]
 
-SOSLTmatch<-function(id_field,SOS.XB,SeasonalSOS,M.Year){
-  M.Year<-as.numeric(M.Year)
-  if(id_field %in% SOS.XB & !is.na(M.Year)){
-    DekadX<-SeasonalSOS[Site.Key==id_field & Start.Year==M.Year,SOS]
-    if(length(DekadX)==0){
-      X<-as.Date(NA)  
-    }else{  
-      X<-Date.Lookup[Year==M.Year & Dekad == DekadX,min(Date)]
+# This function retrieves the long-term Start of Season (SOS) date for a given site and year. If no match is found, it returns NA.
+SOSLTmatch <- function(id_field, SOS.XB, SeasonalSOS, M.Year) {
+  # Convert M.Year to numeric format
+  M.Year <- as.numeric(M.Year)
+  
+  # Check if the site exists in SOS.XB and M.Year is valid
+  if (id_field %in% SOS.XB & !is.na(M.Year)) {
+    
+    # Retrieve SOS dekad for the given site and year
+    DekadX <- SeasonalSOS[Site.Key == id_field & Start.Year == M.Year, SOS]
+    
+    # If no SOS dekad is found, return NA
+    if (length(DekadX) == 0) {
+      X <- as.Date(NA)  
+    } else {  
+      # Lookup the earliest date in the corresponding year and dekad
+      X <- Date.Lookup[Year == M.Year & Dekad == DekadX, min(Date)]
     }
-  }else{
-    X<-as.Date(NA)
+  } else {
+    # If site is not found or M.Year is NA, return NA
+    X <- as.Date(NA)
   }
+  
   return(X)
 }
 
@@ -343,7 +365,7 @@ ERA.Yields[is.na(Plant.Start) & !grepl("[.]",M.Year),
 
 # Note we subtract 5 days from Plant.Start in case this is an event enough to trigger the planting threshold too
 ERA.Yields[is.na(Plant.Start) & !is.na(SOS2),Plant.Source:="SOS only"
-][is.na(Plant.Start) & !is.na(SOS2),Plant.End:=SOS2+Uncertainty.Max
+][is.na(Plant.Start) & !is.na(SOS2),Plant.End:=SOS2+max_uncertainty
 ][is.na(Plant.Start) & !is.na(SOS2),Plant.Start:=SOS2-5]
 
 # Update SLen
@@ -358,9 +380,10 @@ ERA.Yields[grepl("SOS",Plant.Source) & is.na(Harvest.Start) & N>1,SLen.Source:=p
 ERA.Yields[grepl("SOS",Plant.Source) & is.na(Harvest.Start) & N==1,SLen.Source:=paste0(Plant.Source," + Nearby 10km")]
 
 # 9) Refine uncertain planting dates using rainfall data ####
+
 # It is not uncommon for studies in ERA to report vague dates such as "May-June" creating uncertainty around the start of the growing season.
 # Where there is a large difference between `Plant.Start` and `Plant.End` we can use the `EstPDayRain` function to estimate more precise planting dates using rainfall data.  
-# Planting dates are estimated for rows in `ERA.Yield` where the difference between `Plant.Start` and `Plant.End` is greater than or equal to the `Uncertainty.Min` argument and less than or equal to the `Uncertainty.Max` argument.  
+# Planting dates are estimated for rows in `ERA.Yield` where the difference between `Plant.Start` and `Plant.End` is greater than or equal to the `Uncertainty.Min` argument and less than or equal to the `max_uncertainty` argument.  
 # `EstPDayRain` uses the rollapply function to sum rainfall within a scanning window, planting is assumed to occur the day after summed rainfall surpasses a threshold amount.  
 # For each row of `ERA.Yield` with appropriate planting uncertainty the function initially searches for rainfall events in `CHIRPS` in-between and including the corresponding `Plant.Start` and `Plant.End` dates. This temporal search period can be modified using the `DaysBefore` and `MultiplyWin` arguments. 
 # `DaysBefore` extends the `Plant.Start` date backwards by a number of days. `MultiplyWin` is a proportion that multiplies the difference between `Plant.Start` and `Plant.End` dates increasing the size of the period forwards in time. 
@@ -370,151 +393,226 @@ ERA.Yields[grepl("SOS",Plant.Source) & is.na(Harvest.Start) & N==1,SLen.Source:=
 # If no trigger events are found in the initial scanning window then subsequent windows are searched in order.
 # By setting the `Use.Data.Dates` argument to `TRUE` we are substituting `NA` planting dates in ERA with values calculated by `EstPDayData` and refining these with the `EstPDayRain` function.
 
-ERA.Yields<-ERAg::EstPDayRain(Data=ERA.Yields, 
-                              id_field=id_field, 
-                              Rain.Data = POWER.CHIRPS, 
-                              Rain.Data.Name = "CHIRPS", 
-                              Rain.Field ="Rain", 
-                              # DaysBefore: When searching for rainfall events in-between the uncertain planting start/end dates
-                              # supplied in ERA.Yields extend the planting start date backwards by 2 days
-                              DaysBefore = 5,
-                              #  MultiplyWin: a proportion that changes the size of the difference between plant start and plant 
-                              # end, 1 = no change
-                              MultiplyWin = 1, 
-                              # Window: add two addition temporal periods beyond the initial temporal window (as specified by plantings dates) of 14 days
-                              Window = c(14,14), 
-                              # Widths: We need to set a threshold for the rainfall amount in mm that triggers planting within each 
-                              # window in this case there are 3 windows 1 + the 2 extra windows specified in the `Window` argument
-                              Widths = c(3,3,3), 
-                              # Rain.Thresholds: We need to set a threshold for the rainfall amount in mm that triggers planting in each 
-                              # window if `Widths[1]=2` and `Rain.Thresholds[1]=30` then 30mm needs to fall over 2 days within the initial
-                              # window of plant start to plant end dates (as modified by DaysBefore and  MultiplyWin arguments) for 
-                              # planting to occur. If the threshold is not met then function iteratively goes to `Window[1]`, `Widths[2]` and 
-                              # `Rain.Thresholds[2]`.
-                              Rain.Thresholds = c(30,20,15),
-                              # Uncertainty.Min/Uncertainty.Max: refine planting dates with uncertainty of between 7-90 days
-                              Uncertainty.Min = 7, 
-                              Uncertainty.Max = Uncertainty.Max, 
-                              Add.Values = T, 
-                              Use.Data.Dates = T)
+ERA.Yields<-est_pday_rain(data=ERA.Yields, 
+                          id_field=id_field, 
+                          rain_data = power_chirps, 
+                          rain_dataset_name = "CHIRPS", 
+                          rain_field ="Rain", 
+                          # DaysBefore: When searching for rainfall events in-between the uncertain planting start/end dates
+                          # supplied in ERA.Yields extend the planting start date backwards by 2 days
+                          days_before = 5,
+                          #  MultiplyWin: a proportion that changes the size of the difference between plant start and plant 
+                          # end, 1 = no change
+                          multiply_win = 1, 
+                          # Window: add two addition temporal periods beyond the initial temporal window (as specified by plantings dates) of 14 days
+                          window = c(14,14), 
+                          # Widths: We need to set a threshold for the rainfall amount in mm that triggers planting within each 
+                          # window in this case there are 3 windows 1 + the 2 extra windows specified in the `Window` argument
+                          widths = c(3,3,3), 
+                          # Rain.Thresholds: We need to set a threshold for the rainfall amount in mm that triggers planting in each 
+                          # window if `Widths[1]=2` and `Rain.Thresholds[1]=30` then 30mm needs to fall over 2 days within the initial
+                          # window of plant start to plant end dates (as modified by DaysBefore and  MultiplyWin arguments) for 
+                          # planting to occur. If the threshold is not met then function iteratively goes to `Window[1]`, `Widths[2]` and 
+                          # `Rain.Thresholds[2]`.
+                          rain_thresholds = c(30,20,15),
+                          # Uncertainty.Min/max_uncertainty: refine planting dates with uncertainty of between 7-90 days
+                          uncertainty_min = 7, 
+                          uncertainty_max = max_uncertainty, 
+                          add_values = T, 
+                          use_data_dates = T)
 
 # 10) Consolidate Dates ####
-SLen<-function(RName,DATA,ErrorDir,EC.Diff,Exclude.EC.Diff,id_field,Uncertainty.Max){
-  RName1<-RName
-  RName<-paste0("UnC.",RName,".P.Date")
-  DATA$Focus<-DATA[,..RName]
+
+#' Calculate and Validate Season Length Estimates
+#'
+#' This function consolidates estimates season length (SLen) using planting and harvest dates.
+#' It ensures consistency with estimated planting dates from rainfall data and eco-crop mean cycle lengths.
+#' The function also validates the estimated season length against a specified threshold to identify potential errors.
+#'
+#' @param RName Name of the rainfall dataset used for estimating planting dates.
+#' @param DATA Data.table containing planting and harvest date information.
+#' @param ErrorDir Directory to save error reports; set to NA if no error reports are needed.
+#' @param EC.Diff Logical; if TRUE, applies exclusion criteria based on eco-crop cycle length differences.
+#' @param Exclude.EC.Diff Threshold proportion for excluding records based on eco-crop season length differences.
+#' @param id_field Column name identifying unique sites.
+#' @param max_uncertainty Maximum allowable planting uncertainty (days).
+#'
+#' @return A list containing:
+#'   - `SS`: Filtered dataset with estimated planting dates and season lengths.
+#'   - `DATA`: Updated dataset with season length calculations.
+#' @export
+SLen <- function(RName, DATA, ErrorDir, EC.Diff, Exclude.EC.Diff, id_field, max_uncertainty) {
   
-  # Calc planting difference
-  DATA[,PDiff:=Plant.End-Plant.Start]
+  # Define the field name for estimated planting dates
+  RName1 <- RName
+  RName <- paste0("UnC.", RName, ".P.Date")
   
-  # In case of any situations where a planting date has been estimated outside of the specified range
-  DATA[Focus<Plant.Start|Focus>Plant.End,Focus:=NA]
+  # Assign estimated planting date to a new field for processing
+  DATA$Focus <- DATA[, ..RName]
   
-  # Where difference is > max acceptable uncertainty use planting date estimated from rainfall data
-  DATA[!is.na(Plant.Start),P.Date.Merge.Source:=Plant.Source]
-  DATA[PDiff>=Uncertainty.Max & !is.na(Focus),P.Date.Merge.Source:=paste(Plant.Source,RName1)
-  ][PDiff>=Uncertainty.Max & !is.na(Focus),P.Date.Merge:=Focus]
+  # Calculate the difference between planting start and end dates
+  DATA[, PDiff := Plant.End - Plant.Start]
   
-  # Calculate max season length using rainfall based estimate from EstPDayRain function
-  DATA[PDiff>=Uncertainty.Max & !is.na(Focus) & !is.na(Harvest.End), SLen.Source:=paste(RName1,SLen.Source)
-  ][PDiff>=Uncertainty.Max & !is.na(Focus) & !is.na(Harvest.End), SLen:=Harvest.End-Focus
-  ][is.na(SLen),SLen.Source:=NA]
+  # Ensure estimated planting dates fall within the original planting window
+  DATA[Focus < Plant.Start | Focus > Plant.End, Focus := NA]
   
-  DATA[,Focus:=NULL]
+  # Where planting uncertainty exceeds the threshold, use estimated planting date from rainfall data
+  DATA[!is.na(Plant.Start), P.Date.Merge.Source := Plant.Source]
+  DATA[PDiff >= max_uncertainty & !is.na(Focus), P.Date.Merge.Source := paste(Plant.Source, RName1)]
+  DATA[PDiff >= max_uncertainty & !is.na(Focus), P.Date.Merge := Focus]
   
-  # Logic for merging data sources for planting date and season length
-  # 1) Use mid-point of planting date range
-  # 2) Where planting dates are NA, substitute data from nearby sites - TO DO: RESTRICT TO MAX DISTANCE
-  # 3) Where Slen is unknown substitute from data
-  # 4) Set ecocrop seasonlength to the mean of the cycle length
-  DATA[PDiff<Uncertainty.Max ,P.Date.Merge:=Plant.Start+(Plant.End-Plant.Start)/2
-  ][is.na(P.Date.Merge) & !is.na(Data.PS.Date) & PDiff<Uncertainty.Max,P.Date.Merge.Source:=paste(Plant.Source,"Nearby")
-  ][is.na(P.Date.Merge) & !is.na(Data.PS.Date) & PDiff<Uncertainty.Max,P.Date.Merge:=Data.PS.Date+(Data.PE.Date-Data.PS.Date)/2
-  ][,SLen.EcoCrop:=(cycle_min+cycle_max)/2]
+  # Calculate season length using rainfall-based planting estimates
+  DATA[PDiff >= max_uncertainty & !is.na(Focus) & !is.na(Harvest.End), SLen.Source := paste(RName1, SLen.Source)]
+  DATA[PDiff >= max_uncertainty & !is.na(Focus) & !is.na(Harvest.End), SLen := Harvest.End - Focus]
+  DATA[is.na(SLen), SLen.Source := NA]
   
-  DATA[,P.Date.Merge.Source:=gsub("NA ","",P.Date.Merge.Source),by=P.Date.Merge.Source]
-  DATA[,SLen.Source:=gsub("NA ","",SLen.Source),by=SLen.Source]
+  # Remove temporary field
+  DATA[, Focus := NULL]
   
+  # Assign planting date using mid-point of planting window if uncertainty is within limits
+  DATA[PDiff < max_uncertainty, P.Date.Merge := Plant.Start + (Plant.End - Plant.Start) / 2]
   
-  # Create unique dataset of sites x seasons, removing data where is there is no data on planting date or season length
-  SS<-unique(DATA[,c(..id_field,"Code","Latitude","Longitude","EU","Product","M.Year","M.Year.Code","P.Date.Merge","SLen.EcoCrop",
-                     "Plant.Start","Plant.End","Plant.Diff.Raw","Harvest.Start","Harvest.End","SLen","Data.SLen","Data.PS.Date","Data.PE.Date","SOS","SOS2","Topt.low", "Topt.high","Tlow", "Thigh","P.Date.Merge.Source","SLen.Source")])
+  # Use nearby site estimates if planting date is missing
+  DATA[is.na(P.Date.Merge) & !is.na(Data.PS.Date) & PDiff < max_uncertainty, P.Date.Merge.Source := paste(Plant.Source, "Nearby")]
+  DATA[is.na(P.Date.Merge) & !is.na(Data.PS.Date) & PDiff < max_uncertainty, P.Date.Merge := Data.PS.Date + (Data.PE.Date - Data.PS.Date) / 2]
   
-  # Create Error Save Directory if  Required
-  if(!is.na(ErrorDir)){
-    if(!dir.exists(ErrorDir)){
-      dir.create(ErrorDir,recursive = T)
+  # Assign eco-crop estimated season length
+  DATA[, SLen.EcoCrop := (cycle_min + cycle_max) / 2]
+  
+  # Clean up source fields
+  DATA[, P.Date.Merge.Source := gsub("NA ", "", P.Date.Merge.Source), by = P.Date.Merge.Source]
+  DATA[, SLen.Source := gsub("NA ", "", SLen.Source), by = SLen.Source]
+  
+  # Create unique dataset with relevant fields for site-season combinations
+  SS <- unique(DATA[, c(..id_field, "Code", "Latitude", "Longitude", "EU", "Product", "M.Year", "M.Year.Code", 
+                        "P.Date.Merge", "SLen.EcoCrop", "Plant.Start", "Plant.End", "Plant.Diff.Raw", "Harvest.Start", 
+                        "Harvest.End", "SLen", "Data.SLen", "Data.PS.Date", "Data.PE.Date", "SOS", "SOS2", 
+                        "Topt.low", "Topt.high", "Tlow", "Thigh", "P.Date.Merge.Source", "SLen.Source")])
+  
+  # Generate error reports if needed
+  if (!is.na(ErrorDir)) {
+    if (!dir.exists(ErrorDir)) {
+      dir.create(ErrorDir, recursive = TRUE)
     }
     
-    Errors<-unique(SS[(abs(SLen-SLen.EcoCrop)/SLen.EcoCrop)>0.6 & !is.na(Harvest.Start),])
+    Errors <- unique(SS[abs(SLen - SLen.EcoCrop) / SLen.EcoCrop > 0.6 & !is.na(Harvest.Start), ])
     
-    if(nrow(Errors)>0){
-      fwrite(Errors,paste0(ErrorDir,"Suspected Date Error - Season Length Over 60 Perc Diff to EcoCrop Mean - ",RName,".csv"))
+    if (nrow(Errors) > 0) {
+      fwrite(Errors, paste0(ErrorDir, "Suspected Date Error - Season Length Over 60 Perc Diff to EcoCrop Mean - ", RName, ".csv"))
     }
   }
   
-  
-  # If the difference between mean Ecocrop cycle length and season length derived from the data is greater that Exclude.EC.Diff proportion of the data
-  # derived season length then exclude these rows.
-  if(EC.Diff){
-    SS<-SS[!(
-      (abs(SLen-SLen.EcoCrop)/SLen.EcoCrop)>EC.Diff &
-        !((is.na( SLen) & !is.na(SLen.EcoCrop))) |
-        (!is.na( SLen) & is.na(SLen.EcoCrop))
-    ),][!(is.na(SLen) & is.na(SLen.EcoCrop)),]
+  # Apply filtering based on eco-crop season length differences if enabled
+  if (EC.Diff) {
+    SS <- SS[!(abs(SLen - SLen.EcoCrop) / SLen.EcoCrop > EC.Diff & !((is.na(SLen) & !is.na(SLen.EcoCrop)) | (!is.na(SLen) & is.na(SLen.EcoCrop)))), ]
+    SS <- SS[!(is.na(SLen) & is.na(SLen.EcoCrop)), ]
   }
   
-  return(list(SS=SS,DATA=DATA))
+  return(list(SS = SS, DATA = DATA))
 }
 
-# Remove any rows with blank products
-ERA.Yields<-ERA.Yields[Product!=""]
+# Remove any rows where the Product field is empty
+ERA.Yields <- ERA.Yields[Product != ""]
 
-ERA.Yields[Season.Start==1 & Season.End==1,M.Year.Code:="1"
-][Season.Start==2 & Season.End==2,M.Year.Code:="2"
-][Season.Start==1 & Season.End==2,M.Year.Code:="1&2"
-][M.Year=="",M.Year:=NA]
+# Assign season codes based on the start and end season values
+ERA.Yields[Season.Start == 1 & Season.End == 1, M.Year.Code := "1"
+][Season.Start == 2 & Season.End == 2, M.Year.Code := "2"
+][Season.Start == 1 & Season.End == 2, M.Year.Code := "1&2"
+][M.Year == "", M.Year := NA]  # Replace empty M.Year values with NA
 
-ERA.Yields[,Plant.Start:=if(class(Plant.Start)=="Date"){Plant.Start}else{as.Date(Plant.Start,"%d.%m.%Y")}
-][,Plant.End:=if(class(Plant.End)=="Date"){Plant.End}else{as.Date(Plant.End,"%d.%m.%Y")}
-][,Harvest.Start:=if(class(Harvest.Start)=="Date"){Harvest.Start}else{as.Date(Harvest.Start,"%d.%m.%Y")}
-][,Harvest.End:=if(class(Harvest.End)=="Date"){Harvest.End}else{as.Date(Harvest.Start,"%d.%m.%Y")}]
+# Ensure date fields are correctly formatted as Date objects
+ERA.Yields[, Plant.Start := if (class(Plant.Start) == "Date") Plant.Start else as.Date(Plant.Start, "%d.%m.%Y")
+][, Plant.End := if (class(Plant.End) == "Date") Plant.End else as.Date(Plant.End, "%d.%m.%Y")
+][, Harvest.Start := if (class(Harvest.Start) == "Date") Harvest.Start else as.Date(Harvest.Start, "%d.%m.%Y")
+][, Harvest.End := if (class(Harvest.End) == "Date") Harvest.End else as.Date(Harvest.Start, "%d.%m.%Y")]  # Note: Harvest.End uses Harvest.Start, check for errors
 
+# Calculate season length estimates using the SLen function
+SS <- SLen(RName = "CHIRPS",
+           DATA = data.table::copy(ERA.Yields),
+           ErrorDir = NA,
+           EC.Diff = FALSE,
+           Exclude.EC.Diff = 0.6,
+           id_field = "Site.Key",
+           max_uncertainty = 20)
 
-# Create unique Site x EU x Date combinations
-SS<-SLen(RName="CHIRPS",
-         DATA=data.table::copy(ERA.Yields),
-         ErrorDir=NA,
-         EC.Diff=F,
-         Exclude.EC.Diff=0.6,
-         id_field="Site.Key",
-         Uncertainty.Max=20)
+# Extract processed data
+ERA.Yields <- SS$DATA
 
-ERA.Yields<-SS$DATA
+# Check for very short season lengths (<= N days) and flag errors
+N <- 50
+SLenError <- ERA.Yields[SLen <= N]
 
-# Check that SLen is not very low
-N<-50
-SLenError<-ERA.Yields[SLen<=N]
-
-if(nrow(SLenError)>0){
-  print(paste0("ERROR: ",ERA.Yields[SLen<=N,paste(unique(Code),collapse = ", ")]," contains season lengths <",N," days"))
+if (nrow(SLenError) > 0) {
+  print(paste0("ERROR: ", ERA.Yields[SLen <= N, paste(unique(Code), collapse = ", ")], " contains season lengths <", N, " days"))
 }
 
-ERA.Yields<-ERA.Yields[(!SLen<=N)|is.na(SLen)]
-SS<-SS$SS
-SS<-SS[(!SLen<=N)|is.na(SLen)]
+# Remove records with season lengths <= N unless missing (NA values are retained)
+ERA.Yields <- ERA.Yields[(!SLen <= N) | is.na(SLen)]
+SS <- SS$SS
+SS <- SS[(!SLen <= N) | is.na(SLen)]
 
-SS<-SS[!(is.na(SLen) & is.na(SLen.EcoCrop)) & !is.na(P.Date.Merge)]
+# Remove records where both SLen and SLen.EcoCrop are NA, and ensure planting date is available
+SS <- SS[!(is.na(SLen) & is.na(SLen.EcoCrop)) & !is.na(P.Date.Merge)]
 
-SS[,PlantingDate:=P.Date.Merge
-][,SeasonLength.Data:=SLen
-][,SeasonLength.EcoCrop:=SLen.EcoCrop
-][,M.Season:=M.Year.Code]
+# Rename fields for clarity in the final dataset
+SS[, PlantingDate := P.Date.Merge
+][, SeasonLength.Data := SLen
+][, SeasonLength.EcoCrop := SLen.EcoCrop
+][, M.Season := M.Year.Code]
 
 # 11) Generate Climate Variables  ####
+
+
+gdd_params <- list(
+  t_max_col = "Temp.Max",
+  t_min_col = "Temp.Min",
+  t_low_col = "Tlow",
+  t_opt_low_col = "Topt.low",
+  t_high_col = "Thigh",
+  t_opt_high_col = "Topt.high",
+  round_digits = 2
+  )
+
+ rainfall_params <- list(
+   rain_col = "Rain",
+   eto_col = "ETo",
+   threshold_dt = data.table(threshold = c(0.1, 1, 5), direction = c("lower", "lower","lower")),
+   r_seq_len =  c(5, 10, 15)
+   )
+ 
+ temp_params<-list(
+   t_max_col = "Temp.Max",
+   t_min_col = "Temp.Min",
+   t_mean_col = "Temp.Mean",
+   threshold_dt = data.table(threshold = c(20, 30, 35), direction = c("lower", "higher","higher")),
+   t_seq_len = c(5, 10, 15)
+   )
+ 
+ eratio_params<-list(
+   eratio_col,
+   thresholds,
+   r_seq_len
+   )
+ 
+ logging_params<-list(
+   logging_col,
+   ssat_col,
+   r_seq_len
+   )
+ 
+calc_clim_stats <- function(data=SS,
+                            climate=power_chirps,
+                            id_col = id_field,
+                            gdd_params = gdd_params,
+                            rainfall_params = rainfall_params,
+                            temp_params = temp_params,
+                            eratio_params = eratio_params,
+                            logging_params = logging_params,
+                            verbose = TRUE)
+
 Climate<-ERAg::CalcClimate2(Data=SS,
                       id_field=id_field,
-                      CLIMATE=POWER.CHIRPS,
+                      CLIMATE=power_chirps,
                       Rain.Data.Name="CHIRPS", 
                       Temp.Data.Name="POWER",
                       Rain.Windows = c(6 * 7, 4 * 7, 2 * 7, 2 * 7),
@@ -542,7 +640,7 @@ Climate<-ERAg::CalcClimate2(Data=SS,
 
 Climate<-CalcClimate2(DATA=era_data_yields,
                 id_field=id_field,
-                CLIMATE=POWER.CHIRPS,
+                CLIMATE=power_chirps,
                 Rain.Data.Name="CHIRPS", 
                 Temp.Data.Name="POWER",
                 Rain.Windows = c(6*7,4*7,2*7,2*7),  # Before,After,After,After planting date
