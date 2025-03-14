@@ -150,20 +150,7 @@ dates_seq[!dates_seq %in% dates]
       dir.create(save_dir)
     }
   
-    ### 5.1.2) Create continental bounding boxes ####
-    # Define bounding boxes as named vectors
-    bbox_africa <- c(lon_min = -25, lon_max = 63, lat_min = -36, lat_max = 38)
-    bbox_sam    <- c(lon_min = -120, lon_max = -30, lat_min = -36, lat_max = 38)
-    bbox_asia   <- c(lon_min = 80, lon_max = 155, lat_min = -36, lat_max = 38)
-    
-    # Combine into a list if needed
-    bounding_boxes <- list(
-      Africa = bbox_africa,
-      SouthCentralAmerica = bbox_sam,
-      SouthSoutheastAsia = bbox_asia
-    )
-  
-    ### 5.1.3) Restructure data ####
+     ### 5.1.2) Restructure data ####
     
     for(i in 1:length(bounding_boxes)){
       cat("Transposing ",names(bounding_boxes)[i],", bounding box ",i,"/",length(bounding_boxes),"\n")
