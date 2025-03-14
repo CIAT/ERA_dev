@@ -177,6 +177,8 @@ if(!require("exactextractr")){
     }
     
   # 2.2) ERA geodata #####
+    # Temporarily stopped whilst geodata pipeline is updated
+    if(F){
     update<-F
     # List files in the specified S3 bucket and prefix
     files_s3<-s3$dir_ls(era_dirs$era_geodata_s3)
@@ -188,6 +190,7 @@ if(!require("exactextractr")){
       if(!file.exists(file)|update==T){
         s3$file_download(files_s3[i],file)
       }
+    }
     }
 
   # 2.3) Vocab - era_master_sheet.xlsx #####
@@ -404,10 +407,11 @@ if(!require("exactextractr")){
 
     # Buffer points - projected - geographic
     era_locations_vect_g<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=F)
+    era_locations_vect_g$Country<-era_locations$Country
 
     # 3.2) Get a vector of Africa #####
   
-    # Get the vector data for Africa
+    # Get the vector data for Africa - note this seems to cut off the islands
     africa_vector <- rnaturalearth::ne_countries(continent = "Africa", returnclass = "sf")
     
     # Convert to terra SpatVector
@@ -416,6 +420,30 @@ if(!require("exactextractr")){
     # Create empty rast with extent of africa
     africa_rast <- terra::rast()
     ext(africa_rast) <- terra::ext(africa_rast)
+    
+    ### 3.3) Create continental bounding boxes ####
+    # Define bounding boxes as named vectors
+    bbox_africa <- c(lon_min = -25, lon_max = 63, lat_min = -36, lat_max = 38)
+    bbox_sam    <- c(lon_min = -120, lon_max = -30, lat_min = -36, lat_max = 38)
+    bbox_asia   <- c(lon_min = 80, lon_max = 155, lat_min = -36, lat_max = 38)
+    
+    # Combine into a list if needed
+    bounding_boxes <- list(
+      Africa = bbox_africa,
+      SouthCentralAmerica = bbox_sam,
+      SouthSoutheastAsia = bbox_asia
+    )
+    
+    african_countries <- c(
+      "Mali", "Guinea", "Morocco", "Niger", "Togo", "Tunisia", "Nigeria", "Egypt",
+      "Mozambique", "Madagascar", "Mauritius", "Sierra Leone", "South Africa",
+      "Ethiopia", "Eritrea", "Malawi", "Kenya", "Uganda", "Tanzania", "Zimbabwe",
+      "Ghana", "Senegal", "Burkina Faso", "Cameroon", "DRC", "Rwanda",
+      "Ivory Coast", "Benin", "Sudan", "Zambia", "Gambia",
+      "Libya", "Somalia", "Botswana", "Burundi", "Mauritania", "Cabo Verde",
+      "Swaziland", "Algeria", "Congo (Democratic Republic of the)", "Chad",
+      "South Sudan", "Namibia"
+    )
     
 # 4) Set time origin ####
     time_origin<-as.Date("1900-01-01")
