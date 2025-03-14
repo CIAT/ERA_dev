@@ -34,24 +34,9 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
           geodata::soil_af_isda(var = var, depth = depth, path = path, error = TRUE)
           }
           if(dataset=="soilgrids"){
-            soil_rast1<-geodata::soil_world_vsi(var = var, depth = depth, stat="mean")
-            soil_rast1<-terra::project(soil_rast1, "EPSG:4326")
-            soil_rast2<-geodata::soil_world_vsi(var = var, depth = depth,stat="uncertainty")
-            soil_rast2<-terra::project(soil_rast2, "EPSG:4326")
-            
-            dpts <- c("5", "15", "30", "60", "100", "200")
-            if (!(depth %in% dpts)) {
-              stop(paste("depth must be one of:", paste(dpts, 
-                                                        collapse = ", ")))
-            }
-            dd <- c("0-5", "5-15", "15-30", "30-60", "60-100", 
-                    "100-200")[depth == dpts]
-            
-            path1<-file.path(path,"soil_world",paste0(var,"_",dd,"cm_mean_30s.tif"))
-            path2<-file.path(path,"soil_world",paste0(var,"_",dd,"cm_uncertainty_30s.tif"))
-            
-            terra::write_raster(soil_rast1,path1)
-            terra::write_raster(soil_rast2,path2)
+            soil_rast1<-geodata::soil_world(var = var, depth = depth, stat="mean",path=path)
+            soil_rast2<-geodata::soil_world(var = var, depth = depth,stat="uncertainty",path=)
+            s
           }
           
         })
@@ -137,7 +122,7 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
   
   # Note geodata function documentation appears to be incorrect or files missing from server
   # https://geodata.ucdavis.edu/geodata/soil/soilgrids/
-  # There are no uncertainty, cec or ocs files.
+  # There are no uncertainty, cec or ocs files available as of 2025-14-03
   
   soil_files <-  data.table(
     var = c("bdod", "cec", "cfvo", "nitrogen", "phh2o", "sand", "silt", "clay", "soc", "ocd", "ocs"),
@@ -234,29 +219,20 @@ params<-data.table(
     file.path(era_dirs$era_geodata_dir,"soil_isda.parquet"),
     file.path(era_dirs$era_geodata_dir,"soil_grids.parquet")
   ),
-  data_dir<-c(
+  data_dir=c(
     file.path(era_dirs$soilgrid_dir,"soil_af_isda"),
     soilgrids_dir<-file.path(era_dirs$soilgrid_dir,"soil_world")
     ),
   dataset=c("isda","soilgrids")
 )
 
-african_countries <- c(
-  "Mali", "Guinea", "Morocco", "Niger", "Togo", "Tunisia", "Nigeria", "Egypt",
-  "Mozambique", "Madagascar", "Mauritius", "Sierra Leone", "South Africa",
-  "Ethiopia", "Eritrea", "Malawi", "Kenya", "Uganda", "Tanzania", "Zimbabwe",
-  "Ghana", "Senegal", "Burkina Faso", "Cameroon", "DRC", "Rwanda",
-  "Ivory Coast", "Benin", "Sudan", "Zambia", "Gambia",
-  "Libya", "Somalia", "Botswana", "Burundi", "Mauritania", "Cabo Verde",
-  "Swaziland", "Algeria", "Congo (Democratic Republic of the)", "Chad",
-  "South Sudan", "Namibia"
-)
-
+# remove soilgrids for now, geodata need to address issue of missing data on their servers
+params<-params[1]
 
 for(i in 1:nrow(params)){
   # Filter out sites for which data have already been extracted
   soil_file<-params$save_file[i]
-  dataset<-params$dataset
+  dataset<-params$dataset[i]
   if(file.exists(soil_file) & overwrite==F){
     existing_data<-arrow::read_parquet(soil_file)
     
@@ -292,7 +268,7 @@ for(i in 1:nrow(params)){
                   ][,variable:=unlist(tstrsplit(variable,"_",keep=1))]
   }
   
-  # TO DO ADD IN SOILGRIDS
+  # Handling for soil_grids needs to be inserted here, functionality not developed due to issues with geodata data availability
   
   data_ex_m<-data.table(dcast(data_ex_m,Site.Key+stat+variable+depth~error,value.var = "value"))
   
