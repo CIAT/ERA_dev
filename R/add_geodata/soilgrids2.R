@@ -2,6 +2,8 @@ library(soilDB)
 library(terra)
 
 p_load(soilDB,terra,data.table)
+source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/download_soilgrids2.R")
+
 
 site_vect<-era_locations_vect_g
 
@@ -57,7 +59,7 @@ sg2_data <- download_soilgrids_data(site_vect=temp_site_vect,
                                     depth=depths, 
                                     stats=stats,
                                     dl_dir=dl_dir,
-                                    worker_n = 1)
+                                    worker_n = 15)
 
 
 
