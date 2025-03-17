@@ -662,7 +662,7 @@ run_full_water_balance <- function(
           if (length(sscp) != 1 || length(sssat) != 1) {
             stop("Multiple scp/ssat values found for the same Site.Key. Check data.")
           }
-          subdt <- subdt[order(DATE)]
+          subdt <- subdt[order(subdt$DATE),]
           out   <- calc_watbal_series(
             dt         = subdt,
             soilcp     = sscp,
