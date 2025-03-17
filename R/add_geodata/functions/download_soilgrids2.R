@@ -1,58 +1,57 @@
-#' @import data.table
-#' @import future.apply
-#' @import progressr
-#' @import terra
-#' @import reshape2
-NULL
-
 #' Attempt to Fetch SoilGrids Data with Retries
 #'
-#' This helper function attempts to download SoilGrids data for a given site and soil variable using
-#' the \code{fetchSoilGrids} function. It makes up to 3 attempts to retrieve and process the data. If all attempts
-#' fail, a warning is printed and the function returns \code{NULL}.
+#' Helper function to download SoilGrids data for a single site and soil variable.
+#' It attempts up to 3 retries in case of failures, handles projection, masking, reshaping,
+#' and saves the processed output as a CSV.
 #'
-#' @param site A spatial object representing the site extent. Must contain a \code{Site.Key} property.
-#' @param var Character. The soil property name to download.
+#' @param site A \code{SpatVector} object representing the site extent. Must contain a \code{Site.Key} attribute.
+#' @param var Character. Soil property name to download (e.g., \code{"bdod"}).
 #' @param depths Character vector. Depth intervals (e.g., \code{c("0-5", "5-15")}).
 #' @param stats Character. Summary statistic to retrieve (e.g., \code{"mean"}).
 #' @param dl_dir Character. Directory path where CSV files are saved.
 #' @param file Character. Full file path for the output CSV.
+#'
+#' @import data.table
+#' @importFrom soilDB fetchSoilGrids
+#' @import terra
+#' @import reshape2
 #'
 #' @return A \code{data.frame} containing the downloaded and processed soil data, or \code{NULL} if the data
 #' could not be downloaded after 3 attempts.
 #'
 #' @examples
 #' \dontrun{
-#'   # Assume 'site' is already loaded as a terra object with a Site.Key attribute.
+#'   # Example usage:
+#'   site <- terra::vect("path/to/site1.shp")
 #'   res <- attempt_fetch(site, "bdod", c("0-5", "5-15"), "mean", "./downloads", "site1_bdod.csv")
 #' }
 attempt_fetch <- function(site, var, depths, stats, dl_dir, file) {
   attempts <- 3
   for (attempt in 1:attempts) {
     result <- tryCatch({
-      # Download SoilGrids data for the given site and variable
-      soil_data <- fetchSoilGrids(
+      # Download SoilGrids data
+      soil_data <- soilDB::fetchSoilGrids(
         x = site,
         grid = TRUE,
-        variables = var,             # Soil property of interest
-        depth_intervals = depths,    # Depth intervals to retrieve
-        target_resolution = c(250, 250), # Resolution in meters
-        summary_type = stats         # Summary statistic (e.g., "mean")
+        variables = var,
+        depth_intervals = depths,
+        target_resolution = c(250, 250),
+        summary_type = stats
       )
-      # Project the data to WGS84 (EPSG:4326)
+      # Project to WGS84
       soil_data <- terra::project(soil_data, "EPSG:4326")
-      # Mask the data to the site extent
+      # Mask to site extent
       soil_data <- terra::mask(soil_data, site)
-      # Convert to data.frame and reshape using melt
+      # Convert to data.frame and melt
       soil_data <- data.frame(soil_data)
-      soil_data <- suppressMessages(suppressWarnings(melt(soil_data)))
-      # Save the processed data as CSV
-      fwrite(soil_data, file)
-      soil_data  # Return the downloaded data
+      soil_data <- suppressMessages(suppressWarnings(reshape2::melt(soil_data)))
+      # Save CSV
+      data.table::fwrite(soil_data, file)
+      soil_data
     }, error = function(e) {
       warning(sprintf("Attempt %d failed for site %s, variable %s: %s", 
                       attempt, site$Site.Key, var, e$message))
-      Sys.sleep(1)  # Pause for 1 second before retrying
+      Sys.sleep(1)
       NULL
     })
     if (!is.null(result)) return(result)
@@ -64,98 +63,93 @@ attempt_fetch <- function(site, var, depths, stats, dl_dir, file) {
 
 #' Download SoilGrids Data for Multiple Sites with Parallel Processing
 #'
-#' This function downloads SoilGrids data for multiple sites and soil variables. It accepts a vector of file paths
-#' (each corresponding to a spatial site file), loads each site within the worker (using \code{terra::vect()}),
-#' and processes the download for each soil variable. Parallel processing is enabled via \code{future.apply} and
-#' progress is reported using \code{progressr}.
+#' Downloads SoilGrids 2.0 data for multiple spatial sites and soil variables.
+#' Parallel processing is supported via \code{future.apply}, with progress tracked by \code{progressr}.
+#' The function processes each site file individually, handles retries, reshapes output, and saves CSVs.
 #'
-#' For each site file in \code{site_vect} and each soil variable in \code{variables}, the function first checks whether
-#' a CSV file already exists for the given combination. If not, it attempts to download the data using the \code{attempt_fetch}
-#' helper function. The downloaded data is projected to WGS84 (EPSG:4326), masked to the site extent, and then reshaped
-#' into a \code{data.frame} before being saved.
-#'
-#' @param site_vect A character vector of file paths to spatial site objects (e.g., shapefiles). Each file must contain
+#' @param site_vect Character vector. File paths to spatial site objects (e.g., shapefiles). Each must contain
 #' a \code{Site.Key} attribute once loaded.
-#' @param variables A character vector of soil property names (e.g., \code{c("bdod", "cec")}).
-#' @param depths A character vector of depth intervals (e.g., \code{c("0-5", "5-15")}).
-#' @param stats Character. The summary statistic to retrieve (e.g., \code{"mean"}).
-#' @param dl_dir Character. Directory path where CSV files will be saved.
-#' @param worker_n Integer. The number of parallel workers to use. If \code{worker_n > 1}, parallel processing is enabled.
+#' @param variables Character vector. Soil property names (e.g., \code{c("bdod", "cec")}).
+#' @param depths Character vector. Depth intervals (e.g., \code{c("0-5", "5-15")}).
+#' @param stats Character. Summary statistic to retrieve (e.g., \code{"mean"}).
+#' @param dl_dir Character. Directory where CSV files will be saved.
+#' @param worker_n Integer. Number of parallel workers. Set to \code{1} to disable parallelization.
+#' @param add_id Logical. Whether to force add \code{Site.Key} column to output (default = \code{FALSE}).
 #'
-#' @return A \code{data.table} containing the combined soil data for all sites and variables.
+#' @import terra
+#' @import data.table
+#' @import progressr
+#' @import future
+#' @import future.apply
+#'
+#' @return A \code{data.table} containing combined soil data for all sites and variables.
 #'
 #' @examples
 #' \dontrun{
-#'   # Define parameters
-#'   site_vect <- c("path/to/site1.shp", "path/to/site2.shp")  # Paths to spatial files
+#'   site_vect <- c("path/to/site1.shp", "path/to/site2.shp")
 #'   variables <- c("bdod", "cec")
 #'   depths <- c("0-5", "5-15")
 #'   stats <- "mean"
 #'   dl_dir <- "./downloads"
 #'
-#'   # Download the data using 4 parallel workers
 #'   sg2_data <- download_soilgrids_data(site_vect, variables, depths, stats, dl_dir, worker_n = 4)
 #' }
-download_soilgrids_data <- function(site_vect, variables, depths, stats, dl_dir, worker_n = 1) {
-  # Set up a text progress bar handler
-  handlers("txtprogressbar")
+download_soilgrids_data <- function(site_vect, variables, depths, stats, dl_dir, worker_n = 1, add_id = FALSE) {
   
-  n_sites<-length(terra::vect(site_vect))
+  n_sites <- length(terra::vect(site_vect))
   
-  # Internal function to process a single site.
-  # The site is loaded from its file path inside this function to avoid passing terra objects to workers.
-  process_site <- function(i) {
-    # Load the spatial site from its file path
-    sites<-terra::vect(site_vect)
-    site <-sites [i]
+  # Process individual site
+  process_site <- function(i, site_vect, variables, depths, dl_dir, stats, worker_n, add_id) {
+    sites <- terra::vect(site_vect)
+    site <- sites[i]
     site_data <- rbindlist(lapply(seq_along(variables), function(j) {
       var <- variables[j]
-      site_key<-site$Site.Key
-      cat(sprintf("Downloading site %d/%d %s | variable %d/%d %s\r",
-                  i, length(sites), site_key, j, length(variables), var))
-      file <- file.path(dl_dir, paste0(site_key, "_", var, ".csv"))
-      
-      if (!file.exists(file)) {
-        # Attempt to fetch the data using the helper function with retry logic
-        res <- attempt_fetch(site, var, depths, stats, dl_dir, file)
-        return(res)
-      } else {
-        # If the file exists, read the data from disk
-        return(fread(file))
+      site_key <- site$Site.Key
+      if (worker_n == 1) {
+        cat(sprintf("Downloading site %d/%d %s | variable %d/%d %s                \r",
+                    i, length(sites), site_key, j, length(variables), var))
       }
+      file <- file.path(dl_dir, paste0(site_key, "_", var, ".csv"))
+      if (!file.exists(file)) {
+        result <- attempt_fetch(site, var, depths, stats, dl_dir, file)
+      } else {
+        result <- fread(file)
+      }
+      if (nrow(result) == 0) {
+        warning(paste("\nDownloaded soilgrids data has zero rows", site_key, var))
+      }
+      if (any(grepl("lyr.1", unique(result$variable)))) {
+        warning(paste("\nDownloaded soilgrids data has non-informative variable name", site_key, var))
+      }
+      if (add_id) {
+        result$Site.Key <- site_key
+      }
+      return(result)
     }))
     return(site_data)
   }
   
-  # Process each site sequentially or in parallel based on worker_n
+  # Parallel or sequential
   if (worker_n > 1) {
-    plan(multisession, workers = worker_n)
+    progressr::handlers(global = TRUE)
+    progressr::handlers("progress")
+    future::plan(multisession, workers = worker_n)
+    
     sg2_data <- progressr::with_progress({
-      p <- progressr::progressor(steps = n_sites)
+      p <- progressr::progressor(along = seq_along(1:n_sites))
       future.apply::future_lapply(1:n_sites, function(i) {
-        process_site(i)
-      },future.seed = TRUE)
-      p()
+        p(sprintf("Processing site %d/%d", i, n_sites))
+        res <- process_site(i, site_vect, variables, depths, dl_dir, stats, worker_n, add_id)
+        return(res)
+      }, future.seed = TRUE)
     })
   } else {
     sg2_data <- lapply(1:n_sites, function(i) {
-      process_site(i)
+      cat("Processing site", i, "/", n_sites, "\r")
+      process_site(i, site_vect, variables, depths, dl_dir, stats, worker_n, add_id)
     })
   }
   
   sg2_data <- rbindlist(sg2_data, fill = TRUE)
   return(sg2_data)
 }
-
-# ------------------------------------------------------------------------------
-# Example usage:
-# ------------------------------------------------------------------------------
-# Uncomment and modify the lines below as needed:
-# site_vect <- c("path/to/site1.shp", "path/to/site2.shp")  # Paths to spatial files with a Site.Key attribute
-# variables <- c("bdod", "cec", "cfvo")  # Soil properties to download
-# depths <- c("0-5", "5-15")  # Depth intervals
-# stats <- "mean"  # Summary statistic to retrieve
-# dl_dir <- "./downloads"  # Directory to save CSV files
-#
-# sg2_data <- download_soilgrids_data(site_vect, variables, depths, stats, dl_dir, worker_n = 4)
-# print(sg2_data)
