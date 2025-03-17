@@ -35,8 +35,8 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
           }
           if(dataset=="soilgrids"){
             soil_rast1<-geodata::soil_world(var = var, depth = depth, stat="mean",path=path)
-            soil_rast2<-geodata::soil_world(var = var, depth = depth,stat="uncertainty",path=)
-            s
+            # Files do not exist
+           # soil_rast2<-geodata::soil_world(var = var, depth = depth,stat="uncertainty",path=path)
           }
           
         })
@@ -153,7 +153,8 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
                          copy(soil_files)[,depth:=60],
                          copy(soil_files)[,depth:=100])
   
-  soil_files<-soil_files[var %in% c("cec","cfvo","ocs")]
+  # These do not exist
+  soil_files<-soil_files[!var %in% c("cec","ocs")]
   
   n_workers<-5
   
@@ -212,12 +213,12 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
   
   
 # 3) Extract soil grids data for era buffers ####
-overwrite<-T # Re-extract all data that exists for era sites?
+overwrite<-F # Re-extract all data that exists for era sites?
 
 params<-data.table(
   save_file=c(
-    file.path(era_dirs$era_geodata_dir,"soil_isda.parquet"),
-    file.path(era_dirs$era_geodata_dir,"soil_grids.parquet")
+    file.path(era_dirs$era_geodata_dir,"isda.parquet"),
+    file.path(era_dirs$era_geodata_dir,"soilgrids.parquet")
   ),
   data_dir=c(
     file.path(era_dirs$soilgrid_dir,"soil_af_isda"),
@@ -226,8 +227,7 @@ params<-data.table(
   dataset=c("isda","soilgrids")
 )
 
-# remove soilgrids for now, geodata need to address issue of missing data on their servers
-params<-params[1]
+params<-params[2]
 
 for(i in 1:nrow(params)){
   # Filter out sites for which data have already been extracted
@@ -266,11 +266,16 @@ for(i in 1:nrow(params)){
               ][,variable:=gsub("c.tot.","c.tot_",variable)
                 ][,depth:=unlist(tstrsplit(variable,"_",keep=2))
                   ][,variable:=unlist(tstrsplit(variable,"_",keep=1))]
+    
+    data_ex_m<-data.table(dcast(data_ex_m,Site.Key+stat+variable+depth~error,value.var = "value"))
   }
   
-  # Handling for soil_grids needs to be inserted here, functionality not developed due to issues with geodata data availability
+  if(dataset=="soilgrids"){
+    data_ex_m[,depth:=unlist(tstrsplit(variable,"_",keep=2))
+              ][,variable:=unlist(tstrsplit(variable,"_",keep=1))
+                ][,error:=NA]
+  }
   
-  data_ex_m<-data.table(dcast(data_ex_m,Site.Key+stat+variable+depth~error,value.var = "value"))
   
   if(file.exists(soil_file) & overwrite==F){
     data_ex_m<-unique(rbind(existing_data,data_ex_m))
