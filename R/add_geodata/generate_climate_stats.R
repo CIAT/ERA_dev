@@ -5,6 +5,7 @@
     # R/add_geodata/power.R
     # R/add_geodata/elevation.R
     # R/add_geodata/calc_sos.R
+    # R/add_geodata/water_balance.R
 
 # 1). Set-up environment ####
   ## 1.1) Load Packages & source functions ####
@@ -28,24 +29,39 @@
   
   era_data<-data.table(arrow::read_parquet(era_file))
   
-   ## 1.2.1) Create season code field & turn M.Year blanks to NAs ####
+   ### 1.2.1) Set id field ####
+  id_field<-"Site.Key"
+   ### 1.2.2) Create season code field & turn M.Year blanks to NAs ####
   
   era_data[Season.Start==1 & Season.End==1,M.Year.Code:="1"
   ][Season.Start==2 & Season.End==2,M.Year.Code:="2"
   ][Season.Start==1 & Season.End==2,M.Year.Code:="1&2"
   ][M.Year=="",M.Year:=NA]
   
-  ## 1.3) Load and merge geodata ####
+   ### 1.2.3) Load master codes ####
+  # Get names of all sheets in the workbook
+  sheet_names <- readxl::excel_sheets(era_vocab_local)
+  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
+  
+  # Read each sheet into a list
+  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
+  
+  PracticeCodes<-master_codes$prac
+  OutcomeCodes<-master_codes$out
+  EUCodes<-master_codes$prod
+  
+  
+  ## 1.3) Load and merge geodata & crop parameters ####
     ### 1.3.1) Climate (POWER, CHIRPS) ####
     files<-list.files(era_dirs$era_geodata_dir,"power.*parquet",full.names = T,ignore.case = T)
     (files<-files[!grepl("annual|ltavg",files)])
-    (files<-files[!grepl("annual|ltavg",files)])
+    (files<-tail(files,1))
     
     power<-arrow::read_parquet(files)
     
     files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T,ignore.case = T)
     (files<-files[!grepl("annual|ltavg",files)])
-    (files<-files[!grepl("annual|ltavg",files)])
+    (files<-tail(files,1))
     
     chirps<-arrow::read_parquet(files) 
     
@@ -54,8 +70,8 @@
     
     power_chirps<-merge(power,chirps[,.(Site.Key,DayCount,Rain_chirps)],by=c("Site.Key","DayCount"),all.x=T,sort=F)  
     
-    
-    # correlation between power and chirps daily
+    if(F){
+      # correlation between power and chirps daily
     correlation <- cor(power_chirps$Rain, power_chirps$Rain_chirps, use = "complete.obs", method = "pearson")
     print(correlation)
     
@@ -79,6 +95,7 @@
     power_chirps[,Rain:=Rain_chirps][,Rain_chirps:=NULL]
     power<-NULL
     chirps<-NULL
+    }
     
     ### 1.3.2) Load elevation & merge with era_data ####
     elevation<-fread(file.path(era_dirs$era_geodata_dir,"elevation.csv"))
@@ -96,11 +113,48 @@
     (files<-tail(files,1))
     SOS<-miceadds::load.Rdata2(file=basename(files),path=dirname(files))
   
+    ### 1.3.4) Load water balance ####
+    
+    # Watbal calculated using isda soil data for African Sites
+    (files<-list.files(era_dirs$era_geodata_dir,"watbal-isda.*parquet",full.names = T,ignore.case = T))
+    (files<-tail(files,1))
+    watbal_isda<-arrow::read_parquet(files)
+    
+    # Watbal calculated using soilgrids data for non-African Sites
+    (files<-list.files(era_dirs$era_geodata_dir,"watbal-soilgrids2.0.*parquet",full.names = T,ignore.case = T))
+    (files<-tail(files,1))
+    watbal_soilgrids<-arrow::read_parquet(files)
+    # Ensure soilgrids data is not duplicated in isda
+    watbal_soilgrids<-watbal_soilgrids[!Site.Key %in% watbal_isda$Site.Key]
+    
+    # Merge two datasets
+    watbal<-rbind(watbal_isda,watbal_soilgrids)
+    watbal_isda<-NULL
+    watbal_soilgrids<-NULL
+    setnames(watbal,"DATE","Date")
+    watbal<-watbal[,.(Site.Key,Date,ssat,ETMAX,AVAIL,DEMAND,LOGGING,RUNOFF)]
+    
+    # Merge with power_chirps
+    power_chirps<-merge(power_chirps,watbal,by=c("Site.Key","Date"),all.x=T,sort=F)
+    
+    ## 1.3.5) Explore missing climate data ####
+    power_chirps[is.na(ETMAX),.(from=min(Date),to=max(Date)),by=Site.Key]
+    power_chirps[is.na(ETMAX),.(from=min(Date),to=max(Date))]
+    (missing<-power_chirps[is.na(ETMAX) & Date<"2024-01-01",.(from=min(Date),to=max(Date)),by=Site.Key])
+    (missing<-unique(era_data[Site.Key %in% missing$Site.Key,.(Code,Site.Key,Site.ID,Country)]))
+    # CHIRPS does not cover Mauritius, Cabo Verde, or Zanzibar
+    # CHIRPS also misses Alexandria University at 31.2060 29.9190 B200 and other sites in this area
+    # CHIRPS also misses ITC HQ, Kerr Serigne 13.4340 -16.7240 B150
+    # CHIRPS also misses 32.8667 05.4333 B2000 in the Algerian Desert
+    
+    power_chirps<-power_chirps[!is.na(ETMAX)]
+    
+    ### 1.3.5) Load eco crop ####
+    ecocrop<-fread(file.path(era_dirs$ecocrop_dir,"ecocrop.csv"))
+    
   ## 1.4) Set analysis and plotting parameters #####
   # Set cores for parallel processing
   worker_n<-max(1, parallel::detectCores() - 1)
-  
-  id_field<-"Site.Key"
   
   # Set plotting parameters
   DPI<-600
@@ -110,21 +164,6 @@
   
   
   
-  
-  ## 1.5) Load master codes ####
-  # Get names of all sheets in the workbook
-  sheet_names <- readxl::excel_sheets(era_vocab_local)
-  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
-  
-  # Read each sheet into a list
-  master_codes <- sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)
-  
-  PracticeCodes<-master_codes$prac
-  OutcomeCodes<-master_codes$out
-  EUCodes<-master_codes$prod
-  
-  ## 1.6) Load eco crop ####
-  ecocrop<-fread(file.path(era_dirs$ecocrop_dir,"ecocrop.csv"))
   
 # 2) Subset ERA data #####
 
@@ -589,15 +628,15 @@ gdd_params <- list(
    )
  
  eratio_params<-list(
-   eratio_col,
-   thresholds,
-   r_seq_len
+   eratio_col="ERATIO",
+   thresholds=c(0.5, 0.25, 0.1),
+   r_seq_len=c(5, 10, 15)
    )
  
  logging_params<-list(
-   logging_col,
-   ssat_col,
-   r_seq_len
+   logging_col="LOGGING",
+   ssat_col="ssat",
+   r_seq_len=c(5, 10, 15)
    )
  
 calc_clim_stats <- function(data=SS,
