@@ -16,7 +16,7 @@ date_to_dekad <- function(date,
                       ...) {
   type <- match.arg(type)
   x <- as.Date(date, ...)
-  res <- ifelse(day(x) > 20,  3, ifelse(day(x) > 10, 2, 1))
+  res <- ifelse(day(x) > 20,  3, ifelse(lubridate::day(x) > 10, 2, 1))
   if(type == "year") res <- month(x)*3 + res - 3
   return(res)
 }
