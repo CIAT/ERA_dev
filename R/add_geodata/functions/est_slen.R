@@ -46,14 +46,35 @@ est_slen <- function(data) {
     SL.N      = sum(!is.na(SLen))
   ), by = .(Latitude, Longitude, M.Year, Product)]
   
-  # Iteratively search for matching season lengths at decreasing spatial resolutions (from 5 to 1 decimal places)
-  for (i in 5:1) {
+  # Iteratively search for matching season lengths at decreasing spatial resolutions (from 3 to 2 decimal places)
+  # Note 1 degree at the equator is 110km, 0.1 = 11km, 0.01 = 1.1km
+  
+  # Include spatial and temporal specificity
+  for (i in 3:2) {
     
     # Create spatial matching codes based on rounded latitude and longitude
     valid_records[, Code := paste(round(Latitude, i), round(Longitude, i), M.Year, Product)]
     
     # Generate matching code for the dataset
     data[, MCode := paste(round(Latitude, i), round(Longitude, i), M.Year, Product)]
+    
+    # Apply estimated season length where missing
+    data[is.na(SLen) & is.na(Data.SLen), Data.SLen.Acc := paste0(i, "-P")]
+    data[is.na(SLen) & is.na(Data.SLen), Data.SLen := valid_records$SL.Median[match(MCode, valid_records$Code)]]
+    
+    # Reset accuracy column if no match is found
+    data[is.na(Data.SLen), Data.SLen.Acc := NA]
+  }
+  
+  # Include spatial specificity only
+  valid_records<-valid_records[,.(SL.Median=round(mean(SL.Median,na.rm=T),0)),by=.(Latitude,Longitude,Product)]
+  for (i in 3:2) {
+    
+    # Create spatial matching codes based on rounded latitude and longitude
+    valid_records[, Code := paste(round(Latitude, i), round(Longitude, i), Product)]
+    
+    # Generate matching code for the dataset
+    data[, MCode := paste(round(Latitude, i), round(Longitude, i), Product)]
     
     # Apply estimated season length where missing
     data[is.na(SLen) & is.na(Data.SLen), Data.SLen.Acc := paste0(i, "-P")]
