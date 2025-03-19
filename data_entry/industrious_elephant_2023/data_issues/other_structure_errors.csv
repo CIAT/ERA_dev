@@ -9,6 +9,5 @@ NN0431,2013/2014,PD.Out,Time,A Time used does not match the Time tab.,FALSE,"","
 NN0533,Bako./Hawassa.,PD.Out,Site.ID,A Site.ID used does not match the Site tab.,FALSE,"","",
 NN0549,9999-01-01,PD.Out,PD.Date.Start,Date not between 1950-01-01 & 2023-12-01,FALSE,"","",
 NN0549,9999-12-01,PD.Out,PD.Date.End,Date not between 1950-01-01 & 2023-12-01,FALSE,"","",
-SA0006,1993 M/1994 M/1994 W/1995 M/1995 W/1996 M/1996 W/1997 M/1997 W/1998 M/1998 W/1999 M/1999 W/2000 M/2000 W/2001 M/2001 W/2002 M/2002 W/2003 M/2003 W/2004 M/2004 W/2005 M/2005 W/2006 M/2006 W/2007 M/2007 W/2008 M/2008 W/2009 M/2009 W,PD.Out,Time,A Time used does not match the Time tab.,FALSE,"","",
 SA0008,1988-W/2008-S,PD.Out,Time,A Time used does not match the Time tab.,FALSE,"","",
 SP0024,2004,PD.Out,Time,A Time used does not match the Time tab.,FALSE,"","",

@@ -1,4 +1,2 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-CJ0003,"Venda Experimental Farm, Thohoyandou - 2016/Syferkuil Experimental Farm, Limpopo University - 2017",Times.Clim,Site.ID-Time,>1 combination of Site.ID and Time is present in the time climate table.,FALSE,"",""
-SA0047,"ICAR –Indian Agricultural Research Institute, Dehli - 2019-MZ/ICAR –Indian Agricultural Research Institute, Dehli - 2019-CP",Times.Clim,Site.ID-Time,>1 combination of Site.ID and Time is present in the time climate table.,FALSE,"",""
-SP0048,Omogho18 - 2018,Times.Clim,Site.ID-Time,>1 combination of Site.ID and Time is present in the time climate table.,FALSE,"",""
+SA0047,"ICAR –Indian Agricultural Research Institute, Dehli - 2019.2",Times.Clim,Site.ID-Time,>1 combination of Site.ID and Time is present in the time climate table.,FALSE,"",""
