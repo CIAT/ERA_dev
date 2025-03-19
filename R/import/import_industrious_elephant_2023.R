@@ -153,7 +153,7 @@ if(update){
   ## 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the import process be run again?
-  overwrite<-F
+  overwrite<-T
   
   # Delete existing files if overwrite =T
   if(overwrite){
@@ -1444,7 +1444,7 @@ if(update){
       B.Code<-Pub.Out$B.Code[i]
       
       if(!"Plant.Relay" %in% colnames(X)){
-        X[,Plant.Relay:="Not in template"]
+        X[,Plant.Relay:=field_absent]
       }
       
         if(!all(col_names2 %in% colnames(X))){
@@ -1545,7 +1545,7 @@ if(update){
     B.Code<-Pub.Out$B.Code[i]
     
     if(!"F.Int" %in% colnames(X)){
-      X[,F.Int:="Not in template"]
+      X[,F.Int:=field_absent]
     }
     
     if(!all(col_names2 %in% colnames(X))){
@@ -4760,11 +4760,11 @@ col_names<-colnames(data[[800]])
     
     # Add missing cols to older versions
     if(!"Out.Agg.Stat" %in% colnames(X)){
-      X$Out.Agg.Stat<-"Not in template"
+      X$Out.Agg.Stat<-field_absent
     }
     
     if(!"Out.Notes" %in% colnames(X)){
-      X$Out.Notes<-"Not in template"
+      X$Out.Notes<-field_absent
     }
     
     if(!all(col_names2 %in% colnames(X))){
@@ -4846,7 +4846,7 @@ Out.Econ<-lapply(1:length(data),FUN=function(i){
   for(i in 1:length(col_names2)){
     cname<-col_names2[i]
   if(!cname %in% colnames(X)){
-    X[,(cname):="Not in template"]
+    X[,(cname):=field_absent]
   }
   }
   
@@ -4872,7 +4872,7 @@ results<-validator(data=Out.Econ,
                    site_data = Site.Out,
                    time_data=Times.Out,
                    trim_ws = T,
-                   ignore_values = c("unspecified","All times","All sites","Not in template"))
+                   ignore_values = c("unspecified","All times","All sites",field_absent))
 
 errors4<-results$errors[order(B.Code)]
 Out.Econ<-results$data
@@ -4891,15 +4891,15 @@ col_names<-colnames(data[[800]])
     
     # Add missing cols to older versions
     if(!"ED.Sample.DAE" %in% colnames(X)){
-      X$ED.Sample.DAE<-"Not in template"
+      X$ED.Sample.DAE<-field_absent
     }
     
     if(!"ED.Sample.Stage" %in% colnames(X)){
-      X$ED.Sample.Stage<-"Not in template"
+      X$ED.Sample.Stage<-field_absent
     }
     
     if(!"ED.Comparison2" %in% colnames(X)){
-      X$ED.Comparison2<-"Not in template"
+      X$ED.Comparison2<-field_absent
     }
     
     if(!all(col_names %in% colnames(X))){
@@ -4972,7 +4972,7 @@ col_names<-colnames(data[[800]])
   errors[["outcome_mismatches"]]<-error_dat
 
   errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison1)][,T.Name:=ED.Comparison1],tabname="Data.Out",tabname_parent="MT.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison1"]))
-  errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison2) & ED.Comparison2!="Not in template"][,T.Name:=ED.Comparison2],tabname_parent="MT.Out",tabname="Data.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison2"]))
+  errors<-c(errors,list(check_key(parent=MT.Out,child=Data.Out[!is.na(ED.Comparison2) & ED.Comparison2!=field_absent][,T.Name:=ED.Comparison2],tabname_parent="MT.Out",tabname="Data.Out",keyfield="T.Name",collapse_on_code=T)[,field:="ED.Comparison2"]))
   
   # Check that Rotations match
   error_dat<-check_key(parent=Rot.Out,child=Data.Out[!is.na(R.Level.Name)],tabname="Data.Out",tabname_parent="Rot.Out",keyfield="R.Level.Name",collapse_on_code=T)
@@ -5331,7 +5331,7 @@ col_names<-colnames(data[[800]])
       
       Data.Out<-merge(Data.Out,mergedat,by=c("P.Product","ED.Product.Comp.L1"),all.x=T,sort=F)
       
-        ##### I THINK THIS IS NO LONGER RELEVANT - 3) Add in Agroforestry Trees ####
+        ##### IS THIS STILL RELEVANT? - 3) Add in Agroforestry Trees ####
         if(F){
           NX<-is.na(X[,EU])  & Data.Out[,ED.Product.Simple] %in% TreeCodes$Product.Simple
           X[NX,Product.Type :="Plant Product"]
@@ -5344,7 +5344,7 @@ col_names<-colnames(data[[800]])
           X[NX,EU:=TreeCodes[match(Data.Out[NX,ED.Product.Simple],TreeCodes[,Product.Simple]),EU]]
           rm(NX)
         }
-        ##### I THINK THIS IS NO LONGER RELEVANT -  4) Repeat 1-3 but for aggregated products (SLOW consider parallel) ####
+        ##### IS THIS STILL RELEVANT? -  4) Repeat 1-3 but for aggregated products (SLOW consider parallel) ####
         if(F){
           N<-grep("[.][.]",Data.Out$ED.Product.Simple)
           Z<-Data.Out[N,c("ED.Product.Simple","ED.Product.Comp","ED.Product.Code")]
@@ -5897,6 +5897,7 @@ PD.Codes=PD.Codes,
 PD.Out=PD.Out,
 Fert.Out=Fert.Out,
 Fert.Method=Fert.Method,
+Fert.Comp=Fert.Comp,
 Chems.Code=Chems.Code,
 Chems.AI=Chems.AI,
 Chems.Out=Chems.Out,
