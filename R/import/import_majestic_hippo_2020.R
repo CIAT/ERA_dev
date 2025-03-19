@@ -1,5 +1,44 @@
 # Run 0_set_env.R before running this script
 
+################################################################################
+# SCRIPT OVERVIEW
+#
+# This script assembles and standardizes a large set of ERA data from multiple
+# Excel sheets and auxiliary reference tables. It begins by loading required
+# packages, setting up parallel processing, and importing helper functions.
+#
+# The main workflow then:
+# 1) Pulls in Data
+#    - Either downloads or locates local Excel files for the data extraction  
+#      project (“majestic_hippo_2020”).
+#    - Reads and merges core dataset tables (e.g., publication info, site
+#      details, soils, experimental design, products, varieties, inputs, etc.).
+#
+# 2) Harmonizes Data Columns
+#    - Replaces zeros with NA.
+#    - Standardizes naming conventions for fertilizers, plant varieties,
+#      product components, practice codes, etc., using “master_codes”.
+#    - Resolves repeated/aggregated entries (where users used delimiters “..”
+#      or “...”) by consolidating them into single, consistent records.
+#
+# 3) Merges and Validates
+#    - Attaches practice codes (e.g., “h10” for no fertilizer).
+#    - Carries out validation steps (checking duplicates, missing site IDs, 
+#      mismatched rotation sequences, etc.).
+#    - Synthesizes final practice columns (e.g., adding “monoculture” or 
+#      “rainfed” codes where appropriate).
+#
+# 4) Builds Final Tables
+#    - Compiles all processed data into a named list (Tables_2020) containing
+#      harmonized R objects for each major dataset (e.g., Data.Out, Pub.Out, 
+#      Soil.Out, Rot.Out, etc.).
+#    - Saves that list as an RData file for subsequent analysis.
+#
+# In short, this script serves as a “master import and cleaning” routine that
+# unifies raw ERA Excel sheets into well-structured, code-labeled tables
+# suitable for further analyses.
+################################################################################
+
 # 0) Set-up ####
   ## 0.1) Load packages ####
 pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply,parallel,stringr,progressr)
@@ -690,11 +729,10 @@ names(XL) <- FNames
     X
     
   }))
-  setnames(AF.Out, "AF.Level.Name...1","AF.Level.Name")
+  setnames(AF.Out, c("AF.Level.Name...1","Notes"),c("AF.Level.Name","AF.Notes"))
   
   # Remove any parenthesis in names
   AF.Out[,AF.Level.Name:=gsub("[(]","",AF.Level.Name)][,AF.Level.Name:=gsub("[)]","",AF.Level.Name)]
-  
   
   ## 2.8) Tillage (Till.Out) =====
   Till.Out<-lapply(XL,"[[",8)
@@ -4309,6 +4347,7 @@ Data.Out[ED.Comparison==0,ED.Comparison:=NA]
     Har.Out=Har.Out,
     pH.Out=pH.Out,
     pH.Method=pH.Method,
+    Irrig.Codes=Irrig.Codes,
     Irrig.Out=Irrig.Out,
     WH.Out=WH.Out,
     E.Out=E.Out,
