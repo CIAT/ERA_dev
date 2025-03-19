@@ -1,16 +1,40 @@
-# First run:
-  # R/0_set_env.R
-  # If you are a super-user and need to calculate from scratch or add new sites then you may also need to run:
-    # R/add_geodata/chirps.R,
-    # R/add_geodata/power.R
-    # R/add_geodata/elevation.R
-    # R/add_geodata/calc_sos.R
-    # R/add_geodata/water_balance.R
+##############################################################################
+# Climate Statistics Processing Pipeline
+#
+# This pipeline sets up the environment, reads and prepares the ERA compiled dataset,
+# merges in various geospatial and crop parameter data (including CHIRPS, POWER, elevation,
+# SOS, water balance, and EcoCrop), refines crop cycle lengths, and estimates missing 
+# planting dates and season lengths using nearby data and rainfall information.
+#
+# The overall workflow is as follows:
+#  1) Set-up the environment: load packages and source required functions.
+#  2) Read in the ERA compiled dataset.
+#  3) Set key fields (such as the unique site id, season codes, and handling missing year values).
+#  4) Load and merge geodata and crop parameters (climate data from POWER and CHIRPS,
+#     elevation, SOS, water balance, and EcoCrop).
+#  5) Subset ERA data to crop yields of annual products.
+#  6) Merge EcoCrop parameters for crops in ERA.
+#  7) Refine cycle lengths by comparing reported season lengths with EcoCrop estimates.
+#  8) Estimate unreported planting dates using nearby data (via EstPDayData).
+#  9) Estimate season lengths where harvest dates are missing (using EstSLenData).
+# 10) Refine uncertain planting dates using rainfall data (via EstPDayRain).
+# 11) Consolidate planting and season length dates, filter out inconsistent records,
+#     and rename fields for clarity.
+# 12) Set analysis parameters and calculate climate statistics using calc_clim_stats.
+#
+# Super-users: If you need to re-run the calculations from scratch or add new sites,
+# also run the following scripts:
+#   - R/add_geodata/chirps.R
+#   - R/add_geodata/power.R
+#   - R/add_geodata/elevation.R
+#   - R/add_geodata/calc_sos.R
+#   - R/add_geodata/water_balance.R
+##############################################################################
 
-# 1). Set-up environment ####
+# 1) Set-up environment ####
   ## 1.1) Load Packages & source functions ####
   
-  p_load(ggplot2,circular,data.table,zoo,pbapply,arrow,ERAg,dismo,hexbin,miceadds)
+  p_load(ggplot2,circular,data.table,zoo,pbapply,arrow,ERAg,dismo,hexbin,miceadds,lubridate)
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/add_ecocrop.R")
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/est_pday.R")
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/est_pday_rain.R")
@@ -132,11 +156,11 @@
     watbal_isda<-NULL
     watbal_soilgrids<-NULL
     setnames(watbal,"DATE","Date")
-    watbal<-watbal[,.(Site.Key,Date,ssat,ETMAX,AVAIL,DEMAND,LOGGING,RUNOFF)]
+    watbal<-watbal[,.(Site.Key,Date,ssat,ETMAX,AVAIL,DEMAND,ERATIO,LOGGING,RUNOFF)]
     
     # Merge with power_chirps
     power_chirps<-merge(power_chirps,watbal,by=c("Site.Key","Date"),all.x=T,sort=F)
-    
+    watbal<-NULL
     ## 1.3.5) Explore missing climate data ####
     power_chirps[is.na(ETMAX),.(from=min(Date),to=max(Date)),by=Site.Key]
     power_chirps[is.na(ETMAX),.(from=min(Date),to=max(Date))]
@@ -287,17 +311,14 @@ ERA.Yields[is.na(Plant.Start) & !is.na(Data.PS.Date) & N == 1 & (Planting_Uncert
 # Using similar methods to the `EstPDayData` function, the `EstSLenData` estimates season length values from similar crops and locations nearby to missing values.
 ERA.Yields<-est_slen(ERA.Yields)
 
+ERA.Yields[!is.na(SLen),SLen.Source:=paste0(Plant.Source," + Published")]
+
 # Use nearby data where other sources of data are not available
-N<-as.numeric(unlist(ERA.Yields[,lapply(strsplit(Data.SLen.Acc,"-"),"[[",1)]))
+ERA.Yields[is.na(SLen) & Data.SLen.Acc=="3-P",SLen.Source:=paste0(Plant.Source," + Nearby 1km")]
+ERA.Yields[is.na(SLen) & Data.SLen.Acc=="3-P",SLen:=Data.SLen]
 
-ERA.Yields[!is.na(SLen),SLen.Source:=paste0(Plant.Source," + Pub")]
-
-ERA.Yields[is.na(SLen) & !is.na(Data.SLen.Acc) & N>1,SLen.Source:=paste0(Plant.Source," + Nearby 1km")]
-ERA.Yields[is.na(SLen) & !is.na(Data.SLen.Acc) & N>1,SLen:=Data.SLen]
-
-ERA.Yields[is.na(SLen) & !is.na(Data.SLen.Acc) & N==1,SLen.Source:=paste0(Plant.Source," + Nearby 10km")]
-ERA.Yields[is.na(SLen) & !is.na(Data.SLen.Acc) & N==1,SLen:=Data.SLen]
-
+ERA.Yields[is.na(SLen) & Data.SLen.Acc=="2-P",SLen.Source:=paste0(Plant.Source," + Nearby 10km")]
+ERA.Yields[is.na(SLen) & Data.SLen.Acc=="2-P",SLen:=Data.SLen]
 
 # 7) Where we have no information about planting dates at all substitute SOS rain onset data ####
   # SOS is calculate in script R/add_geodata/calc_sos.R
@@ -418,7 +439,7 @@ ERA.Yields[grepl("SOS",Plant.Source) & !is.na(Harvest.Start),SLen.Source:=paste0
 ERA.Yields[grepl("SOS",Plant.Source) & is.na(Harvest.Start) & N>1,SLen.Source:=paste0(Plant.Source," + Nearby 1km")]
 ERA.Yields[grepl("SOS",Plant.Source) & is.na(Harvest.Start) & N==1,SLen.Source:=paste0(Plant.Source," + Nearby 10km")]
 
-# 9) Refine uncertain planting dates using rainfall data ####
+# 8) Refine uncertain planting dates using rainfall data ####
 
 # It is not uncommon for studies in ERA to report vague dates such as "May-June" creating uncertainty around the start of the growing season.
 # Where there is a large difference between `Plant.Start` and `Plant.End` we can use the `EstPDayRain` function to estimate more precise planting dates using rainfall data.  
@@ -460,7 +481,7 @@ ERA.Yields<-est_pday_rain(data=ERA.Yields,
                           add_values = T, 
                           use_data_dates = T)
 
-# 10) Consolidate Dates ####
+# 9) Consolidate dates ####
 
 #' Calculate and Validate Season Length Estimates
 #'
@@ -594,13 +615,13 @@ SS <- SS[(!SLen <= N) | is.na(SLen)]
 SS <- SS[!(is.na(SLen) & is.na(SLen.EcoCrop)) & !is.na(P.Date.Merge)]
 
 # Rename fields for clarity in the final dataset
-SS[, PlantingDate := P.Date.Merge
+SS[, PlantingDate := as.Date(P.Date.Merge)
 ][, SeasonLength.Data := SLen
 ][, SeasonLength.EcoCrop := SLen.EcoCrop
 ][, M.Season := M.Year.Code]
 
-# 11) Generate Climate Variables  ####
-
+# 10) Generate climate stats  ####
+## 10.1) Set analysis parameters ####
 
 gdd_params <- list(
   t_max_col = "Temp.Max",
@@ -609,6 +630,7 @@ gdd_params <- list(
   t_opt_low_col = "Topt.low",
   t_high_col = "Thigh",
   t_opt_high_col = "Topt.high",
+  sum_daily = T,
   round_digits = 2
   )
 
@@ -623,7 +645,7 @@ gdd_params <- list(
    t_max_col = "Temp.Max",
    t_min_col = "Temp.Min",
    t_mean_col = "Temp.Mean",
-   threshold_dt = data.table(threshold = c(20, 30, 35), direction = c("lower", "higher","higher")),
+   threshold_dt = data.table(threshold = c(35,37.5,40), direction = c("higher","higher","higher")),
    t_seq_len = c(5, 10, 15)
    )
  
@@ -639,61 +661,63 @@ gdd_params <- list(
    r_seq_len=c(5, 10, 15)
    )
  
-calc_clim_stats <- function(data=SS,
-                            climate=power_chirps,
-                            id_col = id_field,
-                            gdd_params = gdd_params,
-                            rainfall_params = rainfall_params,
-                            temp_params = temp_params,
-                            eratio_params = eratio_params,
-                            logging_params = logging_params,
-                            verbose = TRUE)
-
-Climate<-ERAg::CalcClimate2(Data=SS,
-                      id_field=id_field,
-                      CLIMATE=power_chirps,
-                      Rain.Data.Name="CHIRPS", 
-                      Temp.Data.Name="POWER",
-                      Rain.Windows = c(6 * 7, 4 * 7, 2 * 7, 2 * 7),
-                      Rain.Window.Widths = c(3, 3, 2, 2),
-                      Rain.Window.Threshold = c(30, 30, 20, 15),
-                      Temp.Threshold = data.table(Threshold = c(20, 30, 35), Direction = c("lower", "higher","higher")),
-                      TSeqLen = c(5, 10, 15),
-                      Rain.Threshold = data.table(Threshold = c(0.1, 1, 5), Direction = c("lower", "lower","lower")),
-                      RSeqLen = c(5, 10, 15),
-                      ER.Threshold = c(0.5, 0.25, 0.1),
-                      ERSeqLen = c(5, 10, 15),
-                      LSeqLen = c(5, 10, 15),
-                      PrePlantWindow = 10,
-                      Win.Start = 1,
-                      Do.LT.Avg = T,
-                      Max.LT.Avg = 2010,
-                      Do.BioClim = T,
-                      Windows = data.table(Name = "Plant.1-30", Start = 1, End = 30),
-                      SaveDir = "Climate Stats/",
-                      ErrorDir = "Climate Stats/Errors/",
-                      EC.Diff = 0.6,
-                      ROUND = 5)
+ ## 10.2) Calculate climate stats ####
+ clim_stats<-list()
+ 
+  ### 10.2.1) Planting date and season length reported or derived from nearby data reported in ERA ####
+clim_stats_sldata<-calc_clim_stats(data=SS,
+                                    climate=power_chirps,
+                                    data_params = data.frame(id_col=id_field,
+                                                    plant_start_col="PlantingDate",
+                                                    season_length_col="SeasonLength.Data"),
+                                    gdd_params = gdd_params,
+                                    rainfall_params = rainfall_params,
+                                    temp_params = temp_params,
+                                    eratio_params = eratio_params,
+                                    logging_params = logging_params,
+                                    verbose = TRUE)
 
 
+clim_stats$PDate.SLen.Data<-clim_stats_sldata
 
-Climate<-CalcClimate2(DATA=era_data_yields,
-                id_field=id_field,
-                CLIMATE=power_chirps,
-                Rain.Data.Name="CHIRPS", 
-                Temp.Data.Name="POWER",
-                Rain.Windows = c(6*7,4*7,2*7,2*7),  # Before,After,After,After planting date
-                Widths = c(3,3,2,2),  
-                Rain.Threshold = c(30,30,20,15), 
-                Win.Start=-3,
-                Max.LT.Avg=2010, 
-                Do.LT.Avg=T, 
-                Do.BioClim=T, 
-                Windows=data.table(Name="Plant.0-30",Start=1,End=30), 
-                SaveDir=ClimatePast,
-                ErrorDir=NA,
-                Exclude.EC.Diff=F,
-                EC.Diff=0.6,
-                ROUND=3)    
+  ### 10.2.2) Planting date and season length estimate from EcoCrop (refined from ERA data) ####
+ clim_stats_sleco<-calc_clim_stats(data=SS,
+                                    climate=power_chirps,
+                                    data_params = data.frame(id_col=id_field,
+                                                             plant_start_col="PlantingDate",
+                                                             season_length_col="SeasonLength.EcoCrop"),
+                                    gdd_params = gdd_params,
+                                    rainfall_params = rainfall_params,
+                                    temp_params = temp_params,
+                                    eratio_params = eratio_params,
+                                    logging_params = logging_params,
+                                    verbose = TRUE)
+ 
+ clim_stats$PDate.SLen.EcoCrop<-clim_stats_sleco
+ 
+  ### 10.2.3) Planting date and season length set to 30 days (planting to 1 month after planting) ####
+  SS[,SeasonLength.P30:=30] 
+ 
+  clim_stats_slp30<-calc_clim_stats(data=SS,
+                                   climate=power_chirps,
+                                   data_params = data.frame(id_col=id_field,
+                                                            plant_start_col="PlantingDate",
+                                                            season_length_col="SeasonLength.P30"),
+                                   gdd_params = gdd_params,
+                                   rainfall_params = rainfall_params,
+                                   temp_params = temp_params,
+                                   eratio_params = eratio_params,
+                                   logging_params = logging_params,
+                                   verbose = TRUE)
+  
+  clim_stats$PDate.SLen.P30<-clim_stats_slp30
+  
+  clim_stats$site_data<-SS
+  
+  
+  ### 10.2.4) Save results ####
+  save_file<-file.path(era_dirs$era_geodata_dir,paste0("clim_stats_",Sys.Date(),".RData"))
 
-
+  save(clim_stats,file=save_file)
+  
+ 
