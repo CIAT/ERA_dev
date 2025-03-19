@@ -217,7 +217,10 @@ calc_clim_stats <- function(data,
   sites <- unique(data[[data_params$id_col]])
   results_list <- list()
   
-  for (site in sites) {
+  data[,index:=1:.N]
+  
+  for (j in 1:length(sites)) {
+    site<-sites[j]
     site_data <- data[data[[data_params$id_col]] == site, ]
     site_climate <- climate[climate[[data_params$id_col]] == site, ]
     
@@ -229,7 +232,15 @@ calc_clim_stats <- function(data,
     
     obs_results <- list()
     for (i in 1:nrow(site_data)) {
+      
       obs <- site_data[i, ]
+      index <- site_data[i,index]
+      
+      if(verbose){
+        cat("Processing site j =",j,"/",length(sites),", row index =",index,"( i = ",i,")         \r")
+      }
+      
+      
       if (!inherits(obs[[data_params$plant_start_col]], "Date")) {
         obs[[data_params$plant_start_col]] <- as.Date(obs[[data_params$plant_start_col]])
       }
@@ -265,11 +276,10 @@ calc_clim_stats <- function(data,
             t_opt_low = obs[[gdd_params$t_opt_low_col]],
             t_high = obs[[gdd_params$t_high_col]],
             t_opt_high = obs[[gdd_params$t_opt_high_col]],
-            round_digits = gdd_params$round_digits
+            round_digits = gdd_params$round_digits,
+            sum_daily=gdd_params$sum_daily
           )
-          if (gdd_params$sum_daily) {
-            gdd_stat <- colSums(gdd_stat)
-          }
+          gdd_stat$row_index<-index
           obs_stat$gdd <- gdd_stat
         }
       }
@@ -301,6 +311,7 @@ calc_clim_stats <- function(data,
             threshold_dt = temp_params$threshold_dt,
             t_seq_len = temp_params$t_seq_len
           )
+          temp_stat$row_index<-index
           obs_stat$temperature <- temp_stat
         }
       }
@@ -315,6 +326,7 @@ calc_clim_stats <- function(data,
             thresholds = eratio_params$thresholds,
             r_seq_len = eratio_params$r_seq_len
           )
+          eratio_stat$row_index<-index
           obs_stat$eratio <- eratio_stat
         }
       }
@@ -329,18 +341,85 @@ calc_clim_stats <- function(data,
             ssat = obs_climate[[logging_params$ssat_col]][1],
             r_seq_len = logging_params$r_seq_len
           )
+          logging_stat$row_index<-index
           obs_stat$logging <- logging_stat
         }
       }
       
-      obs_results[[i]] <- obs_stat
+      obs_results[[index]] <- obs_stat
     }
-    results_list[[site]] <- obs_results
+    
+    obs_consolidated<-list()
+    if (!is.null(gdd_params)) {
+      stat<-rbindlist(lapply(obs_results,"[[","gdd"))
+      if(nrow(stat)>0){stat$id<-site}
+      obs_consolidated[["gdd"]]<-stat
+    }
+    
+    if (!is.null(temp_params)) {
+      stat<-rbindlist(lapply(obs_results,"[[","temperature"))
+      if(nrow(stat)>0){stat$id<-site}
+      obs_consolidated[["temperature"]]<-stat
+    }
+    
+    if (!is.null(rainfall_params)) {
+      stat<-rbindlist(lapply(obs_results,"[[","rainfall"))
+      if(nrow(stat)>0){stat$id<-site}
+      obs_consolidated[["rainfall"]]<-stat
+    }
+    
+    if (!is.null(eratio_params)) {
+      stat<-rbindlist(lapply(obs_results,"[[","eratio"))
+      if(nrow(stat)>0){stat$id<-site}
+      obs_consolidated[["eratio"]]<-stat
+    }
+    
+    if (!is.null(logging_params)) {
+      stat<-rbindlist(lapply(obs_results,"[[","logging"))
+      if(nrow(stat)>0){stat$id<-site}
+      obs_consolidated[["logging"]]<-stat
+    }
+    
+    results_list[[site]] <- obs_consolidated
+  }
+  
+  results_consolidated<-list()
+  
+  window<-paste0(data_params$plant_start_col,"-",data_params$season_length_col)
+  
+  if (!is.null(gdd_params)) {
+    stat<-rbindlist(lapply(results_list,"[[","gdd"))
+    stat$window<-window
+    results_consolidated[["gdd"]]<-stat
+  }
+  
+  if (!is.null(temp_params)) {
+    stat<-rbindlist(lapply(results_list,"[[","temperature"))
+    stat$window<-window
+    results_consolidated[["temperature"]]<-stat
+  }
+  
+  if (!is.null(rainfall_params)) {
+    stat<-rbindlist(lapply(results_list,"[[","rainfall"))
+    stat$window<-window
+    results_consolidated[["rainfall"]]<-stat
+  }
+  
+  if (!is.null(eratio_params)) {
+    stat<-rbindlist(lapply(results_list,"[[","eratio"))
+    stat$window<-window
+    results_consolidated[["eratio"]]<-stat
+  }
+  
+  if (!is.null(logging_params)) {
+    stat<-rbindlist(lapply(results_list,"[[","logging"))
+    stat$window<-window
+    results_consolidated[["logging"]]<-stat
   }
   
   if (verbose) {
     message("Finished calculating modular climate statistics.")
   }
   
-  return(results_list)
+  return(results_consolidated)
 }
