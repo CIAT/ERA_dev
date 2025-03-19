@@ -160,8 +160,10 @@ if(!require("exactextractr")){
     chirps_dir<-"/cluster01/workspace/common/climate/chirps/global_daily/tifs/p05"
     chirts_dir<-NA
   }
-  # 1.6) Set time origin ####
+  # 1.6) Set parameter time_origin ####
   time_origin<-as.Date("1900-01-01")
+  # 1.7) Set parameter field_absent
+  field_absent<-"Not in template"
 # 2) Download core datasets ####
   # 2.1) ERA master datasets #####
   update<-F
