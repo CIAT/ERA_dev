@@ -1,91 +1,4 @@
 ###############################################################################
-#' Adjust Hourly Temperatures Based on Thresholds
-#'
-#' This function adjusts a numeric vector of hourly temperatures using the
-#' provided base and optimal thresholds. Values below the base are set to 0,
-#' values between the base and optimal have the base subtracted, and values
-#' above the optimal are capped at the difference (optimal - base).
-#'
-#' @param x Numeric vector of hourly temperatures.
-#' @param base_temp Numeric base temperature.
-#' @param optimal_temp Numeric optimal temperature.
-#' @return A numeric vector of adjusted temperature values.
-#' @importFrom base as.numeric
-#' @examples
-#' # Example usage:
-#' temps <- c(16, 18, 20, 22, 24)
-#' adjust_temperature(temps, base_temp = 18, optimal_temp = 22)
-#' @export
-adjust_temperature <- function(x, base_temp, optimal_temp) {
-  if (!is.numeric(x)) {
-    stop("`x` must be a numeric vector.")
-  }
-  if (!is.numeric(base_temp) || !is.numeric(optimal_temp)) {
-    stop("`base_temp` and `optimal_temp` must be numeric values.")
-  }
-  # For temperatures below the base, no degree day is accumulated.
-  x[x < base_temp] <- 0
-  # For temperatures between base and optimal, subtract the base.
-  x[x >= base_temp & x <= optimal_temp] <- x[x >= base_temp & x <= optimal_temp] - base_temp
-  # For temperatures above optimal, cap the value.
-  x[x > optimal_temp] <- optimal_temp - base_temp
-  return(x)
-}
-
-###############################################################################
-#' Calculate Daily Growing Degree Days (GDD) via Hourly Interpolation
-#'
-#' This function estimates daily GDD by interpolating hourly temperatures from
-#' daily maximum and minimum values using a sine curve. The interpolated hourly
-#' values are then adjusted using the provided base and optimal thresholds.
-#'
-#' @param temp_df A data frame containing columns `t_max` and `t_min` plus additional
-#'   columns representing a sine curve for each hour.
-#' @param base_temp Numeric base temperature for the calculation.
-#' @param optimal_temp Numeric optimal temperature for the calculation.
-#' @param sine_curve Numeric vector representing the 24-hour sine curve.
-#' @param round_digits Integer number of decimal places for rounding.
-#' @return Numeric vector of daily GDD values.
-#' @importFrom base apply sapply round
-#' @examples
-#' # Example usage:
-#' t_max <- c(30, 32)
-#' t_min <- c(15, 16)
-#' sine_curve <- sin(seq(1.5 * pi, 3.5 * pi, length.out = 24))
-#' temp_df <- data.frame(t_max = t_max, t_min = t_min,
-#'   matrix(rep(sine_curve, each = 2), ncol = 24))
-#' calc_daily_gdd(temp_df, base_temp = 18, optimal_temp = 22, sine_curve = sine_curve)
-#' @export
-calc_daily_gdd <- function(temp_df, base_temp, optimal_temp, sine_curve, round_digits = 2) {
-  if (!is.data.frame(temp_df)) {
-    stop("`temp_df` must be a data frame.")
-  }
-  if (!all(c("t_max", "t_min") %in% names(temp_df))) {
-    stop("`temp_df` must contain columns 't_max' and 't_min'.")
-  }
-  if (!is.numeric(sine_curve) || length(sine_curve) != 24) {
-    stop("`sine_curve` must be a numeric vector of length 24.")
-  }
-  if (!is.numeric(base_temp) || !is.numeric(optimal_temp)) {
-    stop("`base_temp` and `optimal_temp` must be numeric values.")
-  }
-
-  # Interpolate hourly temperatures using the sine curve.
-  temp_df[, 3:26] <- temp_df[, 3:26] * (temp_df$t_max - temp_df$t_min) / (max(sine_curve) - min(sine_curve))
-
-  # Adjust the hourly estimates so that the maximum equals t_max.
-  temp_df[, 3:26] <- temp_df[, 3:26] + (temp_df$t_max - apply(temp_df[, 3:26], 1, max))
-
-  # Adjust the interpolated hourly temperatures using the thresholds.
-  temp_df[, 3:26] <- sapply(temp_df[, 3:26], adjust_temperature,
-                            base_temp = base_temp, optimal_temp = optimal_temp)
-
-  # Compute the daily GDD as the mean of the adjusted hourly values.
-  daily_gdd <- round(apply(temp_df[, 3:26], 1, mean), round_digits)
-  return(daily_gdd)
-}
-
-###############################################################################
 #' Count Consecutive Days Meeting a Condition
 #'
 #' This function uses run-length encoding to count consecutive days in a numeric
@@ -201,57 +114,160 @@ calc_estimated_rain_date <- function(rain, date, widths, rain_window_threshold, 
 ###############################################################################
 #' Calculate Growing Degree Days (GDD)
 #'
-#' This function calculates four measures of growing degree days (GDD) based on
-#' daily maximum and minimum temperatures. It interpolates hourly temperatures using
-#' a sine curve and applies threshold adjustments to compute:
+#' This function calculates growing degree days (GDD) using a sine-wave interpolation 
+#' to estimate 24 hourly temperatures from daily minimum and maximum values. The hourly 
+#' values are then adjusted so that the maximum equals the daily t_max. After interpolation, 
+#' the function applies a series of threshold-based modifications by subtracting the base 
+#' temperature (t_low) from each hourly value and then setting values below specific thresholds 
+#' to zero. The process partitions the day's heat accumulation into four buckets:
+#'
 #' \itemize{
-#'   \item \code{gdd_low}: below optimal,
-#'   \item \code{gdd_opt}: within optimal range,
-#'   \item \code{gdd_high}: above optimal (but below high threshold),
-#'   \item \code{gdd_max}: above high threshold.
+#'   \item \code{gdd_subopt}: Represents the accumulation in the sub-optimal range, computed as 
+#'         the total (adjusted hourly value minus t_low) for hours below t_opt_low.
+#'   \item \code{gdd_opt}: Represents the accumulation in the optimal range, computed as the difference 
+#'         between the sum for hours below t_opt_low and the sum for hours below t_opt_high.
+#'   \item \code{gdd_aboveopt}: Represents the accumulation in the above-optimal range, computed as 
+#'         the difference between the sum for hours below t_opt_high and the sum for hours below t_high.
+#'   \item \code{gdd_abovemax}: Represents the accumulation for hours above t_high.
 #' }
+#'
+#' Finally, the function scales the daily totals by dividing by 24 (the number of hours in a day) 
+#' to yield a daily average accumulation in each bucket, and returns a data.table that includes 
+#' the original t_max and t_min values alongside the computed GDD values.
 #'
 #' @param t_max Numeric vector of daily maximum temperatures (°C).
 #' @param t_min Numeric vector of daily minimum temperatures (°C).
-#' @param t_low Numeric base temperature.
-#' @param t_opt_low Numeric lower optimal temperature.
+#' @param t_low Numeric base temperature. Hourly temperatures below this threshold contribute 0.
+#' @param t_opt_low Numeric lower optimal temperature. Hours below this threshold (after base subtraction) 
+#'   contribute to the sub-optimal bucket.
 #' @param t_high Numeric high threshold temperature.
-#' @param t_opt_high Numeric upper optimal temperature.
-#' @param round_digits Integer number of decimal places for rounding.
-#' @return A data.table with columns: \code{gdd_low}, \code{gdd_opt}, \code{gdd_high}, and \code{gdd_max}.
+#' @param t_opt_high Numeric upper optimal temperature. Hours below this threshold (after base subtraction) 
+#'   are used to define the optimal and above-optimal buckets.
+#' @param sum_daily Logical value, if T rowSum is applied across the rows (days) of the returned data.table.
+#' @param round_digits Integer number of decimal places for rounding the final GDD values.
+#'
+#' @return A data.table with the following columns:
+#' \itemize{
+#'   \item \code{t_max}: The original daily maximum temperatures.
+#'   \item \code{t_min}: The original daily minimum temperatures.
+#'   \item \code{gdd_subopt}: Daily GDD accumulated in the sub-optimal range ([t_low, t_opt_low)),
+#'         computed as the difference between the sum of hourly contributions above t_low and those 
+#'         above t_opt_low, then divided by 24.
+#'   \item \code{gdd_opt}: Daily GDD accumulated in the optimal range ([t_opt_low, t_opt_high)),
+#'         computed as the difference between the sum of hourly contributions above t_opt_low and 
+#'         those above t_opt_high, then divided by 24.
+#'   \item \code{gdd_aboveopt}: Daily GDD accumulated in the above-optimal range ([t_opt_high, t_high)),
+#'         computed as the difference between the sum of hourly contributions above t_opt_high and 
+#'         those above t_high, then divided by 24.
+#'   \item \code{gdd_abovemax}: Daily GDD accumulated for temperatures above t_high,
+#'         computed as the sum of the hourly contributions above t_high (divided by 24).
+#' }
+#'
 #' @import data.table
 #' @importFrom base rep seq
+#'
 #' @examples
 #' # Example usage:
-#' t_max <- c(30, 32, 31)
-#' t_min <- c(15, 16, 15)
-#' calc_gdd(t_max, t_min, t_low = 18, t_opt_low = 20, t_high = 25, t_opt_high = 23)
+#' t_max <- c(32.70, 36.32, 33.83)
+#' t_min <- c(24.23, 23.46, 24.63)
+#'
+#' # Define thresholds:
+#' # - t_low: base temperature below which no GDD accumulates (e.g., 11.4°C)
+#' # - t_opt_low: lower optimal threshold (e.g., 24.2°C)
+#' # - t_opt_high: upper optimal threshold (e.g., 31.4°C)
+#' # - t_high: high threshold indicating extreme heat (e.g., 36.8°C)
+#' result <- calc_gdd(t_max, t_min, 
+#'                    t_low = 11.4, 
+#'                    t_opt_low = 24.2, 
+#'                    t_high = 36.8, 
+#'                    t_opt_high = 31.4,
+#'                    round_digits = 2)
+#' print(result)
+#'
 #' @export
-calc_gdd <- function(t_max, t_min, t_low, t_opt_low, t_high, t_opt_high, round_digits = 2) {
+calc_gdd <- function(t_max, t_min, t_low, t_opt_low, t_high, t_opt_high, round_digits = 2,sum_daily=T) {
+  # Check that t_max and t_min are numeric vectors of the same length.
   if (!is.numeric(t_max) || !is.numeric(t_min)) {
     stop("`t_max` and `t_min` must be numeric vectors.")
   }
   if (length(t_max) != length(t_min)) {
     stop("`t_max` and `t_min` must be of equal length.")
   }
-
+  
+  # Generate a sine curve with 24 equally spaced points representing 24 hours.
   sine_curve <- sin(seq(1.5 * pi, 3.5 * pi, length.out = 24))
-
+  
+  # Create a data frame that holds t_max, t_min, and 24 columns filled with the sine curve.
+  # Each row corresponds to one day.
   temp_df <- data.frame(t_max = t_max, t_min = t_min,
                         matrix(rep(sine_curve, each = length(t_min)), ncol = 24))
-
-  gdd_low  <- calc_daily_gdd(temp_df, base_temp = t_low, optimal_temp = t_opt_low,
-                             sine_curve = sine_curve, round_digits = round_digits)
-  gdd_opt  <- calc_daily_gdd(temp_df, base_temp = t_opt_low, optimal_temp = t_opt_high,
-                             sine_curve = sine_curve, round_digits = round_digits)
-  gdd_high <- calc_daily_gdd(temp_df, base_temp = t_opt_high, optimal_temp = t_high,
-                             sine_curve = sine_curve, round_digits = round_digits)
-  gdd_max  <- calc_daily_gdd(temp_df, base_temp = t_high, optimal_temp = 1e6,
-                             sine_curve = sine_curve, round_digits = round_digits)
-
-  return(data.table(gdd_low = gdd_low, gdd_opt = gdd_opt, gdd_high = gdd_high, gdd_max = gdd_max))
+  
+  # ---- Interpolate Hourly Temperatures ----
+  # Scale the sine values by the daily temperature range and normalize by the sine amplitude.
+  temp_df[, 3:26] <- temp_df[, 3:26] * (temp_df$t_max - temp_df$t_min) / (max(sine_curve) - min(sine_curve))
+  
+  # Adjust the hourly estimates so that the maximum value in each row equals t_max.
+  # This effectively shifts the hourly curve upward.
+  temp_df <- temp_df[, 3:26] + (temp_df$t_max - apply(temp_df[, 3:26], 1, max))
+  
+  # ---- Calculate Raw Hourly Sums for Each Threshold ----
+  # Set hourly values below t_low to 0, then sum across the 24 hours.
+  temp_df[temp_df < t_low] <- 0
+  low<-temp_df-t_low
+  low[low<0]<-0
+  low <- rowSums(low)
+  
+  # Next, set values below t_opt_low to 0 and sum.
+  # This isolates the contribution from hours >= t_opt_low.
+  temp_df[temp_df < t_opt_low] <- 0
+  low_optimal<-temp_df-t_low
+  low_optimal[low_optimal<0]<-0
+  low_optimal <- rowSums(low_optimal)
+  
+  # Set values below t_opt_high to 0 and sum, isolating hours >= t_opt_high.
+  temp_df[temp_df < t_opt_high] <- 0
+  high_optimal<-temp_df-t_low
+  high_optimal[high_optimal<0]<-0
+  high_optimal <- rowSums(high_optimal)
+  
+  # Set values below t_high to 0 and sum, isolating hours >= t_high.
+  temp_df[temp_df < t_high] <- 0
+  above_max<-temp_df-t_low
+  above_max[above_max<0]<-0
+  above_max <- rowSums(above_max)
+  
+  # ---- Partition the Heat Units into Buckets ----
+  # sub_optimal: contribution from hours between t_low and t_opt_low
+  sub_optimal <- low - low_optimal
+  
+  # optimal: contribution from hours between t_opt_low and t_opt_high
+  optimal <- low_optimal - high_optimal
+  
+  # above_optimal: contribution from hours between t_opt_high and t_high
+  above_optimal <- high_optimal - above_max
+  
+  # Create a data.table of the raw sums for each bucket.
+  # Dividing by 24 scales the total from hourly sums to a daily average/accumulation.
+  # Sum across days as needed
+  if(sum_daily){
+    result <- data.table(gdd_subopt = sum(sub_optimal), 
+                         gdd_opt = sum(optimal), 
+                         gdd_aboveopt = sum(above_optimal), 
+                         gdd_abovemax = sum(above_max)) / 24
+  }else{
+    result <- data.table(gdd_subopt = sub_optimal, 
+                         gdd_opt = optimal, 
+                         gdd_aboveopt = above_optimal, 
+                         gdd_abovemax = above_max) / 24
+  }
+  
+  # Round the results to the specified number of decimal places.
+  if (!is.null(round_digits)) {
+    result <- round(result, round_digits)
+  }
+  
+  return(result)
 }
-
 ###############################################################################
 #' Calculate Rainfall and Evapotranspiration Statistics
 #'
