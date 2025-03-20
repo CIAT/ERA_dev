@@ -220,7 +220,7 @@ ERA<-cbind(era_data_yields,ecocrop_data)
 # EcoCrop data for crop cycle length estimates (how long a crop takes to grow) can have a large range, especially for crops that can be 
 # grown in temperate and tropical regions. Maize, for example, as a season length of 65-365 days with midpoint 215 days, 
 # this is a rather unrealistically long season for most of sub-Saharan Africa. We can mine ERA data where we have crop planting 
-# and harvest dates of reasonably certainty to esimate season length and replace EcoCrop estimates.
+# and harvest dates of reasonably certainty to etsimate season length and replace EcoCrop estimates.
 
 ERA.Yields<-ERA[Out.SubInd=="Crop Yield"]
 

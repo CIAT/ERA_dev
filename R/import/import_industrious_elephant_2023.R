@@ -871,7 +871,7 @@ if(update){
     errors<-rbindlist(list(errors,errors1,errors2,errors3,errors4,errors5,errors6,errors7),fill = T)[order(B.Code)]
     error_list<-error_tracker(errors=errors,filename = "soil_errors",error_dir=error_dir,error_list = error_list)
   
-    ### 3.4.3) ***!!!TO DO!!!***  harmonize methods, units and variables ####
+    ### 3.4.2) ***!!!TO DO!!!***  harmonize methods, units and variables ####
     Soil.Out[,filename:=NULL]
   ## 3.5) Experimental Design (ExpD.Out) ####
   data<-lapply(XL,"[[","ExpD.Out")

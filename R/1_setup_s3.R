@@ -299,7 +299,7 @@ upload_files_to_s3(files = files,
 
     # 1.2.4.2) upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
-    folder_local<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024/"
+    folder_local<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024"
     project<-era_projects$courageous_camel_2024
     folder<-file.path(era_dirs$era_dataentry_dir,
                       project,
@@ -315,7 +315,8 @@ upload_files_to_s3(files = files,
                          "excel_files")
     
     # List excel files to be zipped
-    files<-list.files(folder_local,full.names = T,recursive=T)
+    subfolders<-c("Babra","Charity","Elijah","Jabesh")
+    files<-list.files(file.path(folder_local,subfolders),full.names = T,recursive=T)
     files<- grep("xlsm$",files,value=T)
     files<-files[!grepl("~",files)]
     files<- grep("/Quality Controlled/|/Extracted/",files,value=T)
@@ -330,20 +331,19 @@ upload_files_to_s3(files = files,
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read")
-  # 1.2.5) compiled dataset
+  # 1.2.5) (optional) all files in common_data/era/data ####
+    if(F){
     s3_bucket<-era_dirs$era_masterdata_s3
     folder_local<-era_dirs$era_masterdata_dir
     
-    files<-list.files(folder_local,"era_compiled",full.names = T,recursive=T)
-    files<-grep("comparisons",files,value=T)
-    
-    # PLEASE SELECT MOST RECENT VERSION ONLY
-    
+    files<-list.files(folder_local,full.names = T,recursive=F)
+        
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
+       }
 
 # 1.4) Upload environmental data ####
   # 1.4.1) Aspect, slope, elevation ######
