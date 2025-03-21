@@ -672,6 +672,7 @@ if(update){
   # Combine soil data into a table
   fun1<-function(x){x[1]}
   
+  # Restructure into long form
   Soil.Out<-rbindlist(lapply(1:length(data),FUN=function(i){
     X<-data[[i]]
   
