@@ -164,8 +164,10 @@ if(!require("exactextractr")){
   time_origin<-as.Date("1900-01-01")
   # 1.7) Set parameter field_absent
   field_absent<-"Not in template"
+  field_absent_num<-"-9999"
 # 2) Download core datasets ####
   # 2.1) ERA master datasets #####
+  # Dev note: Needs to be updated to download most recent versions of data only with option to delete old files ####
   update<-F
     # List files in the specified S3 bucket and prefix
     files_s3<-s3$dir_ls(era_dirs$era_masterdata_s3)
@@ -179,8 +181,6 @@ if(!require("exactextractr")){
     }
     
   # 2.2) ERA geodata #####
-    # Temporarily stopped whilst geodata pipeline is updated
-    if(F){
     update<-F
     # List files in the specified S3 bucket and prefix
     files_s3<-s3$dir_ls(era_dirs$era_geodata_s3)
@@ -193,8 +193,6 @@ if(!require("exactextractr")){
         s3$file_download(files_s3[i],file)
       }
     }
-    }
-
   # 2.3) Vocab - era_master_sheet.xlsx #####
     era_vocab_local<-era_dirs$vocab_file
     update<-T
@@ -449,6 +447,3 @@ if(!require("exactextractr")){
     
 # 4) Set time origin ####
     time_origin<-as.Date("1900-01-01")
-    
-    
-    
