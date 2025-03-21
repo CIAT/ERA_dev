@@ -336,16 +336,67 @@ upload_files_to_s3(files = files,
     s3_bucket<-era_dirs$era_masterdata_s3
     folder_local<-era_dirs$era_masterdata_dir
     
-    files<-list.files(folder_local,full.names = T,recursive=F)
+    files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
         
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
+    
+    # Files no-longer present locally
+    files_s3<-s3$dir_ls(s3_bucket)
+    files_s3<-files_s3[files_s3!="s3://digital-atlas/era/data/archive"]
+    files_2archive_from<-files_s3[!basename(files_s3) %in% basename(files)]
+    files_2archive_to<-gsub("/data/","/data/archive/",files_2archive_from)
+    
+    s3fs::s3_file_copy(
+      path = files_2archive_from,
+      new_path = files_2archive_to
+    )
+    
+    s3fs::s3_file_delete(
+    path = files_2archive_from
+    )
+    
+    s3$dir_ls(file.path(s3_bucket,"archive"))
        }
 
 # 1.4) Upload environmental data ####
+   # (optional) all files in common_data/era/geodata ####
+    if(F){
+      s3_bucket<-era_dirs$era_geodata_s3
+      folder_local<-era_dirs$era_geodata_dir
+      
+      files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
+      
+      upload_files_to_s3(files = files,
+                         selected_bucket=s3_bucket,
+                         max_attempts = 3,
+                         overwrite=F,
+                         mode="public-read")
+      
+      # Files no-longer present locally
+      files_s3<-s3$dir_ls(s3_bucket)
+      files_s3<-files_s3[files_s3!="s3://digital-atlas/era/geodata/archive"]
+      files_2archive_from<-files_s3[!basename(files_s3) %in% basename(files)]
+      files_2archive_to<-gsub("/geodata/","/geodata/archive/",files_2archive_from)
+      
+      # s3fs::s3_dir_create(file.path(s3_bucket,"archive"))
+      
+      s3fs::s3_file_copy(
+        path = files_2archive_from,
+        new_path = files_2archive_to
+      )
+      
+      s3fs::s3_file_delete(
+        path = files_2archive_from
+      )
+      
+      s3$dir_ls(file.path(s3_bucket,"archive"))
+    }
+    
+    
   # 1.4.1) Aspect, slope, elevation ######
   s3_bucket<-era_dirs$era_geodata_s3
   
@@ -563,3 +614,4 @@ upload_files_to_s3(files = files,
                        overwrite=T,
                        mode="public-read") 
     
+  
