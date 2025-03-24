@@ -1,5 +1,4 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-AC0014,Answer -No- is present in planting comparison row.,Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,TRUE,NJ,There are no comparisons in this papers- spacing
 AC0030.2,Answer -No- is present in planting comparison row.,Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,TRUE,NJ,Planting tab has a base practice
 AC0044,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,TRUE,PS,""
 AC0045,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,TRUE,PS,""
@@ -27,7 +26,6 @@ CJ0021,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for t
 CJ0027,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,TRUE,NJ,""
 CJ0032,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,FALSE,"","complex, but have valid comparisons"
 CJ0037,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,FALSE,"",very complex paper
-CJ0046,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,FALSE,"",""
 CJ0066,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,FALSE,"",""
 CJ0107,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,FALSE,"",""
 CJ0112,"",Plant.Out,P.Structure,Comparison logic does find any comparisons for this paper.,FALSE,"",this should be allowed
