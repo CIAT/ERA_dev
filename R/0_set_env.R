@@ -170,7 +170,7 @@ if(!require("exactextractr")){
   # Dev note: Needs to be updated to download most recent versions of data only with option to delete old files ####
   update<-F
     # List files in the specified S3 bucket and prefix
-    files_s3<-suppressWarnings(3$dir_ls(era_dirs$era_masterdata_s3))
+    files_s3<-suppressWarnings(s3$dir_ls(era_dirs$era_masterdata_s3))
     files_local<-gsub(era_dirs$era_masterdata_s3,era_dirs$era_masterdata_dir,files_s3)
     
     for(i in 1:length(files_local)){
@@ -353,6 +353,7 @@ if(!require("exactextractr")){
     }
     
 # 3) Create table of unique locations (for use with geodata functions) ####
+    options(arrow.unsafe_metadata = TRUE)
     data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
     
