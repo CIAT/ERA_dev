@@ -1,4 +1,21 @@
-# Make sure you have set the era working directory using the 0_set_env.R script ####
+# Author: Pete Steward, p.steward@cgiar.org, ORCID 0000-0003-3985-4911
+# Organization: Alliance of Bioversity International & CIAT
+# Project: Evidence for Resilient Agriculture (ERA)
+#
+# Description:
+# This script imports and processes the "Industrious Elephant 2023" dataset, which is provided in Excel format.
+# It performs the following steps:
+# 1. Reads multiple Excel sheets into R using data.table’s fread() and other suitable functions.
+# 2. Cleans, renames, and restructures various tables to ensure consistency and harmonization across fields.
+# 3. Standardizes variable names, column formats, and removes unnecessary or redundant columns.
+# 4. Prepares the dataset for integration with other ERA agronomic datasets, particularly aligning it structurally 
+#    with the Majestic Hippo 2020 dataset for further synthesis.
+#
+# Note:
+# - First run R/0_set_env.R
+# - Some columns are modified or dropped to maintain interoperability with the broader ERA data system.
+# - Outputs from this script are used in downstream harmonization and merging processes.
+
 ## 0.0) Install and load packages ####
 pacman::p_load(data.table, 
                readxl,
