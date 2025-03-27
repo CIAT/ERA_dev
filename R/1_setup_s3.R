@@ -331,6 +331,19 @@ upload_files_to_s3(files = files,
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read")
+    # 1.2.3.3) upload imported data #######
+    folder_local<-era_dirs$era_masterdata_dir
+    s3_bucket<-era_dirs$era_masterdata_s3
+    
+    files<-list.files(folder_local,era_projects$courageous_camel_2024,full.names = T,recursive=T)
+    files<-grep(".RData",files,value=T)
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
+    
   # 1.2.5) (optional) all files in common_data/era/data ####
     if(F){
     s3_bucket<-era_dirs$era_masterdata_s3
