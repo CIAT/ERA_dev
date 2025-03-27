@@ -207,7 +207,7 @@ if(!ext_live){
     era_code <- excel_files$era_code2[ii]
     
   # For later development to save processed tables
-  # save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+  save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
   
   # Create name for error csv file
   filename_new<-gsub(".xlsx|.xlsm","_errors",basename(File))
@@ -3142,6 +3142,30 @@ if(F){
                   filename =filename_new,
                   error_dir=dirname(File),
                   error_list = NULL)
+    
+    # 9) Save data
+    Tables<-list(
+      Pub.Out=Pub.Out, 
+      Site.Out=Site.Out, 
+      Soil.Out=Soil.Out,
+      ExpD.Out=ExpD.Out,
+      Times.Out=Times.Out,
+      Prod.Out=Prod.Out,
+      Var.Out=Var.Out,
+      Chems.Code=Chems.Code,
+      Chems.Out=Chems.Out,
+      AF.Out=AF.Out,
+      Animals.Out=Animals.Out,
+      Animal.Diet=Animal.Diet,
+      Animal.Diet.Comp=Animal.Diet.Comp,
+      Animal.Diet.Digest=Animal.Diet.Digest,
+      Other.Out=Other.Out,
+      MT.Out=MT.Out,
+      Out.Out=Out.Out,
+      Data.Out=Data.Out
+    )
+    
+    save(Tables,file=save_name)
 
     return(if(length(errors)==0){NULL}else{errors[[1]]})
   }else{
@@ -3156,29 +3180,31 @@ errors<-rbindlist(results)
 errors<-merge(errors,excel_files[,.(filename,era_code2)],by.x="B.Code",by.y="era_code2",all.x=T,sort=F)[,filename:=basename(filename)]
 fwrite(errors,file.path(excel_dir,"compiled_auto_errors.csv"),bom=T)
 
-# 9) Save tables as a list  ####
-    if(F){
-  Tables<-list(
-    Pub.Out=Pub.Out, 
-    Site.Out=Site.Out, 
-    Soil.Out=Soil.Out,
-    ExpD.Out=ExpD.Out,
-    Times.Out=Times.Out,
-    Prod.Out=Prod.Out,
-    Var.Out=Var.Out,
-    Chems.Code=Chems.Code,
-    Chems.Out=Chems.Out,
-    AF.Out=AF.Out,
-    Animals.Out=Animals.Out,
-    Animal.Diet=Animal.Diet,
-    Animal.Diet.Comp=Animal.Diet.Comp,
-    Animal.Diet.Digest=Animal.Diet.Digest,
-    Other.Out=Other.Out,
-    MT.Out=MT.Out,
-    Out.Out=Out.Out,
-    Data.Out=Data.Out
-  )
-  
-  save(Tables,file=file.path(data_dir,paste0(project,"-",Sys.Date(),".RData")))
-    }
+# 10) Import and merge saved files  ####
+
+files<-list.files(extracted_dir,".RData",full.names = T)
+
+data<-pblapply(1:length(files),FUN=function(i){
+  file<-files[i]
+  dat<-miceadds::load.Rdata2(file=basename(file),path=dirname(file))
+  dat
+})
+
+tabnames<-names(data[[1]])
+
+data_merged<-lapply(1:length(tabnames),FUN=function(i){
+  tab<-tabnames[i]
+  cat(tab,"\n")
+  dat<-rbindlist(lapply(data,"[[",tab),fill=T,use.names = T)
+  dat
+  })
+
+names(data_merged)<-tabnames
+
+save_file<-paste0(project,"-draft-",as.character(Sys.Date()))
+n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
+
+save(data_merged,file=file.path(data_dir,paste0(save_file,".",n+1,".RData")))
+
+
   
