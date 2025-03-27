@@ -1,5 +1,34 @@
-# Make sure you have set the era working directory using the 0_set_env.R script ####
-# This script requires the compiled dataset created in import/import_industrious_elephant_2023.R ####
+# Author: Pete Steward, p.steward@cgiar.org, ORCID 0000-0003-3985-4911
+# Organization: Alliance of Bioversity International & CIAT
+# Project: Evidence for Resilient Agriculture (ERA)
+
+# -----------------------------------------------------------------------------
+# Script Overview:
+#
+# Purpose:
+#   This script automates the identification and comparison of experimental treatments
+#   within a complex farming management data model for the ERA project. Using advanced
+#   and automated logic, it determines which treatments can serve as controls and which
+#   as experimental treatments, facilitating control-treatment comparisons for meta-analysis.
+#
+# Input:
+#   - A processed .RData file stored in the ERA master data directory (era_dirs$era_masterdata_dir)
+#     containing multiple tables (e.g., Data.Out, Fert.Method, Int.Out, etc.) that describe
+#     various aspects of farming management experiments.
+#
+# Output:
+#   - Main Comparison Dataset: A Parquet file, created by appending "_comparisons.parquet" to the
+#     original file name, saved in the ERA master data directory.
+#
+# Quality Assurance:
+#   - QAQC error logs are generated to highlight issues with treatment comparisons.
+#   - These error reports are saved in the "comparison_logic_qaqc" folder under the ERA data entry
+#     project directory (era_dirs$era_dataentry_prj/<project>/comparison_logic_qaqc) in both CSV and
+#     Parquet formats.
+# Note:
+# - First run R/0_set_env.R
+# - First run R/import/import_industrious_elephant_2023.R
+
 
 # 0) Load packages & functions ####
 pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr,arrow)
@@ -1576,7 +1605,7 @@ TreeCodes<-master_codes$trees
     error_dat<-error_dat[order(value,B.Code)
                 ][!is.na(value),table:="Plant.Out"
                   ][!is.na(value),field:="P.Structure"
-                    ][,issue:="Comparison logic does find any comparisons for this paper."]
+                    ][,issue:="Comparison logic does not find any comparisons for this paper."]
     
     error_list<-error_tracker(errors=error_dat,filename = "no_comparisons",error_dir=qaqc_dir,error_list = NULL)
     
@@ -1826,7 +1855,7 @@ Data<-Data.Out
   # Note these were not encoded directly in 2023, I think we hoped to be able to derived this from the economic indicators recorded, but we will probably needed to go back and add this information.
   Data[,c("Out.Partial.Outcome.Name","Out.Partial.Outcome.Code"):="Not assessed"]
   
-  # 3.19 Species (!!! TO DO !!!) ####
+  # 3.19) Species (!!! TO DO !!!) ####
   # I think this was used for products like "Fish" for which the "Variety" was the species.
   # This requires harmonization across extractions to reconfigure the fish species to be the product as per crops and other animals
   Data[,V.Species:=NA]
