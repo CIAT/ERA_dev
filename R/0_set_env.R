@@ -170,7 +170,7 @@ if(!require("exactextractr")){
   # Dev note: Needs to be updated to download most recent versions of data only with option to delete old files ####
   update<-F
     # List files in the specified S3 bucket and prefix
-    files_s3<-s3$dir_ls(era_dirs$era_masterdata_s3)
+    files_s3<-suppressWarnings(3$dir_ls(era_dirs$era_masterdata_s3))
     files_local<-gsub(era_dirs$era_masterdata_s3,era_dirs$era_masterdata_dir,files_s3)
     
     for(i in 1:length(files_local)){
@@ -183,7 +183,7 @@ if(!require("exactextractr")){
   # 2.2) ERA geodata #####
     update<-F
     # List files in the specified S3 bucket and prefix
-    files_s3<-s3$dir_ls(era_dirs$era_geodata_s3)
+    files_s3<-suppressWarnings(s3$dir_ls(era_dirs$era_geodata_s3))
     files_s3<-files_s3[!grepl(".csv|ESA-CCI",files_s3)]
     files_local<-gsub(era_dirs$era_geodata_s3,era_dirs$era_geodata_dir,files_s3)
     
