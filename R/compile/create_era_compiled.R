@@ -775,19 +775,35 @@ UnitHarmonization[Out.Unit.Correct==""|is.na(Out.Unit.Correct),Out.Unit.Correct:
 
   # 1.3) Set era dataset locations #####
     # 1.3.1) 2018 ######
-    filename18<-grep(".parquet",tail(list.files(era_dirs$era_masterdata_dir,"v1[.]0",recursive = F,full.names = T),1),value=T)
+    filename18<-grep(".parquet",tail(list.files(era_dirs$era_masterdata_dir,era_projects$v1.0_2018,recursive = F,full.names = T),1),value=T)
     filename18_simple<-gsub("era_data_|[.]parquet","",basename(filename18))
     
     # 1.3.2) 2020 Majestic hippo ######
-    filename20<-tail(grep(".parquet",list.files(era_dirs$era_masterdata_dir,"v1[.]1",recursive = F,full.names = T),value=T),1)
-    filename20_simple<-gsub("era_data_|[.]parquet","",basename(filename20))
+    filename20<-tail(grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$majestic_hippo_2020,recursive = F,full.names = T),value=T),1)
+    filename20_simple<-gsub("era_data_|_comparisons[.]parquet","",basename(filename20))
     
     # 1.3.3) 2022 Skinny cow ######
     filename22<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$skinny_cow_2022,recursive = F,full.names = T),value=T),value=T),1)
     filename22_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basename(filename22)))
     
+    # 1.3.4) 2023 Industrious elephant ####
+    filename23<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$industrious_elephant_2023,recursive = F,full.names = T),value=T),value=T),1)
+    filename23_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basename(filename23)))
+    
+    # 1.3.5) Combine filenames ####
     # Create combined file name (this is the name used to save the compiled dataset)
-    filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filename22_simple),collapse="-")
+    filename_comb<-paste(c("era_compiled",filename18_simple,filename20_simple,filename22_simple,filename23_simple),collapse="-")
+    
+    simplify_names<-data.frame(old=c(era_projects$v1.0_2018,
+                                     era_projects$majestic_hippo_2020,
+                                     era_projects$skinny_cow_2022,
+                                     era_projects$industrious_elephant_2023),
+                               new=c("v1.0","mh","sc","ie"))
+    
+    for(i in 1:nrow(simplify_names)){
+      filename_comb<-gsub(simplify_names$old[i],simplify_names$new[i],filename_comb)
+    }
+    
     
   # 1.4) Read in and prepare ERA datasets ####
     # 1.4.1) 2018 ######
@@ -968,7 +984,7 @@ UnitHarmonization[Out.Unit.Correct==""|is.na(Out.Unit.Correct),Out.Unit.Correct:
       
       era_2018[,c("Product.Subtype","Product.Simple","EUX"):=NULL]
       
-    # 1.4.2) 2020 ######
+    # 1.4.2) majestic_hippo_2020 ######
     era_2020<-data.table(arrow::read_parquet(filename20))
     # How many C/T columns are in the 2020 dataset?
     N.Cols<-sum(paste0("C",1:30) %in% colnames(era_2020))
@@ -993,49 +1009,78 @@ UnitHarmonization[Out.Unit.Correct==""|is.na(Out.Unit.Correct),Out.Unit.Correct:
     # Update tree field name
     setnames(era_2022,c("Tree.AF","Tree.AF.Clean"),c("Tree","Tree.Clean"))
   
-    # Add Index to 2022
+    # Add row index and version
     era_2022[,Index:=(era_2020[,max(Index)]+1):(era_2020[,max(Index)]+nrow(era_2022))]
     era_2022[,Version:=era_projects$skinny_cow_2022]
   
     # Check for NA values in T1 field, if values are present this indicates an issue with the excel extraction script. In the past issues have been caused by non-matches in concept or harmonization sheets due to character encoding issues.
     era_2022[,list(Len=sum(is.na(T1))),by=list(Code)][Len>0]
     
+    # 1.4.4) industrious_elephant_2023 ####
+    era_2023<-data.table(arrow::read_parquet(filename23))
+    
+
+    # Add row index & version
+    era_2023[,Index:=(era_2022[,max(Index)]+1):(era_2022[,max(Index)]+nrow(era_2023))]
+    era_2023[,Version:=era_projects$industrious_elephant_2023]
+    
+    # Check for NA values in T1 field, if values are present this indicates an issue with the excel extraction script. In the past issues have been caused by non-matches in concept or harmonization sheets due to character encoding issues.
+    era_2023[,list(Len=sum(is.na(T1))),by=list(Code)][Len>0]
+    
+    
   # 1.5) Match & add missing cols to 2018/2022 ####
 # Missing cols in 2018 vs 2020
-missing_cols<-colnames(era_2020)[!colnames(era_2020) %in% colnames(era_2018)]
-era_2018[,(missing_cols):=as.character("")]
+(missing_cols<-colnames(era_2020)[!colnames(era_2020) %in% colnames(era_2018)])
+era_2018[,(missing_cols):=as.character(NA)]
 
 # Missing cols in 2022 vs 2020
-missing_cols<-colnames(era_2020)[!colnames(era_2020) %in% colnames(era_2022)]
-era_2022[,(missing_cols):=as.character("")]
+(missing_cols<-colnames(era_2020)[!colnames(era_2020) %in% colnames(era_2022)])
 
-era_2022[,Plant.End:=as.Date(Plant.End, origin = "1899-12-30")
-][,Plant.Start:=as.Date(Plant.Start, origin = "1899-12-30")
-][,Harvest.Start:=as.Date(Harvest.Start, origin = "1899-12-30")
-][,Harvest.End:=as.Date(Harvest.End, origin = "1899-12-30")]
+era_2022[,Plant.End:=as.Date(NA, origin = "1899-12-30")
+][,Plant.Start:=as.Date(NA, origin = "1899-12-30")
+][,Harvest.Start:=as.Date(NA, origin = "1899-12-30")
+][,Harvest.End:=as.Date(NA, origin = "1899-12-30")
+  ][,c("C.NO","C.NI","T.NI","T.NO"):=as.numeric(NA)
+    ][,c("Mulch.Code","Diversity","Diversity.Clean","C11","C12","C13","C14","T11","T12","T13","T14"):=as.character(NA)]
 
 # Missing cols in 2018 vs 2022
-missing_cols<-colnames(era_2022)[!colnames(era_2022) %in% colnames(era_2018)]
-era_2018[,(missing_cols):=as.character("")]
+(missing_cols<-colnames(era_2022)[!colnames(era_2022) %in% colnames(era_2018)])
+era_2018[,(missing_cols):=as.character(NA)]
 
 # Missing cols in 2020 vs 2022
-missing_cols<-colnames(era_2022)[!colnames(era_2022) %in% colnames(era_2020)]
-era_2020[,(missing_cols):=as.character("")]
+(missing_cols<-colnames(era_2022)[!colnames(era_2022) %in% colnames(era_2020)])
+era_2020[,(missing_cols):=as.character(NA)]
 
 # Missing cols in 2020 vs 2018
-missing_cols<-colnames(2018)[!colnames(2018) %in% colnames(era_2020)]
+(missing_cols<-colnames(era_2018)[!colnames(era_2018) %in% colnames(era_2020)])
 if(length(missing_cols)>0){
-era_2020[,(missing_cols):=as.character("")]
+era_2020[,(missing_cols):=as.character(NA)]
 }
   
+# Missing cols in 2023 vs 2022 and vice versa
+(missing_cols<-colnames(era_2023)[!colnames(era_2023) %in% colnames(era_2020)])
+
+if(length(missing_cols)>0){
+  era_2018[,(missing_cols):=as.character(NA)]
+  era_2020[,(missing_cols):=as.character(NA)]
+  era_2022[,(missing_cols):=as.character(NA)]
+}
+
+(missing_cols<-colnames(era_2022)[!colnames(era_2022) %in% colnames(era_2023)])
+
+if(length(missing_cols)>0){
+  era_2023[,(missing_cols):=as.character(NA)]
+}
 
   # 1.6) Remove papers in more recent extractions from old extractions #####
   codes_2020<-era_2020[,unique(Code)]
   codes_2022<-era_2022[,unique(Code)]
-  era_2018<-era_2018[!Code %in% c(codes_2020,codes_2022)]
-  era_2020<-era_2020[!Code %in% codes_2022 & !Analysis.Function %in% c("NoDietSub","DietSub")]
+  codes_2023<-era_2023[,unique(Code)]
+  era_2018<-era_2018[!Code %in% c(codes_2020,codes_2022,codes_2023)]
+  era_2020<-era_2020[!Code %in% c(codes_2022,codes_2023) & !Analysis.Function %in% c("NoDietSub","DietSub")]
+  era_2022<-era_2022[!Code %in% codes_2023]
   # 1.7) Join Datasets ####
-  era_merged<-rbindlist(list(era_2018,era_2020,era_2022),use.names = T)
+  era_merged<-rbindlist(list(era_2018,era_2020,era_2022,era_2023),use.names = T)
   
   # Use Clean Columns (where various fields in 2018 have been tidied using scripts)
   era_merged[T.Descrip.Clean=="",T.Descrip.Clean:=T.Descrip]
@@ -1046,7 +1091,8 @@ era_2020[,(missing_cols):=as.character("")]
   
   era_merged[,c("T.Descrip.Clean","C.Descrip.Clean","Variety.Clean","Tree.Clean","Diversity.Clean"):=NULL]
   
-  era_merged[is.na(C13),C13:=""]
+  # Ensure numeric columns are numeric
+  era_merged[,MeanC:=as.numeric(MeanC)][,MeanT:=as.numeric(MeanT)]
 
   # 1.8) Add Irrigation Present Columns #####
   CCols<-paste0("C",1:13)
@@ -1103,7 +1149,7 @@ era_merged<-era_merged[!(is.na(EU)|EU==""|nchar(EU)==0)]
   # 1.10) Restructure Irrigation Practices #####
 pasteNA<-function(X){paste(X[!is.na(X)],collapse="-")}
 
-era_merged[,C.Codes:=paste(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13),collapse = "-"),by=Index]
+era_merged[,C.Codes:=paste(na.omit(c(C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13)),collapse = "-"),by=Index]
 
 era_merged[grep("b34",C.Codes),Irrig.Meth.C1:=PracticeCodes[Code=="b34",Subpractice]
 ][grep("b36",C.Codes),Irrig.Meth.C2:=PracticeCodes[Code=="b36",Subpractice]
@@ -1112,7 +1158,7 @@ era_merged[grep("b34",C.Codes),Irrig.Meth.C1:=PracticeCodes[Code=="b34",Subpract
 ][,Irrig.Meth.C:=pasteNA(c(Irrig.Meth.C1,Irrig.Meth.C2,Irrig.Meth.C3,Irrig.Meth.C4)),by=Index
 ][,c("Irrig.Meth.C1","Irrig.Meth.C2","Irrig.Meth.C3","Irrig.Meth.C4","C.Codes"):=NULL]
 
-era_merged[,T.Codes:=paste(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13),collapse = "-"),by=Index]
+era_merged[,T.Codes:=paste(na.omit(c(T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13)),collapse = "-"),by=Index]
 
 era_merged[grep("b34",T.Codes),Irrig.Meth.C1:=PracticeCodes[Code=="b34",Subpractice]
 ][grep("b36",T.Codes),Irrig.Meth.C2:=PracticeCodes[Code=="b36",Subpractice]
@@ -1527,61 +1573,87 @@ era_merged<-era_merged[!Index %in% DataX[!is.na(NotInT),Index]]
   # 3.1) Prepare data ####
   # Note that environmental data scripts must have been run on the compiled ERA dataset, see ERA_dev/R/add_geodata
     # 3.1.1) Load environmental data
-    # UPDATE TO USE "aez_2025-02-14.parquet" ####
-    Env.Data<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_others.parquet"))
-    POWER<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"POWER_ltavg.parquet"))
-    Soils<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"era_site_soil_af_isda.parquet"))
+
+    (file<-tail(list.files(era_dirs$era_geodata_dir,"POWER.*ltavg.*parquet",full.names = T),1))
+    POWER<-arrow::read_parquet(file)
     
-    # !!!!NEED TO CREATE CHIRPS.LT.RData File ####
-    # CHIRPS<-data.table(load.Rdata2("CHIRPS.LT.RData",path=paste0(ClimateDir,"CHIRPS/")))
-    CHIRPS<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"CHIRPS.parquet"))
-    CHIRPS<-CHIRPS[,N:=.N,by=.(Site.ID,Latitude,Longitude,Buffer,Year)
-                   ][N>=365
-                     ][,.(Total.Rain=sum(Rain,na.rm=T),Mean.Annual.Temp=mean(Temp.Mean,na.rm=T)),by=.(Site.ID,Latitude,Longitude,Buffer,Year)
-                       ][,.(Total.Rain=mean(Total.Rain,na.rm=T),Mean.Annual.Temp=mean(Mean.Annual.Temp,na.rm=T)),by=.(Site.ID,Latitude,Longitude,Buffer)
-                         ][,Site.Key:=paste0(sprintf("%07.4f", Latitude[1]), " ", sprintf("%07.4f", Longitude[1]), " B", Buffer[1]),by=.(Latitude,Longitude,Buffer)]
+    file<-list.files(era_dirs$era_geodata_dir,"isda.*parquet",full.names = T)
+    file<-file[!grepl("watbal",file)]
+    (file<-tail(file,1))
+    Soils_isda<-arrow::read_parquet(file)
+    
+    file<-list.files(era_dirs$era_geodata_dir,"soilgrids2.0.*parquet",full.names = T)
+    file<-file[!grepl("watbal",file)]
+    (file<-tail(file,1))
+    Soils_soilgrids<-arrow::read_parquet(file)
+    
+    (file<-tail(list.files(era_dirs$era_geodata_dir,"chirps.*ltavg.*parquet",full.names = T),1))
+    CHIRPS<-arrow::read_parquet(file)
     
     # 3.1.2) Prepare climate data ######
     # Subset Data to unique Site.Keys
     Climate<-unique(ERA.Compiled[!is.na(Site.Key),"Site.Key"])
     
     # 3.1.2.1) Add AEZ #######
-    # UPDATE TO USE "aez_2025-02-14.parquet" ####
-    
+
     # Initialize AEZ mappings from era_master_table
-    AEZ.Mappings<-master_codes$aez
+    (files<-tail(list.files(era_dirs$era_geodata_dir,"aez.*parquet",full.names = T),1))
     
-    Climate[,AEZCode:=Env.Data[match(Climate[,Site.Key],Site.Key),'SSA-aez09.Mode']]
-    Climate[,AEZ16simple:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ.TempHumid.Name]]
-    Climate[,AEZ16:=AEZ.Mappings[match(Climate[,AEZCode],AEZ16.Value),AEZ16.Name]]
-    Climate[,AEZCode:=Env.Data[match(Climate[,Site.Key],Site.Key),"AEZ5_CLAS--SSA.Mode"]]
-    Climate[,AEZ5:=AEZ.Mappings[match(Climate[,AEZCode],AEZ5.Value),AEZ5.Name]]
-    Climate[,AEZCode:=NULL]
+    aez_dat<-arrow::read_parquet(files)
+    aez16<-aez_dat[dataset=="AEZ16_CLAS--SSA.tif",.(Site.Key,value_cat)]
+    setnames(aez16,c("value_cat"),c("AEZ16"))
+    aez16[,AEZ16simple:=gsub("Tropic - |Subtropic - ","",AEZ16)]
     
+    aez5<-aez_dat[dataset=="AEZ5_CLAS--SSA.tif",.(Site.Key,value_cat)]
+    setnames(aez5,c("value_cat"),c("AEZ5"))
+    
+    ERA.Compiled<-merge(ERA.Compiled,aez16,by="Site.Key",all.x=T)
+    ERA.Compiled<-merge(ERA.Compiled,aez5,by="Site.Key",all.x=T)
+
     # 3.1.2.2) Add CHIRPS ######
-    Climate[,Mean.Annual.Precip:=CHIRPS[match(Climate[,Site.Key],Site.Key),Total.Rain]]
+    
+    CHIRPS<-CHIRPS[,.(Site.Key,Total.Rain.mean)]
+    setnames(CHIRPS,"Total.Rain.mean","Mean.Annual.Precip")
+    
+    ERA.Compiled<-merge(ERA.Compiled,CHIRPS,by="Site.Key",all.x=T)
     
     # 3.1.2.3) Add POWER ######
-    Climate[,Mean.Annual.Temp:=POWER[match(Climate[,Site.Key],Site.Key),Temp.Mean.Mean]]
+    POWER<-POWER[,.(Site.Key,Temp.Mean.Mean)]
+    setnames(POWER,"Temp.Mean.Mean","Mean.Annual.Temp")
+    
+    ERA.Compiled<-merge(ERA.Compiled,POWER,by="Site.Key",all.x=T)
     
     # Save climate file
+    Climate<-aez16
+    Climate<-merge(Climate,aez5,by="Site.Key",all.x=T)
+    Climate<-merge(Climate,CHIRPS,by="Site.Key",all.x=T)
+    Climate<-merge(Climate,POWER,by="Site.Key",all.x=T)
+    
     fwrite(Climate,file=file.path(era_dirs$era_geodata_dir,paste0("AEZ_MAP_MAT-",Sys.Date(),".csv")))
     
-    # 3.1.3) Prepare soil data  ######
+    # 3.1.3) Add soil data  ######
     # Calulate weighted mean soil parameter values weighted by depth interval
-    Soils<-Soils[stat=="mean" & variable %in% c("clay.tot.psa","sand.tot.psa","silt.tot.psa")
+    Soils_isda<-Soils_isda[stat=="mean" & variable %in% c("clay.tot.psa","sand.tot.psa","silt.tot.psa")
                  ][,interval:=mean(as.numeric(unlist(strsplit(gsub("cm","",depth[1]),"-")))),by=depth
                    ][,.(value=round(weighted.mean(value,interval),1)),by=.(Site.Key,variable)
                      ][,variable:=gsub("[.]tot[.]psa","",variable)]
+    Soils_isda<-data.table(dcast(Soils_isda,Site.Key~variable))
     
-    Soils<-data.table(dcast(Soils,Site.Key~variable))
+    Soils_soilgrids<-Soils_soilgrids[stat=="mean" & variable %in% c("clay","sand","silt") & depth!="60-100cm"
+    ][,interval:=mean(as.numeric(unlist(strsplit(gsub("cm","",depth[1]),"-")))),by=depth
+    ][,.(value=round(weighted.mean(value,interval),1)),by=.(Site.Key,variable)]
+    Soils_soilgrids<-data.table(dcast(Soils_soilgrids,Site.Key~variable))
     
+    # Remove any duplicates in soilgrids 
+    Soils_soilgrids<-Soils_soilgrids[!Site.Key %in% Soils_isda$Site.Key]
+    
+    Soils<-rbind(Soils_isda,Soils_soilgrids)
+
     col_mappings<-c(sand="SND",silt="SLT",clay="CLY")
     
     setnames(Soils,names(col_mappings),col_mappings)
     
-  # 3.2) Merge biophysical data ######
-    ERA.Compiled<-cbind(ERA.Compiled,Climate[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"],Soils[match(ERA.Compiled[,Site.Key],Site.Key),!"Site.Key"])
+    ERA.Compiled<-merge(ERA.Compiled,Soils,by="Site.Key",all.x=T)
 
 # 4) Split off Economic outcomes with no comparison ####
 ERA.Compiled.Econ<-ERA.Compiled[is.na(MeanC) & Out.SubPillar != "Efficiency" & !Out.SubInd %in% c("Crop Yield","Soil Organic Carbon"),]
@@ -1621,9 +1693,19 @@ ERA.Compiled<-ERA.Compiled[!Index %in% ERA.Compiled.Econ[,Index]]
   unique(ERA.Compiled[!is.na(M.Year) & M.Year!="NA" & is.na(Mean.Annual.Temp) & Buffer<50000 & !is.na(Latitude),list(Code,Country,Latitude,Longitude,Buffer,Site.Key,M.Year,Version)])
   
 # 5) Save results ####
-save_file<-file.path(era_dirs$era_masterdata_dir,paste0(filename_comb,".csv"))
-fwrite(ERA.Compiled,save_file)
-arrow::write_parquet(ERA.Compiled,gsub("[.]csv",".parquet",save_file))
+save_file<-paste0(filename_comb,"-",as.character(Sys.Date()))
+  
+# RData
+n<-sum(grepl(basename(save_file),list.files("data",".RData")))      
+save_file<-file.path(era_dirs$era_masterdata_dir,paste0(save_file,".",n+1,".RData"))
+save(ERA.Compiled,file=save_file)
 
+# parquet
+arrow::write_parquet(ERA.Compiled,gsub("[.]RData",".parquet",save_file))
+
+# csv
+fwrite(ERA.Compiled,gsub("[.]RData",".csv",save_file))
+
+# econ data 
 save_file<-file.path(era_dirs$era_masterdata_dir,paste0(gsub("era_compiled-","era_compiled_econ_only-",filename_comb),".csv"))
 fwrite(ERA.Compiled.Econ,save_file)
