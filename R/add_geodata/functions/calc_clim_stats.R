@@ -19,7 +19,7 @@
 #' @param data_params A list of parameters specifying the site-level field names. This list must include:
 #'   \itemize{
 #'     \item \code{id_col}: The name of the unique site identifier column (e.g., "Site.Key").
-#'     \item \code{time_col}: The name of the field that contain a time period identifier (e.g, "M.Year" or "Time").
+#'     \item \code{append_cols}: The name of fields from the data object to appeneded to output tables.
 #'     \item \code{plant_start_col}: The name of the planting start date field (e.g., "PlantingDate").
 #'     \item \code{season_length_col}: The name of the season length field (e.g., "SeasonLength.Data").
 #'   }
@@ -149,7 +149,7 @@ calc_clim_stats <- function(data,
   #   id_col: name of the unique site identifier (e.g., "site_id")
   #   plant_start_col: name of the planting start date field (e.g., "PlantingDate")
   #   season_length_col: name of the season length field (e.g., "SeasonLength.Data")
-  required_data <- c("id_col", "plant_start_col", "season_length_col")
+  required_data <- c("id_col", "plant_start_col", "season_length_col","append_cols")
   missing_data <- setdiff(required_data, names(data_params))
   if (length(missing_data) > 0) {
     stop("Missing fields in data_params: ", paste(missing_data, collapse = ", "))
@@ -236,7 +236,9 @@ calc_clim_stats <- function(data,
       
       obs <- site_data[i, ]
       index <- site_data[i,index]
-      time<-site_data[i,data_params$time_col,with=F]
+      if(!is.null(data_params$append_cols)){
+        a_cols<-site_data[i,data_params$append_cols,with=F]
+      }
       
       if(verbose){
         cat("Processing site j =",j,"/",length(sites),", row index =",index,"( i = ",i,")         \r")
@@ -282,7 +284,9 @@ calc_clim_stats <- function(data,
             sum_daily=gdd_params$sum_daily
           )
           gdd_stat$row_index<-index
-          gdd_stat[, (data_params$time_col) := time]
+          if(!is.null(data_params$append_cols)){
+            gdd_stat<-cbind(gdd_stat,a_cols)
+          }
           obs_stat$gdd <- gdd_stat
         }
       }
@@ -299,7 +303,9 @@ calc_clim_stats <- function(data,
             r_seq_len = rainfall_params$r_seq_len
           )
           rain_stat$row_index<-index
-          rain_stat[, (data_params$time_col) := time]
+          if(!is.null(data_params$append_cols)){
+            rain_stat<-cbind(rain_stat,a_cols)
+          }
           obs_stat$rainfall <- rain_stat
         }
       }
@@ -317,7 +323,9 @@ calc_clim_stats <- function(data,
             t_seq_len = temp_params$t_seq_len
           )
           temp_stat$row_index<-index
-          temp_stat[, (data_params$time_col) := time]
+          if(!is.null(data_params$append_cols)){
+            temp_stat<-cbind(temp_stat,a_cols)
+          }         
           obs_stat$temperature <- temp_stat
         }
       }
@@ -333,7 +341,9 @@ calc_clim_stats <- function(data,
             r_seq_len = eratio_params$r_seq_len
           )
           eratio_stat$row_index<-index
-          eratio_stat[, (data_params$time_col) := time]
+          if(!is.null(data_params$append_cols)){
+            eratio_stat<-cbind(eratio_stat,a_cols)
+          }         
           obs_stat$eratio <- eratio_stat
         }
       }
@@ -349,7 +359,9 @@ calc_clim_stats <- function(data,
             r_seq_len = logging_params$r_seq_len
           )
           logging_stat$row_index<-index
-          logging_stat[, (data_params$time_col) := time]
+          if(!is.null(data_params$append_cols)){
+            logging_stat<-cbind(logging_stat,a_cols)
+          }         
           obs_stat$logging <- logging_stat
         }
       }
@@ -398,30 +410,35 @@ calc_clim_stats <- function(data,
   if (!is.null(gdd_params)) {
     stat<-rbindlist(lapply(results_list,"[[","gdd"))
     stat$window<-window
+    setnames(stat,"id",data_params$id_col)
     results_consolidated[["gdd"]]<-stat
   }
   
   if (!is.null(temp_params)) {
     stat<-rbindlist(lapply(results_list,"[[","temperature"))
     stat$window<-window
+    setnames(stat,"id",data_params$id_col)
     results_consolidated[["temperature"]]<-stat
   }
   
   if (!is.null(rainfall_params)) {
     stat<-rbindlist(lapply(results_list,"[[","rainfall"))
     stat$window<-window
+    setnames(stat,"id",data_params$id_col)
     results_consolidated[["rainfall"]]<-stat
   }
   
   if (!is.null(eratio_params)) {
     stat<-rbindlist(lapply(results_list,"[[","eratio"))
     stat$window<-window
+    setnames(stat,"id",data_params$id_col)
     results_consolidated[["eratio"]]<-stat
   }
   
   if (!is.null(logging_params)) {
     stat<-rbindlist(lapply(results_list,"[[","logging"))
     stat$window<-window
+    setnames(stat,"id",data_params$id_col)
     results_consolidated[["logging"]]<-stat
   }
   
