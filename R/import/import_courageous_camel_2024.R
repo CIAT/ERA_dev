@@ -39,7 +39,7 @@ project<-era_projects$courageous_camel_2024
 #excel_dir<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/My Drive/Data Entry 2024"
 
 # Are we in the live data extraction phase?
-ext_live<-T
+ext_live<-F
 
 # Where extraction excel files are stored longer term
 if(!ext_live){
@@ -181,7 +181,7 @@ if(!ext_live){
   
 # 3) Process imported data ####
   # Update saved data and errorchecking (T) or skip if file has already been processed (F)
-  overwrite<-F
+  overwrite<-T
 
   # Set up parallel back-end
   plan(multisession, workers = worker_n)
@@ -207,11 +207,14 @@ if(!ext_live){
     era_code <- excel_files$era_code2[ii]
     
   # For later development to save processed tables
-  save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
+  # save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
   
   # Create name for error csv file
-  filename_new<-gsub(".xlsx|.xlsm","_errors",basename(File))
+  file_code<-gsub(".xlsx|.xlsm","",basename(File))
+  filename_new<-paste0(file_code,"_errors")
   filepath_new<-file.path(dirname(File),paste0(filename_new,".csv"))
+  
+  save_file<-file.path(extracted_dir,paste0(file_code,".RData"))
   
   if(!file.exists(filepath_new)|overwrite==T){
   # 3.0) Load excel data #####
@@ -693,7 +696,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
      a_sci_names<-as.vector(na.omit(aom[L1=="Species" & L2=="Animal",`Scientific Name`]))
      # Variety
      # Practice
-     a_pracs<-PracticeCodes[Practice=="Genetic Improvement",Subpractice]
+     a_pracs<-master_codes$prac[Practice=="Genetic Improvement",Subpractice]
      # Sex
      a_sex<-master_codes$lookup_levels[Field=="Herd.Sex",Values_New]
      # Stage
@@ -3136,36 +3139,51 @@ if(F){
       Data.Out[C.Structure!="Yes",C.Structure:=NA][C.Structure=="Yes",C.Structure:=C.Level.Name]
     }
     
-# 8) Save errors #####
-    errors<-rbindlist(errors,use.names = T)
-    errors<-error_tracker(errors=errors,
-                  filename =filename_new,
-                  error_dir=dirname(File),
-                  error_list = NULL)
-    
-    # 9) Save data
+    # 8) Save results ####
     Tables<-list(
       Pub.Out=Pub.Out, 
       Site.Out=Site.Out, 
       Soil.Out=Soil.Out,
       ExpD.Out=ExpD.Out,
+      System.Out=System.Out,
       Times.Out=Times.Out,
-      Prod.Out=Prod.Out,
-      Var.Out=Var.Out,
+      Herd.Out=Herd.Out,
       Chems.Code=Chems.Code,
       Chems.Out=Chems.Out,
+      Chems.AI=Chems.AI,
       AF.Out=AF.Out,
+      AF.Trees=AF.Trees,
       Animals.Out=Animals.Out,
       Animal.Diet=Animal.Diet,
       Animal.Diet.Comp=Animal.Diet.Comp,
       Animal.Diet.Digest=Animal.Diet.Digest,
+      Pasture.Out=Pasture.Out,
+      Pasture.Comp=Pasture.Comp,
+      GM.Out=GM.Out,
+      GM.Method=GM.Method,
+      Till.Out=Till.Out,
+      Till.Method=Till.Method,
+      Fert.Out=Fert.Out,
+      Fert.Method=Fert.Method,
+      Fert.Comp=Fert.Comp,
       Other.Out=Other.Out,
       MT.Out=MT.Out,
       Out.Out=Out.Out,
-      Data.Out=Data.Out
+      Out.Econ=Out.Econ,
+      TS.Out=TS.Out,
+      TS.Seq=TS.Seq,
+      Data.Out=Data.Out,
+      Base.Out=Base.Out
     )
     
-    save(Tables,file=save_name)
+    save(Tables,file=save_file)
+    
+# 9) Save errors #####
+    errors<-rbindlist(errors,use.names = T)
+    errors<-error_tracker(errors=errors,
+                  filename =filename_new,
+                  error_dir=dirname(File),
+                  error_list = NULL)
 
     return(if(length(errors)==0){NULL}else{errors[[1]]})
   }else{
@@ -3175,36 +3193,41 @@ if(F){
   })
 
 })
+ 
+# 10) Compile errors ####
 
 errors<-rbindlist(results)
 errors<-merge(errors,excel_files[,.(filename,era_code2)],by.x="B.Code",by.y="era_code2",all.x=T,sort=F)[,filename:=basename(filename)]
 fwrite(errors,file.path(excel_dir,"compiled_auto_errors.csv"),bom=T)
 
-# 10) Import and merge saved files  ####
+# 11) Compile saved tables ####
 
-files<-list.files(extracted_dir,".RData",full.names = T)
+files<-list.files(extracted_dir,"RData$",full.names = T)
 
-data<-pblapply(1:length(files),FUN=function(i){
-  file<-files[i]
-  dat<-miceadds::load.Rdata2(file=basename(file),path=dirname(file))
-  dat
+tabs<-names(miceadds::load.Rdata2(basename(files[1]),path=dirname(files[1])))
+
+# Soils need to be dealt with separately as the table structure needs to be changed from wide to long
+tabs<-tabs[tabs != "Soil.Out"]
+# Wide to long in Animal.Diet.Comp is not working properly
+tabs<-tabs[tabs != "Animal.Diet.Comp"]
+# Wide to long in Animal.Diet.Comp is not working properly
+tabs<-tabs[tabs != "Animal.Diet.Digest"]
+# Base.Codes has some issues with P.Codes too
+tabs<-tabs[tabs != "Base.Out"]
+
+data_list<-lapply(files,FUN=function(file){
+  miceadds::load.Rdata2(basename(file),path=dirname(file))
+                        })
+
+data<-lapply(tabs,FUN=function(tab){
+  cat(tab,"\n")
+  rbindlist(lapply(data_list,"[[",tab))
 })
 
-tabnames<-names(data[[1]])
+## 11.1) Save results ####
+save_file<-paste0(project,"_draft_",as.character(Sys.Date()))
+n<-sum(grepl(basename(save_file),list.files(era_dirs$era_masterdata_dir,".RData")))                                   
 
-data_merged<-lapply(1:length(tabnames),FUN=function(i){
-  tab<-tabnames[i]
-  cat(tab,"\n")
-  dat<-rbindlist(lapply(data,"[[",tab),fill=T,use.names = T)
-  dat
-  })
-
-names(data_merged)<-tabnames
-
-save_file<-paste0(project,"-draft-",as.character(Sys.Date()))
-n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
-
-save(data_merged,file=file.path(data_dir,paste0(save_file,".",n+1,".RData")))
+save(data,file=file.path(era_dirs$era_masterdata_dir,paste0(save_file,".",n+1,".RData")))
 
 
-  
