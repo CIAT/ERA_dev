@@ -59,9 +59,9 @@ Join.T<-function(A,B,C,D){
   # 1.1) Load tables from era data model #####
 project<-era_projects$industrious_elephant_2023
 data_dir<-era_dirs$era_masterdata_dir
-files<-list.files(data_dir,project)
+(files<-list.files(data_dir,project))
 files<-grep(".RData",files,value=T)
-file_local<-tail(files,1)
+(file_local<-tail(files,1))
 data<-miceadds::load.Rdata2(filename=file_local,data_dir)
 
 Data.Out<-data$Data.Out
@@ -2391,11 +2391,45 @@ Data<-Data.Out
   
   ERA.Reformatted<-cbind(ERA.Reformatted[,!..Cols],Z)
   
-  # 4.7) Save Output ####
+  # 4.7) Tidy up C/T fields where we have NAs follow by codes in the T/C cols
+  ERA.Reformatted
+  
+  library(data.table)
+  
+  # Define the target columns
+  Tcols <- paste0("T", 1:15)
+  Ccols <- paste0("C", 1:15)
+  
+  # Function to reorder non-NA values to the left
+  reorder_Ts <- function(row) {
+    vals <- unlist(row, use.names = FALSE)
+    non_na_vals <- vals[!is.na(vals)]
+    c(non_na_vals, rep(NA, length(vals) - length(non_na_vals)))
+  }
+  
+  # Apply fix row-wise to T1:T15
+  ERA.Reformatted[, (Tcols) := transpose(lapply(seq_len(.N), function(i) reorder_Ts(.SD[i]))), .SDcols = Tcols]
+  ERA.Reformatted[, (Ccols) := transpose(lapply(seq_len(.N), function(i) reorder_Ts(.SD[i]))), .SDcols = Ccols]
+  
+  # Remove any NA columns
+  
+  # Identify which columns are *not* all NA
+  non_empty_Tcols <- Tcols[!sapply(ERA.Reformatted[, ..Tcols], function(col) all(is.na(col)))]
+  non_empty_Ccols <- Ccols[!sapply(ERA.Reformatted[, ..Ccols], function(col) all(is.na(col)))]
+  
+  # Keep only the non-empty ones
+  ERA.Reformatted <- ERA.Reformatted[, c(setdiff(names(ERA.Reformatted), Tcols), non_empty_Tcols), with = FALSE]
+  ERA.Reformatted <- ERA.Reformatted[, c(setdiff(names(ERA.Reformatted), Ccols), non_empty_Ccols), with = FALSE]
+  
+  # 4.8) Enforce numeric ####
+  ERA.Reformatted[,MeanC:=as.numeric(MeanC)][,MeanT:=as.numeric(MeanT)]
+  
+  
+  # 4.9) Save Output ####
   save_name<-file.path(era_dirs$era_masterdata_dir, gsub("[.]RData","_comparisons.parquet",file_local))
   arrow::write_parquet(ERA.Reformatted,save_name)
   
-    # 4.7.1) Compare versions #####
+    # 4.9.1) Compare versions #####
   
   (files<-grep("parquet",list.files("data/",project,full.names = T),value=T))
   files<-files[!grepl("compiled",files)]
