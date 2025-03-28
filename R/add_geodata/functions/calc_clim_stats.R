@@ -18,7 +18,8 @@
 #' @param climate A daily climate data.table containing a \code{Date} column and the necessary climate fields (e.g. \code{Temp.Max}, \code{Temp.Min}, \code{Rain}, etc.).
 #' @param data_params A list of parameters specifying the site-level field names. This list must include:
 #'   \itemize{
-#'     \item \code{id_col}: The name of the unique site identifier column (e.g., "site_id").
+#'     \item \code{id_col}: The name of the unique site identifier column (e.g., "Site.Key").
+#'     \item \code{time_col}: The name of the field that contain a time period identifier (e.g, "M.Year" or "Time").
 #'     \item \code{plant_start_col}: The name of the planting start date field (e.g., "PlantingDate").
 #'     \item \code{season_length_col}: The name of the season length field (e.g., "SeasonLength.Data").
 #'   }
@@ -235,6 +236,7 @@ calc_clim_stats <- function(data,
       
       obs <- site_data[i, ]
       index <- site_data[i,index]
+      time<-site_data[i,data_params$time_col,with=F]
       
       if(verbose){
         cat("Processing site j =",j,"/",length(sites),", row index =",index,"( i = ",i,")         \r")
@@ -280,6 +282,7 @@ calc_clim_stats <- function(data,
             sum_daily=gdd_params$sum_daily
           )
           gdd_stat$row_index<-index
+          gdd_stat[, (data_params$time_col) := time]
           obs_stat$gdd <- gdd_stat
         }
       }
@@ -295,6 +298,8 @@ calc_clim_stats <- function(data,
             threshold_dt = rainfall_params$threshold_dt,
             r_seq_len = rainfall_params$r_seq_len
           )
+          rain_stat$row_index<-index
+          rain_stat[, (data_params$time_col) := time]
           obs_stat$rainfall <- rain_stat
         }
       }
@@ -312,6 +317,7 @@ calc_clim_stats <- function(data,
             t_seq_len = temp_params$t_seq_len
           )
           temp_stat$row_index<-index
+          temp_stat[, (data_params$time_col) := time]
           obs_stat$temperature <- temp_stat
         }
       }
@@ -327,6 +333,7 @@ calc_clim_stats <- function(data,
             r_seq_len = eratio_params$r_seq_len
           )
           eratio_stat$row_index<-index
+          eratio_stat[, (data_params$time_col) := time]
           obs_stat$eratio <- eratio_stat
         }
       }
@@ -342,6 +349,7 @@ calc_clim_stats <- function(data,
             r_seq_len = logging_params$r_seq_len
           )
           logging_stat$row_index<-index
+          logging_stat[, (data_params$time_col) := time]
           obs_stat$logging <- logging_stat
         }
       }
