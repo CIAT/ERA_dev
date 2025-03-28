@@ -2421,49 +2421,67 @@ Data<-Data.Out
   # 4.18) Aggregate data for averaged site locations ####
   A.Sites<-Data[grepl("[.][.]",ED.Site.ID),N]
 
-  Agg.Sites<-function(B.Code,ED.Site.ID){
+  #' @title Aggregate spatial buffers for composite site identifiers
+  #' @description Given a composite site ID (delimited with "..") and a B.Code, calculates a buffered centroid from associated site locations
+  #' @param B.Code Character. Block code identifier.
+  #' @param ED.Site.ID Character. Composite site ID (e.g., "SiteA..SiteB").
+  #' @return data.table with averaged Site.LonD, Site.LatD, and Site.Buffer.Manual
+  #' @import data.table terra
+  Agg.Sites <- function(B.Code, ED.Site.ID) {
     
-    Sites<-unlist(strsplit(ED.Site.ID,"[.][.]"))
-    Study<-B.Code
+    # Split composite site ID
+    Sites <- unlist(strsplit(ED.Site.ID, "[.][.]"))
+    Study <- B.Code
     
-    coords<-Site.Out[Site.ID %in% Sites & B.Code==Study,list(Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual)]
+    # Filter relevant coordinates from master site table
+    coords <- Site.Out[Site.ID %in% Sites & B.Code == Study,
+                       list(Site.LatD, Site.LonD, Site.Lat.Unc, Site.Lon.Unc, Site.Buffer.Manual)]
     
-    coords[,N:=1:.N][is.na(Site.Buffer.Manual),Site.Buffer.Manual:=max(c(Site.Lat.Unc,Site.Lon.Unc)),by=N]
+    # Assign uncertainty-based buffer if missing
+    coords[, N := 1:.N]
+    coords[is.na(Site.Buffer.Manual), Site.Buffer.Manual := max(c(Site.Lat.Unc, Site.Lon.Unc)), by = N]
     
-    coords<-coords[!(is.na(Site.LatD)|is.na(Site.LonD))]
+    # Drop rows with missing lat/lon
+    coords <- coords[!(is.na(Site.LatD) | is.na(Site.LonD))]
     
-    if(nrow(coords)==0){
+    if (nrow(coords) == 0) {
       
-      return(data.table(Site.LonD=as.numeric(NA),Site.LatD=as.numeric(NA),Site.Buffer.Manual=as.numeric(NA)))
+      return(data.table(Site.LonD = as.numeric(NA),
+                        Site.LatD = as.numeric(NA),
+                        Site.Buffer.Manual = as.numeric(NA)))
       
-    }else{
-
-      # Create points object in WGS84
-      points <- terra::vect(coords[,list(Site.LonD,Site.LatD)],geom=c("Site.LonD", "Site.LatD"), crs = "EPSG:4326")
+    } else {
       
-      # Transform to Mercator projection
+      # 1. Create spatial points in WGS84
+      points <- terra::vect(coords[, list(Site.LonD, Site.LatD)],
+                            geom = c("Site.LonD", "Site.LatD"),
+                            crs = "EPSG:4326")
+      
+      # 2. Reproject to EPSG:3857 for accurate buffering in meters
       points <- terra::project(points, "EPSG:3857")
       
-      # Create buffer polygons
+      # 3. Create buffer polygons for each point
       buffers <- vect(lapply(seq_len(nrow(coords)), function(i) {
-        buffer_geom <- terra::buffer(points[i, ], width = coords[i, Site.Buffer.Manual])
-        buffer_geom
+        terra::buffer(points[i, ], width = coords[i, Site.Buffer.Manual])
       }))
       
-      combined_buffers<-aggregate(buffers)
-      centroid<-centroids(combined_buffers)
+      # 4. Merge buffers and calculate centroid
+      combined_buffers <- aggregate(buffers)
+      centroid <- centroids(combined_buffers)
+      
+      # 🔁 5. Reproject back to WGS84 for lat/lon output
+      centroid <- terra::project(centroid, "EPSG:4326")
       centroid_coords <- crds(centroid)
       
-      # Calculate bounding box and buffer size
+      # 6. Calculate bounding box to estimate representative buffer radius
       bbox <- ext(combined_buffers)
-      # Buffer is a radius
       Buff <- max(bbox$xmax - bbox$xmin, bbox$ymax - bbox$ymin) / 2
       
       return(data.table(Site.LonD = round(centroid_coords[1, "x"], 5),
                         Site.LatD = round(centroid_coords[1, "y"], 5),
-                        Site.Buffer.Manual=round(Buff,0)))
-    } 
-  }
+                        Site.Buffer.Manual = round(Buff, 0)))
+    }
+  }  
   
   X<-Data[A.Sites,Agg.Sites(B.Code[1],ED.Site.ID[1]),by=c("B.Code","ED.Site.ID")]
   
