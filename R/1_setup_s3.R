@@ -382,6 +382,7 @@ upload_files_to_s3(files = files,
       folder_local<-era_dirs$era_geodata_dir
       
       files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
+      files<-files[!grepl("geodata/legacy",files)]
       
       upload_files_to_s3(files = files,
                          selected_bucket=s3_bucket,
