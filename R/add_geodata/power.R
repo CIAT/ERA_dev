@@ -185,5 +185,5 @@
   
   ## 2.1.5) Save annual & long-term datasets ####
   # Write the annual and long-term aggregated data to separate Parquet files.
-  arrow::write_parquet(power_data_annual, gsub(".parquet$", "_annual.parquet", save_file))
-  arrow::write_parquet(power_data_lt, gsub(".parquet$", "_ltavg.parquet", save_file))
+  arrow::write_parquet(power_data_annual, gsub("POWER_", "POWER_annual_", save_file))
+  arrow::write_parquet(power_data_lt, gsub("POWER_", "POWER_ltavg_", save_file))
