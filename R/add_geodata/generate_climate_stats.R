@@ -664,12 +664,16 @@ gdd_params <- list(
  ## 10.2) Calculate climate stats ####
  clim_stats<-list()
  
+ # These are the fields we will need to use to merge data back with the era comparisons table
+ append_cols<-c("M.Year","EU","Product","Plant.Start","Plant.End","Harvest.Start","Harvest.End")
+ 
   ### 10.2.1) Planting date and season length reported or derived from nearby data reported in ERA ####
 clim_stats_sldata<-calc_clim_stats(data=SS,
                                     climate=power_chirps,
-                                    data_params = data.frame(id_col=id_field,
-                                                    plant_start_col="PlantingDate",
-                                                    season_length_col="SeasonLength.Data"),
+                                    data_params = list(id_col=id_field,
+                                                       append_cols=append_cols,
+                                                       plant_start_col="PlantingDate",
+                                                       season_length_col="SeasonLength.Data"),
                                     gdd_params = gdd_params,
                                     rainfall_params = rainfall_params,
                                     temp_params = temp_params,
@@ -677,15 +681,15 @@ clim_stats_sldata<-calc_clim_stats(data=SS,
                                     logging_params = logging_params,
                                     verbose = TRUE)
 
-
 clim_stats$PDate.SLen.Data<-clim_stats_sldata
 
   ### 10.2.2) Planting date and season length estimate from EcoCrop (refined from ERA data) ####
  clim_stats_sleco<-calc_clim_stats(data=SS,
                                     climate=power_chirps,
-                                    data_params = data.frame(id_col=id_field,
-                                                             plant_start_col="PlantingDate",
-                                                             season_length_col="SeasonLength.EcoCrop"),
+                                    data_params = list(id_col=id_field,
+                                                       append_cols=append_cols,
+                                                       plant_start_col="PlantingDate",
+                                                       season_length_col="SeasonLength.EcoCrop"),
                                     gdd_params = gdd_params,
                                     rainfall_params = rainfall_params,
                                     temp_params = temp_params,
@@ -700,9 +704,10 @@ clim_stats$PDate.SLen.Data<-clim_stats_sldata
  
   clim_stats_slp30<-calc_clim_stats(data=SS,
                                    climate=power_chirps,
-                                   data_params = data.frame(id_col=id_field,
-                                                            plant_start_col="PlantingDate",
-                                                            season_length_col="SeasonLength.P30"),
+                                   data_params = list(id_col=id_field,
+                                                      append_cols=append_cols,
+                                                      plant_start_col="PlantingDate",
+                                                      season_length_col="SeasonLength.P30"),
                                    gdd_params = gdd_params,
                                    rainfall_params = rainfall_params,
                                    temp_params = temp_params,
@@ -716,8 +721,7 @@ clim_stats$PDate.SLen.Data<-clim_stats_sldata
   
   
   ### 10.2.4) Save results ####
-  save_file<-file.path(era_dirs$era_geodata_dir,paste0("clim_stats_",Sys.Date(),".RData"))
-
-  save(clim_stats,file=save_file)
+  save_file<-paste0("clim_stats_",Sys.Date())
+  n<-sum(grepl(basename(save_file),list.files(era_dirs$era_geodata_dir,".RData")))                                   
+  save(clim_stats,file=file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".RData")))
   
- 
