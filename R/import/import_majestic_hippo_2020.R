@@ -4370,8 +4370,8 @@ Data.Out[ED.Comparison==0,ED.Comparison:=NA]
   )
   
   save_file<-paste0(project,"_",as.character(Sys.Date()))
-  n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
+  n<-sum(grepl(basename(save_file),list.files(era_dirs$era_masterdata_dir,".RData")))                                   
   
-  save(Tables_2020,file=file.path("data",paste0(save_file,".",n+1,".RData")))
+  save(Tables_2020,file=file.path(era_dirs$era_masterdata_dir,paste0(save_file,".",n+1,".RData")))
 
   
