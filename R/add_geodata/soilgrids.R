@@ -213,12 +213,12 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
   
   
 # 3) Extract soil grids data for era buffers ####
-overwrite<-F # Re-extract all data that exists for era sites?
+overwrite<-T # Re-extract all data that exists for era sites?
 
 params<-data.table(
   save_file=c(
-    file.path(era_dirs$era_geodata_dir,"isda.parquet"),
-    file.path(era_dirs$era_geodata_dir,"soilgrids.parquet")
+    file.path(era_dirs$era_geodata_dir,"isda_",Sys.Date(),".parquet"),
+    file.path(era_dirs$era_geodata_dir,"soilgrids2.0_",Sys.Date(),".parquet")
   ),
   data_dir=c(
     file.path(era_dirs$soilgrid_dir,"soil_af_isda"),
