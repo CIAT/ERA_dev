@@ -109,13 +109,13 @@ extract_chirps <- function(site_vect,
                            delete_temp = TRUE,
                            overwrite = FALSE) {
   
-  sites <- unique(data.frame(site_vect)[, id_field])
+  sites <- data.frame(site_vect)[, id_field]
 
   # Load existing data if present and handle overwrite logic
   if (!is.null(existing_data)) {
     if (!overwrite) {
-      sites <- sites[!sites %in% existing_data[[id_field]]]
-      site_vect <- site_vect[site_vect[[id_field]] %in% sites, ]
+      site_logical<-!sites %in% existing_data[[id_field]]
+      site_vect <- site_vect[site_logical, ]
     } else {
       existing_data <- NULL
     }
@@ -158,7 +158,7 @@ extract_chirps <- function(site_vect,
         }))
         
         # Reshape data into long format
-        rast_vals <- melt(rast_vals, id.vars = c("coverage_fraction", "id"), variable.name = "date")
+        rast_vals <- data.table(melt(rast_vals, id.vars = c("coverage_fraction", "id"), variable.name = "date"))
         rast_vals[value == -9999, value := NA]
         
         # Calculate weighted mean rainfall
@@ -174,7 +174,7 @@ extract_chirps <- function(site_vect,
         
         # Add day count column if requested
         if (add_daycount) {
-          rast_vals[, DayCount := as.integer(date - time_origin)]
+          rast_vals[, day_count := as.integer(date - time_origin)]
         }
         
         # Save intermediate yearly data
