@@ -717,6 +717,7 @@ clim_stats$PDate.SLen.Data<-clim_stats_sldata
   
   clim_stats$PDate.SLen.P30<-clim_stats_slp30
   
+  SS[,PlantingDate:=NULL]
   clim_stats$site_data<-SS
   
   
