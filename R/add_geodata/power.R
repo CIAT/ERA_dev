@@ -1,7 +1,7 @@
 # This script downloads NASA POWER data for unique locations in ERA.
 # It depends on these scripts:
 #   - Run ERA_dev/R/0_set_env.R first.
-#   - Run ERA_dev/R/add_geodata/download_dem.R to calculate altitude data.
+#   - Run ERA_dev/R/add_geodata/elevation.R to calculate altitude data.
 #
 # The script proceeds through these major steps:
 #   0) Workspace set-up (loading packages, subsetting sites, merging altitude, etc.)
@@ -35,7 +35,7 @@
   setnames(altitude_data, "value", "Altitude")
   
   # Merge the altitude data with the site buffer spatial object based on 'Site.Key'.
-  pbuf_g <- merge(pbuf_g, altitude_data, by = "Site.Key")
+  pbuf_g <- merge(pbuf_g, altitude_data, by = "Site.Key",na.rm=F)
   
   ## 0.3) Create POWER parameter object #####
   # Define a named character vector mapping human-readable parameter names to the NASA POWER API codes.
