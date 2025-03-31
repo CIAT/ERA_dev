@@ -166,10 +166,10 @@ dates_seq[!dates_seq %in% dates]
     
   files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T)
   (files<-files[!grepl("annual|ltavg",files)])
-  (files<-tail(files,1)  )
+  (files<-tail(files,1) )
   
   if(length(files)==1){
-    chirps<-arrow::read_parquet(file.path(era_dirs$era_geodata_dir,"chirps.parquet"))
+    chirps<-arrow::read_parquet(files)
   }else{
     chirps<-NULL
   }
