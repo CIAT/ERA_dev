@@ -170,7 +170,7 @@ if(update){
   ## 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the import process be run again?
-  overwrite<-T
+  overwrite<-F
   
   # Delete existing files if overwrite =T
   if(overwrite){
@@ -348,7 +348,6 @@ if(update){
                   ][,field:="Site.LonD/Site.LatD"
                     ][,issue:="Co-ordinates are not in the country specified?"]
   
-  
     ## 3.2.1) Harmonization ######
       h_params<-data.table(h_table="Site.Out",
                            h_field=c("Site.Admin","Site.Start.S1","Site.End.S1","Site.Start.S2","Site.End.S2","Site.Type","Site.Soil.Texture"),
@@ -377,7 +376,6 @@ if(update){
       harmonization_list<-error_tracker(errors=rbindlist(list(results$h_tasks,results2,results3),fill=T),filename = "site_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
       
       Site.Out<-results$data
-    
     
     ## 3.2.2) Harmonize Site.ID field #######
     master_sites<-master_codes$site_list[!(is.na(Synonyms) & is.na(Harmonization)),.(Site.ID,Country,Synonyms,Harmonization)
