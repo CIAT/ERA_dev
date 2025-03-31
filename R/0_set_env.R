@@ -354,7 +354,10 @@ if(!require("exactextractr")){
     
 # 3) Create table of unique locations (for use with geodata functions) ####
     options(arrow.unsafe_metadata = TRUE)
-    data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
+    
+    (file<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled.*parquet",full.names = T),1))
+    
+    data<-arrow::read_parquet(file)
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
     
     # Add in other era extractions
