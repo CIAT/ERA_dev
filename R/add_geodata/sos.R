@@ -1,7 +1,45 @@
-# First run: 
-  # R/0_set_env.R
-  # R/add_geodata/chirps.R
-  # R/add_geodata/power.R
+# Author: Pete Steward, p.steward@cgiar.org, ORCID 0000-0003-3985-4911
+# Organization: Alliance of Bioversity International & CIAT
+# Project: Evidence for Resilient Agriculture (ERA)
+#
+# Introduction: ####
+#
+# This script is designed to process high-resolution climate data and derive key agricultural
+# season indicators that inform planning and adaptation strategies. It transforms daily and
+# dekadal climate measurements into robust seasonal metrics.
+#
+# Purpose:
+# - Calculate the Start of Season (SOS), End of Season (EOS), and Length of Growing Period (LGP).
+# - Compute Total Rainfall during the identified seasons.
+# - Generate both detailed dekadal records and aggregated seasonal summaries.
+# - Provide long-term average statistics to assess inter-annual variability and season consistency.
+#
+# Input Data:
+# - POWER: Daily climate data including rainfall and potential evapotranspiration.
+# - CHIRPS: High-resolution rainfall data, used to enhance the POWER data.
+#
+# Methods:
+# - Data Integration: Merges POWER and CHIRPS datasets to improve rainfall reliability.
+# - Temporal Aggregation: Converts daily data to dekads (10-day periods) and aggregates into monthly and seasonal summaries.
+# - Threshold-Based Identification: Uses criteria (e.g., minimum rainfall, aridity index) to delineate the growing season.
+# - Seasonal Classification: Applies custom functions for padding, sequencing, and handling year-crossing seasons.
+# - Long-Term Averaging: Calculates average seasonal metrics to provide a comprehensive view over multiple years.
+#
+# Output Data:
+# The script produces a list (ERA_SOS) containing:
+# - Dekadal_SOS: Detailed dekadal climate metrics.
+# - Seasonal_SOS2: Aggregated seasonal data for the primary growing season.
+# - LTAvg_SOS2: Long-term average statistics for the primary growing season.
+# - Seasonal_SOS3: Seasonal data for secondary/tertiary growing seasons.
+# - LTAvg_SOS3: Long-term average statistics for secondary/tertiary growing seasons.
+#
+# Pre-requisite Scripts:
+# Ensure the following scripts have been executed before running this script:
+# - R/0_set_env.R         (sets up the environment and loads necessary packages)
+# - R/add_geodata/chirps.R (processes and prepares CHIRPS climate data)
+# - R/add_geodata/power.R  (processes and prepares POWER climate data)
+#
+# This setup ensures that the input data is correctly formatted and accessible for seasonal analysis.
 
 # 0) Prepare environment ####
   ## 0.1) Load packages and source functions ####
@@ -500,6 +538,165 @@ climate_data<-power_chirps[,list(Site.Key,Date,Rain,ETo)
   ERA_SOS<-list(Dekadal_SOS=climate_data_dekad,Seasonal_SOS2=Seasonal2,LTAvg_SOS2=LTAvg_SOS2,Seasonal_SOS3=Seasonal3,LTAvg_SOS3=LTAvg_SOS3)
   save(ERA_SOS,file=file.path(era_dirs$era_geodata_dir,paste0("sos_",Sys.Date(),".RData")))
   
+  ## 1.11) Create meta-data ####
+  # Load required package
+  library(data.table)
+  
+  # Create a meta-data table for SOS fields from all tables
+  
+  meta_data <- rbindlist(list(
+    # Dekadal_SOS
+    data.table(
+      Table = "Dekadal_SOS",
+      Field = c("Site.Key", "Year", "Dekad", "Rain.Season", "Rain.Dekad", "AI",
+                "Dekad.Season", "Dekad.Seq", "Rain.sum2", "SOSmet", "AI.mean", "AI.0.5",
+                "AI.Seq1", "AI.Seq", "SOS", "EOS", "LGP", "Start.Year", "Tot.Rain",
+                "Season.Sep.Min", "Season.Sep.Max", "Season.Order"),
+      Class = c("chr", "num", "num", "num", "num", "num",
+                "num", "int", "num", "logi", "num", "logi",
+                "int", "int", "num", "num", "num", "num", "num",
+                "num", "num", "int"),
+      Description = c(
+        "Unique identifier for the site.",
+        "The calendar year corresponding to the record.",
+        "The 10-day period number within the year (typically 1–36).",
+        "Code indicating the identified rainy season for that dekad.",
+        "Total rainfall measured during the dekad.",
+        "Aridity Index (ratio of rainfall to potential evapotranspiration) for the dekad.",
+        "The padded seasonal grouping assigned to the dekad, helping to define seasonal boundaries.",
+        "Unique sequence identifier that links continuous seasonal periods within a site.",
+        "Sum of rainfall over the next two dekads, used to assess short-term rainfall trends.",
+        "Logical indicator showing whether the current dekad meets the criteria for the start of a season.",
+        "Mean aridity index calculated over the dekad period.",
+        "Boolean flag indicating if the mean aridity index is equal to or exceeds 0.5.",
+        "Initial sequence of consecutive dekads that satisfy the aridity condition.",
+        "Merged sequence of dekads that meet the AI criteria, after adjustments for gaps.",
+        "Start of Season—the first dekad in a sequence that satisfies the defined criteria.",
+        "End of Season—the last dekad in the sequence meeting the criteria.",
+        "Length of Growing Period calculated as the difference between EOS and SOS (adjusted for year boundaries).",
+        "The calendar year when the season (sequence) started.",
+        "Total rainfall accumulated over the identified season.",
+        "The minimum separation (in dekads) between consecutive seasons at a site.",
+        "The maximum separation (in dekads) between consecutive seasons at a site.",
+        "The order of the season relative to other seasons detected at the site."
+      )
+    ),
+    # Seasonal_SOS2
+    data.table(
+      Table = "Seasonal_SOS2",
+      Field = c("Site.Key", "Dekad.Season", "Start.Year", "SOS", "EOS", "LGP",
+                "Tot.Rain", "Seasons.Count", "Season2Prop", "Seasons", "SOSsimilarity",
+                "Season.Ordered", "SOS.EOS.XYearEnd", "SOS.add15.XYearEnd", "SOS.min",
+                "SOS.max", "Total.Seasons"),
+      Class = c("chr", "num", "num", "num", "num", "num",
+                "num", "int", "num", "int", "num", "int", "num", "num", "num",
+                "num", "int"),
+      Description = c(
+        "Unique identifier for the site.",
+        "Code representing the grouped rainy season (primary season) based on dekadal aggregation.",
+        "The calendar year when the identified season starts.",
+        "Start of Season (dekad) for the seasonal period.",
+        "End of Season (dekad) for the seasonal period.",
+        "Length of Growing Period (dekads) between SOS and EOS, adjusted for year boundaries.",
+        "Total rainfall accumulated during the season.",
+        "Number of season occurrences observed for this seasonal grouping at the site.",
+        "Proportion of records representing the secondary season relative to the overall seasons at the site.",
+        "Total number of unique seasons detected at the site.",
+        "Consistency measure: the proportion of SOS dates that are the same across years, indicating stability of season onset.",
+        "Rank order of the season when sorted by SOS (helps identify the relative timing among multiple seasons).",
+        "Proportion of records where EOS is less than SOS, suggesting that the season crosses the calendar year boundary.",
+        "Proportion of records where adding 15 dekads to SOS exceeds the end of the year, indicating potential cross-boundary seasonality.",
+        "Minimum observed SOS value (dekad) across the period.",
+        "Maximum observed SOS value (dekad) across the period.",
+        "Total count of season records for this seasonal grouping at the site."
+      )
+    ),
+    # LTAvg_SOS2
+    data.table(
+      Table = "LTAvg_SOS2",
+      Field = c("Site.Key", "Dekad.Season", "SOS.mean", "SOS.median", "SOS.min",
+                "SOS.max", "Total.Seasons", "EOS", "LGP", "Tot.Rain",
+                "SOS.EOS.XYearEnd", "SOS.add15.XYearEnd", "Seasons", "Season.Ordered"),
+      Class = c("chr", "num", "num", "num", "num",
+                "num", "int", "num", "num", "num",
+                "num", "num", "int", "int"),
+      Description = c(
+        "Unique identifier for the site.",
+        "Code representing the primary rainy season grouping.",
+        "Mean start of season (SOS) across the period, averaged over multiple years.",
+        "Median start of season (SOS) across the period.",
+        "Minimum observed SOS value (dekad) across the available record.",
+        "Maximum observed SOS value (dekad) across the available record.",
+        "Total number of season records used in the long-term average calculations.",
+        "Average end of season (EOS) across the period.",
+        "Average Length of Growing Period computed from seasonal data.",
+        "Average total rainfall during the season over the period.",
+        "Proportion of season records where EOS is less than SOS.",
+        "Proportion of season records where adding 15 dekads to SOS crosses the year-end.",
+        "Total number of unique seasons identified at the site.",
+        "Order of the season when seasons are arranged by their SOS."
+      )
+    ),
+    # Seasonal_SOS3
+    data.table(
+      Table = "Seasonal_SOS3",
+      Field = c("Site.Key", "Dekad.Season", "Start.Year", "SOS", "EOS", "LGP",
+                "Tot.Rain", "Seasons.Count", "SeasonProp", "Seasons", "SOSsimilarity",
+                "Season.Ordered", "SOS.EOS.XYearEnd", "SOS.add15.XYearEnd", "SOS.min",
+                "SOS.max", "Total.Seasons"),
+      Class = c("chr", "num", "num", "num", "num", "num",
+                "num", "int", "num", "int", "num", "int", "num", "num", "num",
+                "num", "int"),
+      Description = c(
+        "Unique identifier for the site.",
+        "Code representing the grouped rainy season for the secondary (or tertiary) season.",
+        "The calendar year when the secondary season starts.",
+        "Start of Season (dekad) for the secondary season.",
+        "End of Season (dekad) for the secondary season.",
+        "Length of Growing Period for the secondary season.",
+        "Total rainfall accumulated during the secondary season.",
+        "Number of observations recorded for this seasonal grouping.",
+        "Proportion of the secondary season occurrences relative to the primary season occurrences at the site.",
+        "Total number of unique seasons detected at the site (including primary and secondary).",
+        "Consistency measure for the SOS dates in the secondary season.",
+        "Rank order of the secondary season when sorted by SOS.",
+        "Proportion of records where the secondary season’s EOS is less than SOS, indicating crossing of the year-end.",
+        "Proportion of records where adding 15 dekads to the secondary season’s SOS exceeds the year-end.",
+        "Minimum SOS value observed for the secondary season.",
+        "Maximum SOS value observed for the secondary season.",
+        "Total count of season records for the secondary season grouping at the site."
+      )
+    ),
+    # LTAvg_SOS3
+    data.table(
+      Table = "LTAvg_SOS3",
+      Field = c("Site.Key", "Dekad.Season", "SOS.mean", "SOS.median", "SOS.min",
+                "SOS.max", "Total.Seasons", "EOS", "LGP", "Tot.Rain",
+                "SOS.EOS.XYearEnd", "SOS.add15.XYearEnd", "Seasons", "Season.Ordered"),
+      Class = c("chr", "num", "num", "num", "num",
+                "num", "int", "num", "num", "num",
+                "num", "num", "int", "int"),
+      Description = c(
+        "Unique identifier for the site.",
+        "Code representing the rainy season grouping for the secondary season.",
+        "Mean start of season (SOS) for the secondary season, averaged over the period.",
+        "Median start of season (SOS) for the secondary season.",
+        "Minimum observed SOS value for the secondary season.",
+        "Maximum observed SOS value for the secondary season.",
+        "Total number of season records for the secondary season used in the averaging process.",
+        "Average end of season (EOS) for the secondary season.",
+        "Average Length of Growing Period for the secondary season.",
+        "Average total rainfall during the secondary season.",
+        "Proportion of secondary season records where EOS is less than SOS.",
+        "Proportion of secondary season records where adding 15 dekads to SOS crosses the year-end boundary.",
+        "Total number of unique seasons identified for the secondary season.",
+        "Ordered ranking of the secondary season when multiple seasons are present at the site."
+      )
+    )
+  ))
+  
+  # Save the combined meta-data table
+  fwrite(meta_data,file=file.path(era_dirs$era_geodata_dir,"sos_metadata.csv"))
 # 2) Explore sites to validate ####
 SITE<-Seasonal[,sample(unique(Site.Key),1)]
 Caption<-paste(t(ERAg::ERA.Compiled[Site.Key==SITE,list(Latitude,Longitude,Country)][1]),collapse = " ")
