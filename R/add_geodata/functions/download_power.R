@@ -70,7 +70,6 @@ download_power <- function(site_vect,
                            attempts = 3, 
                            worker_n = 1) {
   
-  
   site_extents<-rbindlist(pblapply(1:length(site_vect),FUN=function(i){
     site_extent<-round(terra::ext(site_vect[i]),5)
     data.frame(xmin=site_extent[1],
