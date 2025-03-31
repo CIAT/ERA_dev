@@ -3,6 +3,14 @@
 #' Helper function to download SoilGrids data for a single site and soil variable.
 #' It attempts up to 3 retries in case of failures, handles projection, masking, reshaping,
 #' and saves the processed output as a CSV.
+#' 
+#' Internally, it calls [soilDB::fetchSoilGrids()] for querying ISRIC's global soil data.
+#'
+#' See the `soilDB` package for details:  
+#' <https://cran.r-project.org/package=soilDB>  
+#' Direct function reference: <https://rdrr.io/pkg/soilDB/man/fetchSoilGrids.html>
+#'
+#' See the [SoilGrids REST API](https://soilgrids.org/) for more information about available variables, depths and resolutions.
 #'
 #' @param site A \code{SpatVector} object representing the site extent. Must contain a \code{Site.Key} attribute.
 #' @param var Character. Soil property name to download (e.g., \code{"bdod"}).
@@ -10,6 +18,7 @@
 #' @param stats Character. Summary statistic to retrieve (e.g., \code{"mean"}).
 #' @param dl_dir Character. Directory path where CSV files are saved.
 #' @param file Character. Full file path for the output CSV.
+#' @param target_resolution Default: c(250, 250) (250m x 250m pixels).
 #'
 #' @import data.table
 #' @importFrom soilDB fetchSoilGrids
@@ -25,7 +34,7 @@
 #'   site <- terra::vect("path/to/site1.shp")
 #'   res <- attempt_fetch(site, "bdod", c("0-5", "5-15"), "mean", "./downloads", "site1_bdod.csv")
 #' }
-attempt_fetch <- function(site, var, depths, stats, dl_dir, file) {
+attempt_fetch <- function(site, var, depths, stats, dl_dir, file,target_resolution=c(250,250)) {
   attempts <- 3
   for (attempt in 1:attempts) {
     result <- tryCatch({
@@ -35,7 +44,7 @@ attempt_fetch <- function(site, var, depths, stats, dl_dir, file) {
         grid = TRUE,
         variables = var,
         depth_intervals = depths,
-        target_resolution = c(250, 250),
+        target_resolution = target_resolution,
         summary_type = stats
       )
       # Project to WGS84
