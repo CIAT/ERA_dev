@@ -539,11 +539,6 @@ climate_data<-power_chirps[,list(Site.Key,Date,Rain,ETo)
   save(ERA_SOS,file=file.path(era_dirs$era_geodata_dir,paste0("sos_",Sys.Date(),".RData")))
   
   ## 1.11) Create meta-data ####
-  # Load required package
-  library(data.table)
-  
-  # Create a meta-data table for SOS fields from all tables
-  
   meta_data <- rbindlist(list(
     # Dekadal_SOS
     data.table(
