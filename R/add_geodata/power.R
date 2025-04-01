@@ -28,16 +28,18 @@
   
   ## 0.3) Merge altitude data #####
   # Read in elevation data from a CSV file located in the ERA geodata directory.
-  era_elevation <- fread(file.path(era_dirs$era_geodata_dir, "elevation.csv"))
+  file<-list.files(era_dirs$era_geodata_dir,"elevation.*parquet",full.names = T)
+  (file<-tail(file,1))
+  era_elevation <- arrow::read_parquet(file)
   # Extract mean elevation for each site (Site.Key) where the variable is "elevation".
   altitude_data <- era_elevation[variable == "elevation" & stat == "mean", .(Site.Key, value)]
   # Rename the 'value' column to 'Altitude' to match expected naming conventions.
   setnames(altitude_data, "value", "Altitude")
   
-  # Merge the altitude data with the site buffer spatial object based on 'Site.Key'.
-  n_before<-length(pbuf_g)
+  # Merge the altitude data with the site buffer spatial object based on 'Site.Key'. Check if sites are lost.
+  (n_before<-length(pbuf_g))
   pbuf_g <- merge(pbuf_g, altitude_data, by = "Site.Key")
-  n_after<-length(pbug_g)
+  (n_after<-length(pbuf_g))
   
   if(n_after<n_before){
     warning("Some sites losts because they lack altitude data.")
