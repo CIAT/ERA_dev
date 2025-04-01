@@ -35,7 +35,13 @@
   setnames(altitude_data, "value", "Altitude")
   
   # Merge the altitude data with the site buffer spatial object based on 'Site.Key'.
-  pbuf_g <- merge(pbuf_g, altitude_data, by = "Site.Key",na.rm=F)
+  n_before<-length(pbuf_g)
+  pbuf_g <- merge(pbuf_g, altitude_data, by = "Site.Key")
+  n_after<-length(pbug_g)
+  
+  if(n_after<n_before){
+    warning("Some sites losts because they lack altitude data.")
+    }
   
   ## 0.3) Create POWER parameter object #####
   # Define a named character vector mapping human-readable parameter names to the NASA POWER API codes.
