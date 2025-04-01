@@ -76,7 +76,7 @@ get_elevation <- function(df,
   
   # Limit maximum buffer size?
   if(!is.null(max_buffer)){
-    buffs[buffer>max_buffer]<-max_buffer
+    buffs[buffs>max_buffer]<-max_buffer
   }
   
   # Helper function to calculate stats
