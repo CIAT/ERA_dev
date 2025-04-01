@@ -8,6 +8,8 @@
 #' in z halves the pixel size (e.g., z = 10 gives ~11.25 m per pixel). This padded buffer is then
 #' used to download a DEM using elevatr::get_elev_raster (with clip = "bbox"). The DEM is saved
 #' as <ID>.tif in the specified output directory.
+#' 
+#' Large buffers > 50km take a very long time to download so we suggest limiting the buffer to 50,000m or less.
 #'
 #' @param df A data.frame or data.table with columns for latitude, longitude, unique ID, and buffer.
 #' @param out_dir Character. Directory to save downloaded DEM files.
@@ -23,6 +25,7 @@
 #' @param lon_col Character. Name of the longitude column in df (default "lon").
 #' @param id_col Character. Name of the unique identifier column in df (default "id").
 #' @param buffer_col Character. Name of the buffer radius column in df (default "buffer").
+#' @param max_buffer Numeric. Maximum allowed buffer size in m (default 50,000).
 #' @param calc_topo Logical. If TRUE, add extra margin to the buffer; otherwise, use the provided buffer.
 #'
 #' @return A data.frame summarizing each site (ID, DEM file path, and status).
@@ -46,6 +49,7 @@ get_elevation <- function(df,
                           lon_col = "lon",
                           id_col = "id",
                           buffer_col = "buffer",
+                          max_buffer=50000,
                           calc_topo = FALSE) {
   # Check required packages
   if (!requireNamespace("terra", quietly = TRUE)) stop("Package 'terra' is required.")
@@ -69,6 +73,11 @@ get_elevation <- function(df,
   ids   <- as.character(df_unique[[id_col]])
   buffs <- as.numeric(df_unique[[buffer_col]])
   n <- nrow(df_unique)
+  
+  # Limit maximum buffer size?
+  if(!is.null(max_buffer)){
+    buffs[buffer>max_buffer]<-max_buffer
+  }
   
   # Helper function to calculate stats
   stats_fun<-function(df,vals,variable){

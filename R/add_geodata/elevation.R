@@ -10,7 +10,7 @@
   options(future.globals.maxSize = 2 * 1024^3)
 # 2) Download data ####
   
-  results<-get_elevation(df=era_locations[order(Buffer)],
+  results<-get_elevation(df=era_locations[order(Buffer)][Buffer<50000],
                       out_dir=era_dirs$dem_dir,
                       z = 12,
                       overwrite = FALSE,
@@ -21,8 +21,9 @@
                       lat_col = "Latitude",
                       lon_col = "Longitude",
                       id_col = "Site.Key",
+                      max_buffer=50000,
                       buffer_col = "Buffer")
   
-  fwrite(results$stats,file=file.path(era_dirs$era_geodata_dir,"elevation.csv"))
+  fwrite(results$stats,file=file.path(era_dirs$era_geodata_dir,"elevation_",Sys.Date(),".csv"))
 
   
