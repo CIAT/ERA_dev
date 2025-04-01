@@ -24,6 +24,7 @@
                       max_buffer=50000,
                       buffer_col = "Buffer")
   
-  fwrite(results$stats,file=file.path(era_dirs$era_geodata_dir,"elevation_",Sys.Date(),".csv"))
+  arrow::write_parquet(results$stats,file.path(era_dirs$era_geodata_dir,paste0("elevation_",Sys.Date(),".parquet")))
+  fwrite(results$stats,file=file.path(era_dirs$era_geodata_dir,paste0("elevation_",Sys.Date(),".csv")))
 
   
