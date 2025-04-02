@@ -123,7 +123,7 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
   # Note geodata function documentation appears to be incorrect or files missing from server
   # https://geodata.ucdavis.edu/geodata/soil/soilgrids/
   # There are no uncertainty, cec or ocs files available as of 2025-14-03
-  
+  if(F){
   soil_files <-  data.table(
     var = c("bdod", "cec", "cfvo", "nitrogen", "phh2o", "sand", "silt", "clay", "soc", "ocd", "ocs"),
     description = c(
@@ -156,7 +156,7 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
   # These do not exist
   soil_files<-soil_files[!var %in% c("cec","ocs")]
   
-  n_workers<-5
+  n_workers<-10
   
   if(n_workers>1){
   # Enable progressr
@@ -173,7 +173,10 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
     
     future.apply::future_lapply(1:nrow(soil_files), function(i) {
       # Call the processing function
-      download_soil_file(var=soil_files$var[i], depth=soil_files$depth[i], path=era_dirs$soilgrid_dir,dataset = "soilgrids")
+      download_soil_file(var=soil_files$var[i],
+                         depth=soil_files$depth[i], 
+                         path=era_dirs$soilgrid_dir,
+                         dataset = "soilgrids")
       # Update progress
       progress()
     })
@@ -210,15 +213,15 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
         geodata::soil_world(var=soil_files$var[i],depth = soil_files$depth[i],path=era_dirs$soilgrid_dir,stat="uncertainty")
     }
   }
-  
+  }
   
 # 3) Extract soil grids data for era buffers ####
 overwrite<-T # Re-extract all data that exists for era sites?
 
 params<-data.table(
   save_file=c(
-    file.path(era_dirs$era_geodata_dir,"isda_",Sys.Date(),".parquet"),
-    file.path(era_dirs$era_geodata_dir,"soilgrids2.0_",Sys.Date(),".parquet")
+    file.path(era_dirs$era_geodata_dir,paste0("isda_",Sys.Date(),".parquet")),
+    file.path(era_dirs$era_geodata_dir,paste0("soilgrids2.0_",Sys.Date(),".parquet"))
   ),
   data_dir=c(
     file.path(era_dirs$soilgrid_dir,"soil_af_isda"),
@@ -227,6 +230,7 @@ params<-data.table(
   dataset=c("isda","soilgrids")
 )
 
+# Only extract isda for now
 params<-params[2]
 
 for(i in 1:nrow(params)){
