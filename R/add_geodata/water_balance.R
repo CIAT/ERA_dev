@@ -41,6 +41,12 @@ worker_n <- 4
 # Read ISDA horizon data
 horizon_data <- data.table(arrow::read_parquet(file.path(era_dirs$era_geodata_dir, "isda.parquet")))
 
+# Check data availability is equal between sites (differences could mean duplications)
+check<-horizon_data[,.N,by=Site.Key][,unique(N)]
+if(length(check)>1){
+  stop("Uneven data availability between sites in 1.1) ISDA Soils")
+}
+
 # Read ISDA metadata
 horizon_metadata <- unique(fread(file.path(era_dirs$era_geodata_dir, "isda_metadata.csv")))
 
@@ -76,7 +82,8 @@ horizon_isda <- copy(horizon_data)
 
 # Read latest SoilGrids2.0 file
 files <- list.files(era_dirs$era_geodata_dir, "soilgrids2[.]0_.*parquet", full.names = TRUE)
-files <- tail(files, 1)
+files<-files[!grepl("watbal",files)]
+(files <- tail(files, 1))
 horizon_data <- data.table(arrow::read_parquet(files))
 
 # Read SoilGrids metadata
@@ -91,6 +98,12 @@ vars <- data.table(
 
 # Calculate mean value per site, depth, variable
 horizon_data <- horizon_data[, .(value = mean(value, na.rm = TRUE)), by = .(Site.Key, depth, variable, stat)]
+
+# Check data availability is equal between sites (differences could mean duplications)
+(check<-horizon_data[,.N,by=Site.Key][,unique(N)])
+if(length(check)>1){
+  stop("Uneven data availability between sites in 1.2) SoilGrid2.0")
+}
 
 # Filter and reshape
 horizon_data <- horizon_data[variable %in% vars[, from] & stat == "mean"]
@@ -125,17 +138,37 @@ horizon_soilgrids2 <- copy(horizon_data)
 # POWER data
 files <- list.files(era_dirs$era_geodata_dir, "power.*parquet", full.names = TRUE, ignore.case = TRUE)
 files <- files[!grepl("annual|ltavg", files)]
+(files<-tail(files,1))
 power <- arrow::read_parquet(files)
+
+# Check for duplicate entries in power
+(check<-unique(power[,.N,by=.(Site.Key,DayCount)][N>1][,.(Site.Key,N)]))
+if(nrow(check)>1){
+  stop("2) Duplicates in power data")
+}
 
 # CHIRPS data
 files <- list.files(era_dirs$era_geodata_dir, "chirps.*parquet", full.names = TRUE, ignore.case = TRUE)
 files <- files[!grepl("annual|ltavg", files)]
+(files<-tail(files,1))
 chirps <- arrow::read_parquet(files)
 
 # Replace POWER rainfall with CHIRPS rainfall
 setnames(chirps, c("Rain", "day_count"), c("Rain_chirps", "DayCount"), skip_absent = TRUE)
 
-weather_data <- merge(power, chirps[, .(Site.Key, DayCount, Rain_chirps)], by = c("Site.Key", "DayCount"), all.x = TRUE, sort = FALSE)
+# Check for duplicate entries in chirps
+(check<-unique(chirps[,.N,by=.(Site.Key,DayCount)][N>1][,.(Site.Key,N)]))
+if(nrow(check)>1){
+  stop("2) Duplicates in chirps data")
+}
+
+weather_data <- merge(power,chirps, by = c("Site.Key", "DayCount"), all.x = TRUE, sort = FALSE)
+
+
+if(nrow(power) != nrow(weather_data)){
+  warning(paste0("2) nrow power = ",nrow(power),", nrow weather data = ",nrow(weather_data)))
+}
+
 weather_data[, Rain := Rain_chirps][, Rain_chirps := NULL]
 power <- NULL
 chirps <- NULL
@@ -154,6 +187,9 @@ weather_data <- weather_data[!is.na(TMIN) & !is.na(RAIN)]
 # -----------------------------------------------
 
 options(future.globals.maxSize = 15 * 1024^3)  # Increase memory limit (15 GiB)
+
+
+
 
 ### 3.1) ISDA soils ####
 watbal_result_isda <- run_full_water_balance(
@@ -180,6 +216,11 @@ watbal_result_isda[,ETMAX:=round(ETMAX,2)
                                      ][,TMEAN:=round(TMEAN,1)
                                        ][,SRAD:=round(SRAD,1)
                                          ][,RAIN:=round(RAIN,1)]
+
+## 3.3) Check observations per site ####
+(check<-unique(watbal_result_isda[,.(N=.N),by=Site.Key][N>min(N),.(Site.Key,N)]))
+
+
 ## Save ISDA result
 arrow::write_parquet(watbal_result_isda, file.path(era_dirs$era_geodata_dir, paste0("watbal-isda_", Sys.Date(), ".parquet")))
 
