@@ -151,18 +151,15 @@ extract_chirps <- function(site_vect,
         # Extract rainfall using exactextractr
         rast_vals <- exactextractr::exact_extract(rast_dat, sf::st_as_sf(site_vect), max_cells_in_memory = max_cells_in_memory)
         
-        rast_vals <- rbindlist(lapply(seq_along(rast_vals), function(j) {
-          x <- rast_vals[[j]]
-          x$id <- sites[j]
+        rast_vals <- rbindlist(pblapply(seq_along(rast_vals), function(j) {
+          x <- data.table(rast_vals[[j]])
+          x <- melt(x, id.vars = "coverage_fraction",variable.name = "date")
+          x[value == -9999, value := NA]
+          x <- x[, .(Rain = weighted.mean(value, coverage_fraction, na.rm = TRUE)), by = date]
+          x[,id:=values(site_vect[j,(id_field)])]
+          
           return(x)
-        }))
-        
-        # Reshape data into long format
-        rast_vals <- data.table(melt(rast_vals, id.vars = c("coverage_fraction", "id"), variable.name = "date"))
-        rast_vals[value == -9999, value := NA]
-        
-        # Calculate weighted mean rainfall
-        rast_vals <- rast_vals[, .(Rain = weighted.mean(value, coverage_fraction, na.rm = TRUE)), by = .(id, date)]
+        }),use.names = T)
         
         # Optional rounding
         if (!is.null(round_digits)) {
