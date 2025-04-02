@@ -184,7 +184,7 @@ if(!require("exactextractr")){
     update<-F
     # List files in the specified S3 bucket and prefix
     files_s3<-suppressWarnings(s3$dir_ls(era_dirs$era_geodata_s3))
-    files_s3<-files_s3[!grepl(".csv|ESA-CCI",files_s3)]
+    files_s3<-files_s3[!grepl(".csv|ESA-CCI|/archive",files_s3)]
     files_local<-gsub(era_dirs$era_geodata_s3,era_dirs$era_geodata_dir,files_s3)
     
     for(i in 1:length(files_local)){
@@ -354,10 +354,7 @@ if(!require("exactextractr")){
     
 # 3) Create table of unique locations (for use with geodata functions) ####
     options(arrow.unsafe_metadata = TRUE)
-    
-    (file<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled.*parquet",full.names = T),1))
-    
-    data<-arrow::read_parquet(file)
+    data<-arrow::read_parquet(file.path(era_dirs$era_masterdata_dir,"era.compiled.parquet"))
     era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
     
     # Add in other era extractions

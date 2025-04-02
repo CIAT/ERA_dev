@@ -179,14 +179,16 @@ extract_chirps <- function(site_vect,
         
         # Save intermediate yearly data
         arrow::write_parquet(rast_vals, save_year_file)
-      } else {
-        rast_vals <- arrow::read_parquet(save_year_file)
-      }
-      
-      return(rast_vals)
+        
+        rm(rast_vals)
+        gc()
+      } 
+     
+      return(i)
     })
     
-    results <- rbindlist(results)
+    files<-list.files(temp_dir,"parquet",full.names = T)
+    results <- rbindlist(lapply(files,FUN=function(file){arrow::read_parquet(file)}))
     setnames(results, "id", id_field)
     
     # Combine with previous results if needed

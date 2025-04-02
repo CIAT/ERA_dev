@@ -162,7 +162,6 @@ dates_seq[!dates_seq %in% dates]
   
   ## 5.2) Extract CHIRPS ####
   
-  terra::gdalCache(size=20000)
     
   files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T)
   (files<-files[!grepl("annual|ltavg",files)])
@@ -174,15 +173,25 @@ dates_seq[!dates_seq %in% dates]
     chirps<-NULL
   }
   
+  # If memory limits are being hit, consider chunking, then looping through the location vectors
+  terra::gdalCache(size=40000)
+
   chirps_new<-extract_chirps(site_vect=era_locations_vect_g,
                  id_field="Site.Key",
                  data_dir=era_dirs$chirps_dir,
-                 existing_data=chirps, 
+                 existing_data=NULL,   # There appears to be an issue with duplication of data, so refrain using existing_data for now.
                  round_digits=2,
                  add_daycount = TRUE,
                  time_origin=time_origin,
                  max_cells_in_memory = 3e+08,
                  overwrite=F)
+  
+  # Check for duplicate entries in chirps
+  (check<-unique(chirps[,.N,by=.(Site.Key,DayCount)][N>1][,.(Site.Key,N)]))
+  if(nrow(check)>1){
+    stop("5.2) Duplicates in extracted chirps data")
+  }
+  
   
   if(!is.null(chirps_new)){
     arrow::write_parquet(chirps_new,file.path(era_dirs$era_geodata_dir,paste0("chirps_",Sys.Date(),".parquet")))
