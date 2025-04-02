@@ -187,7 +187,7 @@ dates_seq[!dates_seq %in% dates]
                  overwrite=F)
   
   # Check for duplicate entries in chirps
-  (check<-unique(chirps[,.N,by=.(Site.Key,DayCount)][N>1][,.(Site.Key,N)]))
+  (check<-unique(chirps_new[,.N,by=.(Site.Key,day_count)][N>1][,.(Site.Key,N)]))
   if(nrow(check)>1){
     stop("5.2) Duplicates in extracted chirps data")
   }
