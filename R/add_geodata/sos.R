@@ -56,13 +56,13 @@
   
   files<-list.files(era_dirs$era_geodata_dir,"power.*parquet",full.names = T,ignore.case = T)
   (files<-files[!grepl("annual|ltavg",files)])
-  (files<-files[!grepl("annual|ltavg",files)])
+  (files<-tail(files,1))
   
   power<-arrow::read_parquet(files)
   
   files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T,ignore.case = T)
   (files<-files[!grepl("annual|ltavg",files)])
-  (files<-files[!grepl("annual|ltavg",files)])
+  (files<-tail(files,1))
   
   chirps<-arrow::read_parquet(files) 
   
