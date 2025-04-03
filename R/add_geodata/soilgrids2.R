@@ -181,6 +181,11 @@ results <- results$results
 # Check again for missing sites
 (missing <- site_vect$Site.Key[!site_vect$Site.Key %in% unique(results$Site.Key)])
 
+# Round results
+results[,value:=round(value,3)]
+# Sort using setorder
+setorder(results, Site.Key, variable, depth)
+
 # 2) Save final merged dataset ####
 save_file <- file.path(era_dirs$era_geodata_dir, paste0("soilgrids2.0_", Sys.Date(), ".parquet"))
 arrow::write_parquet(results, save_file)
