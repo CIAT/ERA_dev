@@ -48,8 +48,8 @@
   
   options(scipen=999)
   
-  era_file<-list.files(era_dirs$era_masterdata_dir,"era_compiled",full.names = T)
-  era_file<-tail(grep("parquet",era_file,value=T),1)
+  (era_file<-list.files(era_dirs$era_masterdata_dir,"era_compiled",full.names = T))
+  (era_file<-tail(grep("parquet",era_file,value=T),1))
   
   era_data<-data.table(arrow::read_parquet(era_file))
   
@@ -122,7 +122,10 @@
     }
     
     ### 1.3.2) Load elevation & merge with era_data ####
-    elevation<-fread(file.path(era_dirs$era_geodata_dir,"elevation.csv"))
+    files<-list.files(era_dirs$era_geodata_dir,"elevation.*parquet",full.names = T,ignore.case = T)
+    (files<-tail(files,1))
+    
+    elevation<-arrow::read_parquet(files)
     elevation<-elevation[variable=="elevation" & stat=="mean",.(Site.Key,value)][,value:=as.integer(value)]
     setnames(elevation,"value","Altitude.DEM")
     
@@ -161,11 +164,11 @@
     # Merge with power_chirps
     power_chirps<-merge(power_chirps,watbal,by=c("Site.Key","Date"),all.x=T,sort=F)
     watbal<-NULL
-    ## 1.3.5) Explore missing climate data ####
+    ### 1.3.5) Explore missing climate data ####
     power_chirps[is.na(ETMAX),.(from=min(Date),to=max(Date)),by=Site.Key]
     power_chirps[is.na(ETMAX),.(from=min(Date),to=max(Date))]
     (missing<-power_chirps[is.na(ETMAX) & Date<"2024-01-01",.(from=min(Date),to=max(Date)),by=Site.Key])
-    (missing<-unique(era_data[Site.Key %in% missing$Site.Key,.(Code,Site.Key,Site.ID,Country)]))
+    (missing<-unique(era_data[Site.Key %in% missing$Site.Key & Buffer<50000,.(Code,Site.Key,Site.ID,Country,M.Year)]))
     # CHIRPS does not cover Mauritius, Cabo Verde, or Zanzibar
     # CHIRPS also misses Alexandria University at 31.2060 29.9190 B200 and other sites in this area
     # CHIRPS also misses ITC HQ, Kerr Serigne 13.4340 -16.7240 B150
@@ -173,7 +176,7 @@
     
     power_chirps<-power_chirps[!is.na(ETMAX)]
     
-    ### 1.3.5) Load eco crop ####
+    ### 1.3.6) Load eco crop ####
     ecocrop<-fread(file.path(era_dirs$ecocrop_dir,"ecocrop.csv"))
     
   ## 1.4) Set analysis and plotting parameters #####
