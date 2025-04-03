@@ -216,8 +216,6 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
   }
   
 # 3) Extract soil grids data for era buffers ####
-overwrite<-T # Re-extract all data that exists for era sites?
-
 params<-data.table(
   save_file=c(
     file.path(era_dirs$era_geodata_dir,paste0("isda_",Sys.Date(),".parquet")),
@@ -231,19 +229,18 @@ params<-data.table(
 )
 
 # Only extract isda for now
-params<-params[2]
+params<-params[1]
+
+# Check countries in africa match african_countries
+unique(pbuf_g$Country)[!unique(pbuf_g$Country) %in% african_countries]
+african_countries<-c(african_countries,"Cameroon..Chad")
 
 for(i in 1:nrow(params)){
   # Filter out sites for which data have already been extracted
   soil_file<-params$save_file[i]
   dataset<-params$dataset[i]
-  if(file.exists(soil_file) & overwrite==F){
-    existing_data<-arrow::read_parquet(soil_file)
-    
-    site_vect<-pbuf_g[!pbuf_g$Site.Key %in% existing_data[,unique(Site.Key)]]
-  }else{
-    site_vect<-pbuf_g
-  }
+  
+  site_vect<-pbuf_g
   
   if(dataset=="isda"){
     site_vect[site_vect$Country %in% african_countries,]
@@ -280,12 +277,12 @@ for(i in 1:nrow(params)){
                 ][,error:=NA]
   }
   
-  
-  if(file.exists(soil_file) & overwrite==F){
-    data_ex_m<-unique(rbind(existing_data,data_ex_m))
-  }
-  
   data_ex_m[,error:=round(error,2)][,value:=round(value,2)]
+  
+  (check<-data_ex_m[,.N,by=Site.Key][,unique(N)])
+  if(length(check)>1){
+    stop("Uneven data availability between sites, i = ",i)
+  }
   
   arrow::write_parquet(data_ex_m,soil_file)
 }
