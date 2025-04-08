@@ -100,6 +100,10 @@ if(!require("exactextractr")){
   # errordir
   era_dirs$era_error_dir<-file.path(era_dirs$era_masterdata_dir,"errors")
   
+  # packaged dir
+  era_dirs$era_packaged_dir<-file.path(era_dirs$era_masterdata_dir,"packaged")
+  era_dirs$era_packaged_s3<-file.path(era_dirs$era_masterdata_s3,"packaged")
+  
   # search history
   era_dirs$era_search_prj<-file.path(project_dir,"data/search_history")
   era_dirs$era_search_dir<-file.path(era_dir,"search_history")
@@ -217,10 +221,11 @@ if(!require("exactextractr")){
     
     ### 2.3.2 Subset & Modify tables ####
     
-    # Subset
-    era_master_codes<-era_master_codes[c("era_fields_v1","era_fields_v2","lookup_levels","prac","prod","prod_comp",
-                                         "out","out_econ","fert","chem","countries","journals","trees","site_list","residues",
-                                         "vars","vars_animals","var_traits")]
+    tables<-c("era_fields_v1","era_fields_v2","lookup_levels","prac","prod","prod_comp",
+                       "out","out_econ","fert","chem","countries","journals","trees","site_list","residues",
+                       "vars","vars_animals","var_traits","AOM","ani_diet")
+    
+    era_master_codes<-era_master_codes[tables]
     
     # Remove uncessary fields, rename as needed
     data<-era_master_codes$chem
