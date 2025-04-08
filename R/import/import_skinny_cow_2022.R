@@ -2490,3 +2490,6 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
   n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
   
   save(Tables,file=file.path("data",paste0(save_file,".",n+1,".RData")))
+  
+  arrow::write_parquet(Table,file=file.path("data",paste0(save_file,".",n+1,".parquet")))
+  
