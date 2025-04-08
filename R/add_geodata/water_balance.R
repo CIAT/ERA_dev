@@ -19,9 +19,7 @@
 # 4. R/add_geodata/soilgrids.R (ISDA soils data)
 # 5. R/add_geodata/soilgrids2.0.R (SoilGrids2.0 soils data)
 
-# -----------------------------------------------
 # 0) Set-up workspace ####
-# -----------------------------------------------
 
 ## 0.1) Load required packages & functions ####
 p_load(data.table, future, future.apply, progressr, pbapply, parallel, arrow)
@@ -32,11 +30,8 @@ source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geo
 ## 0.2) Set number of parallel workers ####
 worker_n <- 4
 
-# -----------------------------------------------
 # 1) Read and process soil horizon data ####
-# -----------------------------------------------
-
-### 1.1) ISDA soils ####
+## 1.1) ISDA soils ####
 
 # Read ISDA horizon data
 files <- list.files(era_dirs$era_geodata_dir, "isda.*parquet", full.names = TRUE)
@@ -81,7 +76,7 @@ horizon_data <- horizon_data[!is.na(CLYPPT)]
 setDT(horizon_data)
 horizon_isda <- copy(horizon_data)
 
-### 1.2) SoilGrids2.0 soils ####
+## 1.2) SoilGrids2.0 soils ####
 
 # Read latest SoilGrids2.0 file
 files <- list.files(era_dirs$era_geodata_dir, "soilgrids2[.]0_.*parquet", full.names = TRUE)
@@ -135,15 +130,14 @@ horizon_data <- horizon_data[!is.na(CLYPPT)]
 setDT(horizon_data)
 horizon_soilgrids2 <- copy(horizon_data)
 
-### 1.3) Check for missing sites ####
+## 1.3) Check for missing sites ####
 soil_sites<-unique(c(horizon_isda[,Site.Key],horizon_soilgrids2[,Site.Key]))
 
 # Mauritius and Cabo Verde are not covered
 era_locations[!Site.Key %in% soil_sites & Buffer<50000 & ! Country %in% c("Mauritius","Cabo Verde"),]
 
-# -----------------------------------------------
+
 # 2) Read daily weather data (POWER + CHIRPS) ####
-# -----------------------------------------------
 
 # POWER data
 files <- list.files(era_dirs$era_geodata_dir, "power.*parquet", full.names = TRUE, ignore.case = TRUE)
@@ -192,12 +186,10 @@ weather_data <- weather_data[, ..to]
 # Remove incomplete records
 weather_data <- weather_data[!is.na(TMIN) & !is.na(RAIN)]
 
-# -----------------------------------------------
 # 3) Run water balance pipeline ####
-# -----------------------------------------------
 options(future.globals.maxSize = 15 * 1024^3)  # Increase memory limit (15 GiB)
 
-### 3.1) ISDA soils ####
+## 3.1) ISDA soils ####
 watbal_result_isda <- run_full_water_balance(
   horizon_data = copy(horizon_isda),
   weather_data = copy(weather_data),
@@ -223,7 +215,6 @@ watbal_result_isda[,ETMAX:=round(ETMAX,2)
                                        ][,SRAD:=round(SRAD,1)
                                          ][,RAIN:=round(RAIN,1)]
 
-## 3.3) Check observations per site ####
 (check<-unique(watbal_result_isda[,.(N=.N),by=Site.Key][N>min(N),.(Site.Key,N)]))
 if(nrow(check)>0){
   stop("Potential duplicates in watbal_result_isda")
@@ -232,7 +223,7 @@ if(nrow(check)>0){
 ## Save ISDA result
 arrow::write_parquet(watbal_result_isda, file.path(era_dirs$era_geodata_dir, paste0("watbal-isda_", Sys.Date(), ".parquet")))
 
-### 3.2) SoilGrids2.0 soils ####
+## 3.2) SoilGrids2.0 soils ####
 watbal_result_soilgrids2 <- run_full_water_balance(
   horizon_data = copy(horizon_soilgrids2),
   weather_data = copy(weather_data),
@@ -266,9 +257,7 @@ if(length(check)>1){
 ## Save SoilGrids2.0 result
 arrow::write_parquet(watbal_result_soilgrids2, file.path(era_dirs$era_geodata_dir, paste0("watbal-soilgrids2.0_", Sys.Date(), ".parquet")))
 
-# -----------------------------------------------
 # 4) Validate water balance results ####
-# -----------------------------------------------
 
 # Example validation (adjust 'watbal_result' and 'site' as needed)
 # val_out <- validate_watbal(watbal_result, site = site, make_plots = TRUE)
