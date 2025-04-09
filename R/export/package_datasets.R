@@ -2,7 +2,7 @@
 pacman::p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
 
 # Agronomy ####
-## Combine most recent data for ERA agronomy ####
+  ## Combine most recent data for ERA agronomy ####
 file_list<-list()
 
 (file_list$era_comparisons<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled.*parquet",full.names = T),1))
@@ -25,7 +25,7 @@ tar(
 # Reset working directory
 setwd(old_wd)
 
-## Upload ####
+  ## Upload ####
 
 s3_bucket<-era_dirs$era_packaged_s3
 folder_local<-era_dirs$era_packaged_dir
@@ -59,7 +59,7 @@ if(F){
 
 
 
-## Combine most recent data for ERA climate ####
+  ## Combine most recent data for ERA climate ####
 file_list<-list()
 
 
@@ -69,7 +69,7 @@ livestock_dm<-load.Rdata2(basename(file_list$era_livestock_dm),dirname(file_list
 file_list$era_livestock_dm<-gsub(".RData",".json",file_list$era_livestock_dm)
 jsonlite::write_json(livestock_dm,file_list$era_livestock_dm)
 
-## Combine most recent data for livestock ####
+  ## Combine most recent data for livestock ####
 (file_list$era_comparisons<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled.*parquet",full.names = T),1))
 (file_list$era_master_codes<-tail(list.files(era_dirs$era_masterdata_dir,"era_master_codes.*json",full.names = T),1))
 
