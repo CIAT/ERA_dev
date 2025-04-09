@@ -142,25 +142,7 @@ dates_seq[!dates_seq %in% dates]
 
 # 5) Process data ####
 
-  ## 5.1) Restructure CHIRPS ####
-  
-    ### 5.1.1) Create folders ####
-    save_dir<-file.path(era_dirs$chirps_dir,"restructured")
-    if(!dir.exists(save_dir)){
-      dir.create(save_dir)
-    }
-  
-     ### 5.1.2) Restructure data ####
-    
-    for(i in 1:length(bounding_boxes)){
-      cat("Transposing ",names(bounding_boxes)[i],", bounding box ",i,"/",length(bounding_boxes),"\n")
-      transpose_chirps(data_dir=era_dirs$chirps_dir,
-                       save_dir=file.path(save_dir,names(bounding_boxes)[i]),
-                       crop_box=bounding_boxes[[i]],
-                       overwrite=F)
-    }
-  
-  ## 5.2) Extract CHIRPS ####
+  ## 5.1) Extract CHIRPS ####
   
     
   files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T)
@@ -198,7 +180,7 @@ dates_seq[!dates_seq %in% dates]
   }
   
   
-  ### 5.2.1) Calculate Annual & LT Data ####  
+  ## 5.2) Calculate Annual & LT Data ####  
     if(!is.null(chirps_new)){
       
   # Load CHIRPS
@@ -225,3 +207,20 @@ dates_seq[!dates_seq %in% dates]
   
   }
   
+## 6) Restructure CHIRPS ####
+  if(F){
+  ## 6.1) Create folders ####
+  save_dir<-file.path(era_dirs$chirps_dir,"restructured")
+  if(!dir.exists(save_dir)){
+    dir.create(save_dir)
+  }
+  ## 6.2) Restructure data ####
+  
+  for(i in 1:length(bounding_boxes)){
+    cat("Transposing ",names(bounding_boxes)[i],", bounding box ",i,"/",length(bounding_boxes),"\n")
+    transpose_chirps(data_dir=era_dirs$chirps_dir,
+                     save_dir=file.path(save_dir,names(bounding_boxes)[i]),
+                     crop_box=bounding_boxes[[i]],
+                     overwrite=F)
+  }
+  }

@@ -4,7 +4,7 @@
 # 0) Set-up workspace ####
 # 0.1) Load packages and create functions #####
 
-p_load(terra,sf,data.table,remotes,exactextractr,future.apply,progressr)
+pacman::p_load(terra,sf,data.table,remotes,exactextractr,future.apply,progressr)
 
 # Make sure you install geodata from github not cran, a number of bugs are fixed in the git not pushed to CRAN
 # remotes::install_github("rspatial/geodata", force = TRUE)
@@ -17,7 +17,7 @@ pbuf_g<-era_locations_vect_g[era_locations[,Buffer<50000]]
 
 # 2) Download soilgrids data ####
 
- ## 2.1) Create function to download data in parallel####
+  ## 2.1) Create function to download data in parallel####
   # Function to process each row with tryCatch and suppress messages
   download_soil_file <- function(var, depth, path,dataset) {
     attempts <- 0
