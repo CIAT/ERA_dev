@@ -34,7 +34,7 @@
 # 1) Set-up environment ####
   ## 1.1) Load Packages & source functions ####
   
-  p_load(ggplot2,circular,data.table,zoo,pbapply,arrow,ERAg,dismo,hexbin,miceadds,lubridate)
+  pacman::p_load(ggplot2,circular,data.table,zoo,pbapply,arrow,ERAg,dismo,hexbin,miceadds,lubridate,jsonlite,s3fs,paws)
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/add_ecocrop.R")
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/est_pday.R")
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/est_pday_rain.R")
@@ -726,6 +726,19 @@ clim_stats$PDate.SLen.Data<-clim_stats_sldata
   
   ### 10.2.4) Save results ####
   save_file<-paste0("clim_stats_",Sys.Date())
-  n<-sum(grepl(basename(save_file),list.files(era_dirs$era_geodata_dir,".RData")))                                   
-  save(clim_stats,file=file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".RData")))
+  n<-sum(grepl(basename(save_file),list.files(era_dirs$era_geodata_dir,".RData")))           
+  save_file_rdata<-file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".RData"))
+  save_file_json<-file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".json"))
+  
+  save(clim_stats,file=save_file_rdata)
+  jsonlite::write_json(clim_stats,save_file_json)
+  
+  ### 10.2.5) Upload results ####
+  s3_bucket<-era_dirs$era_geodata_s3
+
+  upload_files_to_s3(files = c(save_file_json,save_file_rdata),
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=F,
+                     mode="public-read")
   
