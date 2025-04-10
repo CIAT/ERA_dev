@@ -43,8 +43,11 @@
 
 # 0) Prepare environment ####
   ## 0.1) Load packages and source functions ####
-  p_load(lubridate,data.table,ggplot2,miceadds,sp)
+  pacman::p_load(arrow,lubridate,data.table,ggplot2,miceadds,sp)
   options(scipen=999)
+  
+  source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/date_to_dekad.R")
+  
   
   ## 0.2) Load Climate (POWER, CHIRPS) ####
   
@@ -77,10 +80,10 @@
   chirps<-NULL
   
 # 1) Estimate SOS####
-## 1.1) Add aridity index, dekad, year and month
+## 1.1) Add aridity index, dekad, year and month 
 climate_data<-power_chirps[,list(Site.Key,Date,Rain,ETo)
 ][,AI:=round(Rain/ETo,3) # Calculate aridity index (AI)
-][,Dekad:=SOS_Dekad(Date,type="year"),by=Date # Add dekad
+][,Dekad:=date_to_dekad(Date,type="year"),by=Date # Add dekad
 ][!is.na(AI) # Remove rows with missing data
 ][,Year:=as.numeric(format(Date,"%Y")),by=Date # Add year
 ][,Month:=as.numeric(format(Date,"%m")),by=Date] # Add month
@@ -693,6 +696,7 @@ climate_data<-power_chirps[,list(Site.Key,Date,Rain,ETo)
   # Save the combined meta-data table
   fwrite(meta_data,file=file.path(era_dirs$era_geodata_dir,"sos_metadata.csv"))
 # 2) Explore sites to validate ####
+  if(F){
 SITE<-Seasonal[,sample(unique(Site.Key),1)]
 Caption<-paste(t(ERAg::ERA.Compiled[Site.Key==SITE,list(Latitude,Longitude,Country)][1]),collapse = " ")
 Z<-Seasonal[Site.Key==SITE]
@@ -756,3 +760,5 @@ plot(OneSeason,add=T,col="Red")
 plot(ZeroSeasons,add=T,col="Black")
 plot(ThreeSeason,add=T,col="Green")
 
+
+}
