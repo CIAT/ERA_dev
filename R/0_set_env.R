@@ -430,143 +430,145 @@ if(!require("exactextractr")){
 # 3) Create table of unique locations (for use with geodata functions) ####
     options(arrow.unsafe_metadata = TRUE)
     
-    ## 3.1) Compiled dataset ####
-    (file<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled-.*parquet",full.names = T),1))
-    data<-arrow::read_parquet(file)
-    era_locations<-list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)]))
-    
-    ## 3.2) Skinny Cow ####
-    (file<-tail(list.files(era_dirs$era_masterdata_dir,"skinny_cow.*RData",full.names = T),1))
-    data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-    data<-data$Site.Out[!grepl("[.][.]",Site.ID),list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
-    setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
-    data<-data[!(is.na(Latitude)|is.na(Longitude))
-               ][,Latitude:=as.numeric(Latitude)
-                 ][,Longitude:=as.numeric(Longitude)
-                   ][,Buffer:=as.numeric(Buffer)
-                     ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
-                       ][,Site.Lon.Unc:=as.integer(Site.Lon.Unc)]
-    data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
-    # Assign 5km buffer to missing buffer values
-    data<-data[!(is.na(Buffer)|Buffer==0)]
-    # Create key value
-    data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
-    # Remove unecessary cols
-    data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
-    
-    era_locations[[2]]<-data
-    
-    ## 3.3) Industrious Elephant ####
-    (file<-tail(list.files(era_dirs$era_masterdata_dir,"industrious_elephant.*RData",full.names = T),1))
-    data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-    data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
-    setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
-    data<-data[!grepl("[.][.]",Site.ID)
-               ][,Latitude:=as.numeric(Latitude)
-                 ][,Longitude:=as.numeric(Longitude)
-                   ][,Buffer:=as.numeric(Buffer)
-                   ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
-                     ][,Site.Lon.Unc:=as.numeric(Site.Lon.Unc)
-                       ][!(is.na(Latitude)|is.na(Longitude))]
-    data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
-    # Assign 5km buffer to missing buffer values
-    data<-data[!(is.na(Buffer)|Buffer==0)]
-    # Create key value
-    data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
-    # Remove unecessary cols
-    data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
-    
-    era_locations[[3]]<-data  
-    
-    ## 3.4) Majestic Hippo ####
-    (file<-tail(list.files(era_dirs$era_masterdata_dir,"majestic_hippo.*RData",full.names = T),1))
-    data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-    data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual,Country)]
-    setnames(data,c("Site.LatD","Site.LonD","Site.Buffer.Manual"),c("Latitude","Longitude","Buffer"))
-    data<-data[!grepl("[.][.]",Site.ID)
-    ][,Latitude:=as.numeric(Latitude)
-    ][,Longitude:=as.numeric(Longitude)
-    ][,Buffer:=as.numeric(Buffer)
-    ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
-    ][,Site.Lon.Unc:=as.numeric(Site.Lon.Unc)
-    ][!(is.na(Latitude)|is.na(Longitude))]
-    data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
-    # Assign 5km buffer to missing buffer values
-    data<-data[!(is.na(Buffer)|Buffer==0)]
-    # Create key value
-    data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
-    # Remove unecessary cols
-    data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
-    
-    era_locations[[4]]<-data  
-    
-    ## 3.5) Courageous Camel ####
-    (file<-tail(list.files(era_dirs$era_masterdata_dir,"courageous_camel.*RData",full.names = T),1))
-    data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-    data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
-    setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
-    data<-data[!grepl("[.][.]",Site.ID)
-    ][,Latitude:=as.numeric(Latitude)
-    ][,Longitude:=as.numeric(Longitude)
-    ][,Buffer:=as.numeric(Buffer)
-    ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
-    ][,Site.Lon.Unc:=as.numeric(Site.Lon.Unc)
-    ][!(is.na(Latitude)|is.na(Longitude))]
-    data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
-    # Assign 5km buffer to missing buffer values
-    data<-data[!(is.na(Buffer)|Buffer==0)]
-    # Create key value
-    data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
-    # Remove unecessary cols
-    data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
-    
-    era_locations[[5]]<-data  
-    
-    ## 3.6) Merge locations ####
-    
-    era_locations<-rbindlist(era_locations,use.names = T)
-    era_locations<-unique(era_locations[,Latitude:=round(Latitude,4)][,Longitude:=round(Longitude,4)])
-
-    # Check for any duplicates
-    era_locations[,N:=.N,by=Site.Key]
-
-    # Deal with rounding issues
-    era_locations[N>1,lat:=unlist(tstrsplit(Site.Key," ",keep=1))
-                  ][N>1,lon:=unlist(tstrsplit(Site.Key," ",keep=2))
-                    ][,lat_lon:=Latitude==as.numeric(lat) & Longitude==as.numeric(lon)]
-        
-    era_locations[N>1][order(Site.Key)]
-    
-    era_locations<-era_locations[lat_lon!=F][,N:=.N,by=Site.Key]
-    
-    # Check for remaining duplicates
-    era_locations[N>1][order(Site.Key)]
-    
-    # Remove incorrect associations of ethiopian sites with wrong country
-    era_locations<-era_locations[!(N==2 & Country!="Ethiopia")]
-    
-    # Tidy up
-    era_locations[,c("lat","lon","lat_lon","N"):=NULL]
-    
-    # 3.1) Create spatvect of site buffers #####
-
-    # Buffer points - projected - geographic
-    era_locations_vect_g<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=F)
-    era_locations_vect_g$Country<-era_locations$Country
-
-    # 3.2) Get a vector of Africa #####
+  ## 3.1) Compiled dataset ####
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled-.*parquet",full.names = T),1))
+  data<-arrow::read_parquet(file)
+  era_locations<-list()
+  era_locations<-c(era_locations,list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)])))
   
-    # Get the vector data for Africa - note this seems to cut off the islands
-    africa_vector <- rnaturalearth::ne_countries(continent = "Africa", returnclass = "sf")
-    
-    # Convert to terra SpatVector
-    africa_vect <- terra::vect(africa_vector)
-    
-    # Create empty rast with extent of africa
-    africa_rast <- terra::rast()
-    ext(africa_rast) <- terra::ext(africa_rast)
-    
-    ### 3.3) Create continental bounding boxes ####
+  ## 3.2) Skinny Cow ####
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"skinny_cow.*RData",full.names = T),1))
+  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
+  data<-data$Site.Out[!grepl("[.][.]",Site.ID),list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
+  setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
+  data<-data[!(is.na(Latitude)|is.na(Longitude))
+             ][,Latitude:=as.numeric(Latitude)
+               ][,Longitude:=as.numeric(Longitude)
+                 ][,Buffer:=as.numeric(Buffer)
+                   ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
+                     ][,Site.Lon.Unc:=as.integer(Site.Lon.Unc)]
+  data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
+  # Assign 5km buffer to missing buffer values
+  data<-data[!(is.na(Buffer)|Buffer==0)]
+  # Create key value
+  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
+  # Remove unecessary cols
+  data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
+  
+  era_locations<-c(era_locations,list(data))
+  
+  ## 3.3) Industrious Elephant ####
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"industrious_elephant.*RData",full.names = T),1))
+  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
+  data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
+  setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
+  data<-data[!grepl("[.][.]",Site.ID)
+             ][,Latitude:=as.numeric(Latitude)
+               ][,Longitude:=as.numeric(Longitude)
+                 ][,Buffer:=as.numeric(Buffer)
+                 ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
+                   ][,Site.Lon.Unc:=as.numeric(Site.Lon.Unc)
+                     ][!(is.na(Latitude)|is.na(Longitude))]
+  data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
+  # Assign 5km buffer to missing buffer values
+  data<-data[!(is.na(Buffer)|Buffer==0)]
+  # Create key value
+  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
+  # Remove unecessary cols
+  data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
+  
+  era_locations<-c(era_locations,list(data))
+  
+  ## 3.4) Majestic Hippo ####
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"majestic_hippo.*RData",full.names = T),1))
+  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
+  data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual,Country)]
+  setnames(data,c("Site.LatD","Site.LonD","Site.Buffer.Manual"),c("Latitude","Longitude","Buffer"))
+  data<-data[!grepl("[.][.]",Site.ID)
+  ][,Latitude:=as.numeric(Latitude)
+  ][,Longitude:=as.numeric(Longitude)
+  ][,Buffer:=as.numeric(Buffer)
+  ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
+  ][,Site.Lon.Unc:=as.numeric(Site.Lon.Unc)
+  ][!(is.na(Latitude)|is.na(Longitude))]
+  data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
+  # Assign 5km buffer to missing buffer values
+  data<-data[!(is.na(Buffer)|Buffer==0)]
+  # Create key value
+  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
+  # Remove unecessary cols
+  data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
+  
+  era_locations<-c(era_locations,list(data))
+  
+  ## 3.5) Courageous Camel ####
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"courageous_camel.*RData",full.names = T),1))
+  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
+  data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
+  setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
+  data<-data[!grepl("[.][.]",Site.ID)
+  ][,Latitude:=as.numeric(Latitude)
+  ][,Longitude:=as.numeric(Longitude)
+  ][,Buffer:=as.numeric(Buffer)
+  ][,Site.Lat.Unc:=as.numeric(Site.Lat.Unc)
+  ][,Site.Lon.Unc:=as.numeric(Site.Lon.Unc)
+  ][!(is.na(Latitude)|is.na(Longitude))]
+  data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
+  # Assign 5km buffer to missing buffer values
+  data<-data[!(is.na(Buffer)|Buffer==0)]
+  # Create key value
+  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
+  # Remove unecessary cols
+  data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
+  
+  era_locations<-c(era_locations,list(data))
+  
+  ## 3.6) Merge locations ####
+  
+  era_locations<-rbindlist(era_locations,use.names = T)
+  era_locations<-unique(era_locations[,Latitude:=round(Latitude,4)][,Longitude:=round(Longitude,4)])
+
+  # Check for any duplicates
+  era_locations[,N:=.N,by=Site.Key]
+
+  # Deal with rounding issues
+  era_locations[N>1,lat:=unlist(tstrsplit(Site.Key," ",keep=1))
+                ][N>1,lon:=unlist(tstrsplit(Site.Key," ",keep=2))
+                  ][,lat_lon:=T
+                    ][N>1,lat_lon:=Latitude==as.numeric(lat) & Longitude==as.numeric(lon)]
+      
+  era_locations[N>1][order(Site.Key)]
+  
+  era_locations<-era_locations[lat_lon==T][,N:=.N,by=Site.Key]
+  
+  # Check for remaining duplicates
+  era_locations[N>1][order(Site.Key)]
+  
+  # Remove incorrect associations of ethiopian sites with wrong country
+  era_locations<-era_locations[!(N==2 & Country!="Ethiopia")]
+  
+  # Tidy up
+  era_locations[,c("lat","lon","lat_lon","N"):=NULL]
+  
+  ## 3.7) Create spatvect of site buffers #####
+
+  # Buffer points - projected - geographic
+  era_locations_vect_g<-ERAg::Pbuffer(Data = era_locations,ID = "Site.Key" ,Projected=F)
+  era_locations_vect_g$Country<-era_locations$Country
+
+  ## 3.8) Get a vector of Africa #####
+
+  # Get the vector data for Africa - note this seems to cut off the islands
+  africa_vector <- rnaturalearth::ne_countries(continent = "Africa", returnclass = "sf")
+  
+  # Convert to terra SpatVector
+  africa_vect <- terra::vect(africa_vector)
+  
+  # Create empty rast with extent of africa
+  africa_rast <- terra::rast()
+  ext(africa_rast) <- terra::ext(africa_rast)
+  
+  ## 3.9) Create continental bounding boxes ####
     # Define bounding boxes as named vectors
     bbox_africa <- c(lon_min = -25, lon_max = 63, lat_min = -36, lat_max = 38)
     bbox_sam    <- c(lon_min = -120, lon_max = -30, lat_min = -36, lat_max = 38)
@@ -592,3 +594,5 @@ if(!require("exactextractr")){
     
 # 4) Set time origin ####
     time_origin<-as.Date("1900-01-01")
+    
+    
