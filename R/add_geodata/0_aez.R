@@ -1,6 +1,5 @@
 # First run R/0_set_env.R 
 
-##########################################################
 # ERA Other Data Extraction Script
 #
 # Description:
@@ -22,14 +21,9 @@
 #
 # Dependencies:
 #   - pacman, data.table, exactextractr, terra, sp, pbapply, arrow
-#
-##########################################################
 
 # 1) Load required packages using pacman ####
-if(!require("pacman", character.only = TRUE)){
-  install.packages("pacman", dependencies = TRUE)
-}
-p_load(data.table, exactextractr, terra, sp, pbapply, arrow)
+pacman::p_load(data.table, exactextractr, terra, sp, pbapply, arrow)
 
 # 2) Prepare Input Data ####
 
