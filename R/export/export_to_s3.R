@@ -8,7 +8,6 @@ if (!require("pacman")) {
 # Use p_load to install if not present and load the packages
 p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
 
-
 # 1.1) (Legacy) upload era master files to s3 #####
 s3_bucket<-era_dirs$era_masterdata_s3
 local_dir<-era_dirs$era_masterdata_dir
