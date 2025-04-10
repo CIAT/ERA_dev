@@ -22,7 +22,7 @@
 # 0) Set-up workspace ####
 
 ## 0.1) Load required packages & functions ####
-p_load(data.table, future, future.apply, progressr, pbapply, parallel, arrow)
+pacman::p_load(data.table, future, future.apply, progressr, pbapply, parallel, arrow)
 
 # Source water balance function
 source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/water_balance.R")
