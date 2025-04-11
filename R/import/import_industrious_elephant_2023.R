@@ -348,7 +348,7 @@ if(update){
                   ][,field:="Site.LonD/Site.LatD"
                     ][,issue:="Co-ordinates are not in the country specified?"]
   
-    ## 3.2.1) Harmonization ######
+    ### 3.2.1) Harmonization ######
       h_params<-data.table(h_table="Site.Out",
                            h_field=c("Site.Admin","Site.Start.S1","Site.End.S1","Site.Start.S2","Site.End.S2","Site.Type","Site.Soil.Texture"),
                            h_table_alt=c(NA,"Site.Out","Site.Out","Site.Out","Site.Out",NA,"Site.Out"),
@@ -377,7 +377,7 @@ if(update){
       
       Site.Out<-results$data
     
-    ## 3.2.2) Harmonize Site.ID field #######
+    ### 3.2.2) Harmonize Site.ID field #######
     master_sites<-master_codes$site_list[!(is.na(Synonyms) & is.na(Harmonization)),.(Site.ID,Country,Synonyms,Harmonization)
     ][,old_name:=Synonyms
     ][is.na(old_name),old_name:=Harmonization
@@ -421,7 +421,7 @@ if(update){
     ][,field:="Site.ID"
     ][,issue:="No match for facility in era_master_sheet site_list tab (inc. synonyms or harmonization fields)."]
     
-    ## 3.2.3) Create Aggregated Site Rows #######
+    ### 3.2.3) Create Aggregated Site Rows #######
     mergedat<-Site.Out[grep("[.][.]",Site.ID)]
     
     result<-pblapply(1:nrow(mergedat),FUN=function(i){
@@ -464,7 +464,12 @@ if(update){
     # Replace aggregated site rows
     Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)
    
-    ## 3.2.4) Save errors #####
+    ### 3.2.4) Add Site Key ####
+    Site.Out[!grepl("[.][.]",Site.ID),Site.Key:=create_site_key(lat=as.numeric(Site.LatD[1]),
+                                                                lon=as.numeric(Site.LonD[1]),
+                                                                buffer=Buffer.Manual[1],decimals=4),
+             by=.(Site.ID,Buffer.Manual,Site.LatD,Site.LonD,Country)]
+    ### 3.2.5) Save errors #####
     error_list<-error_tracker(errors=rbindlist(list(errors1,errors2,errors3,errors4,errors5),fill=T),
                               filename = "site_other_errors",
                               error_dir=error_dir,
@@ -5946,6 +5951,8 @@ Data.Out=Data.Out
   n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
   
   save(Tables,file=file.path(data_dir,paste0(save_file,".",n+1,".RData")))
+  jsonlite::write_json(Tables,path=file.path(data_dir,paste0(save_file,".",n+1,".json")))
+  
   
 # 10) Summarize error tracking ####
 tracking_files<-list.files(error_dir,".csv$",full.names = T)
