@@ -209,159 +209,6 @@ download_power <- function(vect_data, date_start, date_end, altitude, save_dir, 
   }
   options(warn = 0)
 }
-#' Make S3 Bucket Public
-#'
-#' This function sets the policy of an S3 bucket to allow public read access to specified folders or items.
-#' It also backs up the past and current policies to the bucket for reference.
-#' The function is vectorized where possible and can handle multiple paths simultaneously. 
-#' Due to the overhead of multiple writes and creating S3 instances, it is recommended to 
-#' pass a list of URIs to the function rather than using it within a loop when adding multiple
-#' folders.
-#'
-#' @param s3_uri A character string or list of strings specifying the S3 bucket and path (e.g., "s3://bucket-name/folder-path").
-#' @param bucket A character string specifying the S3 bucket.
-#' @param directory A logical value indicating if "/*" should be appended to the end of the path for globbing. Default is TRUE.
-#' @return The new bucket policy. This function modifies the S3 bucket policy.
-#' @importFrom jsonlite parseJSON toJSON write_json
-#' @importFrom paws.storage s3
-#' @examples
-#' \dontrun{
-#' make_s3_public("s3://your-bucket-name/your-folder-path", "your-bucket-name")
-#' make_s3_public(c("your-bucket-name/your-folder-path1", "your-bucket-name/your-folder-path2"), "your-bucket-name")
-#' }
-#' @export
-makeObjectPublic <- function(s3_uri, bucket = "digital-atlas", directory = TRUE) {
-  s3_inst <- paws.storage::s3()
-  if(gsub('/|s3:|\\*', "", s3_uri) == bucket) {
-    stop("Setting full bucket to public is not allowed using this function to prevential accidential changes.")
-  }
-  policy <- s3_inst$get_bucket_policy(Bucket = bucket)$Policy
-  policy_ls <- jsonlite::parse_json(policy)
-  tmp <- tempdir()
-  tmp_dir <- file.path(tmp, "s3_policy")
-  if (!dir.exists(tmp_dir)) dir.create(tmp_dir, recursive = T)
-  on.exit(unlink(tmp_dir, recursive = T))
-  jsonlite::write_json(policy_ls, file.path(tmp_dir, 'previous_policy.json'),
-                       pretty = T, auto_unbox = T)
-  s3_inst$put_object(Bucket = bucket, 
-                     Key = '.bucket_policy/previous_policy.json',
-                     Body = file.path(tmp_dir, 'previous_policy.json'))
-  s3_uri_clean <- gsub("s3://", "", s3_uri)
-  dir_wildcard  <- ifelse(directory, "/*", "")
-  s3_uri_clean <- paste0(s3_uri_clean, dir_wildcard)
-  s3_arn <- paste0("arn:aws:s3:::", s3_uri_clean)
-  s3_path <- gsub(paste0(bucket, "/"), "", s3_uri_clean)
-  policy_ls$Statement <- lapply(policy_ls$Statement, function(statement) {
-    switch(statement$Sid,
-           "AllowPublicGet" = {
-             statement$Resource <- unique(c(statement$Resource, s3_arn))
-           },
-           "AllowPublicList" = {
-             statement$Condition$StringLike$`s3:prefix` <- unique(
-               c(statement$Condition$StringLike$`s3:prefix`, s3_path)
-             )
-           }
-    )
-    return(statement)
-  })
-  new_policy <- jsonlite::toJSON(policy_ls, pretty = T, auto_unbox = T)
-  s3_inst$put_bucket_policy(Bucket = bucket, Policy = new_policy)
-  jsonlite::write_json(policy_ls, file.path(tmp_dir, 'current_policy.json'), 
-                       pretty = T, auto_unbox = T)
-  s3_inst$put_object(Bucket = bucket, 
-                     Key = '.bucket_policy/current_policy.json',
-                     Body = file.path(tmp_dir, 'current_policy.json'))
-  return(new_policy)
-}
-#' Upload Files to S3
-#'
-#' This function uploads local files to an S3 bucket, optionally setting the access mode.
-#'
-#' @param files A character vector of local file paths to be uploaded.
-#' @param s3_file_names A character vector of filenames to use in S3 (optional).
-#' @param folder A character string specifying a local folder to list files from (optional).
-#' @param selected_bucket A character string specifying the S3 bucket.
-#' @param new_only Logical; whether to upload only new files. Default is \code{FALSE}.
-#' @param max_attempts Integer; maximum number of attempts for each file upload. Default is 3.
-#' @param overwrite Logical; whether to overwrite existing files. Default is \code{FALSE}.
-#' @param mode A character string specifying the access mode ("private", "public-read"). Default is "private".
-#' @param directory A logical value indicating if "/*" should be appended to the end of the path for globbing. Default is TRUE.
-#' @return None. This function uploads files to an S3 bucket.
-#' @importFrom paws s3
-#' @importFrom utils flush.console
-#' @examples
-#' \dontrun{
-#' upload_files_to_s3(files = c("file1.txt", "file2.txt"), selected_bucket = "s3://your-bucket-name")
-#' }
-#' @export
-upload_files_to_s3 <- function(files,
-                               s3_file_names = NULL, 
-                               folder = NULL, 
-                               selected_bucket, 
-                               new_only = FALSE, 
-                               max_attempts = 3, 
-                               overwrite = FALSE,
-                               mode = "private",
-                               directory=T) {
-  s3 <- paws::s3()
-  
-  # Create the s3 directory if it does not already exist
-  if (!s3_dir_exists(selected_bucket)) {
-    s3_dir_create(selected_bucket)
-  }
-  
-  # List files if a folder location is provided
-  if (!is.null(folder)) {
-    files <- list.files(folder, full.names = TRUE)
-  }
-  
-  if (!overwrite) {
-    # List files in the s3 bucket
-    files_s3 <- basename(s3_dir_ls(selected_bucket))
-    # Remove any files that already exist in the s3 bucket
-    files <- files[!basename(files) %in% files_s3]
-  }
-  
-  for (i in seq_along(files)) {
-    cat('\r', paste("File:", i, "/", length(files)), " | ", basename(files[i]), "                                                 ")
-    flush.console()
-    
-    if (is.null(s3_file_names)) {
-      s3_file_path <- paste0(selected_bucket, "/", basename(files[i]))
-    } else {
-      if (length(s3_file_names) != length(files)) {
-        stop("s3 filenames provided different length to local files")
-      }
-      s3_file_path <- paste0(selected_bucket, "/", s3_file_names[i])
-    }
-    
-    tryCatch({
-      attempt <- 1
-      while (attempt <= max_attempts) {
-        s3_file_upload(files[i], s3_file_path, overwrite = overwrite)
-        # Check if upload successful
-        file_check <- s3_file_exists(s3_file_path)
-        
-        if (mode != "private") {
-          s3_file_chmod(path = s3_file_path, mode = mode)
-        }
-        
-        if (file_check) break # Exit the loop if upload is successful
-        
-        if (attempt == max_attempts && !file_check) {
-          stop("File did not upload successfully after ", max_attempts, " attempts.")
-        }
-        attempt <- attempt + 1
-      }
-    }, error = function(e) {
-      cat("\nError during file upload:", e$message, "\n")
-    })
-  }
-  
-  if (mode == "public-read") {
-    makeObjectPublic(selected_bucket,directory=directory)
-  }
-}
 #' Wait If Not
 #'
 #' This function checks a condition and, if it is not true, prints a message and enters an infinite loop.
@@ -395,3 +242,42 @@ waitifnot <- function(cond) {
 #' # Replace zeros with NAs in a data frame
 #' df <- data.frame(a = c(1, 0, 2), b = c(0, 3, 0))
 #' replace_zero_with_NA(df)
+
+#' Generate Unique Site Keys from Latitude, Longitude, and Buffer Vectors
+#'
+#' This function takes vectors of latitude, longitude, and buffer values,
+#' and generates a character vector of site keys in the format:
+#' `"LAT LON BBUFFER"`, with LAT and LON formatted to a specified number of decimal places.
+#'
+#' @param lat A numeric vector of latitudes.
+#' @param lon A numeric vector of longitudes.
+#' @param buffer A vector (numeric or character) of buffer values.
+#' @param decimals Integer. Number of decimal places to use for formatting latitude and longitude. Default is `4`.
+#'
+#' @return A character vector of `Site.Key` values.
+#' @examples
+#' lat <- c(1.234567, 2.345678)
+#' lon <- c(36.789012, 37.890123)
+#' buffer <- c(10, 20)
+#' keys <- create_site_key_vector(lat, lon, buffer)
+#' print(keys)
+#' @export
+create_site_key <- function(lat, lon, buffer, decimals = 4) {
+  # Basic checks
+  if (!is.numeric(lat) || !is.numeric(lon)) {
+    stop("Latitude and longitude must be numeric vectors.")
+  }
+  if (length(lat) != length(lon) || length(lat) != length(buffer)) {
+    stop("Latitude, longitude, and buffer must be vectors of the same length.")
+  }
+  
+  # Format string
+  format_str <- paste0("%07.", decimals, "f")
+  
+  # Construct site keys
+  site_keys <- paste0(sprintf(format_str, lat), " ",
+                      sprintf(format_str, lon), " B",
+                      buffer)
+  
+  return(site_keys)
+}
