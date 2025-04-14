@@ -195,7 +195,7 @@ calc_gdd <- function(t_max, t_min, t_low, t_opt_low, t_high, t_opt_high, round_d
   }
   
   # Generate a sine curve with 24 equally spaced points representing 24 hours.
-  sine_curve <- sin(seq(1.5 * pi, 3.5 * pi, length.out = 24))
+  sine_curve <- sin(seq(1.5 * base::pi, 3.5 * base::pi, length.out = 24))
   
   # Create a data frame that holds t_max, t_min, and 24 columns filled with the sine curve.
   # Each row corresponds to one day.
@@ -577,11 +577,11 @@ calc_circular_median <- function(dates, fun = median) {
   }
 
   day_of_year <- as.numeric(format(dates, "%j"))
-  angles <- day_of_year * 360 / 365 * pi / 180
+  angles <- day_of_year * 360 / 365 * base::pi / 180
   circular_angles <- circular::circular(angles)
 
   central_angle <- fun(circular_angles)
-  central_day <- round(as.numeric(central_angle) * 180 / pi * 365 / 360, 0)
+  central_day <- round(as.numeric(central_angle) * 180 / base::pi * 365 / 360, 0)
 
   if (length(dates) > 1) {
     if (central_day <= 0) {
