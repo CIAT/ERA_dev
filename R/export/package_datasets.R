@@ -10,7 +10,7 @@ file_list<-list()
 (file_list$era_master_codes<-tail(list.files(era_dirs$era_masterdata_dir,"era_master_codes.*json",full.names = T),1))
 
 # Create .tar.gz
-file_archive<-file.path(era_dirs$era_packaged_dir,paste0("era_agronomy_bundle-",Sys.Date(),".tar.gz"))
+file_archive<-file.path(era_dirs$era_packaged_dir,paste0("era_agronomy_bundle.tar.gz"))
 
 # Set working directory temporarily to the files' location
 old_wd <- setwd(dirname(file_list[[1]]))
@@ -57,11 +57,8 @@ if(F){
   s3$dir_ls(file.path(s3_bucket,"archive"))
 }
 
-
-
   ## Combine most recent data for ERA climate ####
 file_list<-list()
-
 
 # Livestock ####
 (file_list$era_livestock_dm<-tail(list.files(era_dirs$era_masterdata_dir,"skinny_cow.*RData",full.names = T),1))
@@ -85,7 +82,7 @@ arrow::write_parquet(compiled_livestock,x)
 file_list$era_comparisons<-x
 
 # Create .tar.gz
-file_archive<-file.path(era_dirs$era_packaged_dir,paste0("era_livestock_bundle-",Sys.Date(),".tar.gz"))
+file_archive<-file.path(era_dirs$era_packaged_dir,paste0("era_livestock_bundle.tar.gz"))
 
 # Set working directory temporarily to the files' location
 old_wd <- setwd(dirname(file_list[[1]]))
