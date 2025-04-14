@@ -552,6 +552,7 @@ replace_zero_with_NA <- function(data) {
 #' @param filename A string representing the name of the file to save the errors to (without extension).
 #' @param error_dir A string representing the directory where the error file should be saved.
 #' @param error_list A list of existing error data frames. Defaults to `NULL`.
+#' @param character_cols A vector of column names that will be enforced to be class `character`. Defaults to `B.Code`.
 #'
 #' @return A list of error data frames, updated with the new errors.
 #'
@@ -561,7 +562,7 @@ replace_zero_with_NA <- function(data) {
 #' error_tracker(errors, "errors_file", "/path/to/error_dir")
 #' }
 #' @importFrom data.table fread fwrite
-error_tracker <- function(errors, filename, error_dir, error_list = NULL) {
+error_tracker <- function(errors, filename, error_dir, error_list = NULL,character_cols="B.Code") {
   if (is.null(error_list)) {
     error_list <- list()
   }
@@ -573,6 +574,12 @@ error_tracker <- function(errors, filename, error_dir, error_list = NULL) {
       error_tracking <- unique(fread(error_file))
       error_tracking[, addressed_by_whom := as.character(addressed_by_whom)]
       
+      if(!is.null(character_cols)){
+        character_cols<-character_cols[character_cols %in% colnames(error_tracking)]
+        if(length(character_cols)>0){
+          error_tracking[, (character_cols) := lapply(.SD, function(x) as.character(x)), .SDcols = character_cols]
+        }
+      }
       if ("value" %in% colnames(error_tracking)) {
         error_tracking[, value := as.character(value)]
       }
@@ -1200,7 +1207,13 @@ validator <- function(data,
     data <- convert_NA_strings_SD(data)
   }
   
-  # zero cols
+  if(!is.null(character_cols)){
+    character_cols<-character_cols[character_cols %in% colnames(data)]
+    if(length(character_cols)>0){
+      data[, (character_cols) := lapply(.SD, function(x) as.character(x)), .SDcols = character_cols]
+    }
+  }
+  
   if (!is.null(zero_cols)) {
     zero_cols<-zero_cols[zero_cols %in% colnames(data)]
     data <- data[, (zero_cols) := lapply(.SD, replace_zero_with_NA), .SDcols = zero_cols]
@@ -1249,12 +1262,6 @@ validator <- function(data,
     numeric_cols <- unique(c(numeric_cols, date_cols))
   }
   
-  if(!is.null(character_cols)){
-    character_cols<-character_cols[character_cols %in% colnames(data)]
-    if(length(character_cols)>0){
-    data[, (character_cols) := lapply(.SD, function(x) as.character(x)), .SDcols = character_cols]
-    }
-  }
   
   # Substitute , for . in numeric columns
   if (!is.null(numeric_cols)) {
