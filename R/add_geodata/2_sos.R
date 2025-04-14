@@ -43,7 +43,7 @@
 
 # 0) Prepare environment ####
   ## 0.1) Load packages and source functions ####
-  pacman::p_load(arrow,lubridate,data.table,ggplot2,miceadds,sp)
+  pacman::p_load(arrow,lubridate,data.table,ggplot2,miceadds,sp,jsonlite)
   options(scipen=999)
   
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/date_to_dekad.R")
@@ -540,6 +540,7 @@ climate_data<-power_chirps[,list(Site.Key,Date,Rain,ETo)
   ## 1.10) Save data ####
   ERA_SOS<-list(Dekadal_SOS=climate_data_dekad,Seasonal_SOS2=Seasonal2,LTAvg_SOS2=LTAvg_SOS2,Seasonal_SOS3=Seasonal3,LTAvg_SOS3=LTAvg_SOS3)
   save(ERA_SOS,file=file.path(era_dirs$era_geodata_dir,paste0("sos_",Sys.Date(),".RData")))
+  jsonlite::write_json(ERA_SOS,path=file.path(era_dirs$era_geodata_dir,paste0("sos_",Sys.Date(),".json")))
   
   ## 1.11) Create meta-data ####
   meta_data <- rbindlist(list(

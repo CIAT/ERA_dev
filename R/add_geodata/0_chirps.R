@@ -1,3 +1,29 @@
+# CHIRPS Data Download & Processing Pipeline
+#
+# Purpose:
+# This script sets up the R workspace and automates the retrieval, extraction,
+# and processing of CHIRPS precipitation data. It downloads raw data from remote
+# repositories, decompresses the files, verifies data completeness, and aggregates
+# daily records into annual totals and long-term statistics.
+#
+# Key Actions:
+# 1. Load required packages, set connection timeouts, and initialize parallel processing.
+# 2. Create an index of download paths and metadata for various CHIRPS datasets.
+# 3. Download compressed CHIRPS data files based on the generated index.
+# 4. Unzip downloaded files in parallel and confirm the extraction completeness.
+# 5. Extract CHIRPS data, check for duplicates, and calculate aggregated annual and long-term metrics.
+#
+# Inputs:
+# - Remote CHIRPS data URLs (including dataset regions, resolutions, time steps, and formats).
+# - Local directory paths for saving raw and processed data (e.g., era_dirs).
+#
+# Outputs:
+# - Decompressed daily CHIRPS data files.
+# - Aggregated annual precipitation data.
+# - Long-term precipitation averages and standard deviations saved as parquet files.
+#
+# Note: Ensure the 'era_dirs' object and any necessary environment settings are defined before executing this script.
+#
 # First run R/0_set_env.R
 
 # 1) Set-up workspace ####
@@ -108,6 +134,7 @@ download_chirps(chirps_index,
                 startyear = 1981,
                 endyear = 2023,
                 save_dir = era_dirs$chirps_dir,
+                worker_n=worker_n,
                 year_folder=F)
 
 # 4) Unzip gz files ####

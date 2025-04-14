@@ -189,74 +189,74 @@ weather_data <- weather_data[!is.na(TMIN) & !is.na(RAIN)]
 # 3) Run water balance pipeline ####
 options(future.globals.maxSize = 15 * 1024^3)  # Increase memory limit (15 GiB)
 
-## 3.1) ISDA soils ####
-watbal_result_isda <- run_full_water_balance(
-  horizon_data = copy(horizon_isda),
-  weather_data = copy(weather_data),
-  worker_n = 5,
-  root_depth = 60,
-  min_depth = 45,
-  max_depth = 100,
-  id_field = "Site.Key"
-)
-
-## Round results to save space
-watbal_result_isda[,ETMAX:=round(ETMAX,2)
-                   ][,AVAIL:=round(AVAIL,2)
-                     ][,ETMAX:=round(ETMAX,2)
-                       ][,ERATIO:=round(ERATIO,2)
-                         ][,DEMAND:=round(DEMAND,2)
-                           ][,RUNOFF:=round(RUNOFF,2)
-                             ][,scp:=round(scp,2)
-                               ][,ssat:=round(ssat,2)
-                                 ][,TMIN:=round(TMIN,1)
-                                   ][,TMAX:=round(TMAX,1)
-                                     ][,TMEAN:=round(TMEAN,1)
-                                       ][,SRAD:=round(SRAD,1)
-                                         ][,RAIN:=round(RAIN,1)]
-
-(check<-unique(watbal_result_isda[,.(N=.N),by=Site.Key][N>min(N),.(Site.Key,N)]))
-if(nrow(check)>0){
-  stop("Potential duplicates in watbal_result_isda")
-}
-
-## Save ISDA result
-arrow::write_parquet(watbal_result_isda, file.path(era_dirs$era_geodata_dir, paste0("watbal-isda_", Sys.Date(), ".parquet")))
-
-## 3.2) SoilGrids2.0 soils ####
-watbal_result_soilgrids2 <- run_full_water_balance(
-  horizon_data = copy(horizon_soilgrids2),
-  weather_data = copy(weather_data),
-  worker_n = 5,
-  root_depth = 60,
-  min_depth = 45,
-  max_depth = 100,
-  id_field = "Site.Key"
-)
-
-## Round results to save space
-watbal_result_soilgrids2[,ETMAX:=round(ETMAX,2)
-][,AVAIL:=round(AVAIL,2)
-][,ETMAX:=round(ETMAX,2)
-][,ERATIO:=round(ERATIO,2)
-][,DEMAND:=round(DEMAND,2)
-][,RUNOFF:=round(RUNOFF,2)
-][,scp:=round(scp,2)
-][,ssat:=round(ssat,2)
-][,TMIN:=round(TMIN,1)
-][,TMAX:=round(TMAX,1)
-][,TMEAN:=round(TMEAN,1)
-][,SRAD:=round(SRAD,1)
-][,RAIN:=round(RAIN,1)]
-
-(check<-watbal_result_soilgrids2[,.(N=.N),by=Site.Key][,(unique(N))])
-if(length(check)>1){
-  stop("Potential duplicates in watbal_result_soilgrids2")
-}
-
-## Save SoilGrids2.0 result
-arrow::write_parquet(watbal_result_soilgrids2, file.path(era_dirs$era_geodata_dir, paste0("watbal-soilgrids2.0_", Sys.Date(), ".parquet")))
-
+  ## 3.1) ISDA soils ####
+  watbal_result_isda <- run_full_water_balance(
+    horizon_data = copy(horizon_isda),
+    weather_data = copy(weather_data),
+    worker_n = 5,
+    root_depth = 60,
+    min_depth = 45,
+    max_depth = 100,
+    id_field = "Site.Key"
+  )
+  
+  # Round results to save space
+  watbal_result_isda[,ETMAX:=round(ETMAX,2)
+                     ][,AVAIL:=round(AVAIL,2)
+                       ][,ETMAX:=round(ETMAX,2)
+                         ][,ERATIO:=round(ERATIO,2)
+                           ][,DEMAND:=round(DEMAND,2)
+                             ][,RUNOFF:=round(RUNOFF,2)
+                               ][,scp:=round(scp,2)
+                                 ][,ssat:=round(ssat,2)
+                                   ][,TMIN:=round(TMIN,1)
+                                     ][,TMAX:=round(TMAX,1)
+                                       ][,TMEAN:=round(TMEAN,1)
+                                         ][,SRAD:=round(SRAD,1)
+                                           ][,RAIN:=round(RAIN,1)]
+  
+  (check<-unique(watbal_result_isda[,.(N=.N),by=Site.Key][N>min(N),.(Site.Key,N)]))
+  if(nrow(check)>0){
+    stop("Potential duplicates in watbal_result_isda")
+  }
+  
+  ### 3.1.1) Save ISDA result ####
+  arrow::write_parquet(watbal_result_isda, file.path(era_dirs$era_geodata_dir, paste0("watbal-isda_", Sys.Date(), ".parquet")))
+  
+  ## 3.2) SoilGrids2.0 soils ####
+  watbal_result_soilgrids2 <- run_full_water_balance(
+    horizon_data = copy(horizon_soilgrids2),
+    weather_data = copy(weather_data),
+    worker_n = 5,
+    root_depth = 60,
+    min_depth = 45,
+    max_depth = 100,
+    id_field = "Site.Key"
+  )
+  
+  # Round results to save space
+  watbal_result_soilgrids2[,ETMAX:=round(ETMAX,2)
+  ][,AVAIL:=round(AVAIL,2)
+  ][,ETMAX:=round(ETMAX,2)
+  ][,ERATIO:=round(ERATIO,2)
+  ][,DEMAND:=round(DEMAND,2)
+  ][,RUNOFF:=round(RUNOFF,2)
+  ][,scp:=round(scp,2)
+  ][,ssat:=round(ssat,2)
+  ][,TMIN:=round(TMIN,1)
+  ][,TMAX:=round(TMAX,1)
+  ][,TMEAN:=round(TMEAN,1)
+  ][,SRAD:=round(SRAD,1)
+  ][,RAIN:=round(RAIN,1)]
+  
+  (check<-watbal_result_soilgrids2[,.(N=.N),by=Site.Key][,(unique(N))])
+  if(length(check)>1){
+    stop("Potential duplicates in watbal_result_soilgrids2")
+  }
+  
+  ### 3.2.1) Save SoilGrids2.0 result ####
+  arrow::write_parquet(watbal_result_soilgrids2, file.path(era_dirs$era_geodata_dir, paste0("watbal-soilgrids2.0_", Sys.Date(), ".parquet")))
+  
 # 4) Validate water balance results ####
 
 # Example validation (adjust 'watbal_result' and 'site' as needed)

@@ -44,7 +44,8 @@
   source("https://raw.githubusercontent.com/CIAT/ERA_dev/refs/heads/main/R/add_geodata/functions/calc_clim_stats.R")
 
 
-  ## 1.2) Read in ERA compiled dataset ####
+  ## 1.2) Load ERA datasets
+   ### 2.2.1) Read in ERA compiled dataset ####
   
   options(scipen=999)
   
@@ -53,16 +54,22 @@
   
   era_data<-data.table(arrow::read_parquet(era_file))
   
-   ### 1.2.1) Set id field ####
+    #### 1.2.1.1) Set id field ####
   id_field<-"Site.Key"
-   ### 1.2.2) Create season code field & turn M.Year blanks to NAs ####
+    #### 1.2.1.2) Create season code field & turn M.Year blanks to NAs ####
   
   era_data[Season.Start==1 & Season.End==1,M.Year.Code:="1"
   ][Season.Start==2 & Season.End==2,M.Year.Code:="2"
   ][Season.Start==1 & Season.End==2,M.Year.Code:="1&2"
   ][M.Year=="",M.Year:=NA]
   
-   ### 1.2.3) Load master codes ####
+    #### 1.2.1.3) Prepare planting dates ####
+      #  Set Planting End to Planting Start if Planting End is NA
+      era_data[is.na(Plant.End) & !is.na(Plant.Start),Plant.End:=Plant.Start]
+     # Convert planting dates to Date format and initialize new fields
+    #era_data[,Plant.Start:=as.Date(Plant.Start,"%d.%m.%Y")
+    #         ][,Plant.End:=as.Date(Plant.End,"%d.%m.%Y")]
+   ### 1.2.2) Load master codes ####
   # Get names of all sheets in the workbook
   sheet_names <- readxl::excel_sheets(era_vocab_local)
   sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
@@ -77,14 +84,12 @@
   
   ## 1.3) Load and merge geodata & crop parameters ####
     ### 1.3.1) Climate (POWER, CHIRPS) ####
-    files<-list.files(era_dirs$era_geodata_dir,"power.*parquet",full.names = T,ignore.case = T)
-    (files<-files[!grepl("annual|ltavg",files)])
+    files<-list.files(era_dirs$era_geodata_dir,"power_2.*parquet",full.names = T,ignore.case = T)
     (files<-tail(files,1))
     
     power<-arrow::read_parquet(files)
     
-    files<-list.files(era_dirs$era_geodata_dir,"chirps.*parquet",full.names = T,ignore.case = T)
-    (files<-files[!grepl("annual|ltavg",files)])
+    files<-list.files(era_dirs$era_geodata_dir,"chirps_2.*parquet",full.names = T,ignore.case = T)
     (files<-tail(files,1))
     
     chirps<-arrow::read_parquet(files) 
@@ -727,11 +732,18 @@ clim_stats$PDate.SLen.Data<-clim_stats_sldata
   ### 10.2.4) Save results ####
   save_file<-paste0("clim_stats_",Sys.Date())
   n<-sum(grepl(basename(save_file),list.files(era_dirs$era_geodata_dir,".RData")))           
-  save_file_rdata<-file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".RData"))
-  save_file_json<-file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".json"))
   
+  save_file_rdata<-file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".RData"))
   save(clim_stats,file=save_file_rdata)
+  
+  save_file_json<-file.path(era_dirs$era_geodata_dir,paste0(save_file,".",n+1,".json"))
   jsonlite::write_json(clim_stats,save_file_json)
+  
+  
+  clim_stats<-miceadds::load.Rdata2(basename(save_file_rdata),dirname(save_file_rdata))
+  grep("47.1",clim_stats$site_data$Site.Key,value=T)
+  
+  era_locations
   
   ### 10.2.5) Upload results ####
   s3_bucket<-era_dirs$era_geodata_s3
@@ -741,4 +753,5 @@ clim_stats$PDate.SLen.Data<-clim_stats_sldata
                      max_attempts = 3,
                      overwrite=F,
                      mode="public-read")
+  
   

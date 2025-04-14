@@ -35,10 +35,9 @@ est_pday<-function(data){
     data<-data[,!c("Data.PS.Date","Data.PE.Date")]
   }
   
-  # Convert planting dates to Date format and initialize new fields
-  data[,Plant.Start:=as.Date(Plant.Start,"%d.%m.%Y")
-  ][,Plant.End:=as.Date(Plant.End,"%d.%m.%Y")
-  ][,Data.PS.Date:=as.Date(NA)][,Data.PE.Date:=as.Date(NA)]
+
+  
+  data[,Data.PS.Date:=as.Date(NA)][,Data.PE.Date:=as.Date(NA)]
   
   # Identify records with valid planting dates, excluding irrigated trials
   valid_records<-unique(data[!is.na(Plant.Start) & !(Irrigation.C & Irrigation.T),list(Plant.Start,Plant.End,Latitude,Longitude,Product.Simple,M.Year.Start,M.Year.End,Season.Start,Season.End)])
