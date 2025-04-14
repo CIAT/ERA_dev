@@ -18,15 +18,16 @@ pacman::p_load(data.table,
                sf,
                dplyr,
                tidyr,
+               jsonlite,
                progressr)
 
 source(file.path(project_dir,"R/import/import_helpers.R"))
 
-# 0.1) Define the valid range for date checking #####
+## 0.1) Define the valid range for date checking #####
 valid_start <- as.Date("1950-01-01")
 valid_end <- as.Date("2024-12-01")
 
-# 0.2) Set project directories and parallel cores ####
+## 0.2) Set project directories and parallel cores ####
 
 # Set cores for parallel processing
 worker_n<-parallel::detectCores()-2
@@ -105,7 +106,7 @@ if(!ext_live){
 }
 
 # 2) Load data ####
-  # 2.1) Load era vocab #####
+  ## 2.1) Load era vocab #####
   
   # Get names of all sheets in the workbook
   sheet_names <- readxl::excel_sheets(era_vocab_local)
@@ -118,7 +119,7 @@ if(!ext_live){
   # Collapse heirarchy
   aom[,Path:=paste(na.omit(c(L1,L2,L3,L4,L5,L6,L7,L8,L9,L10)),collapse="/"),by=index]
   
-  # 2.2) Load excel data entry template #####
+  ## 2.2) Load excel data entry template #####
   Master<-list.files(paste0(project_dir,"/data_entry/",project,"/excel_data_extraction_template"),"xlsm$",full.names = T)
   
   # List sheet names that we need to extract
@@ -135,7 +136,7 @@ if(!ext_live){
   
   master_version<-c("V1.2.7|V1.2.6")
   
-  # 2.3) List extraction excel files #####
+  ## 2.3) List extraction excel files #####
   if(ext_live){
     # Should we limit to the most recent template only (this is primarily for development puposes and should usually be set to F)
     rm_old_version<-T
@@ -151,7 +152,7 @@ if(!ext_live){
     Files<-list.files(excel_dir,".xlsm$",full.names=T)
   }
   
-  # 2.4) Check for duplicate files #####
+  ## 2.4) Check for duplicate files #####
   FNames<-unlist(tail(tstrsplit(Files,"Extracted/|Quality Controlled/"),1))
   FNames<-gsub(" ","",FNames)
   FNames<-gsub("- ","-",FNames,fixed=T)
@@ -184,7 +185,7 @@ if(!ext_live){
   overwrite<-T
 
   # Set up parallel back-end
-  plan(multisession, workers = worker_n)
+  set_parallel_plan(n_cores=worker_n,use_multisession=F)
   
   # Enable progressr and set up handlers
   progressr::handlers("progress")
@@ -199,10 +200,11 @@ if(!ext_live){
     # Update the progress bar
     p()
     
-  #results<-lapply(1:nrow(excel_files),FUN=function(ii){
+  
+ # results<-lapply(138:nrow(excel_files),FUN=function(ii){
   
     File <- excel_files$filename[ii]
-   #cat("File",ii,basename(File),"\n")
+  # cat("File",ii,basename(File),"\n")
 
     era_code <- excel_files$era_code2[ii]
     
@@ -217,7 +219,7 @@ if(!ext_live){
   save_file<-file.path(extracted_dir,paste0(file_code,".RData"))
   
   if(!file.exists(filepath_new)|overwrite==T){
-  # 3.0) Load excel data #####
+  ## 3.0) Load excel data #####
   
   excel_dat <- tryCatch({
     lapply(SheetNames, FUN=function(SName){
@@ -242,11 +244,11 @@ if(!ext_live){
     warning(paste("Error file",File,"failed to load, moved to loading_issue folder."))
   }
 
-    # 3.0.1) Initiate error & harmonization lists ######
+    ### 3.0.1) Initiate error & harmonization lists ######
     errors<-list()
     h_tasks<-list()
     
-  # 3.1) Publication (Pub.Out) #####
+  ## 3.1) Publication (Pub.Out) #####
 table_name<-"Pub.Out"
 template_cols<-c(master_template_cols[[table_name]][-7],"filename")
 Pub.Out<-excel_dat[[table_name]][,-7]
@@ -255,7 +257,6 @@ Pub.Out$filename<-basename(File)
 allowed_values<-data.table(allowed_values=list(master_codes$journals$B.Journal),
                            parent_tab_name=c("master_codes$journals"),
                            field=c("B.Journal"))
-
 
 # Replace zeros with NAs
 results<-validator(data=Pub.Out,
@@ -288,7 +289,7 @@ Pub.Out[!is.na(era_code2),B.Code:=era_code2]
 # Tidy up
 Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
 
-  # 3.2) Site.Out #####
+  ## 3.2) Site.Out #####
   table_name<-"Site.Out"
   Site.Out<-excel_dat[[table_name]]
   template_cols<-c(master_template_cols[[table_name]],"B.Code")
@@ -307,6 +308,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   numeric_cols<-c("Site.LonD","Site.LatD","Site.Lat.Unc","Site.Lon.Unc","Buffer.Manual","Site.Rain.Seasons","Site.MAP","Site.MAT","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree","Site.MSP.S1","Site.MSP.S2")
   
   results<-validator(data=Site.Out,
+                     character_cols = "B.Code",
                      zero_cols=colnames(Site.Out)[!colnames(Site.Out) %in% c("Site.LonD","Site.LatD","Site.Elevation","Site.Slope.Perc","Site.Slope.Degree")],
                      numeric_cols=numeric_cols,
                      compulsory_cols = c(Site.ID="Site.Type",Site.ID="Country",Site.ID="Site.LatD",Site.ID="Site.LonD"),
@@ -355,7 +357,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   ][,issue:="Co-ordinates may not be in the country specified."]
   errors<-c(errors,list(error_dat))
   
-    # 3.2.1) Harmonization ######
+    ### 3.2.1) Harmonization ######
     h_params<-data.table(h_table=table_name,
                          h_field=c("Site.Admin","Site.Start.S1","Site.End.S1","Site.Start.S2","Site.End.S2","Site.Type","Site.Soil.Texture"),
                          h_table_alt=c(NA,"Site.Out","Site.Out","Site.Out","Site.Out",NA,"Site.Out"),
@@ -387,7 +389,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     
     h_tasks<-c(h_tasks,list(h_task))
     
-    # 3.2.2) Harmonize Site.ID field #######
+    ### 3.2.2) Harmonize Site.ID field #######
     master_sites<-master_codes$site_list[!(is.na(Synonyms) & is.na(Harmonization)),.(Site.ID,Country,Synonyms,Harmonization)
     ][,old_name:=Synonyms
     ][is.na(old_name),old_name:=Harmonization
@@ -434,7 +436,7 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
   
     errors<-c(errors,list(error_dat))
     
-    # 3.2.3) Create Aggregated Site Rows #######
+    ### 3.2.3) Create Aggregated Site Rows #######
     mergedat<-Site.Out[grep("[.][.]",Site.ID)]
     
     if(nrow(mergedat)>0){
@@ -470,8 +472,14 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
     # Replace aggregated site rows
     Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)[order(B.Code,Site.ID)]
     }
-  
-  # 3.3) Soil (Soil.Out) #####
+    
+    ### 3.2.4) Add Site Key ####
+    Site.Out[!grepl("[.][.]",Site.ID),Site.Key:=create_site_key(lat=as.numeric(Site.LatD[1]),
+                                                                lon=as.numeric(Site.LonD[1]),
+                                                                buffer=Buffer.Manual[1],decimals=4),
+             by=.(Site.ID,Country,Site.LatD,Site.LonD,Buffer.Manual)]
+    
+   # 3.3) Soil (Soil.Out) #####
   table_name<-"Soils.Out"
   Soil.Out<-excel_dat[[table_name]]
   Soil.Out$B.Code<-Pub.Out$B.Code
@@ -3209,9 +3217,9 @@ tabs<-names(miceadds::load.Rdata2(basename(files[1]),path=dirname(files[1])))
 # Soils need to be dealt with separately as the table structure needs to be changed from wide to long
 tabs<-tabs[tabs != "Soil.Out"]
 # Wide to long in Animal.Diet.Comp is not working properly
-tabs<-tabs[tabs != "Animal.Diet.Comp"]
+#tabs<-tabs[tabs != "Animal.Diet.Comp"]
 # Wide to long in Animal.Diet.Comp is not working properly
-tabs<-tabs[tabs != "Animal.Diet.Digest"]
+#tabs<-tabs[tabs != "Animal.Diet.Digest"]
 # Base.Codes has some issues with P.Codes too
 tabs<-tabs[tabs != "Base.Out"]
 
@@ -3221,13 +3229,17 @@ data_list<-lapply(files,FUN=function(file){
 
 data<-lapply(tabs,FUN=function(tab){
   cat(tab,"\n")
-  rbindlist(lapply(data_list,"[[",tab))
+  rbindlist(lapply(data_list,"[[",tab),fill = T,use.names = T)
 })
+
+names(data)<-tabs
+data$Animal.Diet.Comp[,`0`:=NULL]
+data$Animal.Diet.Digest[,`0`:=NULL]
 
 ## 11.1) Save results ####
 save_file<-paste0(project,"_draft_",as.character(Sys.Date()))
 n<-sum(grepl(basename(save_file),list.files(era_dirs$era_masterdata_dir,".RData")))                                   
 
 save(data,file=file.path(era_dirs$era_masterdata_dir,paste0(save_file,".",n+1,".RData")))
-
+jsonlite::write_json(data,path=file.path(era_dirs$era_masterdata_dir,paste0(save_file,".",n+1,".json")))
 
