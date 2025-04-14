@@ -5902,7 +5902,7 @@ col_names<-colnames(data[[800]])
   
 # 9) Save tables as a list  ####
 
-  Tables<-list(
+Tables<-list(
 Pub.Out=Pub.Out, 
 Site.Out=Site.Out, 
 Soil.Out=Soil.Out,
@@ -5952,6 +5952,7 @@ Data.Out=Data.Out
   
   save(Tables,file=file.path(data_dir,paste0(save_file,".",n+1,".RData")))
   jsonlite::write_json(Tables,path=file.path(data_dir,paste0(save_file,".",n+1,".json")))
+  
   
   
 # 10) Summarize error tracking ####
