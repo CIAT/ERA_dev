@@ -1,7 +1,4 @@
-# Run 0_set_env.R before running this script
-
-################################################################################
-# SCRIPT OVERVIEW
+# SCRIPT OVERVIEW ####
 #
 # This script assembles and standardizes a large set of ERA data from multiple
 # Excel sheets and auxiliary reference tables. It begins by loading required
@@ -37,11 +34,12 @@
 # In short, this script serves as a “master import and cleaning” routine that
 # unifies raw ERA Excel sheets into well-structured, code-labeled tables
 # suitable for further analyses.
-################################################################################
+#
+# Run 0_set_env.R before running this script
 
 # 0) Set-up ####
   ## 0.1) Load packages ####
-pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply,parallel,stringr,progressr)
+pacman::p_load(data.table,readxl,openxlsx,pbapply,soiltexture,future,future.apply,parallel,stringr,progressr,jsonlite)
 
   ## 0.2) Create helper functions ####
 waitifnot <- function(cond) {
@@ -63,6 +61,11 @@ Cores<-detectCores()-1
 
 project<-era_projects$majestic_hippo_2020
 
+  ## 0.4) Create error directory ####
+  error_dir<-file.path(era_dirs$era_dataentry_prj,era_projects$majestic_hippo_2020,"data_issues")
+if(!dir.exists(error_dir)){
+  dir.create(error_dir)
+}
 # 1) Download & load data ####
   ## 1.1) Download  or update excel data ####
 # If working locally from the "old" one-drive directory then you will to run 1_setup_s3.R section 1.2.1.
@@ -408,6 +411,11 @@ names(XL) <- FNames
   
   Site.Out[grepl("[.][.]",Site.ID),Site.ID:=Agg.Site.Name.Fun(Site.ID[1],SiteHarmonization),by=Site.ID]
   
+    ### 2.2.2) Site.Out: Add Site Key ####
+    Site.Out[,Site.Key:=create_site_key(lat=Site.LatD[1],
+                                        lon=Site.LonD[1],
+                                        buffer=Site.Buffer.Manual[1],decimals=4),
+             by=.(Site.ID,Country,Site.LatD,Site.LonD,Site.Buffer.Manual)]
   ## 2.3) Soil (Soil.Out) =====
   Soil.Out<-lapply(XL,"[[","Soils.Out")
   
@@ -1079,7 +1087,7 @@ names(XL) <- FNames
     fert_infer<-results$data
     error_dat<-results$errors  
     error_dat[,sort(unique(B.Code))]
-    fwrite(error_dat,"MH_fertilizer_issues.csv")
+    fwrite(error_dat,file.path(error_dir,"MH_fertilizer_issues.csv"))
     
     # Subset results to new values with less than 20% variance between reported and calculated N,P and K values
     fert_calc_vals<-fert_infer[(!is.na(F.Amount) & 
@@ -4373,5 +4381,6 @@ Data.Out[ED.Comparison==0,ED.Comparison:=NA]
   n<-sum(grepl(basename(save_file),list.files(era_dirs$era_masterdata_dir,".RData")))                                   
   
   save(Tables_2020,file=file.path(era_dirs$era_masterdata_dir,paste0(save_file,".",n+1,".RData")))
-
+  jsonlite::write_json(Tables_2020,path=file.path(era_dirs$era_masterdata_dir,paste0(save_file,".",n+1,".json")))
+  
   
