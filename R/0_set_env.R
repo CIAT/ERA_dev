@@ -60,7 +60,6 @@ if(!require("exactextractr")){
   remotes::install_github("isciences/exactextractr")
 }
 
-source(file.path(project_dir,"R/functions.R"))
 
 # Includes functions to upload data to S3 bucket 
 source("https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/refs/heads/main/R/haz_functions.R")
@@ -69,6 +68,9 @@ source("https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/refs
   if(!exists("project_dir")){
     project_dir<-getwd()
   }
+
+source(file.path(project_dir,"R/functions.R"))
+
 
   ## 1.1) Set era s3 dir #####
   era_s3<-"s3://digital-atlas/era"
