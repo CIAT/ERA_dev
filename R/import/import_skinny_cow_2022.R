@@ -15,8 +15,8 @@ pacman::p_load(data.table,
                rnaturalearthhires,
                sf,
                dplyr,
-               progressr)
-
+               progressr,
+               jsonlite)
 
 # 0.1) Define the valid range for date checking #####
 valid_start <- as.Date("1950-01-01")
@@ -492,7 +492,13 @@ error_dat<-dat[!error_dat][,list(value=paste0(paste0(Country,"-",Site.ID,": lat 
   # Replace aggregated site rows
   Site.Out<-rbind(Site.Out[!grepl("[.][.]",Site.ID)],mergedat)[order(B.Code,Site.ID)]
   
-  # 3.2.4) Save errors ######
+  # 3.2.4) Add Site Key ####
+  Site.Out[!grepl("[.][.]",Site.ID),Site.Key:=create_site_key(lat=as.numeric(Site.LatD[1]),
+                                                              lon=as.numeric(Site.LonD[1]),
+                                                              buffer=Buffer.Manual[1],decimals=4),
+           by=.(Site.ID,Site.LatD,Site.LonD,Buffer.Manual,Country)]
+  
+  # 3.2.5) Save errors ######
   error_list<-error_tracker(errors=rbindlist(errors,fill=T)[order(B.Code)],
                             filename = paste0(table_name,"_errors"),
                             error_dir=error_dir,
@@ -892,7 +898,7 @@ errors<-c(errors,list(error_dat))
               "A.Feed.Sub.C","A.Feed.Pro.1","A.Feed.Pro.2","A.Feed.Pro.3","A.Manure.Man","A.Pasture.Man","A.Aquasilvaculture")
   
   p_names_old<-paste0("P",1:14)
-  setnames(Animals.Out,p_names_old,p_names_new)
+  setnames(Animals.Out,old=p_names_old,new=p_names_new)
   
   zero_cols<-c(p_names_new,"A.Notes","A.Grazing","A.Hay")
   
@@ -2490,6 +2496,5 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
   n<-sum(grepl(basename(save_file),list.files("data",".RData")))                                   
   
   save(Tables,file=file.path("data",paste0(save_file,".",n+1,".RData")))
-  
-  arrow::write_parquet(Table,file=file.path("data",paste0(save_file,".",n+1,".parquet")))
+  jsonlite::write_json(Tables,path=file.path("data",paste0(save_file,".",n+1,".json")))
   
