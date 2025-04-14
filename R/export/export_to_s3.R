@@ -89,8 +89,7 @@ if(F){
                          "excel_files")
     
     # List excel files to be zipped
-    files<-list.files(folder_local,full.names = T,recursive=T)
-    files<- grep("xlsm$",files,value=T)
+    files<-list.files(folder_local,"xlsm$",full.names = T,recursive=T)
     files<-files[!grepl("~",files)]
     files<- grep("/Quality Controlled/|/Extracted/",files,value=T)
     
