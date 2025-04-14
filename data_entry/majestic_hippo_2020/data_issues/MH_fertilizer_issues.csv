@@ -1,0 +1,234 @@
+B.Code,F.Level.Name,F.Type,F.Type2,F.Amount,F.Amount_raw,F.I.Unit,F.Unit,F.Unit_raw,F.NPK,F.N,F.P,F.K,F.NI,N_sum,F.PI,F.P2O5,P_sum,F.KI,F.K2O,K_sum
+DK0033,30N + 14P,Ammonium Nitrate,Ammonium Nitrate,12.4,30,kg/ha,kg/ha,% of Total,,0.335,0,0,30,29.8935,14,,14.002576,10.956,13.2,13.32814
+DK0033,30N + 14P,Ammonium Nitrate,Ammonium Nitrate,16.5,40,kg/ha,kg/ha,% of Total,,0.335,0,0,30,29.8935,14,,14.002576,10.956,13.2,13.32814
+DK0033,30N + 14P,Ammonium Nitrate,Ammonium Nitrate,12.4,30,kg/ha,kg/ha,% of Total,,0.335,0,0,30,29.8935,14,,14.002576,10.956,13.2,13.32814
+EO0020,Maize fert-CP,Ammonium Nitrate,Ammonium Nitrate,100,100,kg/ha,kg/ha,kg/ha,,0.335,0,0,13,80.2,9.9,,10.0716,9.6,,9.5865
+EO0020,Maize fert-CP,Ammonium Nitrate,Ammonium Nitrate,100,100,kg/ha,kg/ha,kg/ha,,0.335,0,0,13,80.2,9.9,,10.0716,9.6,,9.5865
+NJ0107,Base,Ammonium Nitrate,Ammonium Nitrate,396,396,kg/ha,kg/ha,kg/ha,,0.335,0,0,132.66,132.66,37.6704,86.4,86.4,41.334,49.8,49.8
+AG0118,50N + PK,Ammonium Phosphate,Diammonium Phosphte,,100,kg/ha,% of Total,% of Total,,,,,50,0,,,0,,,0
+AG0118,100N + PK,Ammonium Phosphate,Diammonium Phosphte,,100,kg/ha,% of Total,% of Total,,,,,100,0,,,0,,,0
+AG0118,150N + PK,Ammonium Phosphate,Diammonium Phosphte,,100,kg/ha,% of Total,% of Total,,,,,150,0,,,0,,,0
+AG0118,200N + PK,Ammonium Phosphate,Diammonium Phosphte,,100,kg/ha,% of Total,% of Total,,,,,200,0,,,0,,,0
+AN0108,50% Urea + 50% AS + PK,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,60,0,26.16,60,0,49.8,60,0
+AN0122,7.1,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,7.1,0,33.6,,33.606,,,0
+AN0122,14.1,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,14.1,0,33.6,,33.588,,,0
+AN0122,21.2,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,21.2,0,33.6,,33.6,,,0
+DK0065,Base,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,188,0,23,,23.004,,,0
+DK0065,Base,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,188,0,23,,23.004,,,0
+DK0065,Base,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,188,0,23,,23.004,,,0
+DK0065,Base,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,188,0,23,,23.004,,,0
+DK0065,Base,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,188,0,23,,23.004,,,0
+DK0087,Maize fert,Ammonium Sulphate,Ammonium Sulphate,,,kg/ha,,,,0.21,0,0,100,0,26.16,60,26.1501,49.8,60,49.8
+EO0094,Maize fert,Ammonium Sulphate,Ammonium Sulphate,120,120,kg/ha,kg/ha,kg/ha,,0.21,0,0,98.88,75.6,,,0,,,0
+EO0094,Maize fert,Ammonium Sulphate,Ammonium Sulphate,120,120,kg/ha,kg/ha,kg/ha,,0.21,0,0,98.88,75.6,,,0,,,0
+EO0094,Maize fert,Ammonium Sulphate,Ammonium Sulphate,120,120,kg/ha,kg/ha,kg/ha,,0.21,0,0,98.88,75.6,,,0,,,0
+AG0069,Gromor maize,Calcium Ammonium Nitrate,Calcium Ammonium Nitrate,,,kg/ha,,,,0.265,0,0,60,0,,,0,,,0
+AN0122,7.1,Calcium Ammonium Nitrate,Calcium Ammonium Nitrate,,,kg/ha,,,,0.265,0,0,7.1,0,33.6,,33.606,,,0
+AN0122,14.1,Calcium Ammonium Nitrate,Calcium Ammonium Nitrate,,,kg/ha,,,,0.265,0,0,14.1,0,33.6,,33.588,,,0
+AN0122,21.2,Calcium Ammonium Nitrate,Calcium Ammonium Nitrate,,,kg/ha,,,,0.265,0,0,21.2,0,33.6,,33.6,,,0
+DK0065,Base,Calcium Ammonium Nitrate,Calcium Ammonium Nitrate,,,kg/ha,,,,0.265,0,0,188,0,23,,23.004,,,0
+NJ0089,Base,Calcium Ammonium Nitrate,Calcium Ammonium Nitrate,38.5,,kg/ha,kg/ha,,,0.265,0,0,30,30.1525,5.8,,5.7988,11.04,,0
+AG0140,Maize fert,Calcium Ammonium Nitrate,Calcium Ammonium Nitrate,141.4,141.4,kg/ha,kg/ha,kg/ha,,0.265,0,0,60,57.4705,30,,13.0146,40,,32.951415
+AN0005,wheat fert,Calcium Superphosphate,Calcium Single Superphosphate,357,357,kg/ha,kg/ha,kg/ha,,0,0.0785,0,,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+AN0005,wheat fert + w100% N,Calcium Superphosphate,Calcium Single Superphosphate,357,357,kg/ha,kg/ha,kg/ha,,0,0.0785,0,178.5,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+AN0005,wheat fert + w50% N,Calcium Superphosphate,Calcium Single Superphosphate,357,357,kg/ha,kg/ha,kg/ha,,0,0.0785,0,89.2,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+DK0033,30N + 14P,Compound D,Compound D,229.4,,kg/ha,kg/ha,,7-14-7,0.07,0.06104,0.0581,30,29.8935,14,,14.002576,10.956,13.2,13.32814
+EO0020,Maize fert-CP,Compound D,Compound D,165,165,kg/ha,kg/ha,kg/ha,8-14-7,0.08,0.06104,0.0581,13,80.2,9.9,,10.0716,9.6,,9.5865
+AN0018,FP,Diammonium Phosphate,Diammonium Phosphate,10,10,kg/ha,kg/ha,kg/ha,,0.195,0.201,0,23,12.53,10,,2.01,,,0
+AN0018,Rec NP,Diammonium Phosphate,Diammonium Phosphate,20,20,kg/ha,kg/ha,kg/ha,,0.195,0.201,0,60,31.5,20,,4.02,,,0
+AN0018,50% NP + 50% M+C,Diammonium Phosphate,Diammonium Phosphate,10,10,kg/ha,kg/ha,kg/ha,,0.195,0.201,0,30,15.75,10,,2.01,,,0
+DK0045,Base,Diammonium Phosphate,Diammonium Phosphate,100,100,kg/ha,kg/ha,kg/ha,,0.195,0.201,0,64,65.5,46,,20.1,,,0
+AN0099,50 N,Diammonium Phosphate,Diammonium Phosphate,5.6,33.33,kg/ha,kg/ha,% of Total,,0.195,0.201,0,50,1.092,3.35,,1.1256,,,0
+AN0099,75 N,Diammonium Phosphate,Diammonium Phosphate,8.3,33.33,kg/ha,kg/ha,% of Total,,0.195,0.201,0,75,1.6185,5.02,,1.6683,,,0
+AN0099,100 N,Diammonium Phosphate,Diammonium Phosphate,11.1,33.33,kg/ha,kg/ha,% of Total,,0.195,0.201,0,100,2.1645,6.69,,2.2311,,,0
+AN0099,200 N,Diammonium Phosphate,Diammonium Phosphate,22,33.33,kg/ha,kg/ha,% of Total,,0.195,0.201,0,200,4.29,13.28,,4.422,,,0
+AN0112,Base,Diammonium Phosphate,Diammonium Phosphate,59.7,20,kg/ha,kg/ha,% of Total,,0.195,0.201,0,120,74.7455,60,,30.0093,60,,60.009
+AN0112,Base,Diammonium Phosphate,Diammonium Phosphate,59.7,20,kg/ha,kg/ha,% of Total,,0.195,0.201,0,120,74.7455,60,,30.0093,60,,60.009
+AN0112,Base,Diammonium Phosphate,Diammonium Phosphate,29.9,10,kg/ha,kg/ha,% of Total,,0.195,0.201,0,120,74.7455,60,,30.0093,60,,60.009
+EO0106,T6,Diammonium Phosphate,Diammonium Phosphate,87.5,87.5,kg/ha,kg/ha,kg/ha,,0.195,0.201,0,96,97.5625,40,,17.5875,,,0
+NJ0166,100% fertigation ,K (Unspecified),K (Unspecified),,,kg/ha,,,,0,0,,16.48,0,,,0,,,0
+NJ0166,75% fertigation ,K (Unspecified),K (Unspecified),,,kg/ha,,,,0,0,,12.36,0,,,0,,,0
+NJ0166,50% fertigation ,K (Unspecified),K (Unspecified),,,kg/ha,,,,0,0,,8.24,0,,,0,,,0
+AN0108,50% Urea + 50% AS + PK,K2O (Unspecified),K2O (Unspecified),,,kg/ha,,,,0,0,,60,0,26.16,60,0,49.8,60,0
+DK0087,Maize fert,Potassium Chloride,Potassium Chloride,100,,kg/ha,kg/ha,,,0,0,0.498,100,0,26.16,60,26.1501,49.8,60,49.8
+NJ0093,N20 + P40 + K20,Potassium Chloride,Potassium Chloride,40.2,,kg/ha,kg/ha,,,0,0,0.498,20,19.992,40,,63.3417,20,,20.0196
+NJ0093,N90 + P60 +K60,Potassium Chloride,Potassium Chloride,120.5,,kg/ha,kg/ha,,,0,0,0.498,90,89.998,60,,232.936,60,,60.009
+AN0005,wheat fert + w100% N,N (Unspecified),N (Unspecified),178.5,178.5,kg/ha,kg/ha,kg/ha,,,0,0,178.5,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+AN0005,wheat fert + w50% N,N (Unspecified),N (Unspecified),89.2,89.2,kg/ha,kg/ha,kg/ha,,,0,0,89.2,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+NJ0102,39 TRP+ N30,N (Unspecified),N (Unspecified),30,,kg/ha,kg/ha,,,1,0,0,30,30,39,,47.58,,,0
+EO0014,Maize fert,NPK,NPK,,,kg/ha,,,15-15-15,0.15,0.0654,0.1245,110,0,,,0,,,0
+EO0006,50%BatM+50%NPK,NPK,NPK,40.7,40.7,kg/ha,kg/ha,kg/ha,20-10-10,0.2,0.0436,0.083,24.42,24.42,2.71192,6.22,5.32356,5.1626,6.22,10.1343
+EO0006,50%BatM+50%NPK,NPK,NPK,40.7,40.7,kg/ha,kg/ha,kg/ha,20-10-10,0.2,0.0436,0.083,24.42,24.42,2.71192,6.22,5.32356,5.1626,6.22,10.1343
+EO0006,50%BatM+50%NPK,NPK,NPK,40.7,40.7,kg/ha,kg/ha,kg/ha,20-10-10,0.2,0.0436,0.083,24.42,24.42,2.71192,6.22,5.32356,5.1626,6.22,10.1343
+AG0069,Gromor maize,NPK,NPK,,,kg/ha,,,6.7-10-13.3,0.067,0.0436,0.11039,60,0,,,0,,,0
+DK0127,Quick release urea + NPK,NPK,NPK,,,kg/ha,,,12-24-12,0.12,0.10464,0.0996,75,0,,,0,,,0
+DK0127,Slow release urea + NPK,NPK,NPK,,,kg/ha,,,12-24-12,0.12,0.10464,0.0996,75,0,,,0,,,0
+DK0128,Slow release urea+NPK,NPK,NPK,,,kg/ha,,,12-24-12,0.12,0.10464,0.0996,75,0,,,0,,,0
+DK0128,Quick release urea+NPK,NPK,NPK,,,kg/ha,,,12-24-12,0.12,0.10464,0.0996,75,0,,,0,,,0
+EO0068,Fert,NPK,NPK,200,,kg/ha,kg/ha,,15-15-15,0.15,0.0654,0.1245,60,30,13.08,30,13.08,24.9,30,24.9
+EO0068,Fert+Biochar 5t,NPK,NPK,200,,kg/ha,kg/ha,,15-15-15,0.15,0.0654,0.1245,60,30,13.08,30,13.08,24.9,30,24.9
+EO0084,T3,NPK,NPK,60,60,kg/ha,kg/ha,kg/ha,15-15-15,0.15,0.0654,0.1245,9,9,17,,5.51,7.47,9,7.47
+NJ0063,NPK Fertilizer,NPK,NPK,60,60,kg/ha,kg/ha,kg/ha,15-15-15,0.15,0.0654,0.1245,9,9,6.54,,3.924,12.45,,7.47
+NJ0063,Broadcast NPK,NPK,NPK,200,200,kg/ha,kg/ha,kg/ha,15-15-15,0.15,0.0654,0.1245,30,30,21.8,,13.08,41,,24.9
+NJ0070,Maize fert,NPK,NPK,,,kg/ha,,,15-15-15,0.15,0.0654,0.1245,110,0,,,0,,,0
+NJ0089,Base,NPK,NPK,133,133,kg/ha,kg/ha,kg/ha,15-10-0,0.15,0.0436,0,30,30.1525,5.8,,5.7988,11.04,,0
+NJ0163,Base,NPK,NPK,997.2,997.2,kg/ha,kg/ha,kg/ha,17-23-17,0.17,0.10028,0.1411,90,169.524,100,,99.999216,90,,140.70492
+AG0139,NPK +  Urea Twice,NPK,NPK,,,kg/ha,,,15-15-15,0.15,0.0654,0.1245,27.4,0,,,0,,,0
+AG0139,NPK + Urea,NPK,NPK,,,kg/ha,,,15-15-15,0.15,0.0654,0.1245,13.7,0,,,0,,,0
+AG0139,Manure + NPK + Urea,NPK,NPK,,,kg/ha,,,15-15-15,0.15,0.0654,0.1245,13.7,0,,,0,,,0
+AG0139,Manure + NPK + Urea Twice,NPK,NPK,,,kg/ha,,,15-15-15,0.15,0.0654,0.1245,27.4,0,,,0,,,0
+AG0139,Corralling + NPK + Urea,NPK,NPK,,,kg/ha,,,15-15-15,0.15,0.0654,0.1245,13.7,0,,,0,,,0
+AG0140,CC Fert,NPK,NPK,198.5,198.5,kg/ha,kg/ha,kg/ha,6.7-10-13.3,0.067,0.0436,0.11039,13.3,13.2995,20,,8.6546,26.7,,21.912415
+AG0140,Maize fert,NPK,NPK,298.5,298.5,kg/ha,kg/ha,kg/ha,6.7-10-13.3,0.067,0.0436,0.11039,60,57.4705,30,,13.0146,40,,32.951415
+AG0146,Exp 1 T2,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,38,0,7,,0,13,,0
+AG0146,Exp 1 T3,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,76,0,13,,0,25,,0
+AG0146,Exp 2 T2,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,38,0,7,,0,13,,0
+AG0146,Exp 2 T3,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,38,0,7,,0,13,,0
+AG0146,Exp 2 T4,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,76,0,13,,0,25,,0
+AG0146,Exp 2 T5,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,100,0,13,,0,25,,0
+AG0146,Exp3 NPK,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,133.5,0,40,,0,66.5,,0
+AG0146,Exp 4 NPK,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,100,0,30,,0,50,,0
+AG0146,Exp 5 T2,NPK,NPK,,,kg/ha,,,15-6-12,0.15,0.02616,0.0996,40,0,18,,0,12,,0
+NJ0166,100% fertigation ,P (Unspecified),P (Unspecified),,,kg/ha,,,,0,,0,16.48,0,,,0,,,0
+NJ0166,75% fertigation ,P (Unspecified),P (Unspecified),,,kg/ha,,,,0,,0,12.36,0,,,0,,,0
+NJ0166,50% fertigation ,P (Unspecified),P (Unspecified),,,kg/ha,,,,0,,0,8.24,0,,,0,,,0
+AN0108,50% Urea + 50% AS + PK,P2O5 (Unspecified),P2O5 (Unspecified),,,kg/ha,,,,0,,0,60,0,26.16,60,0,49.8,60,0
+AG0118,50N + PK,Potassium Chloride,Potassium Chloride,,100,kg/ha,% of Total,% of Total,,0,0,0.498,50,0,,,0,,,0
+AG0118,100N + PK,Potassium Chloride,Potassium Chloride,,100,kg/ha,% of Total,% of Total,,0,0,0.498,100,0,,,0,,,0
+AG0118,150N + PK,Potassium Chloride,Potassium Chloride,,100,kg/ha,% of Total,% of Total,,0,0,0.498,150,0,,,0,,,0
+AG0118,200N + PK,Potassium Chloride,Potassium Chloride,,100,kg/ha,% of Total,% of Total,,0,0,0.498,200,0,,,0,,,0
+AN0112,Base,Potassium Chloride,Potassium Chloride,120.5,,kg/ha,kg/ha,,,0,0,0.498,120,74.7455,60,,30.0093,60,,60.009
+AG0146,Exp 1 T2,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,38,0,7,,0,13,,0
+AG0146,Exp 1 T3,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,76,0,13,,0,25,,0
+AG0146,Exp 2 T2,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,38,0,7,,0,13,,0
+AG0146,Exp 2 T3,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,38,0,7,,0,13,,0
+AG0146,Exp 2 T4,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,76,0,13,,0,25,,0
+AG0146,Exp 2 T5,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,100,0,13,,0,25,,0
+AG0146,Exp3 NPK,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,133.5,0,40,,0,66.5,,0
+AG0146,Exp 4 NPK,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,100,0,30,,0,50,,0
+AG0146,Exp 5 T2,Potassium Chloride,Potassium Chloride,,,kg/ha,,,,0,0,0.498,40,0,18,,0,12,,0
+AG0080,34.5K,Potassium Nitrate,Potassium Nitrate,91.1,,kg/ha,kg/ha,,,0.135,0,0.388,12.3,12.2985,,,0,28.635,34.5,35.3468
+AG0080,69K,Potassium Nitrate,Potassium Nitrate,182.2,,kg/ha,kg/ha,,,0.135,0,0.388,24.6,24.597,,,0,57.27,69,70.6936
+AG0080,103.5K,Potassium Nitrate,Potassium Nitrate,273.3,,kg/ha,kg/ha,,,0.135,0,0.388,36.9,36.8955,,,0,85.905,103.5,106.0404
+AN0005,wheat fert,Potassium Sulphate,Potassium Sulphate,119,119,kg/ha,kg/ha,kg/ha,,0,0,0.415,,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+AN0005,wheat fert + w100% N,Potassium Sulphate,Potassium Sulphate,119,119,kg/ha,kg/ha,kg/ha,,0,0,0.415,178.5,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+AN0005,wheat fert + w50% N,Potassium Sulphate,Potassium Sulphate,119,119,kg/ha,kg/ha,kg/ha,,0,0,0.415,89.2,0,24.13478,55.355,28.0245,79.2816,95.52,49.385
+AN0040,M1 + F1,Potassium Sulphate,Potassium Sulphate,50,50,kg/ha,kg/ha,% of Total,,0,0,0.415,50,74.934,11,,10.9947,41.5,,41.5
+AN0040,M1 + F1,Potassium Sulphate,Potassium Sulphate,50,50,kg/ha,kg/ha,% of Total,,0,0,0.415,50,74.934,11,,10.9947,41.5,,41.5
+AN0040,M1 + F2,Potassium Sulphate,Potassium Sulphate,100,50,kg/ha,kg/ha,% of Total,,0,0,0.415,100,100.004,22,,22.0095,83,,124.5
+AN0040,M1 + F2,Potassium Sulphate,Potassium Sulphate,100,50,kg/ha,kg/ha,% of Total,,0,0,0.415,100,100.004,22,,22.0095,83,,124.5
+AN0040,M1 + F2,Potassium Sulphate,Potassium Sulphate,100,50,kg/ha,kg/ha,% of Total,,0,0,0.415,100,100.004,22,,22.0095,83,,124.5
+AN0040,M2 + F1,Potassium Sulphate,Potassium Sulphate,50,50,kg/ha,kg/ha,% of Total,,0,0,0.415,50,49.956,11,,10.9947,41.5,,20.75
+AN0040,M2 + F2,Potassium Sulphate,Potassium Sulphate,100,50,kg/ha,kg/ha,% of Total,,0,0,0.415,100,150.006,22,,22.0095,83,,83
+AN0040,M2 + F2,Potassium Sulphate,Potassium Sulphate,100,50,kg/ha,kg/ha,% of Total,,0,0,0.415,100,150.006,22,,22.0095,83,,83
+DK0029,K2,Potassium Sulphate,Potassium Sulphate,,,kg/ha,,,,0,0,0.415,,0,,,0,166,200,0
+DK0029,Comp A + K2,Potassium Sulphate,Potassium Sulphate,,,kg/ha,,,,0,0,0.415,,0,,,0,166,200,0
+DK0029,Comp B+ K2,Potassium Sulphate,Potassium Sulphate,,,kg/ha,,,,0,0,0.415,,0,,,0,166,200,0
+NJ0020,Base,Potassium Sulphate,Potassium Sulphate,119,119,kg/ha,kg/ha,kg/ha,,0,0,0.415,,0,32.19,,85.68,47.4,,49.385
+EO0122,Base,Potassium Sulphate,Potassium Sulphate,120,120,kg/ha,kg/ha,kg/ha,,0,0,0.415,101.2,101.2,20,,15.075,49.8,,49.8
+NJ0107,Base,Potassium Sulphate,Potassium Sulphate,120,120,kg/ha,kg/ha,kg/ha,,0,0,0.415,132.66,132.66,37.6704,86.4,86.4,41.334,49.8,49.8
+EO0084,T3,Rock Phosphate (Tahoua),Rock Phosphate (Tahoua),13,13,kg/ha,kg/ha,kg/ha,,0,0.122,0,9,9,17,,5.51,7.47,9,7.47
+NJ0102,39 P TRP,Rock Phosphate (Tahoua),Rock Phosphate (Tahoua),390,390,kg/ha,kg/ha,kg/ha,,0,0.122,0,,0,39,,47.58,,,0
+NJ0102,39 TRP+ N30,Rock Phosphate (Tahoua),Rock Phosphate (Tahoua),390,390,kg/ha,kg/ha,kg/ha,,0,0.122,0,30,30,39,,47.58,,,0
+NJ0020,Base,Single Super Phosphate,Single Super Phosphate,476,476,kg/ha,kg/ha,kg/ha,,0,0.18,0,,0,32.19,,85.68,47.4,,49.385
+AN0122,7.1,Single Super Phosphate,Single Super Phosphate,186.7,,kg/ha,kg/ha,,,0,0.18,0,7.1,0,33.6,,33.606,,,0
+AN0122,14.1,Single Super Phosphate,Single Super Phosphate,93.3,,kg/ha,kg/ha,,,0,0.18,0,14.1,0,33.6,,33.588,,,0
+AN0122,14.1,Single Super Phosphate,Single Super Phosphate,93.3,,kg/ha,kg/ha,,,0,0.18,0,14.1,0,33.6,,33.588,,,0
+DK0065,Base,Single Super Phosphate,Single Super Phosphate,127.8,,kg/ha,kg/ha,,,0,0.18,0,188,0,23,,23.004,,,0
+NJ0107,Base,Single Super Phosphate,Single Super Phosphate,480,480,kg/ha,kg/ha,kg/ha,,0,0.18,0,132.66,132.66,37.6704,86.4,86.4,41.334,49.8,49.8
+EO0006,50%BatM+50%NPK,Sulphur,Sulphur,,,kg/ha,,,,0,0,0,24.42,24.42,2.71192,6.22,5.32356,5.1626,6.22,10.1343
+AN0040,M1 + F1,Triple Super Phosphate,Triple Super Phosphate,54.7,100,kg/ha,kg/ha,% of Total,,0,0.201,0,50,74.934,11,,10.9947,41.5,,41.5
+AN0040,M1 + F2,Triple Super Phosphate,Triple Super Phosphate,109.5,100,kg/ha,kg/ha,% of Total,,0,0.201,0,100,100.004,22,,22.0095,83,,124.5
+AN0040,M2 + F1,Triple Super Phosphate,Triple Super Phosphate,54.7,100,kg/ha,kg/ha,% of Total,,0,0.201,0,50,49.956,11,,10.9947,41.5,,20.75
+AN0040,M2 + F2,Triple Super Phosphate,Triple Super Phosphate,109.5,100,kg/ha,kg/ha,% of Total,,0,0.201,0,100,150.006,22,,22.0095,83,,83
+AG0118,50N + PK,Triple Super Phosphate,Triple Super Phosphate,,100,kg/ha,% of Total,% of Total,,0,0.201,0,50,0,,,0,,,0
+AG0118,100N + PK,Triple Super Phosphate,Triple Super Phosphate,,100,kg/ha,% of Total,% of Total,,0,0.201,0,100,0,,,0,,,0
+AG0118,150N + PK,Triple Super Phosphate,Triple Super Phosphate,,100,kg/ha,% of Total,% of Total,,0,0.201,0,150,0,,,0,,,0
+AG0118,200N + PK,Triple Super Phosphate,Triple Super Phosphate,,100,kg/ha,% of Total,% of Total,,0,0.201,0,200,0,,,0,,,0
+DK0087,Maize fert,Triple Super Phosphate,Triple Super Phosphate,130.1,,kg/ha,kg/ha,,,0,0.201,0,100,0,26.16,60,26.1501,49.8,60,49.8
+DK0100,N45+P20,Triple Super Phosphate,Triple Super Phosphate,99.5,,kg/ha,kg/ha,,,0,0.201,0,45,22.494,20,,19.9995,,,0
+EO0122,Base,Triple Super Phosphate,Triple Super Phosphate,75,75,kg/ha,kg/ha,kg/ha,,0,0.201,0,101.2,101.2,20,,15.075,49.8,,49.8
+NJ0093,N20 + P40 + K20,Triple Super Phosphate,Triple Super Phosphate,57.7,,kg/ha,kg/ha,,,0,0.201,0,20,19.992,40,,63.3417,20,,20.0196
+NJ0093,N90 + P60 +K60,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,90,89.998,60,,232.936,60,,60.009
+AG0146,Exp 1 T2,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,38,0,7,,0,13,,0
+AG0146,Exp 1 T3,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,76,0,13,,0,25,,0
+AG0146,Exp 2 T2,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,38,0,7,,0,13,,0
+AG0146,Exp 2 T3,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,38,0,7,,0,13,,0
+AG0146,Exp 2 T4,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,76,0,13,,0,25,,0
+AG0146,Exp 2 T5,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,100,0,13,,0,25,,0
+AG0146,Exp3 NPK,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,133.5,0,40,,0,66.5,,0
+AG0146,Exp 4 NPK,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,100,0,30,,0,50,,0
+AG0146,Exp 5 T2,Triple Super Phosphate,Triple Super Phosphate,,,kg/ha,,,,0,0.201,0,40,0,18,,0,12,,0
+EO0014,Maize fert,Urea,Urea,,,kg/ha,,,,0.46,0,0,110,0,,,0,,,0
+EO0014,Maize fert,Urea,Urea,,,kg/ha,,,,0.46,0,0,110,0,,,0,,,0
+AN0018,FP,Urea,Urea,11.5,11.5,kg/ha,kg/ha,kg/ha,,0.46,0,0,23,12.53,10,,2.01,,,0
+AN0018,Rec NP,Urea,Urea,30,30,kg/ha,kg/ha,kg/ha,,0.46,0,0,60,31.5,20,,4.02,,,0
+AN0018,50% NP + 50% M+C,Urea,Urea,15,15,kg/ha,kg/ha,kg/ha,,0.46,0,0,30,15.75,10,,2.01,,,0
+AN0018,FP,Urea,Urea,11.5,11.5,kg/ha,kg/ha,kg/ha,,0.46,0,0,23,12.53,10,,2.01,,,0
+AN0018,Rec NP,Urea,Urea,30,30,kg/ha,kg/ha,kg/ha,,0.46,0,0,60,31.5,20,,4.02,,,0
+AN0018,50% NP + 50% M+C,Urea,Urea,15,15,kg/ha,kg/ha,kg/ha,,0.46,0,0,30,15.75,10,,2.01,,,0
+AN0040,M1 + F1,Urea,Urea,54.3,50,kg/ha,kg/ha,% of Total,,0.46,0,0,50,74.934,11,,10.9947,41.5,,41.5
+AN0040,M1 + F1,Urea,Urea,54.3,50,kg/ha,kg/ha,% of Total,,0.46,0,0,50,74.934,11,,10.9947,41.5,,41.5
+AN0040,M1 + F2,Urea,Urea,108.7,50,kg/ha,kg/ha,% of Total,,0.46,0,0,100,100.004,22,,22.0095,83,,124.5
+AN0040,M1 + F2,Urea,Urea,108.7,50,kg/ha,kg/ha,% of Total,,0.46,0,0,100,100.004,22,,22.0095,83,,124.5
+AN0040,M1 + F1,Urea,Urea,54.3,50,kg/ha,kg/ha,% of Total,,0.46,0,0,50,74.934,11,,10.9947,41.5,,41.5
+AN0040,M2 + F2,Urea,Urea,108.7,50,kg/ha,kg/ha,% of Total,,0.46,0,0,100,150.006,22,,22.0095,83,,83
+AN0040,M2 + F2,Urea,Urea,108.7,50,kg/ha,kg/ha,% of Total,,0.46,0,0,100,150.006,22,,22.0095,83,,83
+AN0040,M2 + F2,Urea,Urea,108.7,50,kg/ha,kg/ha,% of Total,,0.46,0,0,100,150.006,22,,22.0095,83,,83
+AN0040,M2 + F1,Urea,Urea,54.3,50,kg/ha,kg/ha,% of Total,,0.46,0,0,50,49.956,11,,10.9947,41.5,,20.75
+AN0040,M2 + F1,Urea,Urea,54.3,50,kg/ha,kg/ha,% of Total,,0.46,0,0,50,49.956,11,,10.9947,41.5,,20.75
+DK0045,Base,Urea,Urea,100,100,kg/ha,kg/ha,kg/ha,,0.46,0,0,64,65.5,46,,20.1,,,0
+AG0118,50N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,50,0,,,0,,,0
+AG0118,50N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,50,0,,,0,,,0
+AG0118,50N + PK,Urea,Urea,,20,kg/ha,% of Total,% of Total,,0.46,0,0,50,0,,,0,,,0
+AG0118,100N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,100,0,,,0,,,0
+AG0118,100N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,100,0,,,0,,,0
+AG0118,100N + PK,Urea,Urea,,20,kg/ha,% of Total,% of Total,,0.46,0,0,100,0,,,0,,,0
+AG0118,150N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,150,0,,,0,,,0
+AG0118,150N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,150,0,,,0,,,0
+AG0118,150N + PK,Urea,Urea,,20,kg/ha,% of Total,% of Total,,0.46,0,0,150,0,,,0,,,0
+AG0118,200N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,200,0,,,0,,,0
+AG0118,200N + PK,Urea,Urea,,40,kg/ha,% of Total,% of Total,,0.46,0,0,200,0,,,0,,,0
+AG0118,200N + PK,Urea,Urea,,20,kg/ha,% of Total,% of Total,,0.46,0,0,200,0,,,0,,,0
+AN0099,50 N,Urea,Urea,,66.67,kg/ha,% of Total,% of Total,,0.46,0,0,50,1.092,3.35,,1.1256,,,0
+AN0099,75 N,Urea,Urea,,66.67,kg/ha,% of Total,% of Total,,0.46,0,0,75,1.6185,5.02,,1.6683,,,0
+AN0099,100 N,Urea,Urea,,66.67,kg/ha,% of Total,% of Total,,0.46,0,0,100,2.1645,6.69,,2.2311,,,0
+AN0099,200 N,Urea,Urea,,66.67,kg/ha,% of Total,% of Total,,0.46,0,0,200,4.29,13.28,,4.422,,,0
+AN0108,50% Urea + 50% AS + PK,Urea,Urea,,,kg/ha,,,,0.46,0,0,60,0,26.16,60,0,49.8,60,0
+AN0108,50% Urea + 50% AS + PK,Urea,Urea,,,kg/ha,,,,0.46,0,0,60,0,26.16,60,0,49.8,60,0
+AN0112,Base,Urea,Urea,39.7,20,kg/ha,kg/ha,% of Total,,0.46,0,0,120,74.7455,60,,30.0093,60,,60.009
+AN0112,Base,Urea,Urea,39.7,20,kg/ha,kg/ha,% of Total,,0.46,0,0,120,74.7455,60,,30.0093,60,,60.009
+AN0112,Base,Urea,Urea,19.8,10,kg/ha,kg/ha,% of Total,,0.46,0,0,120,74.7455,60,,30.0093,60,,60.009
+DK0087,Maize fert,Urea,Urea,,,kg/ha,,,,0.46,0,0,100,0,26.16,60,26.1501,49.8,60,49.8
+DK0100,N45+P20,Urea,Urea,48.9,50,kg/ha,kg/ha,% of Total,,0.46,0,0,45,22.494,20,,19.9995,,,0
+DK0127,Slow release urea + NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+DK0127,Quick release urea + NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+DK0127,Slow release urea + NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+DK0127,Quick release urea + NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+DK0128,Slow release urea+NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+DK0128,Slow release urea+NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+DK0128,Quick release urea+NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+DK0128,Quick release urea+NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,75,0,,,0,,,0
+EO0106,T6,Urea,Urea,175,175,kg/ha,kg/ha,kg/ha,,0.46,0,0,96,97.5625,40,,17.5875,,,0
+EO0122,Base,Urea,Urea,220,220,kg/ha,kg/ha,kg/ha,,0.46,0,0,101.2,101.2,20,,15.075,49.8,,49.8
+NJ0070,Maize fert,Urea,Urea,,,kg/ha,,,,0.46,0,0,110,0,,,0,,,0
+AG0139,NPK + Urea,Urea,Urea,,,kg/ha,,,,0.46,0,0,13.7,0,,,0,,,0
+AG0139,Manure + NPK + Urea,Urea,Urea,,,kg/ha,,,,0.46,0,0,13.7,0,,,0,,,0
+AG0139,Manure + NPK + Urea Twice,Urea,Urea,,,kg/ha,,,,0.46,0,0,27.4,0,,,0,,,0
+AG0139,Corralling + NPK + Urea,Urea,Urea,,,kg/ha,,,,0.46,0,0,13.7,0,,,0,,,0
+AG0139,NPK +  Urea Twice,Urea,Urea,,,kg/ha,,,,0.46,0,0,27.4,0,,,0,,,0
+AG0146,Exp 1 T2,Urea,Urea,,,kg/ha,,,,0.46,0,0,38,0,7,,0,13,,0
+AG0146,Exp 1 T3,Urea,Urea,,,kg/ha,,,,0.46,0,0,76,0,13,,0,25,,0
+AG0146,Exp 1 T3,Urea,Urea,,,kg/ha,,,,0.46,0,0,76,0,13,,0,25,,0
+AG0146,Exp 2 T2,Urea,Urea,,,kg/ha,,,,0.46,0,0,38,0,7,,0,13,,0
+AG0146,Exp 2 T3,Urea,Urea,,,kg/ha,,,,0.46,0,0,38,0,7,,0,13,,0
+AG0146,Exp 2 T4,Urea,Urea,,,kg/ha,,,,0.46,0,0,76,0,13,,0,25,,0
+AG0146,Exp 2 T4,Urea,Urea,,,kg/ha,,,,0.46,0,0,76,0,13,,0,25,,0
+AG0146,Exp 2 T5,Urea,Urea,,,kg/ha,,,,0.46,0,0,100,0,13,,0,25,,0
+AG0146,Exp 2 T5,Urea,Urea,,,kg/ha,,,,0.46,0,0,100,0,13,,0,25,,0
+AG0146,Exp3 NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,133.5,0,40,,0,66.5,,0
+AG0146,Exp 4 NPK,Urea,Urea,,,kg/ha,,,,0.46,0,0,100,0,30,,0,50,,0
+AG0146,Exp 5 T2,Urea,Urea,,,kg/ha,,,,0.46,0,0,40,0,18,,0,12,,0
+NJ0093,N20 + P40 + K20,Urea Phosphate,Urea Phosphate,117.6,,kg/ha,kg/ha,,,0.17,0.44,0,20,19.992,40,,63.3417,20,,20.0196
+NJ0093,N90 + P60 +K60,Urea Phosphate,Urea Phosphate,529.4,,kg/ha,kg/ha,,,0.17,0.44,0,90,89.998,60,,232.936,60,,60.009
+AN0122,21.2,P (Unspecified),P (Unspecified),33.6,,kg/ha,kg/ha,,,,1,,21.2,0,33.6,,33.6,,,0
