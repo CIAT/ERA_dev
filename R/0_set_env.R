@@ -1,3 +1,36 @@
+# ERA Data Project Setup and Data Management Script
+#
+# Purpose:
+# This script initializes the working environment for the ERA project by loading all necessary
+# libraries, installing any missing packages, and sourcing helper functions. It sets up both local
+# and S3 directories, downloads core ERA datasets (master data, geodata, vocab, economic data, etc.),
+# and prepares spatial data including a unified table of unique locations, buffers, vectors, and
+# bounding boxes for subsequent geospatial analysis.
+#
+# Key Actions:
+# 0. Load and install required libraries and functions from local and remote sources.
+# 1. Configure directories and parameters:
+#    - Define local working directories and S3 bucket paths.
+#    - Organize ERA project-specific directories and set global options.
+# 2. Download core datasets:
+#    - Retrieve ERA master datasets and geodata from S3.
+#    - Download ancillary data (vocab, economic datasets, AEZ, etc.) as needed.
+# 3. Create a consolidated table of unique geographic locations:
+#    - Merge location data from various ERA projects, clean and deduplicate entries.
+#    - Generate spatial objects (e.g., buffers, spatial vectors, bounding boxes) for analysis.
+# 4. Set global parameters such as the time origin for subsequent data processing.
+#
+# Inputs:
+# - ERA project directory (project_dir) and S3 bucket paths (era_s3, era_s3_http).
+# - External dataset URLs and ERA-specific datasets.
+#
+# Outputs:
+# - A structured local directory populated with ERA datasets and ancillary files.
+# - A merged, cleaned table of unique geographic locations ready for geospatial processing.
+# - Preconfigured spatial objects for further analysis.
+#
+# Note: Run this script after initializing the environment using R/0_set_env.R.
+
 # 0) Load libraries and functions ####
 # Install and load pacman if not already installed
 if (!require("pacman", character.only = TRUE)) {
@@ -27,14 +60,15 @@ if(!require("exactextractr")){
   remotes::install_github("isciences/exactextractr")
 }
 
+source(file.path(project_dir,"R/functions.R"))
+
+# Includes functions to upload data to S3 bucket 
+source("https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/refs/heads/main/R/haz_functions.R")
 
 # 1) Set directories & parameters ####
   if(!exists("project_dir")){
     project_dir<-getwd()
   }
-
-  source(file.path(project_dir,"R/functions.R"))
-
 
   ## 1.1) Set era s3 dir #####
   era_s3<-"s3://digital-atlas/era"
@@ -433,13 +467,18 @@ if(!require("exactextractr")){
   ## 3.1) Compiled dataset ####
   (file<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled-.*parquet",full.names = T),1))
   data<-arrow::read_parquet(file)
+  data<-unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)])
+  data[,project:=era_projects$v1.0_2018]
+  
   era_locations<-list()
-  era_locations<-c(era_locations,list(unique(data[!(is.na(Latitude)|is.na(Longitude)|Buffer==0),list(Site.Key,Latitude,Longitude,Buffer,Country)])))
+  era_locations<-c(era_locations,list(data))
   
   ## 3.2) Skinny Cow ####
-  (file<-tail(list.files(era_dirs$era_masterdata_dir,"skinny_cow.*RData",full.names = T),1))
-  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-  data<-data$Site.Out[!grepl("[.][.]",Site.ID),list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"skinny_cow.*json",full.names = T),1))
+  data<-jsonlite::read_json(file,simplifyVector = T)
+  data<-data.table(data$Site.Out)
+  
+  data<-data[!grepl("[.][.]",Site.ID),list(Site.Key,Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
   setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
   data<-data[!(is.na(Latitude)|is.na(Longitude))
              ][,Latitude:=as.numeric(Latitude)
@@ -450,17 +489,19 @@ if(!require("exactextractr")){
   data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
   # Assign 5km buffer to missing buffer values
   data<-data[!(is.na(Buffer)|Buffer==0)]
-  # Create key value
-  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
   # Remove unecessary cols
   data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
+  data[,project:=era_projects$skinny_cow_2022]
   
   era_locations<-c(era_locations,list(data))
   
   ## 3.3) Industrious Elephant ####
-  (file<-tail(list.files(era_dirs$era_masterdata_dir,"industrious_elephant.*RData",full.names = T),1))
-  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-  data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
+  
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"industrious_elephant.*json",full.names = T),1))
+  data<-jsonlite::read_json(file,simplifyVector = T)
+  data<-data.table(data$Site.Out)
+  
+  data<-data[,list(Site.Key,Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
   setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
   data<-data[!grepl("[.][.]",Site.ID)
              ][,Latitude:=as.numeric(Latitude)
@@ -472,17 +513,17 @@ if(!require("exactextractr")){
   data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
   # Assign 5km buffer to missing buffer values
   data<-data[!(is.na(Buffer)|Buffer==0)]
-  # Create key value
-  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
   # Remove unecessary cols
   data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
-  
+  data[,project:=era_projects$industrious_elephant_2023]
   era_locations<-c(era_locations,list(data))
   
   ## 3.4) Majestic Hippo ####
-  (file<-tail(list.files(era_dirs$era_masterdata_dir,"majestic_hippo.*RData",full.names = T),1))
-  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-  data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual,Country)]
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"majestic_hippo.*json",full.names = T),1))
+  data<-jsonlite::read_json(file,simplifyVector = T)
+  data<-data.table(data$Site.Out)
+  
+  data<-data[,list(Site.Key,Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Site.Buffer.Manual,Country)]
   setnames(data,c("Site.LatD","Site.LonD","Site.Buffer.Manual"),c("Latitude","Longitude","Buffer"))
   data<-data[!grepl("[.][.]",Site.ID)
   ][,Latitude:=as.numeric(Latitude)
@@ -494,17 +535,18 @@ if(!require("exactextractr")){
   data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
   # Assign 5km buffer to missing buffer values
   data<-data[!(is.na(Buffer)|Buffer==0)]
-  # Create key value
-  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
   # Remove unecessary cols
   data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
+  data[,project:=era_projects$majestic_hippo_2020]
   
   era_locations<-c(era_locations,list(data))
   
   ## 3.5) Courageous Camel ####
-  (file<-tail(list.files(era_dirs$era_masterdata_dir,"courageous_camel.*RData",full.names = T),1))
-  data<-miceadds::load.Rdata2(filename=basename(file),path=dirname(file))
-  data<-data$Site.Out[,list(Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
+  (file<-tail(list.files(era_dirs$era_masterdata_dir,"courageous_camel.*json",full.names = T),1))
+  data<-jsonlite::read_json(file,simplifyVector = T)
+  data<-data.table(data$Site.Out)
+  
+  data<-data[,list(Site.Key,Site.ID,Site.LatD,Site.LonD,Site.Lat.Unc,Site.Lon.Unc,Buffer.Manual,Country)]
   setnames(data,c("Site.LatD","Site.LonD","Buffer.Manual"),c("Latitude","Longitude","Buffer"))
   data<-data[!grepl("[.][.]",Site.ID)
   ][,Latitude:=as.numeric(Latitude)
@@ -516,17 +558,15 @@ if(!require("exactextractr")){
   data[is.na(Buffer),Buffer:=(Site.Lat.Unc+Site.Lon.Unc)/4]
   # Assign 5km buffer to missing buffer values
   data<-data[!(is.na(Buffer)|Buffer==0)]
-  # Create key value
-  data[,Site.Key:=paste0(sprintf("%07.4f",Latitude)," ",sprintf("%07.4f",Longitude)," B",Buffer)]
   # Remove unecessary cols
   data<-data[,list(Site.Key,Latitude,Longitude,Buffer,Country)]
+  data[,project:=era_projects$courageous_camel_2024]
   
   era_locations<-c(era_locations,list(data))
   
   ## 3.6) Merge locations ####
-  
-  era_locations<-rbindlist(era_locations,use.names = T)
-  era_locations<-unique(era_locations[,Latitude:=round(Latitude,4)][,Longitude:=round(Longitude,4)])
+  era_locations_tab<-rbindlist(era_locations,use.names = T)
+  era_locations<-unique(copy(era_locations_tab)[,project:=NULL][,Latitude:=round(Latitude,4)][,Longitude:=round(Longitude,4)])
 
   # Check for any duplicates
   era_locations[,N:=.N,by=Site.Key]
@@ -543,6 +583,9 @@ if(!require("exactextractr")){
   
   # Check for remaining duplicates
   era_locations[N>1][order(Site.Key)]
+  dup_sites<-unique(era_locations[N>1,Site.Key])
+  era_locations_tab[Site.Key %in% dup_sites[1]]
+  
   
   # Remove incorrect associations of ethiopian sites with wrong country
   era_locations<-era_locations[!(N==2 & Country!="Ethiopia")]
