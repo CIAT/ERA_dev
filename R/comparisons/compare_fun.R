@@ -78,7 +78,16 @@
 #' ## Developer Notes:
 #' - Potential issue? Diversification residue re-coding is for any residues, whereas we are interested in only experimental crop residues.
 #'
-compare_fun<-function(Data,Verbose=F,Debug=F,PracticeCodes,Fert.Method,Plant.Method,Irrig.Method,Res.Method,p_density_similarity_threshold=0.95,Return.Lists=F){
+compare_fun<-function(Data,
+                      Verbose=F,
+                      Debug=F,
+                      PracticeCodes,
+                      Fert.Method,
+                      Plant.Method,
+                      Irrig.Method,
+                      Res.Method,
+                      p_density_similarity_threshold=0.95,
+                      Return.Lists=F){
   
   if(!all(c("Time","Site.ID") %in% colnames(Fert.Method))){
     do_times<-F
