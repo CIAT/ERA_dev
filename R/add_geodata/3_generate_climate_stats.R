@@ -1,5 +1,4 @@
-##############################################################################
-# Climate Statistics Processing Pipeline
+# Climate Statistics Processing Pipeline ####
 #
 # This pipeline sets up the environment, reads and prepares the ERA compiled dataset,
 # merges in various geospatial and crop parameter data (including CHIRPS, POWER, elevation,
@@ -29,8 +28,6 @@
 #   - R/add_geodata/elevation.R
 #   - R/add_geodata/calc_sos.R
 #   - R/add_geodata/water_balance.R
-##############################################################################
-
 # 1) Set-up environment ####
   ## 1.1) Load Packages & source functions ####
   
@@ -290,6 +287,10 @@ ERA.Yields <- est_pday(data = ERA.Yields)$result
 # Estimate the percentage of missing planting dates that were substituted
 missing_planting_substituted <- round(sum(!is.na(ERA.Yields$Data.PS.Date)) / sum(is.na(ERA.Yields$Plant.Start)) * 100, 2)
 cat("Missing data subsituted using nearby data = ",missing_planting_substituted,"%")
+
+# Dev Note: Function requires optimization, currently takes a minute or two to run, but this could easily be seconds.
+ERA.Yields<-est_pday2(data = ERA.Yields, uncertainty_days = 7*6, max_distance_km = c(1,10,50), by_product = TRUE,verbose=T) 
+
 
 # Identify ERA observations with high planting date uncertainty
 ERA.Yields[, Planting_Uncertainty := as.integer(Plant.End - Plant.Start), by = list(Plant.Start, Plant.End)]
