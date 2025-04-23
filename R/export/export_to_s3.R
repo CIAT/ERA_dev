@@ -10,11 +10,12 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite,future,future.apply,progressr)
 
 # 2) upload data to s3 #####
   ## 2.0) all files in common_data/era/data ####
-if(F){
+
   s3_bucket<-era_dirs$era_masterdata_s3
   folder_local<-era_dirs$era_masterdata_dir
   
   files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
+  files<-files[!grepl("data/packaged",files)]
   
   upload_files_to_s3(files = files,
                      selected_bucket=s3_bucket,
@@ -24,7 +25,7 @@ if(F){
   
   # Files no-longer present locally
   files_s3<-s3$dir_ls(s3_bucket)
-  files_s3<-files_s3[files_s3!="s3://digital-atlas/era/data/archive"]
+  files_s3<-files_s3[!files_s3 %in% c("s3://digital-atlas/era/data/archive","s3://digital-atlas/era/data/packaged")]
   files_2archive_from<-files_s3[!basename(files_s3) %in% basename(files)]
   files_2archive_to<-gsub("/data/","/data/archive/",files_2archive_from)
   
@@ -38,7 +39,7 @@ if(F){
   )
   
   s3$dir_ls(file.path(s3_bucket,"archive"))
-}
+
     ### 2.0.1) all files in common_data/era/data/packaged ####
 if(F){
   s3_bucket<-era_dirs$era_packaged_s3
@@ -103,8 +104,6 @@ if(F){
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read")
-    
-    ### 2.1.2) upload pdfs #####
     
     ### 2.1.3) upload imported data #####
     folder_local<-era_dirs$era_masterdata_dir
@@ -318,6 +317,7 @@ upload_files_to_s3(files = files,
     files<- grep("xlsm$",files,value=T)
     files<-files[!grepl("~",files)]
     files<- grep("/Quality Controlled/|/Extracted/",files,value=T)
+    files<-files[!grepl("then rejected",files)]
     
     # zip all the excels and upload to the s3
     output_zip_file <- file.path(folder,paste0(project,".zip"))
@@ -342,7 +342,35 @@ upload_files_to_s3(files = files,
                        mode="public-read")
     
     
- 
+  ## 2.5) All pdfs ####
+    ### 2.5.1) Open access #####
+    local_folder<-"/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/pdfs/Open access"
+    files<-list.files(local_folder,".pdf",recursive = T,full.names = T)
+    
+    # pdf folders
+    s3_bucket<-file.path(era_dirs$era_dataentry_s3,"pdfs/open_access")
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read",
+                       workers=10)
+    
+    ### 2.5.2) Closed access #####
+    local_folder<-"/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/pdfs/Closed access"
+    files<-list.files(local_folder,".pdf",recursive = T,full.names = T)
+    
+    # pdf folders
+    s3_bucket<-file.path(era_dirs$era_dataentry_s3,"pdfs/closed_access")
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="private",
+                       workers=10)
+    
 # 3) Upload environmental data ####
   ## 3.0) all files in common_data/era/geodata ####
       s3_bucket<-era_dirs$era_geodata_s3
