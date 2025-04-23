@@ -30,17 +30,11 @@ est_pday<-function(data){
   
   data<-data.table(data)
   
-  # Remove existing estimated planting date fields if present
-  if(any(c("Data.PS.Date","Data.PE.Date") %in% colnames(data))){
-    data<-data[,!c("Data.PS.Date","Data.PE.Date")]
-  }
-  
-
-  
+  # Add cols for estimated dates
   data[,Data.PS.Date:=as.Date(NA)][,Data.PE.Date:=as.Date(NA)]
   
-  # Identify records with valid planting dates, excluding irrigated trials
-  valid_records<-unique(data[!is.na(Plant.Start) & !(Irrigation.C & Irrigation.T),list(Plant.Start,Plant.End,Latitude,Longitude,Product.Simple,M.Year.Start,M.Year.End,Season.Start,Season.End)])
+  # Identify records with valid planting dates, excluding irrigated trials (allow exception for Rice)
+  valid_records<-unique(data[!is.na(Plant.Start) & !(Irrigation.C & Irrigation.T & Product!="Rice"),list(Plant.Start,Plant.End,Latitude,Longitude,Product.Simple,M.Year.Start,M.Year.End,Season.Start,Season.End)])
   
   # Compute summary statistics for planting dates per location
   valid_records<-valid_records[,list(PS.Mean=mean(Plant.Start,na.rm=T),
@@ -150,3 +144,184 @@ est_pday<-function(data){
   return(list(result=data,issues=issues))
   
 }
+
+
+#' Estimate Planting Dates Using Historical DOY Midpoints at Same or Nearby Sites
+#'
+#' This function provides fallback estimates of missing planting dates in an ERA dataset by
+#' using historical planting behavior. It computes the circular (angular) mean of the day-of-year
+#' midpoints from available observations (i.e. the average of \code{yday(Plant.Start)} and \code{yday(Plant.End)}) 
+#' and then applies an uncertainty window to define a planting period. This method entirely
+#' removes the year from the averaging process, using only the Julian days (DOY), and then converts 
+#' the resultant DOY back into an actual date using the observed \code{M.Year.Start} as the reference.
+#' 
+#' Note, for the function's application to be maximized season names will need to be harmonized.
+#'
+#' Matching is performed in two steps:
+#' \enumerate{
+#'   \item \strong{Site History:} The function first searches for historical planting dates at the same site 
+#'         (\code{Site.Key}), optionally constraining matches to the same \code{Product} (when \code{by_product = TRUE})
+#'         and ensuring that the seasonal marker (\code{Season.Start}) is the same (or both missing).
+#'   \item \strong{Nearby History:} If no site-specific match is found, the function iteratively searches through 
+#'         increasing distance thresholds (specified by \code{max_distance_km}) and uses the available observations
+#'         that meet the criteria.
+#' }
+#'
+#' For each matching set, the function calculates:
+#' \itemize{
+#'   \item The circular mean of the DOY midpoints (using the \code{circular} package) to obtain a representative 
+#'         Julian day.
+#'   \item Uncertainty bounds by subtracting and adding \code{uncertainty_days} (with proper wrapping around the 365-day year).
+#'   \item Conversion of these Julian day values to actual dates using \code{as.Date} with an origin determined 
+#'         by the observed \code{M.Year.Start}.
+#' }
+#'
+#' The new estimated fields are stored in:
+#' \describe{
+#'   \item{\code{Data.PS.Date}}{Estimated planting start date.}
+#'   \item{\code{Data.PE.Date}}{Estimated planting end date.}
+#'   \item{\code{Plant.Source}}{A character string indicating the source of the estimate, including whether it was 
+#'          derived from a SiteHistory or a NearbyHistory match, the distance threshold used (if applicable), 
+#'          and whether matching was restricted by product.}
+#' }
+#'
+#' @param data A \code{data.table} containing ERA observations.
+#' @param uncertainty_days Integer. The number of days to subtract from and add to the circular mean DOY to create the 
+#'        planting interval (default = 14).
+#' @param max_distance_km Numeric vector of increasing distance thresholds (e.g., \code{c(1, 5, 10)}). When site-based 
+#'        matching fails, the function searches for nearby matches within these distance limits.
+#' @param by_product Logical. If \code{TRUE}, only observations with the same \code{Product} are used for matching;
+#'        if \code{FALSE}, the search is conducted regardless of product. This choice is also reflected in the \code{Plant.Source} field.
+#'
+#' @return The input \code{data.table} with three new columns appended:
+#' \describe{
+#'   \item{\code{Data.PS.Date}}{Estimated planting start date (Date).}
+#'   \item{\code{Data.PE.Date}}{Estimated planting end date (Date).}
+#'   \item{\code{Plant.Source}}{A character string indicating the estimation method, any product constraint, 
+#'          the distance threshold (if applicable), and the uncertainty window used.}
+#' }
+#'
+#' @import data.table
+#' @importFrom terra vect distance
+#' @importFrom lubridate yday year
+#' @import circular
+#' @export
+est_pday2 <- function(data, uncertainty_days = 14, max_distance_km = c(1,10,50), by_product = TRUE,verbose=F) {
+  require(data.table)
+  require(geosphere)
+  
+  data <- data.table::copy(data)
+
+  # Dev Note: This section could be made far more efficient by running unique on missing for Site x Product x M.Year
+  known <- data[!is.na(Plant.Start) & !is.na(Plant.End)]
+  missing <- data[is.na(Plant.Start) & is.na(Data.PS.Date) & !is.na(M.Year.Start)]
+  
+  for (i in seq_len(nrow(missing))) {
+    
+    if(verbose){
+    cat("Processing row",i,"/",nrow(missing),"\n")
+    }
+    
+    row <- missing[i]
+    row_coords <- c(row$Longitude, row$Latitude)
+    
+    # Match same product if by_product is TRUE
+    # Make sure same season is enforced
+    if (by_product) {
+      known_subset <- known[Product == row$Product & (Season.Start==row$Season.Start|(is.na(Season.Start) & is.na(row$Season.Start)))]
+    } else {
+      known_subset <- known[Season.Start==row$Season.Start|(is.na(Season.Start) & is.na(row$Season.Start))]
+    }
+    
+    if(nrow(known_subset)>0){
+    # 1. Try matching by Site.Key
+    site_hist <- known_subset[Site.Key == row$Site.Key ]
+    if (nrow(site_hist) > 0) {
+
+      # Calculate circular mean of day-of-year midpoints
+      day_midpoints <- ((yday(site_hist$Plant.Start) + yday(site_hist$Plant.End)) / 2) %% 365
+      rads <- circular(2 * base::pi * day_midpoints / 365, units = "radians", modulo = "2pi")
+      mean_rad <- mean(rads, na.rm = TRUE)
+      mean_doy <- (as.numeric(mean_rad) * 365) / (2 * base::pi) %% 365
+      
+      # Circular uncertainty bounds
+      ps_doy <- (mean_doy - uncertainty_days) %% 365
+      pe_doy <- (mean_doy + uncertainty_days) %% 365
+      
+      # Convert to dates
+      pe_date<-as.Date(pe_doy, origin = paste0(row$M.Year.Start - 1, "-12-31"))
+      if(ps_doy>=pe_doy){
+        ps_date<-as.Date(ps_doy, origin = paste0(row$M.Year.Start - 2, "-12-31"))
+      }else{
+        ps_date<-as.Date(ps_doy, origin = paste0(row$M.Year.Start - 1, "-12-31"))
+      }
+      
+      # Ensure there can be no confusion with dates that traverse year end boundaries
+      if (!is.na(ps_date) & row$M.Year.Start==year(ps_date)) {
+   
+        data[Index == row$Index, `:=`(
+          Data.PS.Date = ps_date,
+          Data.PE.Date = pe_date,
+          Plant.Source = paste0("SiteHistory", if (by_product) "_Product" else "", " ±", uncertainty_days, "d")
+        )]
+        next
+      }
+    }
+    
+    # 2. Search by increasing distance bands
+    for (d in max_distance_km) {
+      # Create a SpatVector for known_subset coordinates
+      coords_known <- known_subset[, .(Longitude, Latitude)]
+      known_vect <- terra::vect(coords_known, geom = c("Longitude", "Latitude"), crs = "EPSG:4326")
+      
+      # Create a SpatVector for the target point using row_coords.
+      # (Assuming row_coords is in the order: c(Longitude, Latitude))
+      target_vect <- terra::vect(data.frame(Longitude = row_coords[1], Latitude = row_coords[2]),
+                                 geom = c("Longitude", "Latitude"), crs = "EPSG:4326")
+      
+      # Compute distances (in meters) from the target point to all known_subset points.
+      dists <- terra::distance(target_vect, known_vect) / 1000  # Convert to kilometers
+      
+      # Add the distances to known_subset (as a numeric vector)
+      known_subset[, dist := as.numeric(dists)]
+      
+      nearby <- known_subset[dist <= d]
+      
+      if (nrow(nearby) > 0) {
+        
+        # Calculate circular mean of day-of-year midpoints
+        day_midpoints <- ((yday(nearby$Plant.Start) + yday(nearby$Plant.End)) / 2) %% 365
+        rads <- circular(2 * base::pi * day_midpoints / 365, units = "radians", modulo = "2pi")
+        mean_rad <- mean(rads, na.rm = TRUE)
+        mean_doy <- (as.numeric(mean_rad) * 365) / (2 * base::pi) %% 365
+        
+        # Circular uncertainty bounds
+        ps_doy <- (mean_doy - uncertainty_days) %% 365
+        pe_doy <- (mean_doy + uncertainty_days) %% 365
+        
+        # Convert to dates
+        pe_date<-as.Date(pe_doy, origin = paste0(row$M.Year.Start - 1, "-12-31"))
+        if(ps_doy>=pe_doy){
+          ps_date<-as.Date(ps_doy, origin = paste0(row$M.Year.Start - 2, "-12-31"))
+        }else{
+          ps_date<-as.Date(ps_doy, origin = paste0(row$M.Year.Start - 1, "-12-31"))
+        }
+        
+        if (!is.na(ps_date) & row$M.Year.Start==year(ps_date)) {
+
+          data[Index==row$Index, `:=`(
+            Data.PS.Date = ps_date,
+            Data.PE.Date = pe_date,
+            Plant.Source = paste0("NearbyHistory_", d, "km", if (by_product) "_Product" else "", " ±", uncertainty_days, "d")
+          )]
+          break
+      }
+    }
+   }
+    }
+  }
+  
+  return(data)
+}
+
+
