@@ -1,58 +1,20 @@
 # First run R/0_set_env.R
-# 0.1) load packages #####
+# 1) load packages #####
 if (!require("pacman")) {
   install.packages("pacman")
   require(pacman)
 }
 
 # Use p_load to install if not present and load the packages
-p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
+p_load(s3fs,zip,arrow,miceadds,paws,jsonlite,future,future.apply,progressr)
 
-# 1.1) (Legacy) upload era master files to s3 #####
-s3_bucket<-era_dirs$era_masterdata_s3
-local_dir<-era_dirs$era_masterdata_dir
-# Inital set-up from old file system (delete when development is stable)
+# 2) upload data to s3 #####
+  ## 2.0) all files in common_data/era/data ####
 if(F){
-  folder<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Compendium Master Database"
+  s3_bucket<-era_dirs$era_masterdata_s3
+  folder_local<-era_dirs$era_masterdata_dir
   
-  files<-list.files(folder,full.names = T)
-  files <- files[!file.info(files)$isdir]
-  files<-grep("csv$|RData$",files,value=T)
-  
-  # Get most recent versions of data
-  files1<-grep("V1.0",files,value=T)
-  files1<-grep(".csv",files1,value = T)
-  data<-fread(files1)
-  arrow::write_parquet(data,file.path(folder,paste0("era_data_",era_projects$v1.0_2018,".parquet")))
-  
-  files1<-grep("V1.1",files,value=T)
-  files1<-grep(".csv",files1,value = T)
-  data<-fread(files1)
-  arrow::write_parquet(data,file.path(folder,paste0("era_data_",era_projects$v1.1_2020,".parquet")))
-  
-  files1<-grep("V1.1 Tab",files,value=T)
-  files1new<-file.path(folder,paste0("era_data_",era_projects$v1.1_2020,"_full.RData"))
-  file.copy(files1,files1new,overwrite = T)
-  
-  files2<-grep("era_skinny",files,value=T)
-  files2<-grep(".RData",files2,value = T)
-  files2new<-file.path(folder,paste0("era_data_",era_projects$skinny_cow_2022,"_full.RData"))
-  file.copy(files2,files2new,overwrite=T)
-  
-  
-  folder1<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/ERA Current Version"
-  files<-list.files(folder1,full.names = T)
-  version<-names(read.delim(grep("Version.txt",files,value = T)))
-  files<-grep("Wide",files,value = T)
-  data<-data.table(miceadds::load.Rdata2(filename=basename(files),path=folder1))
-  files3new<-file.path(folder1,"era.compiled.parquet")
-  arrow::write_parquet(data,files3new)
-  
-  files<-c(list.files(folder,"parquet$",full.names = T),files1new,files2new,files3new)
-}
-
-  # 1.1.1) Compiled datasets
-  files<-list.files(local_dir,"compiled",full.names = T)
+  files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
   
   upload_files_to_s3(files = files,
                      selected_bucket=s3_bucket,
@@ -60,18 +22,56 @@ if(F){
                      overwrite=F,
                      mode="public-read")
   
-  # Code to remove old versions
-  if(F){
-  s3_files<-s3$dir_ls(s3_bucket)
-  s3_files<-grep("compiled",s3_files,value=T)
-  s3_files<-grep("skinny_cow",s3_files,value=T)
-  s3_files<-s3_files[!grepl("_10_09",s3_files)]
-  s3$file_delete(s3_files)
-  }
+  # Files no-longer present locally
+  files_s3<-s3$dir_ls(s3_bucket)
+  files_s3<-files_s3[files_s3!="s3://digital-atlas/era/data/archive"]
+  files_2archive_from<-files_s3[!basename(files_s3) %in% basename(files)]
+  files_2archive_to<-gsub("/data/","/data/archive/",files_2archive_from)
+  
+  s3fs::s3_file_copy(
+    path = files_2archive_from,
+    new_path = files_2archive_to
+  )
+  
+  s3fs::s3_file_delete(
+    path = files_2archive_from
+  )
+  
+  s3$dir_ls(file.path(s3_bucket,"archive"))
+}
+    ### 2.0.1) all files in common_data/era/data/packaged ####
+if(F){
+  s3_bucket<-era_dirs$era_packaged_s3
+  folder_local<-era_dirs$era_packaged_dir
+  
+  files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
+  
+  upload_files_to_s3(files = files,
+                     selected_bucket=s3_bucket,
+                     max_attempts = 3,
+                     overwrite=F,
+                     mode="public-read")
+  
+  # Files no-longer present locally
+  files_s3<-s3$dir_ls(s3_bucket)
+  files_s3<-files_s3[files_s3!="s3://digital-atlas/era/data/archive"]
+  files_2archive_from<-files_s3[!basename(files_s3) %in% basename(files)]
+  files_2archive_to<-gsub("/data/","/data/archive/",files_2archive_from)
+  
+  s3fs::s3_file_copy(
+    path = files_2archive_from,
+    new_path = files_2archive_to
+  )
+  
+  s3fs::s3_file_delete(
+    path = files_2archive_from
+  )
+  
+  s3$dir_ls(file.path(s3_bucket,"archive"))
+}
 
-# 1.2) upload data to s3 #####
-  # 1.2.1) 2023 industrious elephant ######
-    # 1.2.1.1) upload excels ########
+  ## 2.1) 2023 industrious elephant ######
+    ### 2.1.1) upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
     folder_local<-"/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2023/Data/"
     project<-era_projects$industrious_elephant_2023
@@ -104,9 +104,9 @@ if(F){
                        overwrite=T,
                        mode="public-read")
     
-    # 1.2.1.2) upload pdfs #####
+    ### 2.1.2) upload pdfs #####
     
-    # 1.2.1.3) upload imported data #####
+    ### 2.1.3) upload imported data #####
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -118,7 +118,7 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
-    # 1.2.1.4) comparisons #######
+    ### 2.1.4) comparisons #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -130,7 +130,7 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
-    # 1.2.1.5) training materials #######
+    ### 2.1.5) training materials #######
     folder_local<-file.path(era_dirs$era_dataentry_dir,era_projects$industrious_elephant_2023,"training_materials")
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$industrious_elephant_2023,"training_materials")
     
@@ -141,8 +141,8 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
-  # 1.2.2) 2022 skinny cow ######
-    # 1.2.2.1) upload excels #######
+  ## 2.2) 2022 skinny cow ######
+    ### 2.2.1) upload excels #######
     folder_local<-file.path("/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2022/Data",c("Extracted","Quality Controlled"))
     
     project<-era_projects$skinny_cow_2022
@@ -176,7 +176,7 @@ if(F){
                        overwrite=T,
                        mode="public-read")
     
-    # 1.2.2.2) upload imported data #######
+    ### 2.2.2) upload imported data #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -189,7 +189,7 @@ if(F){
                        overwrite=F,
                        mode="public-read")
 
-    # 1.2.2.3) comparisons #######
+    ### 2.2.3) comparisons #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -201,9 +201,9 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
-    # 1.2.2.3) upload pdfs #######
-  # 1.2.3) 2020 majestic_hippo ######
-    # 1.2.3.1) upload pdfs #######
+    ### 2.2.3) upload pdfs #######
+  ## 2.3) 2020 majestic_hippo ######
+    ### 2.3.1) upload pdfs #######
     local_folder<-"C://Users//PSteward//OneDrive - CGIAR//ERA//Bibliography//Reconstructed Search History for Classification Models//ERA Bibliography 2013-18//2013-18 ENL.Data//PDF"
     files<-list.files(pdf_folder,".pdf",recursive = T,full.names = T)
     
@@ -216,7 +216,7 @@ if(F){
                        overwrite=F,
                        mode="private")
     
-    # 1.2.3.2) upload excels #######
+    ### 2.3.2) upload excels #######
     # where is the working folder for the ERA data extractions (internal team directory)
     folder_local<-"/Users/pstewarda/Library/CloudStorage/OneDrive-CGIAR/ERA/Data Entry/Data Entry 2020/Quality controlled"
     project<-era_projects$majestic_hippo_2020
@@ -246,7 +246,7 @@ if(F){
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read")
-    # 1.2.3.3) legacy harmonization files #######
+    ### 2.3.3) legacy harmonization files #######
     local_folder<-file.path("data_entry",era_projects$majestic_hippo_2020,"legacy_files")
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$majestic_hippo_2020,"legacy_harmonization_files")
     
@@ -258,7 +258,7 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
-    # 1.2.3.4) upload imported data #######
+    ### 2.3.4) upload imported data #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -270,7 +270,7 @@ if(F){
                        overwrite=F,
                        mode="public-read")
     
-    # 1.2.3.5) comparisons #######
+    ### 2.3.5) comparisons #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -281,8 +281,8 @@ if(F){
                        max_attempts = 3,
                        overwrite=F,
                        mode="public-read")
-  # 1.2.4) 2024 courageous_camel ######
-    # 1.2.4.1) upload search data #######
+  ## 2.4) 2024 courageous_camel ######
+    ### 2.4.1) upload search data #######
 folder<-file.path(era_dirs$era_search_dir,era_projects$courageous_camel_2024)
 s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
 
@@ -295,7 +295,7 @@ upload_files_to_s3(files = files,
                    mode="public-read")
 
 
-    # 1.2.4.2) upload excels ########
+    ### 2.4.2) upload excels ########
     # where is the working folder for the ERA data extractions (internal team directory)
     folder_local<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024"
     project<-era_projects$courageous_camel_2024
@@ -329,7 +329,7 @@ upload_files_to_s3(files = files,
                        max_attempts = 3,
                        overwrite=T,
                        mode="public-read")
-    # 1.2.3.3) upload imported data #######
+    ### 2.3.3) upload imported data #######
     folder_local<-era_dirs$era_masterdata_dir
     s3_bucket<-era_dirs$era_masterdata_s3
     
@@ -342,70 +342,9 @@ upload_files_to_s3(files = files,
                        mode="public-read")
     
     
-  # 1.2.5) (optional) all files in common_data/era/data ####
-    if(F){
-    s3_bucket<-era_dirs$era_masterdata_s3
-    folder_local<-era_dirs$era_masterdata_dir
-    
-    files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
-        
-    upload_files_to_s3(files = files,
-                       selected_bucket=s3_bucket,
-                       max_attempts = 3,
-                       overwrite=F,
-                       mode="public-read")
-    
-    # Files no-longer present locally
-    files_s3<-s3$dir_ls(s3_bucket)
-    files_s3<-files_s3[files_s3!="s3://digital-atlas/era/data/archive"]
-    files_2archive_from<-files_s3[!basename(files_s3) %in% basename(files)]
-    files_2archive_to<-gsub("/data/","/data/archive/",files_2archive_from)
-    
-    s3fs::s3_file_copy(
-      path = files_2archive_from,
-      new_path = files_2archive_to
-    )
-    
-    s3fs::s3_file_delete(
-    path = files_2archive_from
-    )
-    
-    s3$dir_ls(file.path(s3_bucket,"archive"))
-    }
-    # 1.2.5.1) (optional) all files in common_data/era/data/packaged ####
-    if(F){
-      s3_bucket<-era_dirs$era_packaged_s3
-      folder_local<-era_dirs$era_packaged_dir
-      
-      files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
-      
-      upload_files_to_s3(files = files,
-                         selected_bucket=s3_bucket,
-                         max_attempts = 3,
-                         overwrite=F,
-                         mode="public-read")
-      
-      # Files no-longer present locally
-      files_s3<-s3$dir_ls(s3_bucket)
-      files_s3<-files_s3[files_s3!="s3://digital-atlas/era/data/archive"]
-      files_2archive_from<-files_s3[!basename(files_s3) %in% basename(files)]
-      files_2archive_to<-gsub("/data/","/data/archive/",files_2archive_from)
-      
-      s3fs::s3_file_copy(
-        path = files_2archive_from,
-        new_path = files_2archive_to
-      )
-      
-      s3fs::s3_file_delete(
-        path = files_2archive_from
-      )
-      
-      s3$dir_ls(file.path(s3_bucket,"archive"))
-    }
-
-# 1.4) Upload environmental data ####
-   # (optional) all files in common_data/era/geodata ####
-    if(F){
+ 
+# 3) Upload environmental data ####
+  ## 3.0) all files in common_data/era/geodata ####
       s3_bucket<-era_dirs$era_geodata_s3
       folder_local<-era_dirs$era_geodata_dir
       
@@ -436,10 +375,8 @@ upload_files_to_s3(files = files,
       )
       
       s3$dir_ls(file.path(s3_bucket,"archive"))
-    }
     
-    
-  # 1.4.1) Aspect, slope, elevation ######
+  ## 3.1) Aspect, slope, elevation ######
   s3_bucket<-era_dirs$era_geodata_s3
   
   # Inital set-up from old file system:  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
@@ -461,7 +398,7 @@ upload_files_to_s3(files = files,
                      overwrite=T,
                      mode="public-read")
   
-  # 1.4.2) Climate (old file system) ######
+  ## 3.2) Climate (old file system) ######
   # Inital set-up from old file system:  data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
   if(F){
   data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Large Files"
@@ -523,7 +460,7 @@ upload_files_to_s3(files = files,
                      mode="public-read")
   }
 
-  # 1.4.3) Soils ######
+  ## 3.3) Soils ######
   s3_bucket<-era_dirs$era_geodata_s3
   
   # Inital set-up from old file system:  
@@ -547,7 +484,7 @@ upload_files_to_s3(files = files,
                      overwrite=T,
                      mode="public-read")
   
-  # 1.4.4) Legacy - Other linked datasets  ######
+  ## 3.4) Legacy - Other linked datasets  ######
   if(F){
   data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Other Linked Datasets"
   s3_bucket<-era_dirs$era_geodata_s3
@@ -571,7 +508,7 @@ upload_files_to_s3(files = files,
                      overwrite=T,
                      mode="public-read") 
   }
-  # 1.4.5) LULC  ######
+  ## 3.5) LULC  ######
   data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Landscape"
   s3_bucket<-era_dirs$era_geodata_s3
   files<- list.files(data_dir,".csv$",full.names = T)
@@ -587,8 +524,8 @@ upload_files_to_s3(files = files,
                      overwrite=T,
                      mode="public-read") 
   
-  # 1.4.6) POWER #####
-    # 1.4.6.1) Raw Data ######
+  ## 3.6) POWER #####
+    ### 3.6.1) Raw Data ######
     # Upload POWER data from local folder to S3
     s3_bucket<-era_dirs$power_S3
     
@@ -611,7 +548,7 @@ upload_files_to_s3(files = files,
                        overwrite=T,
                        mode="public-read") 
     
-    # 1.4.6.2) Processed Data ######
+    ### 3.6.2) Processed Data ######
     s3_bucket<-era_dirs$era_geodata_s3
     data_dir<-era_dirs$era_geodata_dir
     
@@ -624,7 +561,7 @@ upload_files_to_s3(files = files,
                        overwrite=T,
                        mode="public-read") 
 
-  # 1.4.7) CHIRPS #####
+  ## 3.7) CHIRPS #####
     s3_bucket<-era_dirs$era_geodata_s3
     
     files<-list.files(era_dirs$era_geodata_dir,"CHIRPS_",full.names = T)
@@ -646,7 +583,7 @@ upload_files_to_s3(files = files,
     
     
 
-  # 1.4.8) AEZ ####
+  ## 3.8) AEZ ####
     s3_bucket<-era_dirs$era_geodata_s3
     (files<- list.files(era_dirs$era_geodata_dir,"aez_",full.names = T))
     
@@ -657,3 +594,68 @@ upload_files_to_s3(files = files,
                        mode="public-read") 
     
   
+#########################################################    
+# x.1) (Legacy) upload era master files to s3 #####
+
+    # Inital set-up from old file system (delete when development is stable)
+    if(F){
+      s3_bucket<-era_dirs$era_masterdata_s3
+      local_dir<-era_dirs$era_masterdata_dir
+      
+      folder<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Compendium Master Database"
+      
+      files<-list.files(folder,full.names = T)
+      files <- files[!file.info(files)$isdir]
+      files<-grep("csv$|RData$",files,value=T)
+      
+      # Get most recent versions of data
+      files1<-grep("V1.0",files,value=T)
+      files1<-grep(".csv",files1,value = T)
+      data<-fread(files1)
+      arrow::write_parquet(data,file.path(folder,paste0("era_data_",era_projects$v1.0_2018,".parquet")))
+      
+      files1<-grep("V1.1",files,value=T)
+      files1<-grep(".csv",files1,value = T)
+      data<-fread(files1)
+      arrow::write_parquet(data,file.path(folder,paste0("era_data_",era_projects$v1.1_2020,".parquet")))
+      
+      files1<-grep("V1.1 Tab",files,value=T)
+      files1new<-file.path(folder,paste0("era_data_",era_projects$v1.1_2020,"_full.RData"))
+      file.copy(files1,files1new,overwrite = T)
+      
+      files2<-grep("era_skinny",files,value=T)
+      files2<-grep(".RData",files2,value = T)
+      files2new<-file.path(folder,paste0("era_data_",era_projects$skinny_cow_2022,"_full.RData"))
+      file.copy(files2,files2new,overwrite=T)
+      
+      
+      folder1<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/ERA Current Version"
+      files<-list.files(folder1,full.names = T)
+      version<-names(read.delim(grep("Version.txt",files,value = T)))
+      files<-grep("Wide",files,value = T)
+      data<-data.table(miceadds::load.Rdata2(filename=basename(files),path=folder1))
+      files3new<-file.path(folder1,"era.compiled.parquet")
+      arrow::write_parquet(data,files3new)
+      
+      files<-c(list.files(folder,"parquet$",full.names = T),files1new,files2new,files3new)
+    }
+    
+    # x.1.1) Compiled datasets
+    files<-list.files(local_dir,"compiled",full.names = T)
+    
+    upload_files_to_s3(files = files,
+                       selected_bucket=s3_bucket,
+                       max_attempts = 3,
+                       overwrite=F,
+                       mode="public-read")
+    
+    # Code to remove old versions
+    if(F){
+      s3_files<-s3$dir_ls(s3_bucket)
+      s3_files<-grep("compiled",s3_files,value=T)
+      s3_files<-grep("skinny_cow",s3_files,value=T)
+      s3_files<-s3_files[!grepl("_10_09",s3_files)]
+      s3$file_delete(s3_files)
+    }
+    
+    
