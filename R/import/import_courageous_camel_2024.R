@@ -2998,131 +2998,133 @@ data$Animal.Diet.Digest[,`0`:=NULL]
 
   A.Level.Name_key<-Animals.Out[,paste(B.Code,A.Level.Name),by=.I][,unique(V1)]
   
-  # 12.0.1) Animal.Diet.Comp ####
-  
-  # Add group flag
-  Animal.Diet.Comp[grep(";",D.Item),is_group:=T]
-  
-  # Update entire diet flag
-  Animal.Diet.Comp[,is_entire_diet:=F
-                   ][,key:=paste(B.Code,D.Item),by=.I
-                     ][key %in% A.Level.Name_key,is_entire_diet:=T
-                       ][D.Item=="Base",is_entire_diet:=T
-                         ][,key:=NULL]
-  
-  error_dat<-Animal.Diet.Comp[is_entire_diet==F,.(D.Item=unlist(strsplit(D.Item,";"))),by=.(B.Code)]
-  error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
-  
-  error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
-  
-  error_dat<-error_dat[,table:="Animal.Diet.Comp (Nutrition)"
-  ][,field:="D.Item (multiple items shown by ---)"
-  ][,issue:="No match to Ingredients tab D.Item x Processes (D.ItemxProcess)"
-    ][order(B.Code)]
-  
-  errors<-list(error_dat)
-  
-  # 12.0.2) Animal.Diet.Digest ####
-  
-  # Add group flag
-  Animal.Diet.Digest[grep(";",D.Item),is_group:=T]
-  
-  # Update entire diet flag
-  Animal.Diet.Digest[,is_entire_diet:=F
+    # 12.0.1) Animal.Diet.Comp ####
+    
+    # Add group flag
+    Animal.Diet.Comp[grep(";",D.Item),is_group:=T]
+    
+    # Update entire diet flag
+    Animal.Diet.Comp[,is_entire_diet:=F
                      ][,key:=paste(B.Code,D.Item),by=.I
                        ][key %in% A.Level.Name_key,is_entire_diet:=T
                          ][D.Item=="Base",is_entire_diet:=T
                            ][,key:=NULL]
-  
-  error_dat<-Animal.Diet.Digest[is_entire_diet==F,.(D.Item=unlist(strsplit(D.Item,";"))),by=.(B.Code)]
-  error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
-  
-  error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
-  
-  error_dat<-error_dat[,table:="Animal.Diet.Digest (Digestibility)"
-  ][,field:="D.Item (multiple items shown by ---)"
-  ][,issue:="No match to Ingredients tab D.Item x Processes (D.ItemxProcess)"
-  ][order(B.Code)]
-  
-  errors<-c(errors,list(error_dat))
-  
-  # 12.0.3) Data.Out: Feed Intake Item ####
-  
-  # Add group flag
-  Data.Out[,ED.Intake.Item.is_group:=F][grep(";",ED.Intake.Item),ED.Intake.Item.is_group:=T]
-  
-  # Update entire diet flag
-  Data.Out[,ED.Intake.Item.is_entire_diet:=F
-           ][ED.Intake.Item=="Entire Diet",ED.Intake.Item.is_entire_diet:=T]
-  
-  error_dat<-Data.Out[ED.Intake.Item.is_entire_diet==F & !is.na(ED.Intake.Item),.(D.Item=unlist(strsplit(ED.Intake.Item,";"))),by=B.Code]
-  error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
-  
-  error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
-  
-  error_dat<-error_dat[,table:="Data.Out (EnterData)"
-  ][,field:="D.Item (multiple items split by ---)"
-  ][,issue:="No match to Ingredients tab D.Item x Processes (D.ItemxProcess)"
-  ][order(B.Code)]
-  
-  errors<-c(errors,list(error_dat))
-  
-  if(nrow(error_dat)>0){
-    error_tracker(rbindlist(errors)[order(B.Code)],filename = "Diet Item does not have a match",error_dir = error_dir)
-  }
-  
-    # 12.1) Animal Diet Harmonization ####
-  table_name<-"Ingredients.Out"
-  
+    
+    error_dat<-Animal.Diet.Comp[is_entire_diet==F,.(D.Item=unlist(strsplit(D.Item,";"))),by=.(B.Code)]
+    error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
+    
+    error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
+    
+    error_dat<-error_dat[,table:="Animal.Diet.Comp (Nutrition)"
+    ][,field:="D.Item (multiple items shown by ---)"
+    ][,issue:="No match to Ingredients tab D.Item x Processes (D.ItemxProcess)"
+      ][order(B.Code)]
+    
+    errors<-list(error_dat)
+    
+    # 12.0.2) Animal.Diet.Digest ####
+    
+    # Add group flag
+    Animal.Diet.Digest[grep(";",D.Item),is_group:=T]
+    
+    # Update entire diet flag
+    Animal.Diet.Digest[,is_entire_diet:=F
+                       ][,key:=paste(B.Code,D.Item),by=.I
+                         ][key %in% A.Level.Name_key,is_entire_diet:=T
+                           ][D.Item=="Base",is_entire_diet:=T
+                             ][,key:=NULL]
+    
+    error_dat<-Animal.Diet.Digest[is_entire_diet==F,.(D.Item=unlist(strsplit(D.Item,";"))),by=.(B.Code)]
+    error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
+    
+    error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
+    
+    error_dat<-error_dat[,table:="Animal.Diet.Digest (Digestibility)"
+    ][,field:="D.Item (multiple items shown by ---)"
+    ][,issue:="No match to Ingredients tab D.Item x Processes (D.ItemxProcess)"
+    ][order(B.Code)]
+    
+    errors<-c(errors,list(error_dat))
+    
+    # 12.0.3) Data.Out: Feed Intake Item ####
+    
+    # Add group flag
+    Data.Out[,ED.Intake.Item.is_group:=F][grep(";",ED.Intake.Item),ED.Intake.Item.is_group:=T]
+    
+    # Update entire diet flag
+    Data.Out[,ED.Intake.Item.is_entire_diet:=F
+             ][ED.Intake.Item=="Entire Diet",ED.Intake.Item.is_entire_diet:=T]
+    
+    error_dat<-Data.Out[ED.Intake.Item.is_entire_diet==F & !is.na(ED.Intake.Item),.(D.Item=unlist(strsplit(ED.Intake.Item,";"))),by=B.Code]
+    error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
+    
+    error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
+    
+    error_dat<-error_dat[,table:="Data.Out (EnterData)"
+    ][,field:="ED.Intake.Item (multiple items split by ---)"
+    ][,issue:="No match to Ingredients tab D.Item x Processes (D.ItemxProcess)"
+    ][order(B.Code)]
+    
+    errors<-c(errors,list(error_dat))
+    
+    if(nrow(error_dat)>0){
+      error_tracker(rbindlist(errors)[order(B.Code)],filename = "Diet Item does not have a match",error_dir = error_dir)
+    }
+    
+  # 12.1) Animal Diet Harmonization ####
+table_name<-"Ingredients.Out"
+
     # 12.1.1) Harmonize Units/Methods ####
     
-    # 12.1.1.1) Animal.Diet ####
-    h_params<-data.table(h_table="Animals.Diet",
-                         h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
-                         ignore_vals=c("unspecified","unspecified","unspecified"))[,c("h_field_alt","h_table_alt"):=NA]
-    
-    
-    results<-harmonizer_wrap(data=Animal.Diet,
-                             h_params=h_params,
-                             master_codes = master_codes)
-    
-    Animal.Diet<-results$data
-    h_tasks<-list(results$h_tasks)
-
-    # 12.1.1.2) Animal.Diet.Digest ####
-    table_name<-"Animal.Diet.Digest"
-    # Units
-    h_params<-data.table(h_table=table_name,
-                         h_field=c("DD.Unit","DD.Method"),
-                         h_field_alt=c("DC.Unit","DD.Method"),
-                         h_table_alt=c("Animals.Diet.Comp","Animals.Diet.Digest"),
-                         ignore_vals=rep("unspecified",2))
-    
-    results<-harmonizer_wrap(data=Animal.Diet.Digest,
-                             h_params=h_params,
-                             master_codes = master_codes)
-    
-    h_tasks<-c(h_tasks,list(results$h_tasks))
-
-    Animal.Diet.Digest<-results$data
-    
-    # 12.1.1.3) Animal.Diet.Comp ####
-    table_name<-"Animal.Diet.Comp"
-    # Units
-    h_params<-data.table(h_table=table_name,
-                         h_field=c("DN.Unit"),
-                         h_field_alt=c("DC.Unit"),
-                         h_table_alt=c("Animals.Diet.Comp"),
-                         ignore_vals=rep("unspecified",1))
-    
-    results<-harmonizer_wrap(data=Animal.Diet.Comp,
-                             h_params=h_params,
-                             master_codes = master_codes)
-    
-    h_tasks<-c(h_tasks,list(results$h_tasks))
-
-    Animal.Diet.Comp<-results$data
-
+      # 12.1.1.1) Animal.Diet ####
+      h_params<-data.table(h_table="Animals.Diet",
+                           h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
+                           ignore_vals=c("unspecified","unspecified","unspecified"))[,c("h_field_alt","h_table_alt"):=NA]
+      
+      
+      results<-harmonizer_wrap(data=Animal.Diet,
+                               h_params=h_params,
+                               master_codes = master_codes)
+      
+      Animal.Diet<-results$data
+      h_tasks<-list(results$h_tasks)
+  
+      # 12.1.1.2) Animal.Diet.Digest ####
+      table_name<-"Animal.Diet.Digest"
+      # Units
+      h_params<-data.table(h_table=table_name,
+                           h_field=c("DD.Unit","DD.Method"),
+                           h_field_alt=c("DC.Unit","DD.Method"),
+                           h_table_alt=c("Animals.Diet.Comp","Animals.Diet.Digest"),
+                           ignore_vals=rep("unspecified",2))
+      
+      results<-harmonizer_wrap(data=Animal.Diet.Digest,
+                               h_params=h_params,
+                               master_codes = master_codes)
+      
+      h_tasks<-c(h_tasks,list(results$h_tasks))
+  
+      Animal.Diet.Digest<-results$data
+      
+      # 12.1.1.3) Animal.Diet.Comp ####
+      table_name<-"Animal.Diet.Comp"
+      # Units
+      h_params<-data.table(h_table=table_name,
+                           h_field=c("DN.Unit"),
+                           h_field_alt=c("DC.Unit"),
+                           h_table_alt=c("Animals.Diet.Comp"),
+                           ignore_vals=rep("unspecified",1))
+      
+      results<-harmonizer_wrap(data=Animal.Diet.Comp,
+                               h_params=h_params,
+                               master_codes = master_codes)
+      
+      h_tasks<-c(h_tasks,list(results$h_tasks))
+  
+      Animal.Diet.Comp<-results$data
+      
+      error_tracker(rbindlist(h_tasks)[order(B.Code)],filename = "Diet Method and Unit Harmonization",error_dir = error_dir)
+      
     # 12.1.2) Animal.Diet/Diet Items ####
       # 12.1.2.1) Harmonize Processes ####
       
@@ -3355,11 +3357,23 @@ data$Animal.Diet.Digest[,`0`:=NULL]
   Data.Out[,c("A.Level.Name","D.Item"):=NULL]
   
   }
-
-
-
-  # 12.5) Animals.Diet.Digest
-  # 12.6) Update Tables ####
+    # 12.3.1) List papers with no-entire diet and many feed items in a group ####
+    error_dat<-Data.Out[!is.na(ED.Intake.Item),.(B.Code,ED.Intake.Item,ED.Intake.Item.is_entire_diet,ED.Intake.Item.is_group)]
+    error_dat<-error_dat[,any_entire_diet:=F
+                         ][,any_entire_diet:=any(ED.Intake.Item.is_entire_diet),by=B.Code
+                           ][any_entire_diet==F
+                             ][,n_items:=str_count(ED.Intake.Item,";")+1,by=ED.Intake.Item
+                               ][n_items>2]
+    error_dat<-unique(error_dat[,.(B.Code,ED.Intake.Item)])[,.(value=paste(ED.Intake.Item,collapse=" --- ")),by=B.Code
+                                                          ][,table:="Data.Out (Enter Data)"
+                                                          ][,field:="ED.Intake.Item"
+                                                          ][,issue:="No entire diets reported and grouped intake items of 3 or more values. Check to see if group is entire diet."]
+    if(nrow(error_dat)>0){
+      error_tracker(error_dat[order(B.Code)],filename = "Check if Entire Diet can used in Data.Out",error_dir = error_dir)
+    }
+    
+    
+  # 12.5) Update Tables ####
     
     data$Animal.Diet<-Animal.Diet
     data$Animals.Out<-Animals.Out
