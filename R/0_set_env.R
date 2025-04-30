@@ -32,7 +32,48 @@
 # Note: Run this script after initializing the environment using R/0_set_env.R.
 
 # 0) Load libraries and functions ####
-# Install and load pacman if not already installed
+  ## 0.1) Record R-project location #####
+# Function to add or update an environment variable in the .Renviron file
+set_env_variable <- function(var_name, var_value, renviron_file = "~/.Renviron") {
+  # Read the .Renviron file if it exists
+  if (file.exists(renviron_file)) {
+    env_vars <- readLines(renviron_file)
+  } else {
+    env_vars <- character(0)
+  }
+  
+  # Check if the variable already exists
+  var_exists <- grepl(paste0("^", var_name, "="), env_vars)
+  
+  if (any(var_exists)) {
+    # Update the existing variable
+    env_vars[var_exists] <- paste0(var_name, "=", var_value)
+  } else {
+    # Add the new variable
+    env_vars <- c(env_vars, paste0(var_name, "=", var_value))
+  }
+  
+  # Write the updated .Renviron file
+  writeLines(env_vars, renviron_file)
+}
+
+# Check if project_dir is already set in the environment
+if (!nzchar(Sys.getenv("era_project_dir"))) {
+  project_dir <- getwd()
+  Sys.setenv(project_dir = project_dir)
+  
+  # Add or update the project_dir variable in the .Renviron file
+  set_env_variable("era_project_dir", project_dir)
+  
+  # Reload .Renviron so that the change takes effect in the current session
+  readRenviron("~/.Renviron")
+}
+
+# Confirm project_dir was set
+(project_dir <- Sys.getenv("era_project_dir"))
+
+
+  ## 0.2) Install/load packages & source functions ####
 if (!require("pacman", character.only = TRUE)) {
   install.packages("pacman")
   library(pacman)
@@ -64,14 +105,10 @@ if(!require("exactextractr")){
 # Includes functions to upload data to S3 bucket 
 source("https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/refs/heads/main/R/haz_functions.R")
 
-# 1) Set directories & parameters ####
-  if(!exists("project_dir")){
-    project_dir<-getwd()
-  }
-
+# Source ERA functions script
 source(file.path(project_dir,"R/functions.R"))
 
-
+# 1) Set directories & parameters ####
   ## 1.1) Set era s3 dir #####
   era_s3<-"s3://digital-atlas/era"
   era_s3_http<-"https://digital-atlas.s3.amazonaws.com/era"
@@ -244,8 +281,8 @@ source(file.path(project_dir,"R/functions.R"))
     sheet_names <- readxl::excel_sheets(era_vocab_local)
     sheet_names <- sheet_names[!grepl("sheet|Sheet", sheet_names)]
     
-    # Read each sheet into a list named era_master_codes
-    era_master_codes <- sapply(
+    # Read each sheet into a list named master_codes
+    master_codes <- sapply(
       sheet_names,
       FUN = function(x) {
         data.table::data.table(readxl::read_excel(era_vocab_local, sheet = x))
@@ -253,18 +290,16 @@ source(file.path(project_dir,"R/functions.R"))
       USE.NAMES = TRUE
     )
     
-    names(era_master_codes)
-    
     ### 2.3.2 Subset & Modify tables ####
     
     tables<-c("era_fields_v1","era_fields_v2","lookup_levels","prac","prod","prod_comp",
                        "out","out_econ","fert","chem","countries","journals","trees","site_list","residues",
                        "vars","vars_animals","var_traits","AOM","ani_diet")
     
-    era_master_codes<-era_master_codes[tables]
+    master_codes<-master_codes[tables]
     
     # Remove uncessary fields, rename as needed
-    data<-era_master_codes$chem
+    data<-master_codes$chem
     chem<-data[,.(AOM,C.Type...3,C.Type.AI,C.Name,C.Is.Name.Commercial,C.AI)]
     setnames(chem,"C.Type...3","C.Type",skip_absent = T)
     chem<-chem[!is.na(C.Type)]
@@ -277,39 +312,39 @@ source(file.path(project_dir,"R/functions.R"))
     setnames(chem.ai,c("C.Name.AI...16"),c("C.Name.AI"))
     chem.ai<-chem.ai[!is.na(C.Name.AI)]
     
-    era_master_codes$chem<-chem
-    era_master_codes$chem.ai<-chem.ai
-    era_master_codes$chem.comm<-chem.comm
+    master_codes$chem<-chem
+    master_codes$chem.ai<-chem.ai
+    master_codes$chem.comm<-chem.comm
     
-    data<-era_master_codes$vars
+    data<-master_codes$vars
     setnames(data,c("V.Product"),c("Product.Simple"),skip_absent = T)
     data[,V.Var:=V.Var1][,V.Species:=V.Species1][,c("V.Var1","V.Species1","V.Subspecies1","V.Animal.Practice"):=NULL]
-    era_master_codes$vars<-unique(data)
+    master_codes$vars<-unique(data)
     
-    data<-era_master_codes$vars_animals
+    data<-master_codes$vars_animals
     setnames(data,c("V.Product"),c("Product.Simple"),skip_absent = T)
     data[,V.Var:=V.Var1][,V.Species:=V.Species1][,c("Round","V.Var1","V.Species1","V.Subspecies1","...16","...17","V.Maturity"):=NULL]
-    era_master_codes$vars_animals<-unique(data)
+    master_codes$vars_animals<-unique(data)
     
-    era_master_codes$era_fields_v2<-era_master_codes$era_fields_v2[industrious_elephant_2023==T,.(Table,Table_Description,Field,Calculated,Display_Name,Data_Type,Field_Description,Notes,Values,Validation)]
-    era_master_codes$lookup_levels<-era_master_codes$lookup_levels[,.(Table,Field,Values_Old,Values_New,Description)]
+    master_codes$era_fields_v2<-master_codes$era_fields_v2[industrious_elephant_2023==T,.(Table,Table_Description,Field,Calculated,Display_Name,Data_Type,Field_Description,Notes,Values,Validation)]
+    master_codes$lookup_levels<-master_codes$lookup_levels[,.(Table,Field,Values_Old,Values_New,Description)]
     
-    era_master_codes$prac<-era_master_codes$prac[Depreciated!=T,.(Code,Theme,Practice,Subpractice,Definition,Notes,Linked.Tab,Linked.Col)]
+    master_codes$prac<-master_codes$prac[Depreciated!=T,.(Code,Theme,Practice,Subpractice,Definition,Notes,Linked.Tab,Linked.Col)]
     
-    era_master_codes$out<-era_master_codes$out[Depreciated!=T,!c("Depreciated","Previous.Names","Original.Outcome","Pillar.Code","Subpillar.Code","Indicator.Code","Subindicator.Short","Subindicator.Code")]
+    master_codes$out<-master_codes$out[Depreciated!=T,!c("Depreciated","Previous.Names","Original.Outcome","Pillar.Code","Subpillar.Code","Indicator.Code","Subindicator.Short","Subindicator.Code")]
     
-    era_master_codes$trees<-era_master_codes$trees[,!c("GBIF","Tree.Subspecies","Tree.Variety")]
+    master_codes$trees<-master_codes$trees[,!c("GBIF","Tree.Subspecies","Tree.Variety")]
     
-    era_master_codes$site_list<-unique(era_master_codes$site_list[Include==T,!c("Include","Harmonization")])
+    master_codes$site_list<-unique(master_codes$site_list[Include==T,!c("Include","Harmonization")])
     
-    data<-era_master_codes$var_traits
+    data<-master_codes$var_traits
     data<-data[V.Trait==V.Trait1,V.Trait:=NA][,.(V.Trait.Old=paste(unique(na.omit(V.Trait)),collapse=";")),by=V.Trait1]
     setnames(data,"V.Trait1","V.Trait")
     
-    file<-file.path(era_dirs$era_masterdata_dir,paste0("era_master_codes-",Sys.Date(),".json"))
+    file<-file.path(era_dirs$era_masterdata_dir,paste0("master_codes-",Sys.Date(),".json"))
     
     ### 2.3.3) Save result ####
-    jsonlite::write_json(era_master_codes, file, pretty = TRUE, auto_unbox = TRUE)
+    jsonlite::write_json(master_codes, file, pretty = TRUE, auto_unbox = TRUE)
     }
     
   ## 2.4) Worldbank/FAO economic data #####
