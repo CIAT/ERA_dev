@@ -262,7 +262,7 @@ est_pday2 <- function(data, uncertainty_days = 14, max_distance_km = c(1,10,50),
         data[Index == row$Index, `:=`(
           Data.PS.Date = ps_date,
           Data.PE.Date = pe_date,
-          Plant.Source = paste0("SiteHistory", if (by_product) "_Product" else "", " ±", uncertainty_days, "d")
+          Plant.Source = paste0("SiteSeason", if (by_product) "_Product" else "", " ±", uncertainty_days, "d")
         )]
         next
       }
@@ -312,7 +312,7 @@ est_pday2 <- function(data, uncertainty_days = 14, max_distance_km = c(1,10,50),
           data[Index==row$Index, `:=`(
             Data.PS.Date = ps_date,
             Data.PE.Date = pe_date,
-            Plant.Source = paste0("NearbyHistory_", d, "km", if (by_product) "_Product" else "", " ±", uncertainty_days, "d")
+            Plant.Source = paste0("NearbySeason_", d, "km", if (by_product) "_Product" else "", " ±", uncertainty_days, "d")
           )]
           break
       }
