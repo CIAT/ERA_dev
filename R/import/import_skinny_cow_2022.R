@@ -1643,7 +1643,7 @@ results<-harmonizer_wrap(data=Chems.Out,
 
 h_tasks<-list(results$h_tasks)
 Chems.Out<-results$data
-  # 3.9.3) Save errors and harmonization tasks ######
+  # 3.9.3) Save errors and harm§onization tasks ######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
                             filename = paste0("chems_errors"),
                             error_dir=error_dir,
@@ -2245,14 +2245,15 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
              ][!is.na(D.Item),ED.Intake.Item:=D.Item]
     
     # Is intake item a group?
-    merge_dat<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,is_group:=T])
+    merge_dat<-unique(Animals.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)][,ED.Intake.Item.is_group:=T])
     Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","D.Item.Group"),all.x=T,sort=F)
-    Data.Out[is.na(is_group),is_group:=F]
+    Data.Out[is.na(ED.Intake.Item.is_group),ED.Intake.Item.is_group:=F]
     
     # Is intake item entire diet?
-    merge_dat<-unique(Animals.Out[,.(B.Code,A.Level.Name)][,is_entire_diet:=T])
+    merge_dat<-unique(Animals.Out[,.(B.Code,A.Level.Name)][,ED.Intake.Item.is_entire_diet:=T])
     Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","A.Level.Name"),all.x=T,sort=F)
-    Data.Out[is.na(is_entire_diet),is_entire_diet:=F][ED.Intake.Item.Raw=="Entire Diet",is_entire_diet:=T]
+    Data.Out[is.na(ED.Intake.Item.is_entire_diet),ED.Intake.Item.is_entire_diet:=F
+             ][ED.Intake.Item.Raw=="Entire Diet",ED.Intake.Item.is_entire_diet:=T]
     
     # If entire diet substitute the A.Level.Name for the diet
     merge_dat<-MT.Out[,.(B.Code,T.Name,A.Level.Name)]
@@ -2260,7 +2261,7 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
     Data.Out[ED.Intake.Item.Raw=="Entire Diet",ED.Intake.Item:=A.Level.Name]
     
     # Check for any instances were we cannot match the intake item back to the diet table
-    error_dat<-Data.Out[!is.na(ED.Intake.Item) & is.na(D.Item) & is_group==F & is_entire_diet==F
+    error_dat<-Data.Out[!is.na(ED.Intake.Item) & is.na(D.Item) & ED.Intake.Item.is_group==F & ED.Intake.Item.is_entire_diet==F
                         ][,.(value=paste(unique(ED.Intake.Item.Raw),collapse = "/")),by=B.Code
                           ][,table:=table_name
                             ][,field:="ED.Intake.Item.Raw"
