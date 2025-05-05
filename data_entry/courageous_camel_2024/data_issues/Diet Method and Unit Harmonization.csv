@@ -1,25 +1,25 @@
 value,B.Code,table,field,table_alt,field_alt,master_tab,issue_addressed,addressed_by_whom,notes
-Marker Technique,BO1002/BO1040/BO1053/BO1068/BO1070/BO1076/EM1044/EM1075/EM1077/EM1084/EM1094/EM1101,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-g/kg body weight (0.75),BO1008,Animal.Diet.Digest,DD.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-cal/g,BO1008,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-Total Collection Technique,BO1008/EM1011/BO1011/BO1006/BO1045/BO1051/BO1052/BO1056/BO1067/BO1077/BO1088/BO1089/0/EM1026/EM1035/EM1037/EM1103/EM1104/JO1000,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-Total Collection Technique (Apparent),BO1013/BO1016/BO1024/BO1025/BO1026/BO1031/EM1013.1/EM1013.2/EM1013.3/EM1013.4/EM1014/JO1021/JO1026/JO1030/JO1031/JO1032/JO1035/JO1036/JO1038/JO1041/BO1000/BO1001/BO1003/BO1004/BO1005/BO1023/BO1027/BO1029/BO1030/BO1035/BO1050/BO1070/BO1074/BO1084/BO1085/BO1087/BO1093/EM1020/EM1023/EM1024/EM1025/EM1032/EM1033/EM1034/EM1038/EM1039/EM1074/EM1078/EM1081/EM1090/EM1099/JO1022/JO1042/JO1047/JO1048/JO1051/JO1052/JO1054/JO1074/JO1079/JO1080/JO1082/JO1084/JO1085/JO1089/JO1090/JO1092/JO1093/JO1095/JO1097/JO1098/JO1099,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-ppm,BO1014/BO1020,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-MJ/day,BO1016,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-In vitro,BO1020/JO1025/JO1029/BO1084/EM1048/JO1045/JO1046/JO1062,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-kcal,BO1041,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-ton,BO1056,Animals.Diet,D.Unit.Amount,,,lookup_levels,FALSE,"",""
-Goering & Van Soest (1970),BO1064,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-g/10 L water,BO1069,Animals.Diet,D.Unit.Amount,,,lookup_levels,FALSE,"",""
-U.I,BO1069,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-g,BO1072,Animal.Diet.Digest,DD.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-KJ/100 g DM,BO1092,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-AOAC (2005),EM1031,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-kg/litre of milk produced,EM1041,Animals.Diet,D.Unit.Amount,,,lookup_levels,FALSE,"",""
-AOAC(2007),EM1042,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-kJ/100g DM,EM1056,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-MJ/individual/day,EM1081,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-AOAC(2000),EM1089,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-UFL/kgMS,EM1106,Animal.Diet.Digest,DD.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,FALSE,"",""
-In vivo,JO1019,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
-AOAC (1990),JO1028/BO1059/JO1027,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,FALSE,"",""
+Marker Technique,BO1002/BO1040/BO1053/BO1068/BO1070/BO1076/EM1044/EM1075/EM1077/EM1084/EM1094/EM1101,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+g/kg body weight (0.75),BO1008,Animal.Diet.Digest,DD.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+cal/g,BO1008,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+Total Collection Technique,BO1008/EM1011/BO1011/BO1006/BO1045/BO1051/BO1052/BO1056/BO1067/BO1077/BO1088/BO1089/0/EM1026/EM1035/EM1037/EM1103/EM1104/JO1000,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+Total Collection Technique (Apparent),BO1013/BO1016/BO1024/BO1025/BO1026/BO1031/EM1013.1/EM1013.2/EM1013.3/EM1013.4/EM1014/JO1021/JO1026/JO1030/JO1031/JO1032/JO1035/JO1036/JO1038/JO1041/BO1000/BO1001/BO1003/BO1004/BO1005/BO1023/BO1027/BO1029/BO1030/BO1035/BO1050/BO1070/BO1074/BO1084/BO1085/BO1087/BO1093/EM1020/EM1023/EM1024/EM1025/EM1032/EM1033/EM1034/EM1038/EM1039/EM1074/EM1078/EM1081/EM1090/EM1099/JO1022/JO1042/JO1047/JO1048/JO1051/JO1052/JO1054/JO1074/JO1079/JO1080/JO1082/JO1084/JO1085/JO1089/JO1090/JO1092/JO1093/JO1095/JO1097/JO1098/JO1099,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+ppm,BO1014/BO1020,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+MJ/day,BO1016,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+In vitro,BO1020/JO1025/JO1029/BO1084/EM1048/JO1045/JO1046/JO1062,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+kcal,BO1041,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+ton,BO1056,Animals.Diet,D.Unit.Amount,,,lookup_levels,TRUE,NJ,
+Goering & Van Soest (1970),BO1064,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,
+g/10 L water,BO1069,Animals.Diet,D.Unit.Amount,,,lookup_levels,FALSE,,
+U.I,BO1069,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+g,BO1072,Animal.Diet.Digest,DD.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+KJ/100 g DM,BO1092,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+AOAC (2005),EM1031,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+kg/litre of milk produced,EM1041,Animals.Diet,D.Unit.Amount,,,lookup_levels,FALSE,,
+AOAC(2007),EM1042,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+kJ/100g DM,EM1056,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+MJ/individual/day,EM1081,Animal.Diet.Comp,DN.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+AOAC(2000),EM1089,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+UFL/kgMS,EM1106,Animal.Diet.Digest,DD.Unit,Animals.Diet.Comp,DC.Unit,lookup_levels,TRUE,NJ,
+In vivo,JO1019,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
+AOAC (1990),JO1028/BO1059/JO1027,Animal.Diet.Digest,DD.Method,Animals.Diet.Digest,DD.Method,lookup_levels,TRUE,NJ,Available in AOM
