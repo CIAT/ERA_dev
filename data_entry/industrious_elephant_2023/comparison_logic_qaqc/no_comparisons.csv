@@ -54,8 +54,8 @@ NN0456,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for
 NN0490,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
 NN0502,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
 NN0515,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0519,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0546,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
+NN0519,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,"Aggregated treatments, thre should be comparisons between 0N fertilizer and 60 N and 90 N. Other practice is present, but comparisons are allowed. PK fert base practice is present."
+NN0546,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,PS,Spill issue in Var.Out tab
 NN0548,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,Problem with paper variety codes used in Make.Trt do not match varieties tab. Passed back to QAQC.
 SA0059.2,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,PS,"Unspecified P missing from fertilizer tab, perhaps this why comparisons were not made?"
 SP0022,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,"Dodgy SP paper, not sure it is correctly structured. Passed back for QAQC."
