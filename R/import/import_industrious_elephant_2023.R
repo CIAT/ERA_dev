@@ -4646,14 +4646,16 @@ col_names<-colnames(data[[1]])
         
     ### 6.4.3) Generate T.Codes & Residue for System Outcomes ####
     # Set Threshold for a practice to be considered present in the sequence (proportion of phases recorded)
-    Threshold<-0.5
+    Threshold<-0.4 
+    # If 1/3, one in three events (in an alternating sequence, A B A, then B would still be considered present).
+    # A more sophisticated approach would be able to distinguish between A B C and A B A (where A and C lack a practice B has)
+    # We have chosen 0.4 this represent B in an incomplete sequence ABABA or more. It avoids the scenarios of counting B in ABC.
     
     seq_ids<-Rot.Seq[,unique(ID)]
     mergedat<-rbindlist(pblapply(1:length(seq_ids),FUN=function(i){
       TC<-seq_ids[i]
       X<-Rot.Seq[ID==TC]
       Y<-table(unlist(strsplit(X[,R.T.Codes],"-")))/nrow(X)
-      INT<-table(unlist(strsplit(X[,R.IN.Codes],"-")))/nrow(X)
       if(length(Y)==0){
         Y<-NA
       }else{
@@ -4661,6 +4663,7 @@ col_names<-colnames(data[[1]])
         Y<-paste(Y[order(Y)],collapse="-")
       }
       
+      INT<-table(unlist(strsplit(X[,R.IN.Codes],"-")))/nrow(X)
       if(length(INT)==0){
         INT<-NA
       }else{
