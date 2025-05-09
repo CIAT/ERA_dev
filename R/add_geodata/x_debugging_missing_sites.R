@@ -148,7 +148,7 @@ grep(missing_lon,era_yields_sites,value=T)
 era_yields[Site.Key==grep(missing_lat,era_yields_sites,value=T)[1]]
 
 
-# SITE IS MISSING FROM SS!!
+# Explore data from script 3 - run script 3 first ####
 SS[Site.Key==grep(missing_lat,era_yields_sites,value=T)[1]]
 
 # Need to refine getting planting date from nearby site as we have planting date for rice at the 
