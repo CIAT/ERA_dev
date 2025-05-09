@@ -3376,7 +3376,7 @@ Rot.Out[R.Phases==0,R.Phases:=NA]
   ## 6.6) Rot.Out: Generate T.Codes & Residue for System Outcomes ####
   
   # Set Threshold for a practice to be considered present in the sequence (proportion of phases recorded)
-  Threshold<-0.5
+  Threshold<-0.4
   
   X<-rbindlist(pblapply(Rot.Seq[,unique(ID)],FUN=function(TC){
   X<-Rot.Seq[ID==TC]
