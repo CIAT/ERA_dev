@@ -779,15 +779,15 @@ UnitHarmonization[Out.Unit.Correct==""|is.na(Out.Unit.Correct),Out.Unit.Correct:
     filename18_simple<-gsub("era_data_|[.]parquet","",basename(filename18))
     
     # 1.3.2) 2020 Majestic hippo ######
-    filename20<-tail(grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$majestic_hippo_2020,recursive = F,full.names = T),value=T),1)
+    (filename20<-tail(grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$majestic_hippo_2020,recursive = F,full.names = T),value=T),1))
     filename20_simple<-gsub("era_data_|_comparisons[.]parquet","",basename(filename20))
     
     # 1.3.3) 2022 Skinny cow ######
-    filename22<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$skinny_cow_2022,recursive = F,full.names = T),value=T),value=T),1)
+    (filename22<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$skinny_cow_2022,recursive = F,full.names = T),value=T),value=T),1))
     filename22_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basename(filename22)))
     
     # 1.3.4) 2023 Industrious elephant ####
-    filename23<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$industrious_elephant_2023,recursive = F,full.names = T),value=T),value=T),1)
+    (filename23<-tail(grep("comparisons",grep(".parquet",list.files(era_dirs$era_masterdata_dir,era_projects$industrious_elephant_2023,recursive = F,full.names = T),value=T),value=T),1))
     filename23_simple<-gsub("-","_",gsub("era_data_|_comparisons[.]parquet","",basename(filename23)))
     
     # 1.3.5) Combine filenames ####
@@ -1570,15 +1570,15 @@ era_merged<-era_merged[!Index %in% DataX[!is.na(NotInT),Index]]
   ERA.Compiled[Product.Simple=="NA",Product.Simple:=NA][,Buffer:=as.numeric(Buffer)]
 
 # 3) Add biophysical data ####
-  # 3.1) Prepare data ####
+  # 3.1) Prepare data  ####
   # Note that environmental data scripts must have been run on the compiled ERA dataset, see ERA_dev/R/add_geodata
-    # 3.1.1) Load environmental data
+    # 3.1.1) Load environmental data ####
 
     (file<-tail(list.files(era_dirs$era_geodata_dir,"POWER.*ltavg.*parquet",full.names = T),1))
     POWER<-arrow::read_parquet(file)
     
     file<-list.files(era_dirs$era_geodata_dir,"isda.*parquet",full.names = T)
-    file<-file[!grepl("watbal",file)]
+    file<-file[!grepl("watbal|isda.parquet",file)]
     (file<-tail(file,1))
     Soils_isda<-arrow::read_parquet(file)
     
