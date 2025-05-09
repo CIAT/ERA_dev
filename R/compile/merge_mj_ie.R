@@ -17,8 +17,7 @@
 #   - R/import/import_industrious_elephant_2023.R
 
 ## 0.0) Install and load packages ####
-pacman::p_load(data.table, 
-               miceadds)
+pacman::p_load(data.table, jsonlite, miceadds)
 
 
 # 1) Load data ####
@@ -142,9 +141,9 @@ pacman::p_load(data.table,
   
   
   tab_vals<-melt(tab[,c(id_cols,value_cols),with=F],id.vars = c("B.Code","Site.ID","Soil.Upper","Soil.Lower"))
-  tab_units<-unique(melt(tab[,c(id_cols,unit_cols),with=F],id.vars = c("B.Code","Site.ID","Soil.Upper","Soil.Lower"),value.name = "Unit"))
+  tab_units<-data.table(unique(melt(tab[,c(id_cols,unit_cols),with=F],id.vars = c("B.Code","Site.ID","Soil.Upper","Soil.Lower"),value.name = "Unit")))
   tab_units<-tab_units[,variable:=gsub("[.]Unit","",variable)][!is.na(Unit)]
-  tab_method<-unique(melt(tab[,c(id_cols,method_cols),with=F],id.vars = c("B.Code","Site.ID","Soil.Upper","Soil.Lower"),value.name = "Method"))
+  tab_method<-data.table(unique(melt(tab[,c(id_cols,method_cols),with=F],id.vars = c("B.Code","Site.ID","Soil.Upper","Soil.Lower"),value.name = "Method")))
   tab_method<-tab_method[,variable:=gsub("[.]Method","",variable)][!is.na(Method)]
   
   tab_vals<-merge(tab_vals,tab_units,by=c(id_cols,"variable"),all.x=T,sort=F)
@@ -502,8 +501,9 @@ pacman::p_load(data.table,
     cc_not_mh<-fields_ie[!fields_ie %in% fields_mh]
     fields_shared<-fields_ie[fields_ie %in% fields_mh]
     
-    class_mh<-sapply(era_mh[[tab]][,fields_shared,with=F],class)
-    class_ie<-sapply(era_mh[[tab]][,fields_shared,with=F],class)
+    tab_choice<-data.table(era_mh[[tab]])
+    class_mh<-sapply(tab_choice[,fields_shared,with=F],class)
+    class_ie<-sapply(tab_choice[,fields_shared,with=F],class)
     class_mismatch<-class_mh[class_mh != class_ie]
     
     list(fields_mh=fields_mh,fields_ie=fields_ie,mh_not_ie=mh_not_ie,cc_not_mh=cc_not_mh,fields_shared=fields_shared,class_mh=class_mh,class_ie=class_ie,class_mismatch=class_mismatch)
@@ -572,10 +572,15 @@ pacman::p_load(data.table,
     ".RData"
     )
   
-  save_path<-file.path(era_dirs$era_masterdata_dir,save_file)
-
+  save_path_rdata<-file.path(era_dirs$era_masterdata_dir,save_file)
+  save_path_json<-gsub(".RData",".json",save_path_rdata)
+  
   save(era_merge,file=save_path)    
+  json_era<-jsonlite::toJSON(era_merge,dataframe="rows",auto_unbox=T,pretty = T)
+  
+  write(json_era, file = save_path_json)
+  
+  era_dat<-jsonlite::read_json(save_path_json,simpli)
 
-
-  era_merge$Data.Out[,length(unique(B.Code))]
-
+  # Check integrity of restored json data
+  restored_list <- jsonlite::fromJSON(save_path_json, simplifyDataFrame = TRUE)
