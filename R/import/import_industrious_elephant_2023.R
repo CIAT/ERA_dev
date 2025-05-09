@@ -101,6 +101,9 @@ if(update){
     if(length(list.files(excel_dir))<1|update==T){
       rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
       unlink(rm_files)
+      # Also delete processed extraction files
+      unlink(extracted_dir,recursive = T)
+      
       options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
       if(download){
         download.file(s3_file, destfile = local_file)
@@ -3604,6 +3607,9 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   
   MT.Out<-rbind(MT.Out.agg,MT.Out.noagg)
   
+  # Set T.Code.No.Agg to T.Codes where no aggregation is present
+  MT.Out[is.na(T.Agg.Levels),T.Codes.No.Agg:=T.Codes]
+  
   ## 4.5) Update crop residues for aggregated products  #####
   MT.Out.agg<-MT.Out[grepl("[.][.][.]",P.Product)]
   MT.Out.noagg<-MT.Out[!grepl("[.][.][.]",P.Product)]
@@ -4687,7 +4693,7 @@ col_names<-colnames(data[[1]])
         A<-paste(A[order(A)],collapse="-")
       }
       
-      data.table(B.Code=X$B.Code[1],R.Level.Name=X$R.Level.Name[i],R.T.Codes.Sys=Y,R.Res.Codes.Sys=A,R.IN.Codes.Sys=INT)
+      data.table(B.Code=X$B.Code[1],R.Level.Name=X$R.Level.Name[1],R.T.Codes.Sys=Y,R.Res.Codes.Sys=A,R.IN.Codes.Sys=INT)
       
     }))
     
