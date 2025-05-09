@@ -1,5 +1,4 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-CJ0020,2015,PD.Out,Time,A Time used does not match the Time tab.,FALSE,"",""
 JO0084,"Experimental Station of the Embrapa Coastal Tablelands, Umbau ́ba",PD.Out,Site.ID,A Site.ID used does not match the Site tab.,FALSE,"",""
 NN0162.2,1947-03-01,PD.Out,PD.Date.Start,Date not between 1950-01-01 & 2023-12-01,FALSE,Charity,The LTE is as old as 1947
 NN0162.2,1947-03-31,PD.Out,PD.Date.End,Date not between 1950-01-01 & 2023-12-01,FALSE,Charity,The LTE is as old as 1947

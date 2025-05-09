@@ -6,7 +6,7 @@ treatment_duplicates.csv,91,67,91,67
 pH_other_errors.csv,59,59,59,59
 wh_other_errors.csv,76,49,104,59
 intercrop_other_errors.csv,47,47,81,81
-treatment_other_errors.csv,47,47,50,50
+treatment_other_errors.csv,46,46,49,49
 other_other_errors.csv,80,40,80,40
 weed_other_errors.csv,37,37,37,37
 fert_other_errors.csv,34,34,37,37
@@ -16,10 +16,9 @@ var_other_errors.csv,14,14,15,15
 time_other_errors.csv,13,13,14,14
 time_year_errors.csv,13,13,29,29
 enterdata_time_errors.csv,12,12,773,773
-dates_other_errors.csv,9,9,12,12
-harvest_structure_errors.csv,9,9,12,12
-other_structure_errors.csv,9,9,12,12
-weed_structure_errors.csv,9,9,12,12
+harvest_structure_errors.csv,8,8,11,11
+other_structure_errors.csv,8,8,11,11
+weed_structure_errors.csv,8,8,11,11
 intercropping_structure_errors.csv,6,6,6,6
 plant_debugging_errors.csv,4,4,4,4
 prod_other_errors.csv,4,4,4,4

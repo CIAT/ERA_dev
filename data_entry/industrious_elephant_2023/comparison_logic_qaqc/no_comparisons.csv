@@ -1,63 +1,44 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
-AC0030.2,Answer -No- is present in planting comparison row.,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0044,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0045,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0055,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0074,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0085,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0092,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0118,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0121,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0127,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0129,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0134,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0141,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0144,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0152,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0153,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-AC0175,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0008,Answer -No- is present in planting comparison row.,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0027,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0032,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0037,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0046,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0107,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0113,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0130,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-CJ0197,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-HK0161.1,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-HK0209,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-HK0240,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-HK0306.2,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-JO0015.2,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-JO0077,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-JO0082,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-JO0139,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-JO0150,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-JS0216,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-JS0369,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-LM0279,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0006,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0022,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0023,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0057,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0065,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0068,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0076,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0104,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NM0120,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0192,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0426,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0427,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0435,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0456,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0490,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0502,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0515,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,,
-NN0519,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,"Aggregated treatments, thre should be comparisons between 0N fertilizer and 60 N and 90 N. Other practice is present, but comparisons are allowed. PK fert base practice is present."
-NN0546,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,PS,Spill issue in Var.Out tab
-NN0548,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,Problem with paper variety codes used in Make.Trt do not match varieties tab. Passed back to QAQC.
-SA0059.2,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,PS,"Unspecified P missing from fertilizer tab, perhaps this why comparisons were not made?"
-SP0022,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,"Dodgy SP paper, not sure it is correctly structured. Passed back for QAQC."
-SP0040,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,1) Fallow given incorrect treatment. 2) Not sure there is a comparison available between fallow vs rotation. Perhaps should be improved fallow? Passed back for QAQC.
-SP0042,,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,PS,Incorrectly extracted. Needs fixing. Passed back to QAQC
+AC0044,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0045,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0074,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0085,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0092,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0118,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0121,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0127,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0129,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0134,Answer -No- is present in planting comparison row.,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0141,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0144,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+AC0175,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+CJ0027,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+CJ0046,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+CJ0107,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+CJ0130,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+CJ0197,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+HK0161.1,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+HK0240,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+HK0306.2,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+JO0077,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+JO0139,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+JO0150,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+JS0216,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+JS0369,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NM0022,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NM0057,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NM0065,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NM0068,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NM0076,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NM0104,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NM0120,Answer -No- is present in planting comparison row.,Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NN0192,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NN0426,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NN0435,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NN0515,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NN0519,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+NN0548,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+SA0059.2,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+SP0022,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+SP0036,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
+SP0042,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",""
