@@ -1,4 +1,29 @@
-# First run R/0_set_env.R
+# ERA Export Script – export_to_s3.R ####
+#
+# Author: Pete Steward, p.steward@cgiar.org, ORCID 0000-0003-3985-4911
+# Organization: Alliance of Bioversity International & CIAT
+# Project: Evidence for Resilient Agriculture (ERA)
+#
+# This script handles exporting of ERA datasets from local storage to the designated S3 buckets.
+# It ensures that the most recent versions of both master and packaged data are made publicly available,
+# and optionally archives outdated S3 files not present locally.
+#
+# ## Key functions:
+# 1. **Loads required packages** – ensures required libraries are installed via `pacman::p_load`.
+# 2. **Defines S3 targets and local folders** – for both master data and packaged archives.
+# 3. **Uploads current files to S3** – non-recursively, skipping subfolders like `/packaged` where needed.
+# 4. **Archives outdated files** – moves obsolete S3 files to the `/archive` folder to maintain versioning.
+# 5. **Optional project-specific upload** – includes commented examples for uploading 2023 data from specific folders (e.g., *Industrious Elephant*).
+#
+# ## Assumptions:
+# - `era_dirs` and `era_projects` are initialized from `0_set_env.R`.
+# - Helper function `upload_files_to_s3()` is pre-defined and available in the environment.
+# - S3 access and credentials are properly configured via `.aws` profile or environment variables.
+#
+# ## Dependencies:
+# R/0_set_env.R
+# upload_files_to_s3() from "https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/refs/heads/main/R/haz_functions.R"
+#
 # 1) load packages #####
 if (!require("pacman")) {
   install.packages("pacman")
