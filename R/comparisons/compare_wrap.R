@@ -67,17 +67,17 @@ compare_wrap <- function(DATA,
                          Res.Method,
                          p_density_similarity_threshold = 0.95) {
   
+  if("Final.Codes" %in% colnames(DATA) & !"N.Prac" %in% colnames(DATA)){ 
+    DATA[,N.Prac:=length(unlist(Final.Codes)[!is.na(unlist(Final.Codes))]),by=.I]
+  }
+  
   # Function to process a single B.Code
   process_b_code <- function(ii, b_codes, DATA, CompareWithin, Verbose, Debug, Return.Lists,
                              Fert.Method, Plant.Method, Irrig.Method, Res.Method, p_density_similarity_threshold) {
     BC <- b_codes[ii]
     Data.Sub <- DATA[B.Code == BC]
-    CW <- unique(Data.Sub[, ..CompareWithin]) 
-    CW <- match(
-      apply(Data.Sub[, ..CompareWithin], 1, paste, collapse = "-"),
-      apply(CW, 1, paste, collapse = "-")
-    )
-    Data.Sub[, Group := CW]
+    
+    Data.Sub[, Group := .GRP, by = CompareWithin]
     
     group_n <- Data.Sub[, .N, by = Group]
     no_comparison <- Data.Sub[Group %in% group_n[N == 1, Group], ..CompareWithin]
@@ -120,7 +120,7 @@ compare_wrap <- function(DATA,
   b_codes <- unique(DATA[, B.Code])
   if (worker_n == 1) {
     # Sequential execution
-    Comparisons <- lapply(seq_along(b_codes), function(ii) {
+    Comparisons <- pbapply::pblapply(seq_along(b_codes), function(ii) {
       process_b_code(ii, b_codes, DATA, CompareWithin, Verbose, Debug, Return.Lists,
                      Fert.Method, Plant.Method, Irrig.Method, Res.Method, p_density_similarity_threshold)
     })
