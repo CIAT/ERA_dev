@@ -56,8 +56,8 @@ Join.T<-function(A,B,C=NULL,D=NULL,E=NULL){
   # 1.1) Load tables from era data model #####
 project<-era_projects$industrious_elephant_2023
 data_dir<-era_dirs$era_masterdata_dir
-(files<-list.files(data_dir,project))
-files<-grep(".RData",files,value=T)
+files<-list.files(data_dir,project)
+(files<-grep(".RData",files,value=T))
 (file_local<-tail(files,1))
 data<-miceadds::load.Rdata2(filename=file_local,data_dir)
 
@@ -567,7 +567,7 @@ TreeCodes<-master_codes$trees
         
         if("F.Level.Name" %in% COLS){
           
-          Agg.Levels3<-paste(apply(Y[,..COLS2],1,FUN=function(X){
+          Agg.Levels3<-paste(apply(Y[,..COLS],1,FUN=function(X){
             X[as.vector(is.na(X))]<-"NA"
             paste(X,collapse="---")
           }),collapse="***")
