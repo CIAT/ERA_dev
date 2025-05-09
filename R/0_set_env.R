@@ -1,36 +1,29 @@
-# ERA Data Project Setup and Data Management Script
+# ERA Project Environment Setup – 0_set_env.R ####
 #
-# Purpose:
-# This script initializes the working environment for the ERA project by loading all necessary
-# libraries, installing any missing packages, and sourcing helper functions. It sets up both local
-# and S3 directories, downloads core ERA datasets (master data, geodata, vocab, economic data, etc.),
-# and prepares spatial data including a unified table of unique locations, buffers, vectors, and
-# bounding boxes for subsequent geospatial analysis.
+# Author: Pete Steward, p.steward@cgiar.org, ORCID 0000-0003-3985-4911
+# Organization: Alliance of Bioversity International & CIAT
+# Project: Evidence for Resilient Agriculture (ERA)
 #
-# Key Actions:
-# 0. Load and install required libraries and functions from local and remote sources.
-# 1. Configure directories and parameters:
-#    - Define local working directories and S3 bucket paths.
-#    - Organize ERA project-specific directories and set global options.
-# 2. Download core datasets:
-#    - Retrieve ERA master datasets and geodata from S3.
-#    - Download ancillary data (vocab, economic datasets, AEZ, etc.) as needed.
-# 3. Create a consolidated table of unique geographic locations:
-#    - Merge location data from various ERA projects, clean and deduplicate entries.
-#    - Generate spatial objects (e.g., buffers, spatial vectors, bounding boxes) for analysis.
-# 4. Set global parameters such as the time origin for subsequent data processing.
+# This script sets up the working environment for ERA-related scripts and data pipelines.
+# It ensures consistent directory structures, project paths, shared resources, and credentials
+# across different import, processing, and packaging scripts.
 #
-# Inputs:
-# - ERA project directory (project_dir) and S3 bucket paths (era_s3, era_s3_http).
-# - External dataset URLs and ERA-specific datasets.
+# ## Key functions:
+# 1. **Loads required packages** – with fallback installation via `pacman::p_load`.
+# 2. **Sets up project directories** – including `era_dirs`, `era_projects`, `era_vocab`, etc.
+# 3. **Configures cloud and local paths** – e.g., S3 buckets, local mounts, GDrive aliases.
+# 4. **Loads shared helper functions and vocabularies** – such as practice and outcome codebooks.
+# 5. **Initializes global options and external tool integrations** – e.g., `s3fs`, `arrow`, parallel settings.
 #
-# Outputs:
-# - A structured local directory populated with ERA datasets and ancillary files.
-# - A merged, cleaned table of unique geographic locations ready for geospatial processing.
-# - Preconfigured spatial objects for further analysis.
+# ## Assumptions:
+# - Must be sourced at the beginning of all ERA project scripts.
+# - Relies on consistent naming and directory structure for reproducibility.
+# - Optional AWS or cloud-related credentials may be handled via `.Renviron` or credential profiles.
 #
-# Note: Run this script after initializing the environment using R/0_set_env.R.
-
+# ## Dependencies:
+# - External configuration files (e.g., credentials, vocabularies)
+# - R libraries: data.table, jsonlite, arrow, s3fs, miceadds, etc.
+#
 # 0) Load libraries and functions ####
   ## 0.1) Record R-project location #####
 # Function to add or update an environment variable in the .Renviron file
