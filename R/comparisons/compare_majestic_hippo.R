@@ -80,16 +80,12 @@ Data.Out.No.Agg<-Data.Out.No.Agg[!Data.Out.No.Agg$Out.Subind %in% c("Weight Gain
 Data.Out.No.Agg<-Data.Out.No.Agg[!B.Code %in% Animals.Out$B.Code]
 
 # Combine all Practice Codes together & remove h-codes
-Join.T<-function(A,B,C,D){
-  X<-c(A,B,C,D)
+Join.T<-function(A,B,C=NULL,D=NULL,E=NULL){
+  X<-c(A,B,C,D,E)
   X<-unlist(strsplit(X,"-"))
-  X<-unique(X[!is.na(X)])
-  if(length(grep("h",X))>0){
-    X<-X[-grep("h",X)]
-    if(length(X)==0){list(NA)}else{list(X)}
-  }else{
-    if(length(X)==0){list(NA)}else{list(X)}
-  }
+  X<-unique(X[!is.na(X) & X!="NA"])
+  X<-X[!grepl("h",X)]
+  if(length(X)==0){list(NA)}else{list(X)}
 }
 
 X<-Data.Out.No.Agg[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code)),by="N"]
@@ -434,6 +430,60 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
       T.Codes.Fert.Shared<-unique(Data.Out.Agg.xfert[!is.na(T.Codes.Fert.Shared) & !T.Codes.Fert.Shared %in% c("NA",""),.(B.Code,T.Name,T.Codes.Fert.Shared)])
       Data.Out<-merge(Data.Out,T.Codes.Fert.Shared,by=c("B.Code","T.Name"),all.x=T,sort=F)
   
+    # 1.2.4) Comparison of aggregated vs aggregated practices ####
+      # Shared practices must be fixed and identical and all aggregated practices must share the same codes
+      Data.Out.Agg2<-copy(Data.Out.Agg)
+      
+      CompareWithin<-c("Site.ID","Time","Out.Code.Joined","B.Code","Country","R.All.Structure")
+      Data.Out.Agg2[, Group := .GRP, by = CompareWithin]
+      
+      # How many combinations of practices are there in the aggregations (that relate to practices that differ somehow with different level names)?
+      # Subset observations where all aggregrate levels share the same practice
+      Data.Out.Agg2<-Data.Out.Agg2[,T.Codes.Agg_len:=length(unique(unlist(strsplit(T.Codes.Agg[1],"[.][.][.]")))),by=T.Codes.Agg
+      ][T.Codes.Agg_len==1
+      ][,T.Codes.Agg_len:=NULL
+      ][,add_code:=unique(unlist(strsplit(T.Codes.Agg[1],"[.][.][.]"))),by=T.Codes.Agg]
+      
+      # Add shared practice(s) across aggregated levels to Final.Codes
+      X<-Data.Out.Agg2[,.(Final.Code=Join.T(Final.Codes2,add_code)),by=.I]
+      Data.Out.Agg2[,Final.Codes:=X$Final.Code]
+      Data.Out.Agg2[,Final.Codes2:=paste(unlist(Final.Codes),collapse = "-"),by=.I]
+      
+      
+      results<-compare_wrap(DATA=Data.Out.Agg2,
+                            CompareWithin=CompareWithin,
+                            worker_n=1,
+                            Verbose = FALSE,
+                            Debug = FALSE,
+                            Return.Lists = FALSE,
+                            Fert.Method = Fert.Method,
+                            Plant.Method = Plant.Method,
+                            Irrig.Method = Irrig.Method,
+                            Res.Method = Res.Method,
+                            p_density_similarity_threshold = 0.95)
+      
+      groups_n1<-results$groups_n1 # These unique groupings have only 1 row
+      all_groups_n1<-results$all_groups_n1 # There no unique groupings with >1 row in these publications
+      no_comparison<-results$no_comparison # There no comparisons in these publications and there are groupings with >1 row
+      Comparisons<-results$Comparisons_raw
+      Comparisons_processed<-results$Comparisons_processed
+      
+      Comparison.List[["Aggregated_vs_aggregated"]]<-Comparisons_processed
+      
+      # 2.4.1) Update T.Codes in Data.Out ####
+      Data.Out[, Group := .GRP, by = CompareWithin]
+      
+      # How many combinations of practices are there in the aggregations (that relate to practices that differ somehow with different level names)?
+      # Subset observations where all aggregrate levels share the same practice
+      Data.Out<-Data.Out[,T.Codes.Agg_len:=length(unique(unlist(strsplit(T.Codes.Agg[1],"[.][.][.]")))),by=T.Codes.Agg
+      ][T.Codes.Agg_len==1
+      ][,T.Codes.Agg_len:=NULL
+      ][,add_code:=unique(unlist(strsplit(T.Codes.Agg[1],"[.][.][.]"))),by=T.Codes.Agg]
+      
+      # Add shared practice(s) across aggregated levels to Final.Codes
+      X<-Data.Out[,.(T.Code=Join.T(T.Codes,add_code)),by=.I]
+      X<-unlist(lapply(X$T.Code,FUN=function(x){paste(sort(x),collapse="-")}))
+      Data.Out[,T.Codes:=X]
   # 1.3) Intercropping System Outcomes ####
   
   # Extract outcomes aggregated over rot/int entire sequence or system
@@ -529,7 +579,6 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
         Exclude<-c("O.Level.Name","P.Level.Name","C.Level.Name","W.Level.Name")[is.na(apply(Y[,c("O.Structure","P.Structure","C.Structure","W.Structure")],2,unique))]
         Fields1<-Fields1[!Levels %in% Exclude]
         
-        
         # Exception for residues from experimental crop (but not M.Level.Name as long as multiple products present
         # All residues set the the same code (removing N.fix/Non-N.Fix issue)
         # Fate labels should not require changing
@@ -541,7 +590,6 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
           Y[T.Residue.Code %in% c("a16.1","a17.1"),T.Residue.Code:="a15.1"]
           Y[T.Residue.Code %in% c("a16.2","a17.2"),T.Residue.Code:="a15.2"]
         }
-        
         
         COLS<-Fields1$Levels
         Levels<-apply(Y[,..COLS],2,FUN=function(X){
@@ -623,16 +671,13 @@ CompareWithin<-c("ED.Site.ID","ED.Product.Simple","ED.Product.Comp","ED.M.Year",
           }
         })
       
-        
         Y<-data.table(t(data.frame(list(Y))))
         row.names(Y)<-1
-        
         
         # Do not combine the Treatment names, keep this consistent with Enter.Data tab
         Y$T.Name2<-Y$IN.Level.Name2
         Y$T.Name<-Data.Out.Int2[i,ED.Int]
         Y[,N2:=NULL]
-        
         
         Y<-data.frame(Y)
         Z<-data.frame(Data.Out.Int2[i])
@@ -1960,6 +2005,7 @@ Data.Out.Animals<-Data.Out.Animals[!(is.na(A.Level.Name) & is.na(V.Animal.Practi
 Comparison.List$Simple$Analysis.Function<-"Simple"
 Comparison.List$Aggregated$Analysis.Function<-"Aggregated"
 Comparison.List$Aggregated_xfert$Analysis.Function<-"Aggregated_xfert"
+Comparison.List$Aggregated_vs_aggregated$Analysis.Function<-"Agg.vs.Agg"
 Comparison.List$Sys.Int.vs.Int$Analysis.Function<-"Sys.Int.vs.Int"
 Comparison.List$Sys.Int.vs.Mono$Analysis.Function<-"Sys.Int.vs.Mono"
 Comparison.List$Sys.Rot.vs.Rot$Analysis.Function<-"Sys.Rot.vs.Rot"
