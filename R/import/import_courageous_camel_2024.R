@@ -1,4 +1,26 @@
-# First run R/0_set_env.R
+# ERA Import Script – Courageous Camel 2024 ####
+#
+# Author: Pete Steward, p.steward@cgiar.org, ORCID 0000-0003-3985-4911
+# Organization: Alliance of Bioversity International & CIAT
+# Project: Evidence for Resilient Agriculture (ERA)
+#
+# This script is part of the ERA (Evidence for Resilient Agriculture) data ingestion workflow.
+# It imports, processes, and standardizes the 2024 dataset codenamed *Courageous Camel*.
+#
+# ## Key functions:
+# 1. **Reads source files** – typically Excel, CSV, or other tabular formats from raw input folders.
+# 2. **Validates and harmonizes data** – including checks on practice codes, outcome values, and location metadata.
+# 3. **Maps fields** into ERA’s internal data model for integration with existing compiled datasets.
+# 4. **Saves cleaned outputs** as `.json`, `.parquet`, or `.RData` for downstream analysis.
+#'
+# ## Assumptions:
+# - ERA vocabulary and codebook files must be available to validate field mappings.
+# - The script uses `data.table`, `jsonlite`, `arrow`, and other standard packages for fast processing.
+#
+# ## Dependencies:
+# R/0_set_env.R
+# R/import/import_helpers.R
+#
 # 0.0) Install and load packages, load functions ####
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
 pacman::p_load(data.table, 
@@ -95,6 +117,7 @@ if(!ext_live){
     if(length(list.files(excel_dir))<1|update==T){
       rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
       unlink(rm_files)
+      unlink(extracted_dir,recursive = T)
       options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
       if(download){
         download.file(s3_file, destfile = local_file)
@@ -3372,8 +3395,7 @@ table_name<-"Ingredients.Out"
       error_tracker(error_dat[order(B.Code)],filename = "Check if Entire Diet can used in Data.Out",error_dir = error_dir)
     }
     
-    
-  # 12.5) Update Tables ####
+  # 12.4) Update Tables ####
     
     data$Animal.Diet<-Animal.Diet
     data$Animals.Out<-Animals.Out
