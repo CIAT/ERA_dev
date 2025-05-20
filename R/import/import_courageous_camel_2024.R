@@ -205,7 +205,7 @@ if(!ext_live){
   
 # 3) Process imported data ####
   # Update saved data and errorchecking (T) or skip if file has already been processed (F)
-  overwrite<-T
+  overwrite<-F
   if(overwrite){
     ext_files<-list.files(extracted_dir,full.names = T)
     unlink(ext_files)
@@ -228,10 +228,10 @@ if(!ext_live){
     p()
     
   
- # results<-lapply(138:nrow(excel_files),FUN=function(ii){
+ #results<-lapply(1:nrow(excel_files),FUN=function(ii){
   
     File <- excel_files$filename[ii]
-  # cat("File",ii,basename(File),"\n")
+   #cat("File",ii,basename(File),"\n")
 
     era_code <- excel_files$era_code2[ii]
     
@@ -1269,7 +1269,8 @@ Pub.Out[,c("era_code2","filename","code_issue"):=NULL]
 
     # Copy down units and methods
     copy_down_cols<-c(unit_cols,method_cols,notes_cols,focus_cols,"DD.is.DM")
-    Animal.Diet.Digest <- Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD,function(x){x[!is.na(x)]}), .SDcols = copy_down_cols]
+    Animal.Diet.Digest <- Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD,function(x){     
+      if(all(is.na(x))){x[1]}else{x[!is.na(x)]}}), .SDcols = copy_down_cols]
     
     # Enforce non-numeric cols are character
     Animal.Diet.Digest[, (copy_down_cols) := lapply(.SD, as.character), .SDcols = copy_down_cols]
@@ -3018,23 +3019,24 @@ data$Animal.Diet.Digest[,`0`:=NULL]
   
   # 12.0) Check integrity of key fields ####
   Animal.Diet_key<-unique(Animal.Diet[,.(B.Code,D.ItemxProcess)])[,check:=T]
-
   A.Level.Name_key<-Animals.Out[,paste(B.Code,A.Level.Name),by=.I][,unique(V1)]
+  Animal.Diet_groupkey<-unique(Animal.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)])[,check2:=T]
   
     # 12.0.1) Animal.Diet.Comp ####
     
-    # Add group flag
+    # Add group flag for ; separated values
     Animal.Diet.Comp[grep(";",D.Item),is_group:=T]
-    
+  
     # Update entire diet flag
     Animal.Diet.Comp[,is_entire_diet:=F
                      ][,key:=paste(B.Code,D.Item),by=.I
                        ][key %in% A.Level.Name_key,is_entire_diet:=T
-                         ][D.Item=="Base",is_entire_diet:=T
                            ][,key:=NULL]
     
     error_dat<-Animal.Diet.Comp[is_entire_diet==F,.(D.Item=unlist(strsplit(D.Item,";"))),by=.(B.Code)]
     error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
+    error_dat<-merge(error_dat,Animal.Diet_groupkey,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.Item.Group"),all.x=T,sort=F)
+    error_dat[check2==T,check:=T][,check2:=NULL]
     
     error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
     
@@ -3054,11 +3056,12 @@ data$Animal.Diet.Digest[,`0`:=NULL]
     Animal.Diet.Digest[,is_entire_diet:=F
                        ][,key:=paste(B.Code,D.Item),by=.I
                          ][key %in% A.Level.Name_key,is_entire_diet:=T
-                           ][D.Item=="Base",is_entire_diet:=T
                              ][,key:=NULL]
     
     error_dat<-Animal.Diet.Digest[is_entire_diet==F,.(D.Item=unlist(strsplit(D.Item,";"))),by=.(B.Code)]
     error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
+    error_dat<-merge(error_dat,Animal.Diet_groupkey,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.Item.Group"),all.x=T,sort=F)
+    error_dat[check2==T,check:=T][,check2:=NULL]
     
     error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
     
@@ -3080,6 +3083,8 @@ data$Animal.Diet.Digest[,`0`:=NULL]
     
     error_dat<-Data.Out[ED.Intake.Item.is_entire_diet==F & !is.na(ED.Intake.Item),.(D.Item=unlist(strsplit(ED.Intake.Item,";"))),by=B.Code]
     error_dat<-merge(error_dat,Animal.Diet_key,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.ItemxProcess"),all.x=T,sort=F)
+    error_dat<-merge(error_dat,Animal.Diet_groupkey,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.Item.Group"),all.x=T,sort=F)
+    error_dat[check2==T,check:=T][,check2:=NULL]
     
     error_dat<-error_dat[is.na(check),.(value=paste(sort(unique(D.Item)),collapse=" --- ")),by=B.Code]
     
@@ -3290,6 +3295,137 @@ table_name<-"Ingredients.Out"
         
         Animal.Diet[,check:=NULL]
         
+    # 12.1.3) Other checks ####
+      # 12.1.3.1) Animal.Diet - check same group is not split across multiple diets ####
+      error_dat<-Animal.Diet[!is.na(D.Item.Group),.(No.Diets=length(unique(A.Level.Name[A.Level.Name!="Base"]))),by=.(B.Code,D.Item.Group)][No.Diets>1]  
+      
+      for(i in 1:nrow(error_dat)){
+        error_dat1<-Animal.Diet[D.Item.Group==error_dat$D.Item.Group[i] & B.Code==error_dat$B.Code[i],.(A.Level.Name,D.Item,D.ItemxProcess,Time,D.Amount,D.Unit.Amount,D.Unit.Time,D.Unit.Animals)]
+        
+                # Split into a list of data.tables by A.Level.Name
+        split_chunks <- split(error_dat1, by = "A.Level.Name", keep.by = FALSE)
+      
+        # Check pairwise identity of all chunks
+        chunk_names <- names(split_chunks)
+        combinations <- combn(chunk_names, 2, simplify = FALSE)
+        
+        comparison_results <- sapply(combinations, function(pair) {
+          identical(split_chunks[[pair[1]]], split_chunks[[pair[2]]])
+        }, USE.NAMES = TRUE)
+        
+        names(comparison_results) <- sapply(combinations, function(pair) paste(pair, collapse = " vs "))
+        
+        # Display comparison results
+        
+        if(all(comparison_results)){
+          base<-error_dat1[A.Level.Name=="Base", D.ItemxProcess]
+          trt<-error_dat1[A.Level.Name!="Base"][A.Level.Name==A.Level.Name[1],paste(unique(D.ItemxProcess),collapse=";")]
+          base_trt<-paste(c(base,trt),collapse=";")
+        }else{
+          base_trt<-NA
+        }
+        
+        error_dat[i,identical:=all(comparison_results)]
+        error_dat[i,ingredients:=base_trt]
+      }
+        
+      error_dat_e<-error_dat[,.(value=paste0(D.Item.Group,collapse = " --- ")),by=B.Code][,table:="Animal.Diet"
+      ][,field:="D.Item.Group (multiple vals separated with ---)"
+      ][,issue:="Group differs between diets levels (sometimes this can be due to a process being missed)."
+      ][order(B.Code)]
+      
+      # 12.1.3.2) Check compound items do not have multiple match in the Animal.Diet tab ####
+      
+      # Animal.Diet.Comp
+      error_dat<-unique(Animal.Diet.Comp[is_group==T & grepl(";",D.Item),.(B.Code,D.Item)])
+      
+      for(i in 1:nrow(error_dat)){
+        d_items<-trimws(error_dat[i,unlist(strsplit(D.Item,";"))])
+        error_dat1<-Animal.Diet[B.Code==error_dat[i,B.Code] & trimws(D.ItemxProcess) %in% d_items,.(A.Level.Name,D.Item,D.ItemxProcess,Time,D.Amount,D.Unit.Amount,D.Unit.Time,D.Unit.Animals)]
+        
+        # Split into a list of data.tables by A.Level.Name
+        split_chunks <- split(error_dat1, by = "A.Level.Name", keep.by = FALSE)
+        
+        if(length(split_chunks)>1){
+        # Check pairwise identity of all chunks
+        chunk_names <- names(split_chunks)
+        combinations <- combn(chunk_names, 2, simplify = FALSE)
+        
+        comparison_results <- sapply(combinations, function(pair) {
+          identical(split_chunks[[pair[1]]], split_chunks[[pair[2]]])
+        }, USE.NAMES = TRUE)
+        
+        names(comparison_results) <- sapply(combinations, function(pair) paste(pair, collapse = " vs "))
+        
+        # Display comparison results
+        
+  
+        error_dat[i,identical:=all(comparison_results)]
+        }else{
+          error_dat[i,identical:=as.logical(NA)]
+        }
+        
+        error_dat[i,No.Diets:=length(split_chunks)]
+      }
+      
+      error_dat_a<-error_dat[identical==F,.(value=paste0(D.Item,collapse = " --- ")),by=B.Code][,table:="Animal.Diet.Comp"
+      ][,field:="D.Item (multiple vals separated with ---)"
+      ][,issue:="Combination of ingredients differs between diets levels (sometimes this can be due to a process being missed). Use diet group instead?"
+      ][order(B.Code)]
+      
+      error_dat_b<-error_dat[No.Diets==0,.(value=paste0(D.Item,collapse = " --- ")),by=B.Code][,table:="Animal.Diet.Comp"
+      ][,field:="D.Item (multiple vals separated with ---)"
+      ][,issue:="Diet description does not match Diet.Out table (this should also be flagged in 'Diet Item does have match' table."
+      ][order(B.Code)]
+      
+      # Animal.Diet.Digest
+      error_dat<-unique(Animal.Diet.Digest[grepl(";",D.Item),.(B.Code,D.Item)])
+      
+      for(i in 1:nrow(error_dat)){
+        d_items<-trimws(error_dat[i,unlist(strsplit(D.Item,";"))])
+        error_dat1<-Animal.Diet[B.Code==error_dat[i,B.Code] & trimws(D.ItemxProcess) %in% d_items,.(A.Level.Name,D.Item,D.ItemxProcess,Time,D.Amount,D.Unit.Amount,D.Unit.Time,D.Unit.Animals)]
+        
+        # Split into a list of data.tables by A.Level.Name
+        split_chunks <- split(error_dat1, by = "A.Level.Name", keep.by = FALSE)
+        
+        if(length(split_chunks)>1){
+          # Check pairwise identity of all chunks
+          chunk_names <- names(split_chunks)
+          combinations <- combn(chunk_names, 2, simplify = FALSE)
+          
+          comparison_results <- sapply(combinations, function(pair) {
+            identical(split_chunks[[pair[1]]], split_chunks[[pair[2]]])
+          }, USE.NAMES = TRUE)
+          
+          names(comparison_results) <- sapply(combinations, function(pair) paste(pair, collapse = " vs "))
+          
+          # Display comparison results
+          
+          
+          error_dat[i,identical:=all(comparison_results)]
+        }else{
+          error_dat[i,identical:=as.logical(NA)]
+        }
+        
+        error_dat[i,No.Diets:=length(split_chunks)]
+      }
+      
+      error_dat_c<-error_dat[identical==F,.(value=paste0(D.Item,collapse = " --- ")),by=B.Code][,table:="Animal.Diet.Digest"
+      ][,field:="D.Item (multiple vals separated with ---)"
+      ][,issue:="Combination of ingredients differs between diets levels (sometimes this can be due to a process being missed). Use diet group instead?"
+      ][order(B.Code)]
+      
+      error_dat_d<-error_dat[No.Diets==0,.(value=paste0(D.Item,collapse = " --- ")),by=B.Code][,table:="Animal.Diet.Digest"
+      ][,field:="D.Item (multiple vals separated with ---)"
+      ][,issue:="Diet description does not match Diet.Out table (this should also be flagged in 'Diet Item does have match' table."
+      ][order(B.Code)]
+      
+      
+      # Merge and save errors
+      errors<-rbindlist(list(error_dat_e,error_dat_a,error_dat_b,error_dat_c,error_dat_d))[order(B.Code)]
+      
+      error_tracker(errors,filename = "Potential Issues with Diet Groups",error_dir = error_dir)
+      
   # 12.2) Animals.Out: Merge AOM Diet Summary with Animals.Out (.inc Trees)  ####
   
     # Merge relevant AOM columns
