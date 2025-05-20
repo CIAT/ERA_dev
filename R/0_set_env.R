@@ -334,7 +334,7 @@ source(file.path(project_dir,"R/functions.R"))
     data<-data[V.Trait==V.Trait1,V.Trait:=NA][,.(V.Trait.Old=paste(unique(na.omit(V.Trait)),collapse=";")),by=V.Trait1]
     setnames(data,"V.Trait1","V.Trait")
     
-    file<-file.path(era_dirs$era_masterdata_dir,paste0("master_codes-",Sys.Date(),".json"))
+    file<-file.path(era_dirs$era_masterdata_dir,paste0("era_master_codes-",Sys.Date(),".json"))
     
     ### 2.3.3) Save result ####
     jsonlite::write_json(master_codes, file, pretty = TRUE, auto_unbox = TRUE)
