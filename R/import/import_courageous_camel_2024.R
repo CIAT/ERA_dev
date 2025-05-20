@@ -118,7 +118,7 @@ if(!ext_live){
       rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
       unlink(rm_files)
       unlink(extracted_dir,recursive = T)
-      options(timeout = 60*60*2) # 2.6 gb file & 2hr timehour 
+      options(timeout = 60*60*2) # 2hr timehour 
       if(download){
         download.file(s3_file, destfile = local_file)
       }
@@ -126,6 +126,10 @@ if(!ext_live){
       unlink(local_file)
     }
   }
+}
+
+if(!dir.exists(extracted_dir)){
+  dir.create(extracted_dir)
 }
 
 # 2) Load data ####
@@ -226,12 +230,11 @@ if(!ext_live){
   results<-future.apply::future_lapply(1:nrow(excel_files), FUN = function(ii) {
     # Update the progress bar
     p()
-    
   
- #results<-lapply(1:nrow(excel_files),FUN=function(ii){
+ # results<-lapply(1:nrow(excel_files),FUN=function(ii){
   
     File <- excel_files$filename[ii]
-   #cat("File",ii,basename(File),"\n")
+  #cat("File",ii,basename(File),"\n")
 
     era_code <- excel_files$era_code2[ii]
     
@@ -245,7 +248,7 @@ if(!ext_live){
   
   save_file<-file.path(extracted_dir,paste0(file_code,".RData"))
   
-  if(!file.exists(filepath_new)|overwrite==T){
+  if(!file.exists(save_file)|overwrite==T){
   ## 3.0) Load excel data #####
   
   excel_dat <- tryCatch({
@@ -2967,7 +2970,11 @@ if(F){
 
     return(if(length(errors)==0){NULL}else{errors[[1]]})
   }else{
-    return(fread(filepath_new))
+      if(file.exists(filepath_new)){
+      return(fread(filepath_new))
+      }else{
+        return(NULL)
+      }
   }
     
   })
@@ -2983,6 +2990,15 @@ fwrite(errors,file.path(excel_dir,"compiled_auto_errors.csv"),bom=T)
 # 11) Compile saved tables ####
 
 files<-list.files(extracted_dir,"RData$",full.names = T)
+
+output<-basename(files)
+input<-gsub("[.]xlsm",".RData",basename(excel_files$filename))
+missing<-input[!input %in% output]
+which_missing<-which(!input %in% output)
+
+if(length(missing)>0){
+  stop(length(missing)," excel files have not been extracted and saved")
+}
 
 tabs<-names(miceadds::load.Rdata2(basename(files[1]),path=dirname(files[1])))
 
