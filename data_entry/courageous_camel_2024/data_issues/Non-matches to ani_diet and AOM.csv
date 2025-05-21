@@ -4,9 +4,6 @@ Bamboo Leaves||Chopping||Urea Treatment||Molasses Treatment||Ensilation||Drying,
 Bambusa bambos||Chopping,Bambusa bambos,JO1090,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Bambusa tulda||Chopping,Bambusa tulda,JO1090,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Black Cumin Seed Cake||Crushing||Drying,Black Cumin Cake Crushed Dried,BO1032,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
-CFM,CFM,BO1023,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,This is a diet
-CGS silage||Ensilation,CGS silage Ensiled,BO1023,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,This is a diet
-CMZstover,CMZstover,EM1015,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,This is a diet
 Calibrin-Z,Calibrin-Z,EM1101,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",Chemical ?
 Cassava Peel||Crushing||Chopping,Cassava Peel Crushed||,JO1087,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Cassava Peel||Crushing||Chopping||Fresh,Cassava Peel Crushed||,JO1087,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
@@ -24,7 +21,6 @@ Cotton Seed||Milling||Undecorticated,Cotton Seed Ground||Undecorticated,JO1020,A
 Cotton Seed||Undecorticated--Milling,Cotton Seed Ground Undecorticated,BO1067,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Cotton Seed||Undecorticated||Grinding,Cotton Seed Undecorticated||Ground,EM1044/EM1104,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Cowpea Haulm,Cowpea Haulm,EM1072,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
-DVLM + DMLM,DVLM + DMLM,BO1025,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,This is a diet
 Date||Grinding,Date Ground,JO1097,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Dendrocalamus asper||Chopping,Dendrocalamus asper,JO1090,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Dendrocalamus strictus||Chopping,Dendrocalamus strictus,JO1090,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
@@ -35,9 +31,7 @@ Finger Millet Straw||Chopping,Finger Millet Straw,EM1041,Animal.Diet.Comp,No-mat
 Finger Millet Straw||Chopping||Effective Microbe(EM) Treatment--Ensilation,Finger Millet Straw Effective Microbe(EM) Treatment Ensiled,EM1041,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Finger Millet Straw||Chopping||Urea Treatment||Ensilation,Finger Millet Straw Ensiled Urea Treatment,EM1041,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Gigantochloa pseudoarundinacea||Chopping,Gigantochloa pseudoarundinacea,JO1090,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
-HSB silage||Ensilation,HSB silage Ensiled,BO1023,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,This is a diet
 Jojoba meal||Enzyme Treatment,Jojoba Enzyme Treated,JO1086,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
-LSB silage||Ensilation,LSB silage Ensiled,BO1023,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,This is a diet
 Linseed Cake||Grinding,Linseed Cake Ground,BO1008,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Maize Bran||Molasses Treatment,Maize Bran Urea Treated,EM1006,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Maize Grain Yellow,Maize Grain Yellow,EM1005/EM1057/EM1101/JO1056,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
@@ -62,13 +56,11 @@ Phoenix dactylifera,Phoenix dactylifera,BO1085,Animal.Diet.Comp,No-match between
 Phoenix dactylifera Leaves||Chopping||Sprouted--Ensilation||Wilting,Phoenix dactylifera Leaves Ensiled Sprouted Wilted,BO1058,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Phyllostachys aurea||Chopping,Phyllostachys aurea,JO1090,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Pulse hulm,Pulse hulm,JO1062,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,Don’t know how to enter this
-Rangeland hay,Rangeland hay,BO1010,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,ingredient group
 Rice Offal||Inoculation||Drying,Rice Offal Dried Inoculated,BO1038,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Rice Straw||Chopping||Urea Treatment||Drying||NERICA3 variety,Rice Straw Dried Urea Treatment,EM1074,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Rice Straw||Chopping||Urea Treatment||Inoculation||Drying,Rice Straw Dried Inoculated Urea Treatment,BO1056,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Rice Straw||Milling||Fermentation--Inoculation||Drying,Rice Straw Dried Fermented Ground Inoculated,JO1088,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Rice mill waste,Rice mill waste,JO1008,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,""
-Roughage Group,Roughage Group,BO1030,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,Diet group
 Sclerocarya birrea seed cake||Milling,Sclerocarya birrea seed cake Ground,JO1076,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,""
 Sorghum bicolor Straw||Hammer Milling||Drying,Sorghum bicolor Straw Dried Ground,JO1057,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Soybean Cheese Waste||Crushing||Ensilation,Soybean Cheese Waste Crushed Ensiled,BO1044,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
@@ -85,5 +77,3 @@ Vitex doniana leaves||Chopping||Grinding||Drying,Vitex doniana leaves ||Ground D
 Wheat Straw||Chopping||Effective Microbes,Wheat Straw Effective Microbes,EM1082,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Wheat Straw||Chopping||Ensilation||Fermentation||activated microbial inoculant,Wheat Straw Ensiled||Fermented,JO1047,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Wheat Straw||Hammer Milling||Chopping,Wheat Straw Ground||,JO1032,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
-onion veins and lemon pulp  mixture 1,onion veins and lemon pulp mixture 1,EM1103,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
-onion veins and lemon pulp  mixture 2,onion veins and lemon pulp mixture 2,EM1103,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
