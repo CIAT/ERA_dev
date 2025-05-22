@@ -209,7 +209,7 @@ if(!dir.exists(extracted_dir)){
   
 # 3) Process imported data ####
   # Update saved data and errorchecking (T) or skip if file has already been processed (F)
-  overwrite<-F
+  overwrite<-T
   if(overwrite){
     ext_files<-list.files(extracted_dir,full.names = T)
     unlink(ext_files)
@@ -3115,11 +3115,25 @@ data$Animal.Diet.Digest[,`0`:=NULL]
       error_tracker(rbindlist(errors)[order(B.Code)],filename = "Diet Item does not have a match",error_dir = error_dir)
     }
     
+    # 12.0.4) Animal Diet
+    # Update entire diet flag
+    
+    Animal.Diet[,is_entire_diet:=F
+                ][,key:=paste(B.Code,D.Item),by=.I
+                  ][key %in% A.Level.Name_key,is_entire_diet:=T
+                    ][,key:=NULL
+                      ]
+    
+    Animal.Diet<-merge(Animal.Diet,Animal.Diet_groupkey,by.x=c("B.Code","D.Item"),by.y=c("B.Code","D.Item.Group"),all.x=T,sort=F)
+    Animal.Diet[,is_group:=F
+                ][!is.na(check2),is_group:=T
+                          ][,D.Is.Group:=NULL
+                            ][,check2:=NULL]
+    
   # 12.1) Animal Diet Harmonization ####
 table_name<-"Ingredients.Out"
 
     # 12.1.1) Harmonize Units/Methods ####
-    
       # 12.1.1.1) Animal.Diet ####
       h_params<-data.table(h_table="Animals.Diet",
                            h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
@@ -3132,7 +3146,7 @@ table_name<-"Ingredients.Out"
       
       Animal.Diet<-results$data
       h_tasks<-list(results$h_tasks)
-  
+      
       # 12.1.1.2) Animal.Diet.Digest ####
       table_name<-"Animal.Diet.Digest"
       # Units
@@ -3172,9 +3186,6 @@ table_name<-"Ingredients.Out"
     # 12.1.2) Animal.Diet/Diet Items ####
       # 12.1.2.1) Harmonize Processes ####
       
-      # Create names that should match AOM/Ani_Diet
-      Animal.Diet[,D.Item.Proc_Major:=paste(sort(na.omit(c(D.Process.Mech,D.Process.Chem,D.Process.Bio,D.Process.Therm,D.Process.Dehy))),collapse="--"),by=.I]
-
       # Update process names to match AOM/Ani_Diet
       aom<-master_codes$AOM
       aom<-aom[grep("Feed Process",Path)][!is.na(Ani_Diet_Spp_Syn)
@@ -3213,56 +3224,102 @@ table_name<-"Ingredients.Out"
       
       # Apply gsub in sequence (longest first)
       for (i in aom[,which(major)]) {
-        Animal.Diet[,D.Item.Proc_Major:=gsub(aom[i,old], aom[i,new], D.Item.Proc_Major, fixed = TRUE)]
+        Animal.Diet[,D.Process.Mech:=gsub(aom[i,old], aom[i,new], D.Process.Mech, fixed = TRUE)]
+        Animal.Diet[,D.Process.Chem:=gsub(aom[i,old], aom[i,new], D.Process.Chem, fixed = TRUE)]
+        Animal.Diet[,D.Process.Bio:=gsub(aom[i,old], aom[i,new], D.Process.Bio, fixed = TRUE)]
+        Animal.Diet[,D.Process.Therm:=gsub(aom[i,old], aom[i,new], D.Process.Therm, fixed = TRUE)]
+        Animal.Diet[,D.Process.Dehy:=gsub(aom[i,old], aom[i,new], D.Process.Dehy, fixed = TRUE)]
+        
+        #Animal.Diet[,D.Item.Proc_Major:=gsub(aom[i,old], aom[i,new], D.Item.Proc_Major, fixed = TRUE)]
       }
       
       for (i in aom[,which(!major)]) {
-        Animal.Diet[,D.Item.Proc_Major:=gsub("  "," ",trimws(gsub(aom[i,old],"", D.Item.Proc_Major, fixed = TRUE)))]
+        Animal.Diet[, D.Process.Mech := gsub(aom[i, old], "", D.Process.Mech, fixed = TRUE)]
+        Animal.Diet[, D.Process.Chem := gsub(aom[i, old], "", D.Process.Chem, fixed = TRUE)]
+        Animal.Diet[, D.Process.Bio := gsub(aom[i, old], "", D.Process.Bio, fixed = TRUE)]
+        Animal.Diet[, D.Process.Therm := gsub(aom[i, old], "", D.Process.Therm, fixed = TRUE)]
+        Animal.Diet[, D.Process.Dehy := gsub(aom[i, old], "", D.Process.Dehy, fixed = TRUE)]
+                    
+        #Animal.Diet[,D.Process.Chem:=gsub(aom[i,old], "", D.Process.Chem, fixed = TRUE)][,D.Process.Chem:=paste(unique(unlist(strsplit(D.Process.Chem,"[|][|]"))),collapse = "||"),by=.I]
+        #Animal.Diet[,D.Process.Bio:=gsub(aom[i,old],"", D.Process.Bio, fixed = TRUE)][,D.Process.Bio:=paste(unique(unlist(strsplit(D.Process.Bio,"[|][|]"))),collapse = "||"),by=.I]
+        #Animal.Diet[,D.Process.Therm:=gsub(aom[i,old],"", D.Process.Therm, fixed = TRUE)][,D.Process.Therm:=paste(unique(unlist(strsplit(D.Process.Therm,"[|][|]"))),collapse = "||"),by=.I]
+        #Animal.Diet[,D.Process.Dehy:=gsub(aom[i,old], "", D.Process.Dehy, fixed = TRUE)][,D.Process.Dehy:=paste(unique(unlist(strsplit(D.Process.Dehy,"[|][|]"))),collapse = "||"),by=.I]
+        #Animal.Diet[,D.Item.Proc_Major:=gsub("  "," ",trimws(gsub(aom[i,old],"", D.Item.Proc_Major, fixed = TRUE)))]
       }
       
-      Animal.Diet[,D.Item.Proc_Major:=paste(sort(unique(unlist(strsplit(D.Item.Proc_Major,"--")))),collapse = " "),by=.I]
+      Animal.Diet[, D.Process.Mech := paste(unique(Filter(nzchar, unlist(strsplit(D.Process.Mech, "[|][|]|--")))),collapse = "--"),by = .I]  
+      Animal.Diet[, D.Process.Chem := paste(unique(Filter(nzchar, unlist(strsplit(D.Process.Chem, "[|][|]|--")))),collapse = "--"),by = .I]  
+      Animal.Diet[, D.Process.Bio := paste(unique(Filter(nzchar, unlist(strsplit(D.Process.Bio, "[|][|]|--")))),collapse = "--"),by = .I]  
+      Animal.Diet[, D.Process.Therm := paste(unique(Filter(nzchar, unlist(strsplit(D.Process.Therm, "[|][|]|--")))),collapse = "--"),by = .I]  
+      Animal.Diet[, D.Process.Dehy := paste(unique(Filter(nzchar, unlist(strsplit(D.Process.Dehy, "[|][|]|--")))),collapse = "--"),by = .I]  
+        
+
+      Animal.Diet[D.Process.Mech=="NA",D.Process.Mech:=NA]
+      Animal.Diet[D.Process.Chem=="NA",D.Process.Chem:=NA]
+      Animal.Diet[D.Process.Bio=="NA",D.Process.Bio:=NA]
+      Animal.Diet[D.Process.Therm=="NA",D.Process.Therm:=NA]
+      Animal.Diet[D.Process.Dehy=="NA",D.Process.Dehy:=NA]
+      
+      
+      Animal.Diet[,D.Item.Proc_Major:=paste(na.omit(sort(unique(unlist(strsplit(c(D.Process.Mech,D.Process.Chem,D.Process.Bio,D.Process.Therm,D.Process.Dehy),"--"))))),collapse=" "),by=.I]
+  
       Animal.Diet[,D.Item.Proc_All:=paste(na.omit(c(D.Process.Other,D.Item.Proc_Major)),collapse=" "),by=.I]
       
+      # Harmonize all ItemxProcess to same delim
+      Animal.Diet[,D.ItemxProcess:=gsub("--","||",D.ItemxProcess)]
       
       # 12.1.2.2) Harmonize D.Item Names ####
       
-      merge_dat<-master_codes$ani_diet[,.(D.Item,D.Item.Root.Comp)]
-      merge_dat <-unique(merge_dat[, .(D.Item = unlist(strsplit(D.Item, ";", fixed = TRUE))), by = .(D.Item.Root.Comp)])
+      # Update root and component of diet items
+      
+      # A) Merge using D.Item.Root.Comp
+      merge_dat <-unique(master_codes$ani_diet[, .(D.Item = unlist(strsplit(D.Item, ";", fixed = TRUE))), by = D.Item.Root.Comp])
       setnames(merge_dat,"D.Item.Root.Comp","D.Item.Root.Comp_ani_diet")
       Animal.Diet<-merge(Animal.Diet,merge_dat,by="D.Item",all.x=T,sort=F)
-
-      # D.Item.Root.Comp.Proc_Major
+      
+      # Update D.Item.Root.Comp.Proc_Major
       Animal.Diet[,D.Item.Root.Comp.Proc_Major:=trimws(paste(D.Item,D.Item.Proc_Major))
-                  ][D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Comp.Proc_Major:=trimws(paste(D.Item.Root.Comp_ani_diet,D.Item.Proc_Major))]
+                  ][,D.Item.Root.Comp.Proc_Major:=gsub("  |   "," ",D.Item.Root.Comp.Proc_Major) # Remove any residual double or triple spaces
+                    ][D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Comp.Proc_Major:=trimws(paste(D.Item.Root.Comp_ani_diet,D.Item.Proc_Major))]
       
-      # D.Item.Root.Other.Comp.Proc_All
-      Animal.Diet[,D.Item.Root.Other.Comp.Proc_All:=trimws(paste(D.Item,D.Process.Other,D.Item.Proc_Major))
-      ][D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Other.Comp.Proc_All:=trimws(paste(D.Item.Root.Comp_ani_diet,D.Process.Other,D.Item.Proc_Major))]
+ 
+      # B) Merge using D.Item.Root.Comp.Proc_Major
+      merge_dat <-unique(master_codes$ani_diet[, .(D.Item = unlist(strsplit(D.Item, ";", fixed = TRUE))), by = .(D.Item.Root.Comp,D.Item.Root.Comp.Proc_Major)
+                                               ][,D.Item:=trimws(tolower(D.Item))])
+      setnames(merge_dat,c("D.Item.Root.Comp","D.Item.Root.Comp.Proc_Major"),c("D.Item.Root.Comp_ani_diet2","D.Item.Root.Comp.Proc_Major_ani_diet2"))
       
+      Animal.Diet[,D.ItemxProcess_low:=tolower(D.ItemxProcess)]
+      Animal.Diet<-merge(Animal.Diet,merge_dat,by.x="D.ItemxProcess_low",by.y="D.Item",all.x=T,sort=F)
+      
+      # Update D.Item.Root.Comp & D.Item.Root.Comp.Proc_Major
+      Animal.Diet[D.Item.Root.Comp.Proc_Major!= D.Item.Root.Comp.Proc_Major_ani_diet2,D.Item.Root.Comp.Proc_Major:=D.Item.Root.Comp.Proc_Major_ani_diet2]
+      
+      # C) Create D.Item.Root.Other.Comp.Proc_All field
+      Animal.Diet[,D.Item.Root.Other.Comp.Proc_All:=trimws(paste(na.omit(c(D.Item,D.Process.Other,D.Item.Proc_Major)),collapse = " ")),by=.I]
+      Animal.Diet[D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Other.Comp.Proc_All:=trimws(paste(c(D.Item.Root.Comp_ani_diet,na.omit(D.Process.Other),D.Item.Proc_Major),collapse=" ")),by=.I]
+      Animal.Diet[D.Item!=D.Item.Root.Comp_ani_diet2 & !is.na(D.Item.Root.Comp_ani_diet2),D.Item.Root.Other.Comp.Proc_All:=trimws(paste(c(D.Item.Root.Comp_ani_diet2,na.omit(D.Process.Other),D.Item.Proc_Major),collapse=" ")),by=.I]
+      
+      # D) Tidy up
+      Animal.Diet[,c("D.Item.Root.Comp_ani_diet","D.Item.Root.Comp_ani_diet2","D.Item.Root.Comp.Proc_Major_ani_diet2","D.ItemxProcess_low"):=NULL]
       
       # 12.1.2.3) Match to AOM/ani_diet ####
 
       # Get harmonization table from master_codes
-        mergedat<-master_codes$ani_diet[!is.na(D.Item)][order(D.Item),.(D.Item,
-                                                        D.Item.Root.Comp,
-                                                        D.Item.Root.Comp.Proc_Major,
-                                                        D.Item.Root.Other.Comp.Proc_All,
-                                                        D.Item.Other,
-                                                        D.Item.Proc_All,
-                                                        D.Item.Proc_Major,
-                                                        D.Item.Proc_Minor,
-                                                        D.Item.Comp,
-                                                        D.Item.AOM
-        )]
+      
+      ani_diet<-master_codes$ani_diet[!is.na(D.Item),.(D.Item=unlist(strsplit(D.Item,";"))),by=.(D.Item.Root.Comp,
+                                                                                       D.Item.Root.Comp.Proc_Major,
+                                                                                       D.Item.Root.Other.Comp.Proc_All,
+                                                                                       D.Item.Other,
+                                                                                       D.Item.Proc_All,
+                                                                                       D.Item.Proc_Major,
+                                                                                       D.Item.Proc_Minor,
+                                                                                       D.Item.Comp,
+                                                                                       D.Item.AOM)
+                                      ][,D.Item.Root.Comp.Proc_Major:=trimws(tolower(D.Item.Root.Comp.Proc_Major))]
+
         
-        vals<-strsplit(mergedat$D.Item,";")
-        vals_rep_rows<-rep(1:length(vals),unlist(lapply(vals,length)))
-        mergedat<-unique(mergedat[vals_rep_rows
-        ][,D.Item:=unlist(vals)
-        ][,D.Item.Root.Comp.Proc_Major:=trimws(tolower(D.Item.Root.Comp.Proc_Major))])
-        
-        # Set to unique values (i.e. remove Diet.Items for now, as there are duplicate rows for D.Item.Root.Comp.Proc_Major)
-        mergedat<-unique(mergedat[,.(D.Item.Root.Comp,D.Item.Root.Comp.Proc_Major,D.Item.Proc_Major,D.Item.Comp,D.Item.AOM)])
+      # Set to unique values (i.e. remove Diet.Items for now, as there are duplicate rows for D.Item.Root.Comp.Proc_Major)
+        mergedat<-unique(ani_diet[,.(D.Item.Root.Comp,D.Item.Root.Comp.Proc_Major,D.Item.Proc_Major,D.Item.Comp,D.Item.AOM)])
         
         # Find non-unique diet items that will cause matching issues
         error_dat<-mergedat[,.(N=.N),by=D.Item.Root.Comp.Proc_Major][N>1]
@@ -3289,7 +3346,7 @@ table_name<-"Ingredients.Out"
         # Make fields in x lower case to improve odds of matching
         Animal.Diet[,D.Item.Root.Comp.Proc_Major_low:=tolower(D.Item.Root.Comp.Proc_Major)]
         
-        # Merge new names
+        # Merge new names - using D.Item.Proc_Major 
         ani_diet_cols<-c(colnames(Animal.Diet),"index")
         Animal.Diet<-merge(Animal.Diet,mergedat[,!c("D.Item.Proc_Major")],by.x="D.Item.Root.Comp.Proc_Major_low",
                            by.y="D.Item.Root.Comp.Proc_Major",all.x=T,sort=F)
@@ -3297,6 +3354,8 @@ table_name<-"Ingredients.Out"
         
         # Record non-matches
         error_dat<-Animal.Diet[!is.na(D.ItemxProcess) & 
+                                 !is_entire_diet &
+                                 !is_group &
                                  check==F & 
                                  !D.Item.Root.Comp.Proc_Major %in% excluded_items,
                                .(B.Code=paste0(unique(B.Code),collapse = "/")),

@@ -12,6 +12,7 @@ A. saligna prunnings used as sprouting media for barley grains,BO1011,Animal.Die
 Boloso-I variety,BO1086,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
 CSL,JO1054,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Chopping||Grinding,EM1069,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
+Chopping||Hammer Milling,EM1058,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Chopping||Hammer Milling||Grinding,JO1004,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Cochinchinensis variety,BO1061,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
 "Cochinchinensis variety, protein isolate",BO1061,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
@@ -25,8 +26,10 @@ Enzyme Treatment||Ensilation,JO1082,Animal.Diet.Comp,D.Process.Bio,No match for 
 Feed grade Urea,JO1055,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Feed grade ammonium,JO1055,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Grinding||Pelleting,EM1085,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
+Grinding||Undecorticated,BO1079,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Hammer Milling||Chopping,JO1032,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Harvested after 150 days,JO1091,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
+Harvested at booting stage,CJ1003,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
 Jasmine variety,JO1001,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Massaba variety,BO1025/BO1036,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
 Maxiwol,BO1041/JO1057,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,NJ,Information can stay here
@@ -39,6 +42,7 @@ Pellibond,JO1076,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM
 Piata variety,BO1069,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
 Plain water fermented,EM1092,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Rumen digesta filtrate fermented,EM1092,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
+Sariasso 16,CJ1012,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
 Screw press,EM1055,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Sewinet variety,BO1087,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
 Sprouted barley grains on Acacia saligna prunnings,BO1011,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,NJ,Not in the gdrive
@@ -48,10 +52,10 @@ TMS 30572 variety,EM1053,Animal.Diet.Comp,D.Process.Other,No match for this valu
 "TMS011368, TMS011412 and TMS1371 varieties",BO1083,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Taxin binder,JO1068,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Trichoderma viride,BO1047,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,NJ,Information can stay here
-Undecorticated,BO1008/BO1067/BO1079/EM1051/EM1076/EM1088/JO1056/JO1081/JO1092/JO1093,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
+Undecorticated,BO1008/EM1051/EM1076/EM1088/JO1056/JO1081/JO1092/JO1093,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Undecorticated|| Grinding,JO1014,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Undecorticated||Grinding,EM1044/EM1104,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
-Undecorticated||Milling,JO1098,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
+Undecorticated||Milling,BO1067/JO1098,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Urea,JO1054,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 Urea Treated,JO1099,Animal.Diet.Comp,D.Process.Chem,No match for this value in AOM process cols,FALSE,"",""
 Urea Treatment,JO1039.1/JO1039.2/JO1040/BO1001/BO1023/BO1028/BO1056/BO1070/EM1041/EM1046/EM1074/JO1001/JO1045/JO1087,Animal.Diet.Comp,D.Process.Chem,No match for this value in AOM process cols,FALSE,"",""
@@ -72,3 +76,4 @@ maize-cob ash fermeted,EM1092,Animal.Diet.Comp,D.Process.Other,No match for this
 palm wine fermented,EM1100,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
 sprouting media for barley grains,BO1011,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,NJ,Not in the gdrive
 water fermented,EM1100,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,TRUE,NJ,This information can be kept
+wood chipper millig,CJ1005,Animal.Diet.Comp,D.Process.Other,No match for this value in AOM process cols,FALSE,"",""
