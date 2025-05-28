@@ -188,6 +188,12 @@ source(file.path(project_dir,"R/functions.R"))
   era_dirs$ancillary_dir<-file.path(era_dir,"ancillary_datasets")
   era_dirs$ancillary_s3<-file.path(era_s3,"ancillary_datasets")
   
+  # ILRI feeds db
+  era_dirs$ilri_fdb_dir<-file.path(era_dirs$ancillary_dir,"ilri_feed_db")
+  era_dirs$ilri_fdb_s3<-file.path(era_dirs$ancillary_s3,"ilri_feed_db")
+  era_dirs$ilri_fdb_local_file<-file.path(era_dirs$ilri_fdb_dir,"ilri_feed_db.xlsx")
+  era_dirs$ilri_fdb_s3_file<-file.path(era_dirs$ilri_fdb_s3,"ilri_feed_db.xlsx")
+  
   era_dirs$dem_dir<-file.path(era_dirs$ancillary_dir,"dem_download")
   era_dirs$dem_s3<-file.path(era_dirs$ancillary_s3,"dem_download")
   
@@ -339,7 +345,6 @@ source(file.path(project_dir,"R/functions.R"))
     ### 2.3.3) Save result ####
     jsonlite::write_json(master_codes, file, pretty = TRUE, auto_unbox = TRUE)
     }
-    
   ## 2.4) Worldbank/FAO economic data #####
     currency_dir<-file.path(era_dirs$ancillary_dir,"currency_conversions")
     if(!dir.exists(currency_dir)){
@@ -481,14 +486,23 @@ source(file.path(project_dir,"R/functions.R"))
     }
     
 
-  ## 2.6) Ancillary datasets ####
-    # 2.6.1) EcoCrop
+  ## 2.7) Ancillary datasets ####
+    ### 2.6.1) EcoCrop ####
     file<-file.path(era_dirs$ecocrop_dir,"ecocrop.csv")
     
     if(!file.exists(file)){
     ecocrop_url<-"https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/main/metadata/ecocrop.csv"
     ecocrop<-fread(ecocrop_url, showProgress = FALSE)
     fwrite(ecocrop,file)
+    }
+    
+    ### 2.6.2) ILRI Feeds Database ####
+    # Note that this file is not publically available
+    if(!file.exists(era_dirs$ilri_fdb_local_file) & Sys.getenv("AWS_SECRET_ACCESS_KEY")!=""){
+      # Use your system credentials (from environment vars)
+      s3 <- s3fs::S3FileSystem$new(anonymous = FALSE)
+      # Download the file from S3 to local
+      s3$file_download( era_dirs$ilri_fdb_s3_file,era_dirs$ilri_fdb_local_file)
     }
     
 # 3) Create table of unique locations (for use with geodata functions) ####
