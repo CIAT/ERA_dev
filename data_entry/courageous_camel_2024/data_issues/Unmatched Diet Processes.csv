@@ -8,4 +8,3 @@ Effective Microbes,EM1082,Animal.Diet.Comp,D.Process.Bio,No match for this value
 Screw press,EM1055,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Undecorticated,BO1008/JO1014/JO1020/BO1067/BO1079/EM1044/EM1051/EM1076/EM1088/EM1104/JO1056/JO1081/JO1092/JO1093/JO1098,Animal.Diet.Comp,D.Process.Mech,No match for this value in AOM process cols,FALSE,"",""
 Urea Treated,JO1099,Animal.Diet.Comp,D.Process.Chem,No match for this value in AOM process cols,FALSE,"",""
-Urea Treatment,JO1039.1/JO1039.2/JO1040/BO1001/BO1023/BO1028/BO1056/BO1070/EM1041/EM1046/EM1074/EM1083/EM1091/JO1001/JO1045/JO1087,Animal.Diet.Comp,D.Process.Chem,No match for this value in AOM process cols,FALSE,"",""
