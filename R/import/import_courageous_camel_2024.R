@@ -3203,13 +3203,14 @@ table_name<-"Ingredients.Out"
       
       # Check processes are present in aom
       process_cols<-grep("D.Process",colnames(Animal.Diet),value=T)
+      process_cols<-process_cols[!grepl("Other",process_cols)]
       
       error_dat<-rbindlist(lapply(1:length(process_cols),FUN=function(i){
         p_col<-process_cols[i]
         dat<-Animal.Diet[,c("B.Code",p_col),with=F][,process_col:=p_col]
         colnames(dat)[2]<-"value"
         dat<-dat[!is.na(value)]
-        dat <-unique(dat[, .(value = unlist(strsplit(value, "--", fixed = TRUE))), by = .(B.Code, process_col)])
+        dat <-unique(dat[, .(value = unlist(strsplit(value, "--|[|][|]"))), by = .(B.Code, process_col)])
         dat<-dat[!value %in% aom$old]
       
         dat<-dat[,.(B.Code=paste(unique(B.Code),collapse="/")),by=value
@@ -3519,8 +3520,8 @@ table_name<-"Ingredients.Out"
     Animal.Diet[,D.Item.Is.Tree:=F][grepl("Forage Trees",AOM.Terms),D.Item.Is.Tree:=T]
     
     # Summarize 
-    Animal.Diet.Summary<-Animal.Diet[,.(A.Diet.Trees=paste0(sort(unique(AOM.Scientific.Name[D.Item.Is.Tree & !D.Is.Group])),collapse=";"),
-                                        A.Diet.Other=paste0(sort(unique(basename(AOM.Terms)[!D.Item.Is.Tree & !D.Is.Group])),collapse=";")),
+    Animal.Diet.Summary<-Animal.Diet[,.(A.Diet.Trees=paste0(sort(unique(AOM.Scientific.Name[D.Item.Is.Tree & !is_group])),collapse=";"),
+                                        A.Diet.Other=paste0(sort(unique(basename(AOM.Terms)[!D.Item.Is.Tree & !is_group])),collapse=";")),
                                      by=.(B.Code,A.Level.Name)]
     
     Animals.Out<-merge(Animals.Out,Animal.Diet.Summary,by=c("B.Code","A.Level.Name"),all.x=T,sort=F)
