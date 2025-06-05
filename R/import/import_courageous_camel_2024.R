@@ -209,7 +209,7 @@ if(!dir.exists(extracted_dir)){
   
 # 3) Process imported data ####
   # Update saved data and errorchecking (T) or skip if file has already been processed (F)
-  overwrite<-T
+  overwrite<-F
   if(overwrite){
     ext_files<-list.files(extracted_dir,full.names = T)
     unlink(ext_files)
@@ -2944,6 +2944,8 @@ if(F){
       Pasture.Comp=Pasture.Comp,
       GM.Out=GM.Out,
       GM.Method=GM.Method,
+      Plant.Out=Plant.Out,
+      Plant.Method=Plant.Method,
       Till.Out=Till.Out,
       Till.Method=Till.Method,
       Fert.Out=Fert.Out,
@@ -3020,18 +3022,61 @@ names(data)<-tabs
 data$Animal.Diet.Comp[,`0`:=NULL]
 data$Animal.Diet.Digest[,`0`:=NULL]
 
-# 12) Check & harmonize feed item names ####
+Animal.Diet<-data$Animal.Diet
+Animals.Out<-data$Animals.Out
+Animal.Diet.Comp<-data$Animal.Diet.Comp
+Animal.Diet.Digest<-data$Animal.Diet.Digest
+Data.Out<-data$Data.Out
+MT.Out<-data$MT.Out
+Chems.Out<-data$Chems.Out
+Pasture.Out<-data$Pasture.Out
+GM.Out<-data$GM.Out
+# ************************* ####
+# ENABLE THIS LINE AFTER NEXT IMPORT OF DATASET ######
+# ************************* ####
+# Plant.Method<-data$Plant.Method
+Till.Method<-data$Till.Method
+Fert.Out<-data$Fert.Out
+AF.Out<-data$AF.Out
+Other.Out<-data$Other.Out
 
-  Animal.Diet<-data$Animal.Diet
-  Animals.Out<-data$Animals.Out
-  Animal.Diet.Comp<-data$Animal.Diet.Comp
-  Animal.Diet.Digest<-data$Animal.Diet.Digest
-  Data.Out<-data$Data.Out
-  MT.Out<-data$MT.Out
-  
+  # 11.1) Update Base Practice Handling ####
+    # 1.11.1) Base in sub-tables ####
+
+    # If more than one practice is present and the base practice is applied to both, then we want to duplicate
+    # the base practice for each practice and set the name to that practice, then we remove any mention of base
+    # For example where we have diets A & B and a base diet.
+
+    # Note we are only apply to Animal.Diet here, for the animal papers in this extraction there do not appear
+    # to be other tables that require the base practice reprosessing. However this will not be the case for 
+    # agronomy papers, the processing will need to be expanded to more tabs.
+
+    # 1.11.1.1) Animal.Diet ####
+    Animal.Diet<-handle_base(Animal.Diet,target_col = "A.Level.Name",base_col="D.Item.Group")
+
+    # 1.11.2) Base in practice table names ####
+  input_dat<-list(C.Level.Name=Chems.Out,
+                  A.Level.Name=Animals.Out,
+                  Pasture.Level.Name=Pasture.Out,
+                  GM.Level.Name=GM.Out,
+                  Till.Level.Name=Till.Method,
+                  #P.Level.Name= Plant.Method,
+                  F.Level.Name=Fert.Out,
+                  AF.Level.Name=AF.Out,
+                  O.Level.Name=Other.Out)
+
+    for(i in 1:length(input_dat)){
+      dat<-copy(input_dat[[i]])
+      target_col<-names(input_dat)[i]   
+      b_codes<-dat[,N.Prac:=length(unique(get(target_col))),by=B.Code][get(target_col) == "Base" & N.Prac==1,B.Code]  
+      MT.Out[ , (target_col) := as.character(get(target_col))]
+      MT.Out[B.Code %in% b_codes,(target_col):="Base"]
+    }
+
+  # 12) Check & harmonize feed item names ####
+
   # Correct any ";" delimiters to "||"
   Animal.Diet[grep(";",D.ItemxProcess),D.ItemxProcess]
-  
   
   # 12.0) Check integrity of key fields ####
   Animal.Diet_key<-unique(Animal.Diet[,.(B.Code,D.ItemxProcess)])[,check:=T]
@@ -3135,6 +3180,14 @@ table_name<-"Ingredients.Out"
 
     # 12.1.1) Harmonize Units/Methods ####
       # 12.1.1.1) Animal.Diet ####
+    
+      # Check and remove manually entered D.Type, assign D.Type that is a feed item group to D.Item first
+      Animal.Diet[(is.na(D.Item)|D.Item=="") & !is.na(D.Type),.(B.Code,D.Item,D.Type)]
+      Animal.Diet[(is.na(D.Item)|D.Item=="") & !is.na(D.Type),D.Item:=D.Type]
+      Animal.Diet[,D.Type:=NULL]
+    
+    
+      # Harmonize units
       h_params<-data.table(h_table="Animals.Diet",
                            h_field=c("D.Unit.Amount","D.Unit.Time","D.Unit.Animals"),
                            ignore_vals=c("unspecified","unspecified","unspecified"))[,c("h_field_alt","h_table_alt"):=NA]
