@@ -25,7 +25,7 @@ Katambora||Drying,Chloris gayana Dried,EM1025,Animal.Diet.Comp,No-match between 
 Maize Stover||Chopping||Sprouted,Maize Stover Sprouted,JO1009,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Moringa oleifera seed||Cold press,Moringa oleifera seed Cold press,EM1005,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,TRUE,Lolita,doesn’t match whats in the paper
 Mucuna pruriens Protein Isolate||Grinding||Alkali Treatment||Acid Treatment||Drying,Mucuna pruriens Protein Acid Treated Alkali Treated Dried Ground,EM1068,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
-NA,NA,BO1010/BO1041/BO1090/CJ1012/JO1059/JO1065/JO1066,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
+NA,Rangeland hay,BO1010,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Nitro-tox,Nitro-tox,EM1101,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",?
 Noug Cake||Grinding,Noug Seed Cake Ground,EM1011/EM1012/EM1015,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
 Panicum maximum||Chopping||Wilting,Panicum maximum Wilted,CJ1019/BO1037,Animal.Diet.Comp,No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major,FALSE,"",""
