@@ -1640,3 +1640,54 @@ convert_npk <- function(y, delim = "-") {
   # Return formatted NPK ratio using the default "-" delimiter for output
   return(paste(x, collapse = "-"))
 }
+
+#' Replace and Duplicate "Base" Rows for Comparisons
+#'
+#' This function processes a `data.table` by identifying rows labeled as "base" or "Base" 
+#' in a target column, and duplicates them for each unique non-base practice in 
+#' the same group (defined by `B.Code`). The base rows are modified to match the 
+#' new practice level, and optionally annotated using a base column.
+#'
+#' @param dat A `data.table` containing experimental data with at least the columns `B.Code` and the specified `target_col`.
+#' @param target_col A string giving the name of the column that defines practice types (e.g., "Treatment").
+#' @param base_col Optional. A string naming a column in which to mark newly duplicated base rows as "Base". If `NULL`, no annotation is added.
+#'
+#' @return A `data.table` with "base" rows duplicated and modified to match each non-base practice within each `B.Code` group. 
+#' If no base rows or practices are found for a group, the original group is returned unmodified.
+#'
+#' @import data.table
+#' @examples
+#' \dontrun{
+#' library(data.table)
+#' dat <- data.table(B.Code = c(1,1,1,2,2),
+#'                   Treatment = c("base","A","B","base","C"),
+#'                   Value = 1:5)
+#' handle_base(dat, "Treatment", "Reference")
+#' }
+#' @export
+handle_base<-function(dat,target_col,base_col=NULL){
+  dat_split<-split(dat, dat$B.Code)
+  result<-lapply(1:length(dat_split),FUN=function(i){
+    input_tab<-dat_split[[i]]
+    base <- input_tab[get(target_col) == "Base"]
+    pracs<-unique(input_tab[!get(target_col) == "Base",get(target_col)])
+    if(nrow(base)>0 & length(pracs)>0){
+      base_dup<-rbindlist(lapply(pracs,FUN=function(prac){
+        base[, (target_col) := prac]
+        base
+      }))
+      
+      if(!is.null(base_col)){
+        base_dup[,(base_col):="Base"]
+      }
+      
+      result<-rbind(input_tab[!get(target_col) %in% c("base","Base")],base_dup)
+      return(result)
+    }else{
+      return(input_tab)
+    }   
+  })
+  result<-rbindlist(result)
+  cat("Rows input = ",nrow(dat),", rows output =",nrow(result))
+  return(result)
+}
