@@ -1026,10 +1026,20 @@ errors<-c(errors,list(error_dat))
   Animals.Diet[,D.Process:=strsplit(D.Process,"/")]
   
   # Add logic to indicate if a compound diet item
-  Animals.Diet[,D.Is.Group:=D.Type %in% D.Item.Group,by=B.Code]
+  Animals.Diet[,is_group:=D.Type %in% D.Item.Group,by=B.Code]
+  
+  # Add entire diet flag
+  A.Level.Name_key<-Animals.Out[,paste(B.Code,A.Level.Name),by=.I][,unique(V1)]
+  
+  Animals.Diet[,is_entire_diet:=F
+  ][,key:=paste(B.Code,D.Item),by=.I
+  ][key %in% A.Level.Name_key|D.Type=="Entire Diet",is_entire_diet:=T
+  ][,key:=NULL]
+  
+  Animals.Diet[is.na(D.Item) & D.Type=="Entire Diet",D.Item:=A.Level.Name]
   
   # Error where the entire diet is not being described and is.na(Diet.Item)
-  error_dat<-Animals.Diet[D.Type!="Entire Diet" & is.na(D.Item) & !D.Is.Group,
+  error_dat<-Animals.Diet[D.Type!="Entire Diet" & is.na(D.Item) & !is_group,
                         ][,list(value=paste0(unique(A.Level.Name),collapse="/")),by=B.Code
                              ][,table:=table_name
                                ][,field:="A.Level.Name"
@@ -1153,8 +1163,8 @@ errors<-c(errors,list(error_dat))
     Animals.Diet[,D.Item.Is.Tree:=F][grepl("Forage Trees",AOM.Terms),D.Item.Is.Tree:=T]
 
     # Summarize 
-    Animals.Diet.Summary<-Animals.Diet[,.(A.Diet.Trees=paste0(sort(unique(AOM.Scientific.Name[D.Item.Is.Tree & !D.Is.Group])),collapse=";"),
-                                          A.Diet.Other=paste0(sort(unique(basename(AOM.Terms)[!D.Item.Is.Tree & !D.Is.Group])),collapse=";")),
+    Animals.Diet.Summary<-Animals.Diet[,.(A.Diet.Trees=paste0(sort(unique(AOM.Scientific.Name[D.Item.Is.Tree & !is_group])),collapse=";"),
+                                          A.Diet.Other=paste0(sort(unique(basename(AOM.Terms)[!D.Item.Is.Tree & !is_group])),collapse=";")),
                                        by=.(B.Code,A.Level.Name)]
     
     Animals.Out<-merge(Animals.Out,Animals.Diet.Summary,by=c("B.Code","A.Level.Name"),all.x=T,sort=F)
@@ -1475,6 +1485,11 @@ errors<-c(errors,list(error_dat))
                                     error_dir=harmonization_dir,
                                     error_list = harmonization_list)
   
+  # 3.7.7)  Check and remove manually entered D.Type, assign D.Type that is a feed item group to D.Item first ####
+  Animals.Diet[(is.na(D.Item)|D.Item=="") & D.Type!="Entire Diet" & !is.na(D.Type),D.Item:=D.Type]
+  Animals.Diet[D.Type=="Entire Diet"]
+  Animals.Diet[,D.Type:=NULL]
+
 # 3.8) Agroforestry #####
 table_name<-"AF.Out"
 data<-lapply(XL,"[[",table_name)
@@ -1738,15 +1753,34 @@ error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
 
 Other.Out[,N:=NULL][,No_struc:=NULL]
 
-# 3.1) Base Practices (Base.Out) #####
-Base.Out<-list(
-  Var.Out[V.Base=="Yes" & !is.na(V.Codes),c("B.Code","V.Codes")],
-  AF.Out[AF.Level.Name=="Base" & !is.na(AF.Codes),c("B.Code","AF.Codes")],
-  Animals.Out[A.Level.Name=="Base"& !is.na(A.Codes),c("B.Code","A.Codes")]
-)
+# 3.1) Base Practices (Base.Out
+  # DELETE Legacy Code ####
+  if(F){
+    Base.Out<-list(
+      Var.Out[V.Base=="Yes" & !is.na(V.Codes),c("B.Code","V.Codes")],
+      AF.Out[AF.Level.Name=="Base" & !is.na(AF.Codes),c("B.Code","AF.Codes")],
+      Animals.Out[A.Level.Name=="Base"& !is.na(A.Codes),c("B.Code","A.Codes")]
+    )
+    
+    Base.Out<-rbindlist(Base.Out[unlist(lapply(Base.Out,nrow))>0],use.names = F)
+    Base.Out<-Base.Out[,list(Base.Codes=paste(unique(V.Codes[order(V.Codes,decreasing = F)]),collapse="-")),by=B.Code]
+  }
 
-Base.Out<-rbindlist(Base.Out[unlist(lapply(Base.Out,nrow))>0],use.names = F)
-Base.Out<-Base.Out[,list(Base.Codes=paste(unique(V.Codes[order(V.Codes,decreasing = F)]),collapse="-")),by=B.Code]
+  # 3.1.1) Base in sub-tables ####
+  
+  # If more than one practice is present and the base practice is applied to both, then we want to duplicate
+  # the base practice for each practice and set the name to that practice, then we remove any mention of base
+  # For example where we have diets A & B and a base diet.
+  
+  # Note we are only apply to Animal.Diet here, for the animal papers in this extraction there do not appear
+  # to be other tables that require the base practice reprosessing. However this will not be the case for 
+  # agronomy papers, the processing will need to be expanded to more tabs.
+    
+    # 3.1.1.1) Animal.Diet ####
+    Animals.Diet<-handle_base(Animals.Diet,target_col = "A.Level.Name",base_col="D.Item.Group")
+    # 3.1.1.2) Chems.Out ####
+    Chems.Out<-handle_base(Chems.Out,target_col = "C.Level.Name")
+
 
 # 4) Treatments (MT.Out)  #####
 table_name<-"MT.Out"
@@ -1818,6 +1852,23 @@ error_dat<-MT.Out[is.na(T.Animals),.(T.Name,B.Code,T.Reps,T.Animals)
 
 errors<-c(errors,list(error_dat))
 
+  # 4.0) Add Base Practices  ####
+  input_dat<-list(C.Level.Name=Chems.Out,
+                  V.Level.Name=Var.Out,
+                  A.Level.Name=Animals.Out,
+                  AF.Level.Name=AF.Out,
+                  O.Level.Name=Other.Out)
+  
+  for(i in 1:length(input_dat)){
+    dat<-copy(input_dat[[i]])
+    target_col<-names(input_dat)[i]   
+    b_codes<-dat[,N.Prac:=length(unique(get(target_col))),by=B.Code][get(target_col) == "Base" & N.Prac==1,B.Code]  
+    MT.Out[ , (target_col) := as.character(get(target_col))]
+    if(length(b_codes)>0){
+    MT.Out[B.Code %in% b_codes,(target_col):="Base"]
+    }
+  }
+
   # 4.1) Merge in practice data #####
   unique(MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(B.Code,P.Product,T.Name)])
   # Create list of data table to merge with MT.Out treatment table
@@ -1827,13 +1878,13 @@ errors<-c(errors,list(error_dat))
                  A.Level.Name=Animals.Out,
                  O.Level.Name=Other.Out)
   
-  data<-MT.Out
+  data<-copy(MT.Out)
   for(i in 1:length(mergedat)){
     keyfield<-names(mergedat)[i]
     # Display progress
-    cat('\r', strrep(' ', 150), '\r')
-    cat("Merging table", i, "/", length(mergedat),keyfield)
-    flush.console()
+    
+    cat("Merging table", i, "/", length(mergedat),keyfield,"          \r")
+    
     
     if(keyfield=="V.Level.Name"){
       data<-merge(data,mergedat[[i]],
@@ -1850,14 +1901,18 @@ errors<-c(errors,list(error_dat))
       cat(" ! Warning: nrow(output) = ",nrow(data),"vs nrow(input)",nrow(MT.Out),"\n")
     }
   }
-
-  # Add in Base.Out
+  
+  MT.Out<-data
+  
+  # DELETE Legacy: Add in Base.Out ####
+  if(F){
   data<-merge(data,Base.Out,by="B.Code",all.x=T)
   if(nrow(data)!=nrow(MT.Out)){
     cat(" ! Warning: nrow(output) = ",nrow(data),"vs nrow(input)",nrow(MT.Out),"\n")
   }
   
-  MT.Out<-data
+
+  }
   
   # 4.2) Combine practice codes to create T.Codes ######
   code_cols<-c(AF.Level.Name="AF.Codes",
@@ -2023,7 +2078,6 @@ errors<-c(errors,list(error_dat))
     x
   }), .SDcols = col_names]
   
-  # TO DO ADD BASE PRACTICE DATA? #####
   # 4.5) Save errors  ######
   error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
                             filename = paste0(table_name,"_errors"),
@@ -2239,7 +2293,7 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
 
   # 6.0) Clean, rename, validate ####
     # 6.0.1) Update Feed Item Names, Indicate if whole diet, diet group or single ingredient #####
-    merge_dat<-unique(Animals.Diet[,.(B.Code,D.Item.Raw,D.Item)])
+    merge_dat<-unique(Animals.Diet[is_group==F & is_entire_diet==F,.(B.Code,D.Item.Raw,D.Item)])
     Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","D.Item.Raw"),all.x=T,sort=F)
     Data.Out[,ED.Intake.Item.Raw:=ED.Intake.Item
              ][!is.na(D.Item),ED.Intake.Item:=D.Item]
@@ -2254,7 +2308,7 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
     Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Intake.Item"),by.y=c("B.Code","A.Level.Name"),all.x=T,sort=F)
     Data.Out[is.na(ED.Intake.Item.is_entire_diet),ED.Intake.Item.is_entire_diet:=F
              ][ED.Intake.Item.Raw=="Entire Diet",ED.Intake.Item.is_entire_diet:=T]
-    
+
     # If entire diet substitute the A.Level.Name for the diet
     merge_dat<-MT.Out[,.(B.Code,T.Name,A.Level.Name)]
     Data.Out<-merge(Data.Out,merge_dat,by.x=c("B.Code","ED.Treatment"),by.y=c("B.Code","T.Name"),all.x=T,sort=F)
@@ -2471,7 +2525,7 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
                               error_dir=error_dir,
                               error_list = error_list)
     
-  # 7) Save tables as a list  ####
+# 7) Save tables as a list  ####
   Tables<-list(
     Pub.Out=Pub.Out, 
     Site.Out=Site.Out, 
