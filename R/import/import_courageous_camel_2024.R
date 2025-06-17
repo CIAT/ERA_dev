@@ -22,6 +22,20 @@
 # R/import/import_helpers.R
 #
 # 0.0) Install and load packages, load functions ####
+
+# 0.0) Choose a mirror and make sure rnaturalearthhires is installed -----------
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+if (!requireNamespace("rnaturalearthhires", quietly = TRUE)) {
+  install.packages(
+    "rnaturalearthhires",
+    repos = "https://ropensci.r-universe.dev",
+    type  = "source"          # R-universe serves source tarballs
+  )
+}
+
+# now pacman can load everything else
+
 if (!require(pacman)) install.packages("pacman")  # Install pacman if not already installed
 pacman::p_load(data.table, 
                readxl,
@@ -58,11 +72,11 @@ worker_n<-parallel::detectCores()-2
 project<-era_projects$courageous_camel_2024
 
 # Working folder where extraction excel files are stored during in active data entry
-#excel_dir<-"G:/My Drive/Data Entry 2024"
+excel_dir <- "G:/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024"
 #excel_dir<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/My Drive/Data Entry 2024"
 
 # Are we in the live data extraction phase?
-ext_live<-F
+ext_live<-T
 
 # Where extraction excel files are stored longer term
 if(!ext_live){
@@ -72,7 +86,7 @@ if(!ext_live){
   }
 }else{
   # You will need to set the directory path to where the excel files are stored locally (usually a google drive folder)
-  excel_dir<-"/Users/pstewarda/Library/CloudStorage/GoogleDrive-peetmate@gmail.com/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024/"
+  excel_dir<-"G:/.shortcut-targets-by-id/1onn-IqY6kuHSboqNSZgEzggmKIv576BB/Data Entry 2024"
 }
 
 # Where processed extraction files are stored
@@ -3001,7 +3015,6 @@ which_missing<-which(!input %in% output)
 if(length(missing)>0){
   stop(length(missing)," excel files have not been extracted and saved")
 }
-
 tabs<-names(miceadds::load.Rdata2(basename(files[1]),path=dirname(files[1])))
 
 # Soils need to be dealt with separately as the table structure needs to be changed from wide to long
@@ -3660,13 +3673,92 @@ table_name<-"Ingredients.Out"
       error_tracker(error_dat[order(B.Code)],filename = "Check if Entire Diet can used in Data.Out",error_dir = error_dir)
     }
     
-  # 12.4) Update Tables ####
+    
+    # ==============================================================
+    # 12.4) Update DC.Is.Dry field  ####
+    # ==============================================================
+    
+    ## 12.4.1) Classify from Moisture / DM --------------------------
+    moisture_dt <- Animal.Diet.Comp[tolower(DN.Variable) %in% c("moisture","moist"),
+                                    .(B.Code,D.Item,Pred="Moisture",Val=as.numeric(DN.Value),Unit=tolower(DN.Unit))
+    ][,Dry_Pred:=fcase(Unit %chin% c("%","% dm","g/100g") & Val < 15,TRUE,
+                       Unit %chin% c("%","% dm","g/100g") & Val > 50,FALSE,
+                       Unit=="g/kg" & Val < 150,TRUE,
+                       Unit=="g/kg" & Val > 500,FALSE,default=NA)]
+    
+    dm_dt <- Animal.Diet.Comp[tolower(DN.Variable)=="dm",
+                              .(B.Code,D.Item,Pred="DM",Val=as.numeric(DN.Value),Unit=tolower(DN.Unit))
+    ][,Dry_Pred:=fcase(Unit %chin% c("%","% dm","g/100g") & Val > 85,TRUE,
+                       Unit %chin% c("%","% dm","g/100g") & Val < 50,FALSE,
+                       Unit=="g/kg" & Val > 850,TRUE,
+                       Unit=="g/kg" & Val < 500,FALSE,default=NA)]
+    
+    dry_class <- rbindlist(list(moisture_dt,dm_dt))[!is.na(Dry_Pred),
+                                                    .(Dry_Pred=Dry_Pred[1L]),by=.(B.Code,D.Item,Pred)] |>
+      dcast(B.Code+D.Item~Pred,value.var="Dry_Pred") |>
+      setnames(c("Moisture","DM"),c("Dry_Moist","Dry_DM"))
+    
+    ## 12.4.2) Name-based “dry” detection ---------------------------
+    dry_name <- Animal.Diet[,.(B.Code,A.Level.Name,D.Item,
+                               Dry_name=grepl("\\bdry\\b|\\bdried\\b|\\bmeal\\b|\\bground\\b|\\bmilled\\b|\\bflour\\b",
+                                              tolower(D.Item)) & !grepl("fish meal boiled",tolower(D.Item)))]
+    
+    ## 12.4.3) Extra rule: obvious dry non-ERA feeds ----------------
+    non_era_col <- if ("Non_ERA_Term" %in% names(Animal.Diet)) "Non_ERA_Term" else "AOM.Terms"
+    extra_dry <- Animal.Diet[
+      grepl("^(Non-ERA Feed|Other Feed|Other Ingredients|Supplement)",
+            get(non_era_col),ignore.case=TRUE) &
+        !grepl("\\b(water|oil)\\b",tolower(D.Item)),
+      .(B.Code,D.Item,DC.Is.Dry="Yes")]
+    
+    ## 12.4.4) Combine predictions ---------------------------------
+    dry_pred <- unique(rbindlist(list(
+      dry_class[ Dry_Moist==TRUE | Dry_DM==TRUE, .(B.Code,D.Item,DC.Is.Dry="Yes") ],
+      dry_name [ Dry_name==TRUE,                 .(B.Code,D.Item,DC.Is.Dry="Yes") ],
+      extra_dry)))
+    
+    ## 12.4.5) Apply to Animal.Diet --------------------------------
+    Animal.Diet[dry_pred,on=.(B.Code,D.Item),DC.Is.Dry.pred:=i.DC.Is.Dry]
+    Animal.Diet[dry_pred,on=.(B.Code,A.Level.Name=D.Item),DC.Is.Dry.pred2:=i.DC.Is.Dry]
+    Animal.Diet[(is.na(DC.Is.Dry)|tolower(DC.Is.Dry)%chin%c("no","unspecified")) &
+                  (DC.Is.Dry.pred=="Yes"|DC.Is.Dry.pred2=="Yes"),DC.Is.Dry:="Yes"]
+    Animal.Diet[,c("DC.Is.Dry.pred","DC.Is.Dry.pred2"):=NULL]
+    
+    
+    #12.5 ) Update T.Control 
+    
+  #Some T.Control are NAs. 
+    #If any diet in a given paper is already marked as the control (t_control = TRUE), automatically set t_control = FALSE for every other diet from that same paper.
+    #When t_control is missing, infer the control diet by keywords in the diet name: if the name contains “control”, “con”, or “zero”, mark that diet as the control (t_control = TRUE) and mark all other diets in the paper as treatments (t_control = FALSE).
+    
+    # --- 12.5.1)  Guess missing controls from diet name ----------
+    MT.Out[
+      grepl("\\b(zero|con|control)\\b", A.Level.Name, ignore.case = TRUE) &
+        (is.na(T.Control) | T.Control %chin% c("", "0", "false", "na")),
+      T.Control := "yes"
+    ]
+    
+    # --- 12.5.2)  One-and-only-one control per paper -------------
+    MT.Out[ ,
+        T.Control := {
+          x <- fifelse(T.Control %chin% c("false","0","n","no"), "no", T.Control)  # normalise “no”
+          if (any(x == "yes", na.rm = TRUE))                                      # control exists?
+            fifelse(x == "yes", "yes", "no")                                      #  → all others “no”
+          else
+            x                                                                    #  → leave as-is
+        },
+        by = B.Code
+    ]
+    
+    
+  # 12.6) Update Tables ####
     
     data$Animal.Diet<-Animal.Diet
     data$Animals.Out<-Animals.Out
     data$Animal.Diet.Comp<-Animal.Diet.Comp
     data$Animal.Diet.Digest<-Animal.Diet.Digest
     data$Data.Out<-Data.Out
+    data$MT.Out<-MT.Out
     
 # 13) Save results ####
 save_file<-paste0(project,"_draft_",as.character(Sys.Date()))
