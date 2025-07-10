@@ -562,7 +562,7 @@ replace_zero_with_NA <- function(data) {
 #' error_tracker(errors, "errors_file", "/path/to/error_dir")
 #' }
 #' @importFrom data.table fread fwrite
-error_tracker <- function(errors, filename, error_dir, error_list = NULL,character_cols="B.Code") {
+error_tracker <- function(errors, filename, error_dir, error_list = NULL,character_cols="B.Code",save_result=T) {
   if (is.null(error_list)) {
     error_list <- list()
   }
@@ -590,7 +590,7 @@ error_tracker <- function(errors, filename, error_dir, error_list = NULL,charact
         error_tracking[, notes := ""]
       }
       
-      errors <- merge(errors, error_tracking, all.x = TRUE, by = colnames(errors))
+      errors <- merge(errors, error_tracking, all.x = TRUE)
       errors[is.na(issue_addressed), issue_addressed := FALSE
       ][is.na(addressed_by_whom), addressed_by_whom := ""
       ][is.na(notes), notes := ""]
@@ -599,8 +599,11 @@ error_tracker <- function(errors, filename, error_dir, error_list = NULL,charact
       ][, addressed_by_whom := ""
       ][, notes := ""]
     }
+    
     error_list[[filename]] <- errors
-    fwrite(errors, error_file)
+    if(save_result){
+      fwrite(errors, error_file)
+    }
   } else {
     unlink(error_file)
   }
