@@ -1,0 +1,29 @@
+B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes,V9
+AC0044,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",hmm multiple practices. Maybe reps,""
+AC0045,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",additional fert ie 92p vs 92p + 15n. I removed the 0,""
+AC0092,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,tillage + rotations,""
+AC0118,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",tillage + rotations,""
+AC0121,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,tillage + rotations,incorrect times were not allowing comparisons
+AC0127,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,tillage + rotations + intercrop,Different fate of crop to the make trt tab
+AC0141,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,Might be fixed,""
+AC0144,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",I don’t think there are valid comparisons here,""
+AC0175,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",agroforestry intercrop- not sure why its not got comparisons,""
+CJ0027,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",tillage + rotations + chems,""
+CJ0046,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",tillage + rotations + residue,""
+CJ0130,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,Conflicting residue codes in make trt and residue tab,""
+HK0161.1,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",I don’t think there are valid comparisons here,""
+HK0240,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",not sure why- such simple papers,""
+JO0077,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",can we compare aggregated to singles trts?,""
+JO0139,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",not sure why- such simple papers,""
+JO0150,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",not sure why- such simple papers,""
+JS0216,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",waterharvesting + till,""
+NM0057,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",aggregated in a rotation,""
+NM0120,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"","",
+NN0192,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,But there might not be a valid comparison,""
+NN0426,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,there might not be a valid comparison- irrigationg + fert difference in trts,might reject
+NN0435,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",aggregated in the intercrop,""
+NN0502,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"","",
+NN0519,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,ps?,"",""
+SA0059.2,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,FALSE,"",all rotations with and without fert,""
+SP0036,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,rejected,""
+SP0042,"",Plant.Out,P.Structure,Comparison logic does not find any comparisons for this paper.,TRUE,nj,rejected,""

@@ -1,7 +1,6 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
 AC0017,FP/CARP,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""
 AC0025,tillage,Weed.Out,W.Level.Name,"One weeding practice exists and comparison is NOT allowed, please check that the comparisons field is correctly assigned.",FALSE,"",""
-AC0085,Maize/Wheat and teff,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""
 AC0099,twice/four/clean,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""
 AC0113,OM/OI/CM,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""
 AC0127,NT/CT,Weed.Out,W.Level.Name,">1 weeding practices exist and comparison IS allowed, check comparisons field is correct (many conservation ag experiments where this is ok).",FALSE,"",""

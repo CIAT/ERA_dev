@@ -14,6 +14,6 @@ plants/m4,CJ0017/CJ0078/NN0490,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALS
 plants/m5,CJ0017/NN0490,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
 plants/m6,CJ0017/NN0490,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
 plants/m7,NN0490,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
-seeds/ha,NN0432/NM0046/NM0068,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
+seeds/ha,NN0432/NM0046,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
 seeds/m,CJ0098/NM0061/NM0062/NM0076,Plant.Out,Plant.Density.Unit,,,lookup_levels,FALSE,"",""
 uu,NM0071,Plant.Out,Plant.Mechanization,Fert.Out,F.Mechanization,lookup_levels,FALSE,"",""

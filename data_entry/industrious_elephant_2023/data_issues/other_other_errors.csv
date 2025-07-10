@@ -12,7 +12,6 @@ AC0110,E. poeppigiana pruning,Other.Out,O.Level.Name,"One other practice exists,
 AC0113,"OI, CM, CI manual removal of insects/OM",Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
 AC0132,B/C/F,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 AC0140,CT/RT/NT,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
-AC0141,Calliandra,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 AC0144,RP/FV,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 AC0157,Forage cactus,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 AC0168,Prunning,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
@@ -22,7 +21,6 @@ CJ0093,L + S + T/C + S + T,Other.Out,O.Level.Name,">1 other practice exists and 
 CJ0106,US,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,"",""
 CJ0132,CF/OF,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 CJ0188,M/C,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
-CJ0197,fresh water/fish drainage water,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 CJ0200,Salinity 5/Salinity12/Salinity 17,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
 HK0157,PRUNNING,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,"",""
 HK0166,UA/AS/CAN,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
@@ -48,7 +46,6 @@ JO0160,TDS/TPS,Other.Out,O.Level.Name,">1 other practice exists and comparison I
 JO0177,1M From trunk/1/2 D of tree crown/Crown Edge/Out of edge,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 JO0214,Mowing,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Charity,"This is correct,mowing was done on grass phase of a rotation"
 JS0234,Pruning,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
-JS0369,Shrub,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 JS0433,Prunings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 LM0006,Tree prunnings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 LM0171,Prunnings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
