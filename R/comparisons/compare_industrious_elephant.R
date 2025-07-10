@@ -2423,7 +2423,7 @@ Data<-Data.Out
   ][!is.na(value),field:="P.Structure"
   ][,issue:="Comparison logic does not find any comparisons for this paper."]
   
-  error_list<-error_tracker(errors=error_dat,filename = "no_comparisons",error_dir=qaqc_dir,error_list = NULL)
+  error_list<-error_tracker(errors=copy(error_dat),filename = "no_comparisons",error_dir=qaqc_dir,error_list = NULL,save_result = T)
   
     # 4.9.1) Compare versions #####
   
