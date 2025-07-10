@@ -483,7 +483,7 @@ upload_files_to_s3(files = files,
     upload_files_to_s3(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
-                       overwrite=F,
+                       overwrite=T,
                        mode="private")
     
 #########################################################    
