@@ -2393,7 +2393,7 @@ t_levels<-c(MT.Out$T.Name,MT.Out[!is.na(T.Name2),T.Name2])
   
   MT.Out[,T.Codes:=t_codes]
   }
-  # 4.3) MOVE TO ENTERDATA? Combine aggregated treatments #####
+  # 4.3) Combine aggregated treatments #####
 if(F){
   N<-grep("[.][.]",MT.Out$T.Name)
   
@@ -2537,16 +2537,34 @@ if(F){
   MT.Out<-rbind(MT.Out.agg,MT.Out.noagg)
 }
   
-  # 4.4) MOVE TO ENTERDATA? Update structure for aggregated treatments ####
+  # 4.4) Update structure for aggregated treatments ####
   if(F){
   col_names<-grep("Structure",colnames(MT.Out),value=T)
   MT.Out <- MT.Out[, (col_names) := lapply(.SD, FUN=function(x){
-    x[grepl("Yes",x,ignore.case = T)]<-"Yes"
-    x[!grepl("Yes",x,ignore.case = T)]<-NA
+    x[grepl("No",x,ignore.case = T)]<-"No"
+    x[!grepl("No",x,ignore.case = T)]<-NA
     x
   }), .SDcols = col_names]
   }
   
+  # 4.5) Merge structure practices ####
+  # Note "No" prevents comparisons here text in excel is
+  # Can we compare outcomes between these practices?
+  X<-copy(MT.Out)[,.(C.Structure,O.Structure)
+  ][grepl("No|no",C.Structure),C.Structure:=MT.Out[grepl("No",C.Structure),C.Level.Name]
+  ][grepl("No|no",O.Structure),O.Structure:=MT.Out[grepl("No",O.Structure),O.Level.Name]]
+
+  X<-pbapply(X,1,FUN=function(X){
+    X<-paste(unique(X[!(is.na(X)|X %in% c("","No","no"))]),collapse=":::")
+    if(is.null(X)|X==""){
+      NA
+    }else{
+      X
+    }
+  })
+  
+  MT.Out[,Structure.Comb:=X][!is.na(Structure.Comb),Structure.Comb:=paste(P.Product,Structure.Comb)]
+
   # TO DO ADD BASE PRACTICE DATA? #####
 # 5) Outcomes ####
 table_name<-"Out.Out"
@@ -2915,12 +2933,6 @@ if(F){
     # Make Sure of match between Data.Out and Site.Out
     (error_dat<-unique(Data.Out[is.na(Country),.(B.Code,Site.ID)])[!B.Code %in% errors$site_mismatches$B.Code])
     
-    # 7.3.7) !!TO DO !!!Update Structure Fields to reflect Level name rather than "Yes" or "No" ####
-    if(F){
-      grep("[.]Structure$",colnames(Data.Out),value=T)
-      Data.Out[O.Structure!="Yes",O.Structure:=NA][O.Structure=="Yes",O.Structure:=O.Level.Name]
-      Data.Out[C.Structure!="Yes",C.Structure:=NA][C.Structure=="Yes",C.Structure:=C.Level.Name]
-    }
     
     # 8) Save results ####
     Tables<-list(
@@ -3033,8 +3045,8 @@ Pasture.Out<-data$Pasture.Out
 GM.Out<-data$GM.Out
 # ************************* ####
 # ENABLE THIS LINE AFTER NEXT IMPORT OF DATASET ######
-# ************************* ####
 # Plant.Method<-data$Plant.Method
+# ************************* ####
 Till.Method<-data$Till.Method
 Fert.Out<-data$Fert.Out
 AF.Out<-data$AF.Out
