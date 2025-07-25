@@ -2073,8 +2073,8 @@ errors<-c(errors,list(error_dat))
   col_names<-grep("Structure",colnames(MT.Out),value=T)
   
   MT.Out <- MT.Out[, (col_names) := lapply(.SD, FUN=function(x){
-    x[grepl("Yes",x,ignore.case = T)]<-"Yes"
-    x[!grepl("Yes",x,ignore.case = T)]<-NA
+    x[grepl("No",x,ignore.case = T)]<-"No"
+    x[!grepl("No",x,ignore.case = T)]<-NA
     x
   }), .SDcols = col_names]
   
@@ -2516,8 +2516,8 @@ setnames(Data.Out,c("ED.Mean.T_raw","ED.M.Year_raw"),c("ED.Mean.T","ED.M.Year"))
     
     # 6.1.7) Update Structure Fields to reflect Level name rather than "Yes" or "No" ####
     grep("[.]Structure$",colnames(Data.Out),value=T)
-    Data.Out[O.Structure!="Yes",O.Structure:=NA][O.Structure=="Yes",O.Structure:=O.Level.Name]
-    Data.Out[C.Structure!="Yes",C.Structure:=NA][C.Structure=="Yes",C.Structure:=C.Level.Name]
+    Data.Out[O.Structure=="Yes",O.Structure:=NA][O.Structure=="No",O.Structure:=O.Level.Name]
+    Data.Out[C.Structure=="Yes",C.Structure:=NA][C.Structure=="No",C.Structure:=C.Level.Name]
 
   # 6.2) Save errors #####
     error_list<-error_tracker(errors=rbindlist(errors,use.names = T),
