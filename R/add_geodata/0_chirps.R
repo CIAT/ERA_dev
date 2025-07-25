@@ -234,7 +234,7 @@ dates_seq[!dates_seq %in% dates]
   
   }
   
-## 6) Restructure CHIRPS ####
+## 6) Not Run: Restructure CHIRPS ####
   if(F){
   ## 6.1) Create folders ####
   save_dir<-file.path(era_dirs$chirps_dir,"restructured")
