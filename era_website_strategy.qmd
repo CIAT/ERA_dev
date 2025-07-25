@@ -1,0 +1,139 @@
+---
+title: "My Document Title"
+author: "Your Name"
+format:
+  docx:
+  toc: true        # Table of contents
+number-sections: true
+editor: visual
+editor_options: 
+  markdown: 
+  wrap: 72
+---
+
+## ERA Website Strategy Draft
+
+### 1. Strategic Purpose of the Website
+
+The ERA website will serve as a **modular hub** to both:
+
+-   Present the **ERA vision, approach, and credibility** to external collaborators, donors, and institutions.
+-   Provide a structured and user-friendly point of access to ERA’s technical content, including harmonized datasets, markdown documentation, and interactive tools.
+
+It will improve visibility, unify scattered documentation, and provide a foundation to support further scaling, engagement, and adaptation of ERA’s data system.
+
+------------------------------------------------------------------------
+
+### 2. Target Audience and User Needs
+
+The website will serve diverse but overlapping user groups:
+
+| Audience | Needs |
+|----|----|
+| **Researchers & Data Scientists** | Access harmonized agronomy/livestock datasets, methodological guidance, use case documentation |
+| **Donors & Program Officers** | Understand ERA’s scope, partners, scientific credibility, and applied impact |
+| **AI/Tech Partners** | Integrate structured ERA data into pipelines or GPT-RAG frameworks (e.g., AgStack) |
+| **Internal Collaborators** | Consistent reference for methods, vocabularies, and versioned outputs |
+
+*Please suggest additional user types or specific needs based on your experience interacting with ERA stakeholders.*
+
+------------------------------------------------------------------------
+
+### 3. Core Components and Content to Include
+
+The following sections are proposed:
+
+-   **Homepage** – Intro to ERA’s mission, current scope, and global relevance (noting current African data focus)
+-   **About ERA** – Vision, methodology, team, contact, acknowledgments
+-   **Use Cases** – Short, structured stories documenting how ERA was applied in real projects (*see Use Case Template below*)
+-   **Documentation** – Guides, vignettes, and data access instructions (sourced from ERA Agronomy/Livestock GitHub repos)
+-   **Data & Tools Access** – Links to harmonized datasets, climate/soils enrichment, and GitHub repositories
+-   **Interactive Tools** – Shiny app embeds (legacy and future), plus possible new visual interfaces
+-   **Updates** – (Optional) newsfeed for new features, data releases, or publications
+
+*Team input needed: Please identify any additional sections or critical markdowns/tools you believe must be included in Phase 1.*
+
+------------------------------------------------------------------------
+
+### 4. Technical Stack and Platform Recommendations
+
+We recommend a **GitHub-based static site built with Quarto**, complemented by optional Shiny module embedding.
+
+| Component | Recommended Option | Notes |
+|----|----|----|
+| **Site Generator** | [Quarto](https://quarto.org) | Markdown-based, supports code rendering, navigation, Shiny embedding |
+| **Hosting** | GitHub Pages | Free, version-controlled, integrates with Quarto |
+| **Interactivity** | Shiny apps hosted via Montpellier server (TBC with Brayden) | Minimal lift for legacy modules |
+| **Design** | Clean, lightweight theme using existing ERA branding | Will explore CGIAR visual alignment as feasible |
+| **Search** | Not prioritized unless native to theme | Navigation-first approach preferred for now |
+
+**Pros:**
+
+-   Minimal maintenance; suitable for a busy research team
+-   Leverages existing markdowns and code
+-   Open source and fully version controlled
+-   Easy to extend later
+
+**Cons:**
+
+-   Limited WYSIWYG or non-code editing (some markdown/git knowledge needed)
+-   Requires hosting Shiny apps separately
+-   Visual customization limited unless CSS is added
+
+*A short list of well-executed example sites will be shared for reference.*
+
+------------------------------------------------------------------------
+
+### 5. Use Case Contributions and Templates
+
+Use cases are a key way to demonstrate ERA’s applied value.
+
+We propose a simple **YAML-based template** for team members and collaborators to complete:
+
+``` yaml
+title: Crop Model Calibration in Kenya
+who: AgStack, Linux Foundation
+user_type: AI/Data Integration
+problem: Needed harmonized yield/fertilizer data for GPT-RAG integration
+what_ERA_provided: Structured dataset on maize yield trials, NPK inputs, and climate
+outcome: Used to validate advisory logic for an open-source agronomic assistant
+quote: "ERA data allowed us to reduce reliance on scraped, unverified sources."
+```
+
+*We will circulate this template along with a request to complete 1–2 use cases each. If you’ve worked with a user, even informally, please suggest a relevant case.*
+
+------------------------------------------------------------------------
+
+### 6. Interactivity and Tool Integration
+
+Existing Shiny apps (e.g., ERA CKS) can be lightly updated and embedded.
+
+*We need team input to identify:*
+
+-   Which tools/apps are **high-value and feasible** to revive
+-   Any gaps where new tools could **transform existing vignettes into interactive elements**
+    -   What could be made more **accessible to non-programmers** (e.g., dropdowns instead of R code)
+
+*If you’ve built or used a tool you think should be included, please flag it, even if it’s currently in draft or internal form.*
+
+------------------------------------------------------------------------
+
+### 7. Governance, Review, and Maintenance
+
+-   **Content ownership** will be distributed by domain (e.g., agronomy, livestock, climate).
+-   A small group (e.g., Peter, Brayden, Namita) will coordinate structure and integration.
+-   No full-time developer is needed; markdown contributors plus 1 GitHub maintainer will suffice.
+-   ERAg package maintenance will be considered a **Phase 2** priority after the website is established.
+
+------------------------------------------------------------------------
+
+### 8. Immediate Next Steps
+
+| Task | Owner | Notes |
+|----|----|----|
+| Draft content audit & markdown inventory request | [Consultant] | Includes prompt for core documents and tool priorities |
+| Confirm Shiny hosting options with Brayden | [TBD] | Clarify if Montpellier server supports public hosting |
+| Circulate use case template | [Peter?] | Collect initial 3–5 examples from team + partners |
+| Review visual identity guidelines | [TBD] | Try to locate internal design resource, fallback to ERA branding |
+| Prototype homepage & structure | [Consultant] | Using Quarto and GitHub Pages |
+| Team feedback loop | Everyone | Input on site structure, content priorities, examples |
