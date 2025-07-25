@@ -1085,9 +1085,19 @@ names(XL) <- FNames
                        max_diff=0.2)
     
     fert_infer<-results$data
-    error_dat<-results$errors  
-    error_dat[,sort(unique(B.Code))]
-    fwrite(error_dat,file.path(error_dir,"MH_fertilizer_issues.csv"))
+    
+    # Dev note: qa/qc logical checks need to be refined and implemented ####
+    # error_dat<-results$errors  
+    # error_dat[,sort(unique(B.Code))]
+    # fwrite(error_dat,file.path(error_dir,"MH_fertilizer_issues.csv"))
+    
+    # Extract estimated total NPK per treatment
+    f_tot<-fert_infer[,.(N=sum(N,na.rm=T),P=sum(P,na.rm=T),K=sum(K,na.rm=T)),by=.(B.Code,F.Level.Name)]
+    f_tot[N==0,N:=NA][P==0,P:=NA][K==0,K:=NA]
+    setnames(f_tot,c("N","P","K"),c("F.NI.est","F.PI.est","F.KI.est"))
+    
+    # Merge totals with Fert.Out
+    Fert.Out<-merge(Fert.Out,f_tot,all.x=T,sort=F)
     
     # Subset results to new values with less than 20% variance between reported and calculated N,P and K values
     fert_calc_vals<-fert_infer[(!is.na(F.Amount) & 
@@ -1101,6 +1111,12 @@ names(XL) <- FNames
     
     # Merge new data using index
     Fert.Method<-merge(Fert.Method,fert_calc_vals,by="index",all.x=T,sort=F)
+    
+    # Merge in estimate N,P,K for ingredients
+    f_ingred<-fert_infer[,.(index,N,P,K)]
+    f_ingred[N==0,N:=NA][P==0,P:=NA][K==0,K:=NA]
+    setnames(f_ingred,c("N","P","K"),c("F.NI.est","F.PI.est","F.KI.est"))
+    Fert.Method<-merge(Fert.Method,f_ingred,by="index",all.x=T,sort=F)
     
     Fert.Method[!is.na(F.Amount_calc),`:=`(F.Amount=F.Amount_calc,F.Unit=F.Unit_calc)
                 ][,c("F.Amount_calc","F.Unit_calc"):=NULL
