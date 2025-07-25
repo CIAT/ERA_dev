@@ -262,7 +262,7 @@ compare_fun<-function(Data,
       # replicated for all rows in Z.
       
       # Remove mulch-specific codes from the control practices where mulching adjustments apply.
-      Z[, Control.Code := Z[, list(Control.Code = list(unlist(Control.Code)[!unlist(Control.Code) %in% Mulch.Code])), by = "N"][, Control.Code]] 
+      Z[, Control.Code := Z[, list(Control.Code = list(unlist(Control.Code)[!unlist(Control.Code) %in% Mulch.Code])), by = N][, Control.Code]] 
       # For each row in Z, update `Control.Code` by excluding codes in `Mulch.Code`.
       # This ensures mulch-specific adjustments are properly accounted for in the control practices.
       
