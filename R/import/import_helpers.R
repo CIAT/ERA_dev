@@ -150,51 +150,90 @@ process_string <- function(input_string, between_delim = "..", within_delim = "|
   # Return both shared and different elements
   return(c(shared = common_strings, different = final_result))
 }
-#' Infer Fertilizer Amounts
+
+# Infer and QC Fertilizer Amounts and NPK Ratios
 #'
-#' This function calculates fertilizer amounts for various fertilizers based on provided master codes,
-#' fertilizer methods, and fertilizer outputs. It handles remapping fertilizer names, calculating
-#' unknown values, and performing checks on elemental completeness.
+#' Calculate and infer missing fertilizer amounts (N, P, K) using master codes, methods, and outputs.
+#' Remaps ambiguous names, converts units (mass and percentage), and flags significant N/P/K discrepancies.
 #'
-#' Note units in Fert.Method (`F.Unit` and `F.I.Unit`) should be `% of Total`,`kg/ha`, or `NA`. Rows
-#' with different values are removed.
+#' @param fert_codes data.table. ERA master vocabulary of fertilizers, must include:
+#'   - `F.Type_New`: fertilizer name  
+#'   - `F.N`, `F.P`, `F.K`: elemental ratios (%)  
+#'   - `F.Category_New`: “Inorganic” or similar  
+#' @param Fert.Method data.table. Fertilizer method details, including:
+#'   - `F.Name` (or `F.Level.Name`), `F.Codes`  
+#'   - either `F.NPK` (string “N-P-K”) or separate `F.NP2O5K2O`  
+#'   - `F.Amount`, `F.Unit`  
+#' @param Fert.Out data.table. Observed nutrient outputs per treatment, with columns:
+#'   - `B.Code`, `F.Level.Name`  
+#'   - `F.NI`, `F.PI`, `F.P2O5`, `F.KI`, `F.K2O`  
+#'   - `F.I.Unit` (should be “kg/ha” or NA)  
+#' @param remappings data.table or NULL. Two-column (`from`,`to`) map to recode `F.Type` values prior to matching.
+#' @param max_diff numeric in [0,1]. Proportional tolerance for N/P/K sum checks; values above this (e.g. 0.2 → 20%) are flagged.
 #'
-#' @param fert_codes A `data.table` from the ERA master vocabularly containing fertilizer information.
-#' @param Fert.Method A `data.table` containing fertilizer method details.
-#' @param Fert.Out A `data.table` with fertilizer output information. 
-#' @param remappings A `data.table` with columns `from` and `to` used to remap fertilizer names in the `F.Type` field. This is useful
-#' for instance where a name is vague and we are making an assumption as to the exact nature of the fertilizer (e.g., we may
-#' remap `Superphosphate` to `Single Superphosphate`).
-#' @param max_diff A `numeric` value between 0-1 used to flag records for inclusion in the output `errors` table. For example,
-#' a value of 0.2 means values with more than 20% difference between reported vs calculated total elemental N,P, or K are
-#' returned in the `errors` output table.  
-#' @return A list with two elements:
-#' \item{data}{A `data.table` containing inferred fertilizer amounts and detailed calculations.}
-#' \item{errors}{A `data.table` containing records with errors or discrepancies for further inspection. Records are indentified where
-#' calculated NPK is }
+#' @return A named list of three data.tables:
+#' \describe{
+#'   \item{data}{Inferred fertilizer details per treatment, with:
+#'     \itemize{
+#'       \item original and processed fields  
+#'       \item completeness flags (`N_sum_complete`, etc.)  
+#'       \item calculated `N`, `P`, `K`, and `*_sum`  
+#'     }
+#'   }
+#'   \item{data_new}{Additional fertilizer method entries for “Unspecified” N/P/K (e.g. `“N (Unspecified)”`),
+#'     with `F.Codes` set and ready for appending to `Fert.Method`.}
+#'   \item{errors}{Records where any of `N_diff`, `P_diff`, or `K_diff` exceed `max_diff`, for QA/QC review.}
+#' }
 #'
 #' @details
-#' This function performs the following operations:
-#' - Extracts inorganic fertilizers and processes their NPK ratios.
-#' - Maps fertilizer names to standardized formats using a predefined mapping table.
-#' - Merges fertilizer data with methods and outputs to calculate missing values for fertilizer amounts.
-#' - Converts P2O5 to P and K2O to K where applicable.
-#' - Checks for completeness of NPK sums and flags significant discrepancies for review.
+#' - Converts P₂O₅→P (×0.436) and K₂O→K (×0.83) when raw values are present.  
+#' - Handles percentage units by converting `%` → mass using `F.Amount_perc`.  
+#' - Infers missing `F.Amount` when only one nutrient is specified.  
+#' - Remaps fertilizer names via `remappings` before matching elemental ratios.  
+#' - Flags any incomplete or inconsistent nutrient sums based on `max_diff`.  
 #'
 #' @examples
-#' # Example usage
-#' fert_codes <- data.table(fert = ..., F.Category_New = ...)
-#' Fert.Method <- data.table(F.Name = ..., F.Codes = ..., F.Category = ...)
-#' Fert.Out <- data.table(F.NI = ..., F.PI = ..., F.KI = ...)
-#' remappings<-data.table(from="Superphosphate",to="Single Superphosphate")
-#' result <- infer_fert_amounts(master_codes, Fert.Method, Fert.Out,remappings,max_diff=0.2)
+#' ```r
+#' library(data.table)
+#' # dummy vocab
+#' fert_codes <- data.table(
+#'   F.Type_New = c("Urea","Single Superphosphate"),
+#'   F.N = c(46, 0),
+#'   F.P = c(0, 16),
+#'   F.K = c(0, 0),
+#'   F.Category_New = "Inorganic"
+#' )
+#' # method table
+#' Fert.Method <- data.table(
+#'   F.Name = c("Urea","SSP"),
+#'   F.Codes = c("b23","b21"),
+#'   F.NPK = c("46-0-0","0-16-0"),
+#'   F.Amount = c(100, 200),
+#'   F.Unit = c("kg/ha","kg/ha")
+#' )
+#' # observed outputs
+#' Fert.Out <- data.table(
+#'   B.Code = "B1",
+#'   F.Level.Name = c("Urea","SSP"),
+#'   F.NI = c(46, 0),
+#'   F.PI = c(0, 32),
+#'   F.P2O5 = c(NA, 32),
+#'   F.KI = c(0, 0),
+#'   F.K2O = c(NA, 0),
+#'   F.I.Unit = c("kg/ha","kg/ha")
+#' )
+#' # remapping example
+#' remap <- data.table(from="Single Superphosphate", to="SSP")
 #'
-#' # Access the results
-#' data <- result$data
-#' errors <- result$errors
-#'
-#' @export
-#' 
+#' result <- infer_fert_amounts(
+#'   fert_codes, Fert.Method, Fert.Out,
+#'   remappings = remap, max_diff = 0.2
+#' )
+#' str(result$data)      # primary inferred table
+#' str(result$data_new)  # new unspecified entries
+#' str(result$errors)    # flagged discrepancies
+#' ```
+#' @export 
 infer_fert_amounts<-function(fert_codes,Fert.Method,Fert.Out,remappings=NULL,max_diff=0.2){
 
 # Extract only inorganic fertilizers and their NPK content
@@ -496,6 +535,10 @@ add12[F.Type=="N (Unspecified)",F.Codes:="b17"
       ][F.Type=="P (Unspecified)",F.Codes:="b21"
         ][F.Type=="K (Unspecified)",F.Codes:="b16"]
 
+add12[F.Type=="N (Unspecified)",F.NI.est:=F.Amount
+      ][F.Type=="P (Unspecified)",F.PI.est:=F.Amount
+        ][F.Type=="K (Unspecified)",F.KI.est:=F.Amount]
+
 fm_new<-data.table(F.Level.Name=add12$F.Level.Name,
            F.Category="Inorganic",
            F.Type=add12$F.Type,
@@ -517,7 +560,10 @@ fm_new<-data.table(F.Level.Name=add12$F.Level.Name,
            F.Date.DAE=NA,
            F.Date.Text=NA,
            B.Code=add12$B.Code,
-           F.Codes=add12$F.Codes)
+           F.Codes=add12$F.Codes,
+           F.NI.est=add12$F.NI.est,
+           F.PI.est=add12$F.PI.est,
+           F.KI.est=add12$F.KI.est)
 
 if("F.NP2O5K2O" %in% colnames(Fert.Method)){
   fm_new[,F.NP2O5K2O:=NA]
@@ -1167,11 +1213,13 @@ validator <- function(data,
                       convert_NA_strings = FALSE,
                       duplicate_field=NULL,
                       duplicate_ignore_fields=NULL,
+                      duplicate_base=NULL,
                       find_duplicates=TRUE,
                       template_cols=NULL,
                       allowed_values=NULL,
                       check_keyfields=NULL,
-                      rm_duplicates=TRUE) {
+                      rm_duplicates=TRUE,
+                      unit_conversions=NULL) {
   
   errors <- list()
   n <- 1
@@ -1264,8 +1312,7 @@ validator <- function(data,
   if (!is.null(date_cols)) {
     numeric_cols <- unique(c(numeric_cols, date_cols))
   }
-  
-  
+
   # Substitute , for . in numeric columns
   if (!is.null(numeric_cols)) {
     numeric_cols<-numeric_cols[numeric_cols %in% colnames(data)]
@@ -1291,7 +1338,17 @@ validator <- function(data,
     data[, (numeric_cols) := lapply(.SD, function(x) as.numeric(x)), .SDcols = numeric_cols]
   }
   
-  # Detect extremes
+  # Convert units
+  if(!is.null(unit_conversions)){
+    data<-convert_units(
+      dt=data,
+      conversion_table=unit_conversions$conversion_table,
+      unit_fields=unit_conversions$unit_fields,
+      value_fields=unit_conversions$value_fields
+    )
+  }
+  
+    # Detect extremes
   if (!is.null(extreme_cols)) {
     errors1 <- rbindlist(lapply(1:length(extreme_cols), FUN = function(i) {
       detect_extremes(data = data,
@@ -1420,6 +1477,17 @@ validator <- function(data,
     if(rm_duplicates){
       data<-data[!duplicated(data)]
     }
+  }
+  
+  if(!is.null(duplicate_base)){
+    duplicate_focal_rows(
+      dt = data,
+      grouping_cols = duplicate_base$grouping_cols,
+      focal_col = duplicate_base$focal_col,
+      duplicate_val = duplicate_base$duplicate_val,
+      collapse = duplicate_base$collapse,
+      collapse_fun = duplicate_base$collapse_fun
+    ) 
   }
   
   errors <- rbindlist(errors, use.names = TRUE)
@@ -1694,3 +1762,179 @@ handle_base<-function(dat,target_col,base_col=NULL){
   cat("Rows input = ",nrow(dat),", rows output =",nrow(result))
   return(result)
 }
+#' Convert Values Across Units Using a Lookup Table
+#'
+#' This function scans specified unit columns in a data.table and applies conversion factors
+#' to associated value columns, renaming units accordingly.
+#'
+#' @param dt data.table. Input dataset containing unit and value fields.
+#' @param conversion_table data.table. Must have columns:
+#'   - `unit_name`: original unit string to match (e.g., "t/ha").
+#'   - `unit_name_new`: target unit string (e.g., "kg/ha").
+#'   - `factor`: numeric multiplier to apply to all values when unit matches.
+#' @param unit_fields character vector. Names of unit columns in `dt`, e.g. c("F.I.Unit","F.O.Unit").
+#' @param value_fields named list. Each element is a character vector of value column names
+#'    corresponding to a unit field. Names must match `unit_fields`.
+#'    e.g. list(
+#'      "F.I.Unit" = c("F.NI","F.PI","F.KI","F.K2O","F.P2O5"),
+#'      "F.O.Unit" = c("F.NO","F.PO","F.KO")
+#'    )
+#'
+#' @return data.table. Modified `dt` in place, with:
+#'   - Values in `value_fields[[uf]]` multiplied by `factor` where `dt[[uf]] == unit_name`.
+#'   - Corresponding `uf` values replaced by `unit_name_new`.
+#'
+#' @examples
+#' library(data.table)
+#' dt <- data.table(
+#'   F.I.Unit = c("kg/feddan","t/ha","g/m2","kg/ha"),
+#'   F.NI = c(100, 0.2, 5, 50),
+#'   F.PI = c(NA, 0, 2, 10)
+#' )
+#' conversion_table <- data.table(
+#'   unit_name     = c("kg/feddan","t/ha","g/m2"),
+#'   unit_name_new = c("kg/ha","kg/ha","kg/ha"),
+#'   factor        = c(10000/4200, 1000, 10)
+#' )
+#' unit_fields  <- c("F.I.Unit")
+#' value_fields <- list(
+#'   "F.I.Unit" = c("F.NI","F.PI")
+#' )
+#' 
+#' convert_units(dt, conversion_table, unit_fields, value_fields)
+#'
+#' @import data.table
+#' @export
+convert_units <- function(
+    dt,
+    conversion_table,
+    unit_fields,
+    value_fields
+) {
+  # Preconditions
+  stopifnot(is.data.table(dt))
+  stopifnot(is.data.table(conversion_table))
+  stopifnot(all(unit_fields %in% names(value_fields)))
+  
+  # Loop over each unit column
+  for (uf in unit_fields) {
+    vals <- value_fields[[uf]]
+    # Ensure columns exist
+    missing_vals <- setdiff(c(uf, vals), names(dt))
+    if (length(missing_vals)) {
+      stop("Missing columns in dt: ", paste(missing_vals, collapse = ", "))
+    }
+    
+    # For each conversion rule
+    for (i in seq_len(nrow(conversion_table))) {
+      orig <- conversion_table$unit_name[i]
+      new   <- conversion_table$unit_name_new[i]
+      fac   <- conversion_table$factor[i]
+      
+      # Identify rows to convert
+      rows <- dt[[uf]] == orig
+      if (!any(rows, na.rm = TRUE)) next
+      
+      # Apply factor to all value columns
+      dt[rows, (vals) := lapply(.SD, function(x) x * fac), .SDcols = vals]
+      
+      # Update unit
+      dt[rows, (uf) := new]
+    }
+  }
+  
+  # Return modified data.table
+  invisible(dt)
+}
+' Duplicate and optionally aggregate rows for a specified focal value across other levels
+#'
+#' Removes rows where `focal_col == duplicate_val` and then either:
+#'  - Duplicates each such row for every other unique value of `focal_col` within groups,
+#'  - Or, if `collapse = TRUE`, sums all numeric columns across the expanded set, grouping by non-numeric fields.
+#'
+#' @param dt data.table. Input dataset containing the focal column and grouping columns.
+#' @param grouping_cols character. Names of columns to group by (e.g. c("B.Code","Site.ID")).
+#' @param focal_col character(1). Name of the column containing the values to duplicate (e.g. "F.Level.Name").
+#' @param duplicate_val character(1). The value in `focal_col` whose rows will be duplicated across other levels.
+#' @param collapse logical(1). If TRUE, after duplication, numeric columns are summed by all non-numeric columns. Defaults to FALSE.
+#' @return data.table. Modified dataset.
+#' @import data.table
+#' @export
+duplicate_focal_rows <- function(
+    dt,
+    grouping_cols,
+    focal_col,
+    duplicate_val,
+    collapse = FALSE,
+    collapse_fun = sum
+) {
+  stopifnot(is.data.table(dt))
+  stopifnot(is.character(grouping_cols), length(grouping_cols) >= 1)
+  stopifnot(is.character(focal_col), length(focal_col) == 1)
+  stopifnot(is.character(duplicate_val), length(duplicate_val) == 1)
+  stopifnot(all(grouping_cols %in% names(dt)), focal_col %in% names(dt))
+  stopifnot(is.logical(collapse), length(collapse) == 1)
+  
+  # Split base vs others
+  dt_base    <- dt[get(focal_col) == duplicate_val]
+  dt_nonbase <- dt[get(focal_col) != duplicate_val]
+  
+  # If no base rows, return original or aggregated if requested
+  if (nrow(dt_base) == 0L) {
+    if (!collapse) return(copy(dt))
+    # collapse only: sum numeric by non-numeric
+    nonnums <- names(dt)[!sapply(dt, is.numeric)]
+    return(dt[, lapply(.SD, sum, na.rm = TRUE), by = nonnums, .SDcols = setdiff(names(dt), nonnums)])
+  }
+  
+  # Identify other unique focal values per group
+  other_dt <- dt_nonbase[, .(focal_new = unique(get(focal_col))), by = grouping_cols]
+  
+  # Expand base rows across each other level
+  exp_base <- merge(
+    dt_base,
+    other_dt,
+    by = grouping_cols,
+    allow.cartesian = TRUE
+  )
+  exp_base[, (focal_col) := focal_new]
+  exp_base[, focal_new := NULL]
+  
+  # Combine expanded base with non-base rows
+  result <- rbindlist(
+    list(exp_base, dt_nonbase),
+    use.names = TRUE,
+    fill      = TRUE
+  )
+  
+  # Optional collapse: sum numeric columns by non-numeric
+  if (collapse) {
+    # Identify non-numeric (grouping + focal) columns
+    nonnums <- names(result)[!sapply(result, is.numeric)]
+    nums    <- setdiff(names(result), nonnums)
+    result <- result[, lapply(.SD, collapse_fun, na.rm = TRUE), by = nonnums, .SDcols = nums]
+    col_order<-names(dt)
+    result<-result[,..col_order]
+  }
+  
+  return(result)
+}
+
+
+# Example
+dt <- data.table(
+  X     = c("Base","Base","a","b","c","Base","a","x"),
+  value = c(1,2,3,3,3,100,0,9),
+  Group = c(1,1,1,1,1,2,2,2),
+  Group2 = c("a","a","a","a","b","c","c","d")
+)
+
+dt2 <- duplicate_focal_rows(
+  dt,
+  grouping_cols = c("Group","Group2"),
+  focal_col     = "X",
+  duplicate_val = "Base",
+  collapse=T
+)
+print(dt2)
+print(dt)
