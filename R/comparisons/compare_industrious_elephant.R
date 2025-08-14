@@ -35,6 +35,7 @@ pacman::p_load(data.table,miceadds,pbapply,future.apply,progressr,arrow)
 source(file.path(project_dir,"R/comparisons/compare_fun.R"))
 source(file.path(project_dir,"R/comparisons/compare_wrap.R"))
 source(file.path(project_dir,"R/import/import_helpers.R"))
+source(file.path(project_dir,"R/comparisons/prepare_fert_sub.R"))
 
 # Combine all Practice Codes together & remove h-codes
 Join.T<-function(A,B,C=NULL,D=NULL,E=NULL){
@@ -62,6 +63,10 @@ files<-list.files(data_dir,project)
 data<-miceadds::load.Rdata2(filename=file_local,data_dir)
 
 Data.Out<-data$Data.Out
+
+# Clean up N fields
+Data.Out[,N:=.I]
+
 setnames(Data.Out,"Rot.Seq","R.Prod.Seq",skip_absent = T)
 Data.Out[,R.ID:=paste(B.Code,R.Level.Name)]
 data_out_rows<-Data.Out[,.N]
@@ -86,9 +91,10 @@ setnames(Rot.Out,"Seq","R.Prod.Seq",skip_absent = T)
 Rot.Seq<-data$Rot.Seq
 Rot.Seq.Summ<-data$Rot.Seq.Summ
 Site.Out<-data$Site.Out
-Soil.Out<-data$Soil.Out
+Soil.Out<-data.table(data$Soil.Out)
 Times<-data$Times
 Var.Out<-data$Var.Out
+Other.Out<-data$Other.Out
 
 AF.Trees<-data$AF.Trees
 
@@ -112,6 +118,20 @@ PracticeCodes[,Linked.Col:=gsub("ED.Int","IN.Level.Name",Linked.Col)]
 PracticeCodes[,Linked.Col:=gsub("ED.Rot","R.Level.Name",Linked.Col)]
 PracticeCodes1<-copy(PracticeCodes)
 TreeCodes<-master_codes$trees
+
+  # 1.3) Prepare data for fertilizer substitutions ####
+
+fert_sub_dat<-prepare_fert_sub(
+  Fert.Out=copy(Fert.Out),
+  Fert.Method=copy(Fert.Method),
+  Other.Out=copy(Other.Out),
+  MT.Out=copy(MT.Out),
+  Data.Out=copy(Data.Out),
+  min_reduction = 10,
+  reduction_type = "a",
+  n_start=Data.Out[,max(N)+1],
+  verbose = F
+) 
 
 # 2) Automated Comparison of Control vs Treatments ####
   # 2.1) Basic #####
@@ -160,6 +180,73 @@ TreeCodes<-master_codes$trees
   
   Comparison.List<-list(Simple=Comparisons_processed)
     
+  # 2.1.1) Basic - Fert Substitution ####
+  Data.Out.No.Agg<-fert_sub_dat$Data.Out
+  # Remove Controls for Ratio Comparisons
+  Data.Out.No.Agg<-Data.Out.No.Agg[ED.Ratio.Control!=T ]
+  # Remove Aggregated Observations (dealt with in section 1.1)
+  Data.Out.No.Agg<-Data.Out.No.Agg[!grepl("[.][.][.]",T.Name)]
+  # Remove outcomes aggregated over rot/int entire sequence or system (dealt with sections 1.2 and 1.3)
+  Data.Out.No.Agg<-Data.Out.No.Agg[!is.na(T.Name)]
+  
+  X<-Data.Out.No.Agg[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code)),by=.I]
+  Data.Out.No.Agg[,Final.Codes:=X$Final.Codes]
+  rm(X)
+  
+  # Calculate Number of ERA Practices
+  Data.Out.No.Agg[,N.Prac:=length(unlist(Final.Codes)[!is.na(unlist(Final.Codes))]),by=.I]
+  
+  # Select fields that need to match for comparisons to be valid
+  CompareWithin<-c("Site.ID","Product.Simple","ED.Product.Comp","Time", "Out.Code.Joined",
+                   "ED.Sample.Start","ED.Sample.End","ED.Sample.DAS","ED.Sample.DAE","ED.Sample.Stage",
+                   "C.Structure","P.Structure","O.Structure","W.Structure","PD.Structure",
+                   "B.Code","Country","ED.Comparison1","ED.Comparison2")
+  
+  # If issue with memory encounted try the line below, recent modifications have been made to the compare_wrap function to reduce memory requirements
+  # options(future.globals.maxSize = 1.5 * 1024^3) # Set to 1.5 GiB 
+  
+  results<-compare_wrap(DATA=Data.Out.No.Agg,
+                        CompareWithin=CompareWithin,
+                        worker_n=worker_n,
+                        Verbose = FALSE,
+                        Debug = FALSE,
+                        Return.Lists = FALSE,
+                        Fert.Method = fert_sub_dat$Fert.Method,
+                        Plant.Method = Plant.Method,
+                        Irrig.Method = Irrig.Method,
+                        Res.Method = Res.Method,
+                        p_density_similarity_threshold = 0.95)
+  
+  groups_n1<-results$groups_n1 # These unique groupings have only 1 row
+  all_groups_n1<-results$all_groups_n1 # There no unique groupings with >1 row in these publications
+  no_comparison<-results$no_comparison # There no comparisons in these publications and there are groupings with >1 row
+  Comparisons<-results$Comparisons_raw
+  Comparisons_processed<-results$Comparisons_processed
+  
+  # Add in codes and subset to comparisons that are fertilizer reduction (control lacks reduction code, treatment has)
+  Comparisons_processed<-merge(Comparisons_processed,
+                               Data.Out.No.Agg[,.(N,T.Codes)],
+                               by.x="Control.N",
+                               by.y="N",
+                               all.x=T,
+                               sort=F)
+  setnames(Comparisons_processed,"T.Codes","T.Codes.Control")
+  
+  Comparisons_processed<-merge(Comparisons_processed,
+                               Data.Out.No.Agg[,.(N,T.Codes)],
+                               by.x="Control.For",
+                               by.y="N",
+                               all.x=T,
+                               sort=F)
+  setnames(Comparisons_processed,"T.Codes","T.Codes.Trt")
+  
+  Comparisons_processed[,sub_n_cont:=str_count(T.Codes.Control, "b16\\.1|b17\\.1|b21\\.1")]
+  Comparisons_processed[,sub_n_trt:=str_count(T.Codes.Trt, "b16\\.1|b17\\.1|b21\\.1")]
+  
+  Comparisons_processed<-Comparisons_processed[sub_n_trt>sub_n_cont]
+  
+  Comparison.List$Simple_Fert_Sub<-Comparisons_processed
+  
   # 2.2) Aggregated Treatments #####
     # 2.2.1) Subset and prepare data ######
   # Extract Aggregated Observations
@@ -288,7 +375,7 @@ TreeCodes<-master_codes$trees
     # The issue we face here is that there are multiple aggregated treatments so we will need to average the input amounts across these. 
     # When aggregated will need to reassign the F.Codes to all of those present across rows (for example if we have N = 0,10,30,50 then b17 would be missing from one row, but it is present across within the aggregation)
     null_cols<-c("F.Level.Name","F.Level.Name2","F.Codes","F.Notes")
-    num_cols<-c("F.NO","F.PO","F.KO","F.NI","F.PI","F.P2O5","F.KI","F.K2O")
+    num_cols<-c("F.NO","F.PO","F.KO","F.NI","F.PI","F.P2O5","F.KI","F.K2O","F.NI.est","F.PI.est","F.KI.est")
     group_cols<-c("B.Code","F.Rate.Pracs","F.Timing.Pracs","F.Precision.Pracs","F.Info.Pracs","F.O.Unit","F.I.Unit")
     
     Fert.Out<-copy(data$Fert.Out)[,F.Level.Name_original:=F.Level.Name]
@@ -320,6 +407,10 @@ TreeCodes<-master_codes$trees
       # Check name is not already present
       if(f_level_shared %in% y$F.Level.Name){
         stop(paste(b_code,"-",f_level_shared,"New fertilizer level name derived from F.Level.Name2 is aleady present"))
+      }
+      
+      if (nrow(x) != 1L) {
+        warning(sprintf("Iteration %d for B.Code=%s yielded %d rows", i, b_code, nrow(x)))
       }
       
       return(x)
@@ -510,7 +601,12 @@ TreeCodes<-master_codes$trees
   Data.Out.Int<-Data.Out.Int[ED.Ratio.Control!=T]
 
     # 2.3.1) Scenario 1: Intercrop vs Intercrop ####
-    
+  
+  Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name$",colnames(MT.Out))]))
+  Fields[,Codes:=gsub("Level.Name","Codes",Levels)
+  ][,Codes:=gsub("Prev","Code",Levels)
+  ][grep("O[.]|PD[.]|C[.]|P[.]|W[.]",Codes),Codes:=NA]
+  
     # Replace Treatment Name with Intercropping Name
     Data.Out.Int2<-data.table::copy(Data.Out.Int)
     Data.Out.Int2[,T.Name:=IN.Level.Name]
@@ -668,8 +764,8 @@ TreeCodes<-master_codes$trees
     
     Fields<-data.table(Levels=c("T.Residue.Prev",colnames(MT.Out)[grep("Level.Name$",colnames(MT.Out))]))
     Fields[,Codes:=gsub("Level.Name","Codes",Levels)
-           ][,Codes:=gsub("Prev","Code",Levels)
-             ][grep("O[.]|PD[.]|C[.]|P[.]|W[.]",Codes),Codes:=NA]
+    ][,Codes:=gsub("Prev","Code",Levels)
+    ][grep("O[.]|PD[.]|C[.]|P[.]|W[.]",Codes),Codes:=NA]
     
     
       # 2.3.1.2) Run Comparisons #######
@@ -859,9 +955,9 @@ TreeCodes<-master_codes$trees
     Data.Out.Int3<-cbind(Data.Out.Int3,X)
     
     # Incorporation codes in control (to be removed)
-    Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3")
+    Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3","b41","b41.1","b41.2")
     # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
-    Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3")
+    Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3","b40","b40.1","b40.2")
     
     # Temporary for column name mismatch
     setnames(Data.Out.Int3,"Till.Code","Till.Codes", skip_absent = T)
@@ -1121,17 +1217,19 @@ TreeCodes<-master_codes$trees
       list(unique(A))
     }
     # Exception for residue mulching being compared to residue incorporation
-    Mulch.Fun<-function(A,B,X,Z){
-      if(A %in% X){
-        Z[Mulch.Flag==F,Mulch.Flag:=Z[Mulch.Flag==F,any(unlist(Final.Codes) %in% B),by="N"][,V1]]
-        Z[Mulch.Flag==T,Match:=Match+1]
-        Z[Mulch.Flag==T,NoMatch:=NoMatch-1]
-        Z[Mulch.Flag==T,Mulch.Code:=paste0(Mulch.Code,A,collapse = "-"),by="N"]
-        
+    Mulch.Fun <- function(A, B, X, Z) {
+      if (A %in% X) {
+        # for each group N, set Mulch.Flag to TRUE if any Final.Codes contain B
+        Z[, Mulch.Flag := any(unlist(Final.Codes) %in% B), by = N]
+        # then adjust Match/NoMatch for those flagged rows
+        Z[Mulch.Flag == TRUE, `:=`(
+          Match   = Match   + 1,
+          NoMatch = NoMatch - 1,
+          Mulch.Code = paste0(Mulch.Code, A)
+        ), by = N]
       }
-      return(Z)
-    }
-    # Incorporation codes in control (to be removed)
+      Z
+    }    # Incorporation codes in control (to be removed)
     Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3")
     # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
     Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3")
@@ -1427,9 +1525,9 @@ TreeCodes<-master_codes$trees
     Data.Out.Rot3<-cbind(Data.Out.Rot3,X)
     
     # Incorporation codes in control (to be removed)
-    Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3")
+    Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3","b41","b41.1","b41.2")
     # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
-    Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3")
+    Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3","b40","b40.1","b40.2")
     
     Comparisons<-unique(rbindlist(pblapply(Data.Out.Rot3[!is.na(N2),N2],FUN=function(i){
     
@@ -1573,6 +1671,7 @@ TreeCodes<-master_codes$trees
 
   # 2.5) Combine Data ####
   Comparison.List$Simple$Analysis.Function<-"Simple"
+  Comparison.List$Simple_Fert_Sub$Analysis.Function<-"FertSub"
   Comparison.List$Aggregated$Analysis.Function<-"Aggregated"
   Comparison.List$Aggregated_xfert$Analysis.Function<-"Aggregated_xfert"
   Comparison.List$Aggregated_vs_aggregated$Analysis.Function<-"Agg.vs.Agg"
@@ -1607,13 +1706,18 @@ TreeCodes<-master_codes$trees
     fwrite(Comparisons,file.path(qaqc_dir,"comparison_results.csv"))
     
 # 3) Prepare Main Dataset ####
-Data<-Data.Out
-  # 3.1) Ignore Aggregated Observations for now ####
-  # Data<-Data.Out[-grep("[.][.][.]",T.Name2)]
-  # 3.2) Ignore outcomes aggregated over rot/int entire sequence or system ####
-  #Data<-Data[!is.na(T.Name)]
+  # 3.1) Adjustments for fert_sub ####
+  names(Data.Out)[!names(Data.Out) %in% names(fert_sub_dat$Data.Out)]  
+  names(fert_sub_dat$Data.Out)[!names(fert_sub_dat$Data.Out) %in% names(Data.Out)]  
   
-  # 3.3) Combine all Practice Codes together & remove h-codes ####
+  Data.Out$N_original<-Data.Out$N
+  fert_sub_dat$Data.Out$T.Codes.Fert.Shared<-as.character(NA)
+  fert_sub_dat$Data.Out$add_code<-as.character(NA)
+  fert_sub_dat$Data.Out$T.Codes.Agg_len<-as.character(NA)
+    
+  Data<-rbindlist(list(Data.Out,fert_sub_dat$Data.Out),use.names=T)
+  
+  # 3.2) Combine all Practice Codes together & remove h-codes ####
 
   # Simple/Animal/Aggregated
   X<-Data[,list(Final.Codes=Join.T(T.Codes,IN.Code,Final.Residue.Code,R.Code,T.Codes.Fert.Shared)),by="N"]
@@ -1629,7 +1733,7 @@ Data<-Data.Out
   
   rm(X)
   
-  # 3.4) Add filler cols ####
+  # 3.3) Add filler cols ####
   
   Data$LatM<-NA # All values converted to DD in excel
   Data$LatS<-NA # All values converted to DD in excel
@@ -1644,7 +1748,7 @@ Data<-Data.Out
   Data[,USD2010.C:=NA] # TO DO: Needs function to calculate this automatically
   Data[,MeanFlip:=NA] # Not sure what this is for, but all values in the Master dataset seem to say N
   
-  # 3.5) MSP & MAT ####
+  # 3.4) MSP & MAT ####
   Data[,Season:=unlist(lapply(strsplit(Data[,Time],"[.][.]"),FUN=function(X){
     X<-unlist(strsplit(X,"[.]"))
     if(all(is.na(X))|is.null(X)){
@@ -1662,12 +1766,12 @@ Data<-Data.Out
   Data[Season==1 | is.na(Season),MSP:=Site.MSP.S1]
   Data[Season==2 | is.na(Season),MSP:=Site.MSP.S2]
   
-  # 3.6) Soils ####
+  # 3.5) Soils ####
   #Soil.Out$Soil.pH.Method<-NA # Bug in Excels that needs fixing
   Soil.Out[,Depth.Interval:=Soil.Upper-Soil.Lower]
   Soil.Out[variable=="Soil.pH",Soil.pH.Method:=Method]
   Soil.Out[variable=="Soil.SOC",Soil.SOC.Unit:=Unit]
-  Soil.Out<-dcast(Soil.Out[,!c("Method","Unit")],B.Code+Site.ID+Soil.Upper+Soil.Lower+Depth.Interval+Soil.pH.Method+Soil.SOC.Unit~variable,value.var = "value")
+  Soil.Out<-data.table(dcast(Soil.Out[,!c("Method","Unit")],B.Code+Site.ID+Soil.Upper+Soil.Lower+Depth.Interval+Soil.pH.Method+Soil.SOC.Unit~variable,value.var = "value"))
   
   Soil.Out[Depth.Interval==0,Depth.Interval:=1]
   X<-Soil.Out[,list(SOC=round(weighted.mean(Soil.SOC,Depth.Interval,na.rm=T),2),
@@ -1694,7 +1798,7 @@ Data<-Data.Out
   Data[,Soil.pH:=X[N.Match,Soil.pH]]
   Data[,Soil.pH.Method:=X[N.Match,Soil.pH.Method]]
   
-  # 3.7) Update treatment names for intercrop and rotation ####
+  # 3.6) Update treatment names for intercrop and rotation ####
   
   # Component of Intercrop without rotation
   Data[!is.na(T.Name) & !is.na(IN.Level.Name) & is.na(R.Level.Name),T.Name:=paste0(T.Name,">>",IN.Level.Name)]
@@ -1710,10 +1814,10 @@ Data<-Data.Out
   # Intercrop part of rotation 
   Data[is.na(T.Name) & !is.na(IN.Level.Name) & !is.na(R.Level.Name),T.Name:=paste0(IN.Level.Name,"<<",R.Level.Name)]
   
-  # 3.8) Create TID code ####
+  # 3.7) Create TID code ####
   Data[,TID:=paste0("T",as.numeric(as.factor(T.Name))),by="B.Code"]
   
-  # 3.9) Make "C1:Cmax" & Add Base Codes ####
+  # 3.8) Make "C1:Cmax" & Add Base Codes ####
   Data[,Base.Codes:=strsplit(Base.Codes,"-")]
   Join.Fun<-function(X,Y){
     X<-unique(c(unlist(X),unlist(Y)))
@@ -1740,10 +1844,10 @@ Data<-Data.Out
     Data[,C10:=NA]
   }
   
-    # 3.9.1) How many C columns are there? ####
+    # 3.8.1) How many C columns are there? ####
   NCols<-sum(paste0("C",1:30) %in% colnames(Data))
   
-  # 3.10) Add Rotation Seq & Intercropping Species ####
+  # 3.9) Add Rotation Seq & Intercropping Species ####
   N.R<-match(paste0(Data$B.Code,Data$R.Level.Name),paste0(Rot.Seq.Summ$B.Code,Rot.Seq.Summ$R.Level.Name))
   Data[,R.Seq:=Rot.Seq.Summ[N.R,R.Prod.Seq]]
 
@@ -1754,7 +1858,7 @@ Data<-Data.Out
   # Reformat sequence
   Data[,R.Seq:=gsub("[*][*][*]","-",R.Seq)][,R.Seq:=gsub("[|][|][|]","/",R.Seq)]
   
-  # 3.11) Add in Trees ####
+  # 3.10) Add in Trees ####
   # Trees in rotation sequence
   X<-Rot.Out[,N:=1:.N][,.(P.List=unlist(strsplit(R.Prod.Seq,"[|][|][|]"))),by=N]
   X<-X[,list(P.List=list(unlist(strsplit(unlist(P.List),"[*][*][*]")))),by=N]
@@ -1809,7 +1913,7 @@ Data<-Data.Out
   
   Data[,Tree:=X[,Trees]][,Tree:=unlist(Tree)]
   
-  # 3.12) M.Year/Season - Translate to old system or code start/end year and season ####
+  # 3.11) M.Year/Season - Translate to old system or code start/end year and season ####
   # We have some instances of 2000-2020 and some of ".." and some of "-5" between seasons
   setnames(Data,
            c("Time","Time.Start.Year","Time.End.Year","Time.Season.Start","Time.Season.End"),
@@ -1818,16 +1922,16 @@ Data<-Data.Out
   # Variable from majestic hippo, probably redundant
   Data[,Max.Season:=NA]
   
-  # 3.13) Rename Duration ####
+  # 3.12) Rename Duration ####
   setnames(Data,"Exp.Duration","Duration")
 
-  # 3.14) EUs: change delimiters ####
+  # 3.13) EUs: change delimiters ####
   Data[,EU:=gsub("**",".",EU,fixed = T)]
 
-  # 3.15) Rename TSP & TAP ####
+  # 3.14) Rename TSP & TAP ####
   setnames(Data,c("Time.Clim.SP","Time.Clim.TAP"),c("TSP","TAP"))
 
-  # 3.16) Update Journal Codes ####
+  # 3.15) Update Journal Codes ####
   Journals<-master_codes$journals[,c("B.Journal","Journal")]
   
   Data<-merge(Data,Journals,by="B.Journal",all.x=T,sort=F)
@@ -1836,11 +1940,11 @@ Data<-Data.Out
   # 3.17) Update DOI field
   Data[is.na(B.DOI),B.DOI:=B.Url]
   
-  # 3.18) Partial economic outcomes ####
+  # 3.16) Partial economic outcomes ####
   # Note these were not encoded directly in 2023, I think we hoped to be able to derived this from the economic indicators recorded, but we will probably needed to go back and add this information.
   Data[,c("Out.Partial.Outcome.Name","Out.Partial.Outcome.Code"):="Not assessed"]
   
-  # 3.19) Species (!!! TO DO !!!) ####
+  # 3.17) Species (!!! TO DO !!!) ####
   # I think this was used for products like "Fish" for which the "Variety" was the species.
   # This requires harmonization across extractions to reconfigure the fish species to be the product as per crops and other animals
   Data[,V.Species:=NA]
@@ -1936,6 +2040,8 @@ Data<-Data.Out
   })
   
   plan(sequential)
+  
+  ERA.Reformatted<-unique(ERA.Reformatted)
 
   # 4.1) Add in outcomes that are ratios of Trt/Cont already ####
   Data.R<-Data[(!is.na(ED.Comparison1) & !is.na(T.Name)),c("T.Name","IN.Level.Name","R.Level.Name","ED.Comparison1","ED.Comparison2","B.Code","N","Out.Code.Joined")]
@@ -2224,7 +2330,6 @@ Data<-Data.Out
   
   # Mulch codes present in Control & Treatment + Dprac should be present (as per CompareFun) in Trt else we are not in a complex situation
   # Recode either where Control has Rprac category code that Trt does not, or Trt has >1 and control has 1 practice.
-  # ***Development Note*** Should Agroforestry Prunings be excluded here and in compare_fun? #####
   
   C.Cols<-which(colnames(ERA.Reformatted) %in% paste0("C",1:NCols))
   
@@ -2316,6 +2421,9 @@ Data<-Data.Out
   plan(sequential)
   
   ERA.Reformatted<-rbindlist(ERA.Reformatted)
+  
+  # ***Development Note*** Should Agroforestry Prunings be excluded here and in compare_fun? #####
+  
 
   # 4.4) Remove other Fert, Mulch, Water Harvesting and Ash codes ####
   # Need to remove then check comparisons are still present
@@ -2361,9 +2469,10 @@ Data<-Data.Out
   # Basic Comparisons function adds a Mulch.Code column which shows which code in the Control should be changed to a h37 code
   # However this is not fully implemented for system outcomes yet so we will recode the comparison directly
   # Incorporation codes in control (to be removed)
-  Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3")
-  # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
-  Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3")
+    Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3","b41","b41.1","b41.2")
+    # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
+    Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3","b40","b40.1","b40.2")
+    
   
   Cols<-paste0(rep(c("C","T"),each=NCols),1:NCols)
   
@@ -2410,20 +2519,44 @@ Data<-Data.Out
   
   # 4.9) Save Output ####
   save_name<-file.path(era_dirs$era_masterdata_dir, gsub("[.]RData","_comparisons.parquet",file_local))
-  arrow::write_parquet(ERA.Reformatted,save_name)
+  save_name_redfert<-file.path(era_dirs$era_masterdata_dir, gsub("[.]RData","_comparisons_fert-red.parquet",file_local))
+  arrow::write_parquet(ERA.Reformatted[Analysis.Function!="FertSub"],save_name)
+  arrow::write_parquet(ERA.Reformatted[Analysis.Function=="FertSub"],save_name_redfert)
     # 4.9.2) Find studies that have no comparisons ######
   all_bcodes<-data$Data.Out[,unique(B.Code)] 
-  no_match<-sort(all_bcodes[!all_bcodes %in% ERA.Reformatted[,unique(Code)]])
+  no_match<-sort(all_bcodes[!all_bcodes %in% ERA.Reformatted[Analysis.Function!="FertSub",unique(Code)]])
   
-  error_dat<-Plant.Out[B.Code %in% no_match,.(value=if(any(na.omit(P.Structure)=="No")){"Answer -No- is present in planting comparison row."}else{""}),by=B.Code]
-  error_dat<-rbind(data.table(B.Code=no_match[!no_match %in% error_dat$B.Code],value=""),error_dat)
+  
+  error_dat<-unique(rbind(
+    Plant.Out[B.Code %in% no_match,
+                       .(value=if(any(na.omit(P.Structure)=="No")){"Answer -No- is present in planting comparison row."}else{""}),
+                       by=B.Code],  
+    PD.Codes[B.Code %in% no_match,
+                       .(value=if(any(na.omit(PD.Structure)=="No")){"Answer -No- is present in planting date comparison row."}else{""}),
+                       by=B.Code],  
+    Chems.Code[B.Code %in% no_match,
+                       .(value=if(any(na.omit(C.Structure)=="No")){"Answer -No- is present in chemicals comparison row."}else{""}),
+                       by=B.Code],  
+    Other.Out[B.Code %in% no_match,
+                       .(value=if(any(na.omit(O.Structure)=="No")){"Answer -No- is present in other practice comparison row."}else{""}),
+                       by=B.Code],
+    Weed.Code[B.Code %in% no_match,
+                       .(value=if(any(na.omit(W.Structure)=="No")){"Answer -No- is present in weeding comparison row."}else{""}),
+                       by=B.Code]
+    ))
+  
+  error_dat<-error_dat[,N:=.N,by=B.Code][,remove:=F][,remove:=N>1 & value==""][order(B.Code)]
+  error_dat<-error_dat[remove==F,.(B.Code,value)][order(B.Code)]
+  error_dat<-error_dat[,.(value=paste(value,collapse = " ")),by=B.Code]
+  
+  error_dat<-rbind(data.table(B.Code=no_match[!no_match %in% error_dat$B.Code],value=""),error_dat)[order(B.Code)]
   
   error_dat<-error_dat[order(value,B.Code)
-  ][!is.na(value),table:="Plant.Out"
-  ][!is.na(value),field:="P.Structure"
+  ][!is.na(value),table:=NA
+  ][!is.na(value),field:=NA
   ][,issue:="Comparison logic does not find any comparisons for this paper."]
   
-  error_list<-error_tracker(errors=copy(error_dat),filename = "no_comparisons",error_dir=qaqc_dir,error_list = NULL,save_result = T)
+  error_list<-error_tracker(errors=copy(error_dat),filename = paste0("no_comparisons-",Sys.Date()),error_dir=qaqc_dir,error_list = NULL,save_result = T)
   
     # 4.9.1) Compare versions #####
   
