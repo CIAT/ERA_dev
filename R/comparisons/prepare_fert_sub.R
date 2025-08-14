@@ -24,7 +24,8 @@
 #' @import data.table
 #' @importFrom pbapply pblapply
 #' @export
-prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_reduction=0.05,reduction_type="p"){
+prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_reduction=0.05,reduction_type="p",n_start,verbose=F){
+
   fert<-copy(Fert.Out)[,.(B.Code,F.Level.Name,F.Codes,F.NI,F.PI,F.P2O5,F.KI,F.K2O,F.I.Unit)]
   fert_method<-copy(Fert.Method)
   
@@ -102,13 +103,23 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
       if(nrow(compare_set)>1){
         compare_set[,c("n_red","p_red","k_red","org_sub"):=F]
         
-        compare_set[F.NI<=focus$F.NI ,n_red:=T
-        ][F.P<=focus$F.P,p_red:=T
-        ][F.K<=focus$F.K,k_red:=T
-        ][focus$organic==F & organic==T,org_sub:=T]
+        if(reduction_type=="p"){  
+          compare_set[,n_red:=F.NI<(focus$F.NI *(1+min_reduction))] 
+          compare_set[,p_red:=F.P<(focus$F.P *(1+min_reduction))] 
+          compare_set[,k_red:=F.K<(focus$F.K *(1+min_reduction))] 
+        }
         
+        if(reduction_type=="a"){
+          compare_set[,n_red:=(focus$F.NI -F.NI)>min_reduction] 
+          compare_set[,p_red:=(focus$F.P -F.P)>min_reduction] 
+          compare_set[,k_red:=(focus$F.K -F.K)>min_reduction] 
+        }
+        
+
         results<-lapply(1:nrow(compare_set),function(j){
-          # cat(b,"/",length(b_codes),b_code,"| i=",i,"| j =",j,"     \n")
+           if(verbose){
+             cat(b,"/",length(b_codes),b_code,"| i=",i,"| j =",j,"     \n")
+          }
           
           pair<-c(focus$F.Level.Name,compare_set$F.Level.Name[j])
           names(pair)<-paste0(pair,"<>",i,"<>",j)
@@ -135,92 +146,77 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
             fm_cont<-Fert.Method[B.Code==b_code & F.Level.Name==pair[1]]
             fm_trt<-Fert.Method[B.Code==b_code & F.Level.Name==pair[2]]
             
-            fo_trt[,F.Codes:=strsplit(F.Codes,"-")]
-            fo_cont[,F.Codes:=strsplit(F.Codes,"-")]
-            
-            # Copy MT.Out rows
-            mt_out[,F.Codes:=strsplit(F.Codes,"-")]
-            mt_out[,T.Codes:=strsplit(T.Codes,"-")]
-            
+
             mt_cont<-mt_out[F.Level.Name==pair[1]]
             mt_trt<-mt_out[F.Level.Name==pair[2]]
             
             # Recode practices
             # b23|b17
             if(compare_set[j,n_red]){
-              fo_trt[,F.Codes:=gsub_list("b23|b17","b17.1",F.Codes)]
-              fo_cont[,F.Codes:=gsub_list("b23|b17","",F.Codes)]
-              
-              mt_trt[,F.Codes:=gsub_list("b23|b17","b17.1",F.Codes)]
-              mt_trt[,T.Codes:=gsub_list("b23|b17","b17.1",T.Codes)]
-              
-              mt_cont[,F.Codes:=gsub_list("b23|b17","",F.Codes)]
-              mt_cont[,T.Codes:=gsub_list("b23|b17","",T.Codes)]
-              
-              fm_cont[grepl("b23|b17",F.Codes),F.Amount:=NA]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b23|b17","b17.1")]
               fm_trt[grepl("b23|b17",F.Codes),F.Amount:=NA]
-            }
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b23|b17","b17.1"),by=.I]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b23|b17","b17.1"),by=.I]
+              
+              fo_cont[,F.Codes:=split_gsub(F.Codes,"b23|b17","")]
+              fm_cont[grepl("b23|b17",F.Codes),F.Amount:=NA]
+              mt_cont[,F.Codes:=split_gsub(F.Codes,"b23|b17",""),by=.I]
+              mt_cont[,T.Codes:=split_gsub(T.Codes,"b23|b17",""),by=.I]
+              }
             
             # b21
             if(compare_set[j,p_red]){
-              fo_trt[,F.Codes:=gsub_list("b21","b21.1",F.Codes)]
-              fo_cont[,F.Codes:=gsub_list("b21","",F.Codes)]
-              
-              mt_trt[,F.Codes:=gsub_list("b21","b21.1",F.Codes)]
-              mt_trt[,T.Codes:=gsub_list("b21","b21.1",T.Codes)]
-              
-              mt_cont[,F.Codes:=gsub_list("b21","",F.Codes)]
-              mt_cont[,T.Codes:=gsub_list("b21","",T.Codes)]
-              
-              fm_cont[grepl("b21",F.Codes),F.Amount:=NA]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b21","b21.1")]
               fm_trt[grepl("b21",F.Codes),F.Amount:=NA]
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b21","b21.1"),by=.I]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b21","b21.1"),by=.I]
+              
+              fo_cont[,F.Codes:=split_gsub(F.Codes,"b21","")]
+              fm_cont[grepl("b21",F.Codes),F.Amount:=NA]
+              mt_cont[,F.Codes:=split_gsub(F.Codes,"b21",""),by=.I]
+              mt_cont[,T.Codes:=split_gsub(T.Codes,"b21",""),by=.I]
             }
             
             # b16
             if(compare_set[j,k_red]){
-              fo_trt[,F.Codes:=gsub_list("b16","b16.1",F.Codes)]
-              fo_cont[,F.Codes:=gsub_list("b16","",F.Codes)]
-              
-              mt_trt[,F.Codes:=gsub_list("b16","b16.1",F.Codes)]
-              mt_trt[,T.Codes:=gsub_list("b16","b16.1",T.Codes)]
-              
-              mt_cont[,F.Codes:=gsub_list("b16","",F.Codes)]
-              mt_cont[,T.Codes:=gsub_list("b16","",T.Codes)]
-              
-              
-              fm_cont[grepl("b16",F.Codes),F.Amount:=NA]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b16","b16.1",F.Codes)]
               fm_trt[grepl("b16",F.Codes),F.Amount:=NA]
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b16","b16.1"),by=.I]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b16","b16.1"),by=.I]
+              
+              fo_cont[,F.Codes:=split_gsub(F.Codes,"b16","",F.Codes)]
+              fm_cont[grepl("b16",F.Codes),F.Amount:=NA]
+              mt_cont[,F.Codes:=split_gsub(F.Codes,"b16",""),by=.I]
+              mt_cont[,T.Codes:=split_gsub(T.Codes,"b16",""),by=.I]
             }
             
             # b29|b30|b73|b75|b67
             if(compare_set[j,org_sub]){
-              fo_trt[,F.Codes:=gsub_list("b29","b29.1",F.Codes)]
-              fo_trt[,F.Codes:=gsub_list("b30","b30.1",F.Codes)]
-              fo_trt[,F.Codes:=gsub_list("b73","b73.1",F.Codes)]
-              fo_trt[,F.Codes:=gsub_list("b75","b75.1",F.Codes)]
-              fo_trt[,F.Codes:=gsub_list("b67","b67.1",F.Codes)]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b29","b29.1",F.Codes)]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b30","b30.1",F.Codes)]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b73","b73.1",F.Codes)]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b75","b75.1",F.Codes)]
+              fo_trt[,F.Codes:=split_gsub(F.Codes,"b67","b67.1",F.Codes)]
               
               fm_trt<-fm_trt[!grepl("b29|b30|b73|b75|b67",F.Codes)]
               
-              mt_trt[,F.Codes:=gsub_list("b29","b29.1",F.Codes)]
-              mt_trt[,F.Codes:=gsub_list("b30","b30.1",F.Codes)]
-              mt_trt[,F.Codes:=gsub_list("b73","b73.1",F.Codes)]
-              mt_trt[,F.Codes:=gsub_list("b75","b75.1",F.Codes)]
-              mt_trt[,F.Codes:=gsub_list("b67","b67.1",F.Codes)]
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b29","b29.1"),by=.I]
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b30","b30.1"),by=.I]
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b73","b73.1"),by=.I]
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b75","b75.1"),by=.I]
+              mt_trt[,F.Codes:=split_gsub(F.Codes,"b67","b67.1"),by=.I]
               
-              mt_trt[,T.Codes:=gsub_list("b29","b29.1",T.Codes)]
-              mt_trt[,T.Codes:=gsub_list("b30","b30.1",T.Codes)]
-              mt_trt[,T.Codes:=gsub_list("b73","b73.1",T.Codes)]
-              mt_trt[,T.Codes:=gsub_list("b75","b75.1",T.Codes)]
-              mt_trt[,T.Codes:=gsub_list("b67","b67.1",T.Codes)]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b29","b29.1"),by=.I]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b30","b30.1"),by=.I]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b73","b73.1"),by=.I]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b75","b75.1"),by=.I]
+              mt_trt[,T.Codes:=split_gsub(T.Codes,"b67","b67.1"),by=.I]
             }
             
             # Update F.Level.Names
             fo_comb<-rbind(fo_cont,fo_trt)
             fo_comb$F.Level.Name<-names(pair)
-            fo_comb[,F.Codes:=code_comb(F.Codes),by=.I
-            ][,F.Codes:=unlist(F.Codes)]
-            
+            fo_comb[,F.Codes:=unlist(F.Codes)]
             
             fm_comb<-rbind(fm_cont,fm_trt)
             fm_comb[,F.Level.Name:=names(pair)[match(F.Level.Name,pair)]]
@@ -238,10 +234,7 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
             mt_out[is.na(Structure.Comb),Structure.Comb:=O.Structure]
             mt_out[!is.na(Structure.Comb),Structure.Comb:=paste0(Structure.Comb,":::",O.Structure)]
             mt_out[,F.Level.Name:=names(pair)[match(F.Level.Name,pair)]]
-            mt_out[,T.Name:=names(trts)]
-            
-            mt_out[,F.Codes:=code_comb(F.Codes),by=.I][,F.Codes:=unlist(F.Codes)]
-            mt_out[,T.Codes:=code_comb(T.Codes),by=.I][,T.Codes:=unlist(T.Codes)]
+            mt_out[,T.Name:=names(trts)[match(mt_out$T.Name,trts)]]
             
             # Data.Out - do not include intercrops or rotations
             dat_out[,F.Level.Name:=names(pair)[match(F.Level.Name,pair)]]
@@ -296,71 +289,18 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
   
   # Reset N (duplicates are not allowed in N)
   x<-fert_sub_dat$Data.Out
-  x[,N_original:=N][,N:=.I]
+  x[,N_original:=N][,N:=.I][,N:=N+n_start-1]
   fert_sub_dat$Data.Out<-x
   
   return(fert_sub_dat)
   
 }
 
-#' gsub_list: gsub on Atomic or List-Columns
-#'
-#' A drop-in wrapper for base::gsub() that also recurses into list-columns of character vectors.
-#'
-#' @param pattern character. Regular expression to search for (see base::gsub).
-#' @param replacement character. Replacement string (see base::gsub).
-#' @param x character vector or list of character vectors. The input values.
-#' @param ... additional arguments passed to base::gsub (e.g., fixed=TRUE, ignore.case=TRUE).
-#'
-#' @return If `x` is atomic character, returns the same as base::gsub.
-#' If `x` is a list, returns a list of the same structure with gsub applied to every character element.
-#'
-#' @examples
-#' # atomic character
-#' gsub_list("a", "A", c("apple", "banana"))
-#'
-#' # list-column of codes
-#' L <- list(c("b17","b29"), c("b16","b21"))
-#' gsub_list("b2[0-9]", "b2x", L)
-#'
-#' @export
-gsub_list <- function(pattern, replacement, x, ...) {
-  if (is.list(x)) {
-    # Recurse: apply to each character element in the list
-    return(
-      rapply(
-        x,
-        function(el) base::gsub(pattern, replacement, el, ...),
-        classes = "character",
-        how     = "replace"
-      )
-    )
-  }
-  # Fallback to standard gsub for atomic character
-  base::gsub(pattern, replacement, x, ...)
-}
-
-#' code_comb: Collapse a List of Codes Into a Sorted String
-#'
-#' Takes a list or character vector of codes, removes empty entries,
-#' sorts them, and pastes together with a dash delimiter.
-#'
-#' @param codes character vector or list of character vectors.
-#'
-#' @return single character string: sorted, non-empty codes joined by "-".
-#'
-#' @examples
-#' code_comb(c("b17","","b16.1"))        # "b16.1-b17"
-#' code_comb(list(c("b21","b17"), c("b29"))) # "b17-b21-b29"
-#'
-#' @export
-code_comb <- function(codes) {
-  # Flatten into a simple character vector
-  vec <- unlist(codes, use.names = FALSE)
-  # Drop empty strings (but keep NA if present)
-  vec <- unique(vec[vec != "" | is.na(vec)])
-  # Sort and collapse
-  paste(sort(vec), collapse = "-")
+split_gsub<- function(x,pattern, replacement, delim="-", ...) {
+  x<-unlist(strsplit(x,delim))
+  x<-base::gsub(pattern, replacement,x)
+  x<-unique(x[x!="" & !is.na(x)])
+  return(paste(sort(x),collapse="-"))
 }
 
 
