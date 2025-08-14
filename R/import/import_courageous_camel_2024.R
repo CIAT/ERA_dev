@@ -45,11 +45,11 @@ pacman::p_load(data.table,
 
 source(file.path(project_dir,"R/import/import_helpers.R"))
 
-## 0.1) Define the valid range for date checking #####
+  ## 0.1) Define the valid range for date checking #####
 valid_start <- as.Date("1950-01-01")
 valid_end <- as.Date("2024-12-01")
 
-## 0.2) Set project directories and parallel cores ####
+  ## 0.2) Set project directories and parallel cores ####
 
 # Set cores for parallel processing
 worker_n<-parallel::detectCores()-2
@@ -99,34 +99,34 @@ data_dir<-era_dirs$era_masterdata_dir
 download<-F
 update<-F
 
-if(!ext_live){
-  s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
-  
-  # Check if the file exists
-  if (grepl("success",httr::http_status(httr::HEAD(s3_file))$category,ignore.case = T)) {
-    print("The file exists.")
-    file_status<-T
-  } else {
-    print("The file does not exist.")
-    file_status<-F
-  }
-  
-  local_file<-file.path(excel_dir,basename(s3_file))
-  
-  if(file_status){
-    if(length(list.files(excel_dir))<1|update==T){
-      rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
-      unlink(rm_files)
-      unlink(extracted_dir,recursive = T)
-      options(timeout = 60*60*2) # 2hr timehour 
-      if(download){
-        download.file(s3_file, destfile = local_file)
-      }
-      unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
-      unlink(local_file)
+
+s3_file<-paste0("https://digital-atlas.s3.amazonaws.com/era/data_entry/",project,"/",project,".zip")
+
+# Check if the file exists
+if (grepl("success",httr::http_status(httr::HEAD(s3_file))$category,ignore.case = T)) {
+  print("The file exists.")
+  file_status<-T
+} else {
+  print("The file does not exist.")
+  file_status<-F
+}
+
+local_file<-file.path(excel_dir,basename(s3_file))
+
+if(file_status){
+  if(length(list.files(excel_dir))<1|update==T){
+    rm_files<-list.files(excel_dir,"xlsm$",full.names = T)
+    unlink(rm_files)
+    unlink(extracted_dir,recursive = T)
+    options(timeout = 60*60*2) # 2hr timehour 
+    if(download){
+      download.file(s3_file, destfile = local_file)
     }
+    unzip(local_file, exdir = excel_dir,overwrite=T,junkpaths=T)
+    unlink(local_file)
   }
 }
+
 
 if(!dir.exists(extracted_dir)){
   dir.create(extracted_dir)
@@ -209,14 +209,14 @@ if(!dir.exists(extracted_dir)){
   
 # 3) Process imported data ####
   # Update saved data and errorchecking (T) or skip if file has already been processed (F)
-  overwrite<-F
+  overwrite<-T
   if(overwrite){
     ext_files<-list.files(extracted_dir,full.names = T)
     unlink(ext_files)
   }
 
   # Set up parallel back-end
-  set_parallel_plan(n_cores=worker_n,use_multisession=F)
+  set_parallel_plan(n_cores=worker_n,use_multisession=T)
   
   # Enable progressr and set up handlers
   progressr::handlers("progress")
@@ -231,16 +231,13 @@ if(!dir.exists(extracted_dir)){
     # Update the progress bar
     p()
   
- # results<-lapply(1:nrow(excel_files),FUN=function(ii){
+  #results<-lapply(1:nrow(excel_files),FUN=function(ii){
   
     File <- excel_files$filename[ii]
-  #cat("File",ii,basename(File),"\n")
+   # cat("File",ii,basename(File),"\n")
 
     era_code <- excel_files$era_code2[ii]
     
-  # For later development to save processed tables
-  # save_name <- file.path(extracted_dir, paste0(era_code, ".RData"))
-  
   # Create name for error csv file
   file_code<-gsub(".xlsx|.xlsm","",basename(File))
   filename_new<-paste0(file_code,"_errors")
@@ -2271,7 +2268,7 @@ MT.Out<-MT.Out[!is.na(T.Name)]
 # Enforce herd sublevel to be character
 MT.Out[,Herd.Sublevel.Name:=as.character(Herd.Sublevel.Name)]
 
-# !!!TO DO!!!! Add feed intake item to keyfields or allowed values ####
+    # Dev.Note: Add feed intake item to keyfields or allowed values ####
 
 keyfields<-data.table(parent_tab=list(Pasture.Out, 
                                       Plant.Out,
@@ -2329,37 +2326,21 @@ MT.Out<-results$data
 # Create vector of combined names for T.Name and subherd
 t_levels<-c(MT.Out$T.Name,MT.Out[!is.na(T.Name2),T.Name2])
 
-# TO DO!!!! Add check for 1 herd per treatment ####
 
-  # 4.1) TO DO !!! Merge in practice data #####
-  if(F){
-  unique(MT.Out[grepl("[.][.]",P.Product) & !grepl("[.][.]",T.Name),.(B.Code,P.Product,T.Name)])
-  # Create list of data table to merge with MT.Out treatment table
-  mergedat<-list(V.Level.Name=copy(Var.Out),
-                 AF.Level.Name=AF.Out,
-                 C.Level.Name=Chems.Code,
-                 A.Level.Name=Animals.Out,
-                 O.Level.Name=Other.Out)
+  ## 4.1)  Merge in practice data #####
   
-  data<-MT.Out
+  # Create list of data table to merge with MT.Out treatment table
+
+  mergedat<-list(C.Level.Name=Chems.Code[,.(B.Code,C.Level.Name,C.Structure)],
+                 O.Level.Name=Other.Out[,.(B.Code,O.Level.Name,O.Structure)])
+  
+  data<-copy(MT.Out)
   for(i in 1:length(mergedat)){
     keyfield<-names(mergedat)[i]
     # Display progress
-    cat('\r', strrep(' ', 150), '\r')
-    cat("Merging table", i, "/", length(mergedat),keyfield)
-    flush.console()
-    
-    if(keyfield=="V.Level.Name"){
-      data<-merge(data,mergedat[[i]],
-                  by.x=c("B.Code","P.Product",keyfield),
-                  by.y=c("B.Code","V.Product",keyfield),
-                  all.x=T,
-                  sort=F)
-      data[,V.Level.Name:=V.Level.Name_new][,V.Level.Name_new:=NULL]
-      
-    }else{
+    cat("Merging table", i, "/", length(mergedat),keyfield,"                  \r")
+
       data<-merge(data,mergedat[[i]],by=c("B.Code",keyfield),all.x=T)
-    }
     
     
     if(nrow(data)!=nrow(MT.Out)){
@@ -2367,19 +2348,10 @@ t_levels<-c(MT.Out$T.Name,MT.Out[!is.na(T.Name2),T.Name2])
     }
   }
   
-  # Update Var.Out now that merge has been done with MT.Out table
-  Var.Out[,V.Level.Name_raw:=V.Level.Name][,V.Level.Name:=V.Level.Name_new][,V.Level.Name_new:=NULL]
-
-  # Add in Base.Out
-  data<-merge(data,Base.Out,by="B.Code",all.x=T)
-  if(nrow(data)!=nrow(MT.Out)){
-    cat(" ! Warning: nrow(output) = ",nrow(data),"vs nrow(input)",nrow(MT.Out),"\n")
-  }
-  
   MT.Out<-data
-  }
   
-  # 4.2) TO DO !!! Combine practice codes to create T.Codes ######
+  
+  ## 4.x) Dev Note: (Not Run) Combine practice codes to create T.Codes (Move to Data.Out?) ####
   if(F){
   code_cols<-c(AF.Level.Name="AF.Codes",
                A.Level.Name="A.Codes",
@@ -2393,8 +2365,8 @@ t_levels<-c(MT.Out$T.Name,MT.Out[!is.na(T.Name2),T.Name2])
   
   MT.Out[,T.Codes:=t_codes]
   }
-  # 4.3) Combine aggregated treatments #####
-if(F){
+  ## 4.2) Dev Note: (Not Run) Combine aggregated treatments (Move to Data.Out?) #####
+  if(F){
   N<-grep("[.][.]",MT.Out$T.Name)
   
   Fields<-data.table(Levels=c(names(code_cols),"O.Level.Name","C.Level.Name"),
@@ -2537,17 +2509,18 @@ if(F){
   MT.Out<-rbind(MT.Out.agg,MT.Out.noagg)
 }
   
-  # 4.4) Update structure for aggregated treatments ####
-  if(F){
-  col_names<-grep("Structure",colnames(MT.Out),value=T)
-  MT.Out <- MT.Out[, (col_names) := lapply(.SD, FUN=function(x){
+  ## 4.3) Update structure for aggregated treatments ####
+  struc_cols<-c("C.Structure","O.Structure")
+
+  MT.Out <- MT.Out[, (struc_cols) := lapply(.SD, FUN=function(x){
     x[grepl("No",x,ignore.case = T)]<-"No"
     x[!grepl("No",x,ignore.case = T)]<-NA
     x
-  }), .SDcols = col_names]
-  }
+  }), .SDcols = struc_cols]
   
-  # 4.5) Merge structure practices ####
+  
+  ## 4.4) Merge structure practices ####
+  
   # Note "No" prevents comparisons here text in excel is
   # Can we compare outcomes between these practices?
   X<-copy(MT.Out)[,.(C.Structure,O.Structure)
@@ -2565,14 +2538,10 @@ if(F){
   
   MT.Out[,Structure.Comb:=X][!is.na(Structure.Comb),Structure.Comb:=paste(P.Product,Structure.Comb)]
 
-  # TO DO ADD BASE PRACTICE DATA? #####
 # 5) Outcomes ####
 table_name<-"Out.Out"
 Out.Out<-excel_dat[[table_name]][,1:12]
 template_cols<-c(master_template_cols[[table_name]][1:12],"B.Code")
-
-# Merge feed intake unit with regular units
-Out.Out[Out.Subind=="Feed Intake",Out.Unit:=Out.FI.Unit]
 
 # Remove NA rows
 Out.Out<-Out.Out[!rowSums(is.na(Out.Out)) == ncol(Out.Out)]
@@ -2586,6 +2555,7 @@ allowed_values<-data.table(allowed_values=list(master_codes$lookup_levels[Field=
                            field=c("Out.FI.Unit"))
 
 results<-validator(data=Out.Out,
+                   character_cols = c("Out.Unit"),
                    allowed_values = allowed_values,
                    template_cols = template_cols,
                    numeric_cols=c("Out.Depth.Upper","Out.Depth.Lower","Out.NPV.Rate","Out.NPV.Time"),
@@ -2608,6 +2578,8 @@ errors<-c(errors,list(error_dat))
 
 Out.Out<-results$data
 
+# Merge feed intake unit with regular units
+Out.Out[Out.Subind=="Feed Intake",Out.Unit:=Out.FI.Unit]
 Out.Out[,Out.FI.Unit:=NULL]
 
 error_dat<-Out.Out[grepl("Meat Yield",Out.Subind) & is.na(Out.WG.Days),.(value=paste(Out.Code.Joined,collapse = "/")),by=B.Code
@@ -2616,7 +2588,7 @@ error_dat<-Out.Out[grepl("Meat Yield",Out.Subind) & is.na(Out.WG.Days),.(value=p
                                                                                     ][,issue:="Meat yield outcome without experimental duration."]
 errors<-c(errors,list(error_dat))
 
-# TO DO: Check outcome names match master codes (these are now AOM outcomes) ####
+# Dev Note: (To Do) Check outcome names match master codes (these are now AOM outcomes) ####
 if(F){
   out_name_changes<-data.table(old_values=c("Nitrogen [(]Apparent Efficiency[)]","Carbon dioxide emissions","Aboveground Biomass"),
                                new_values=c('Nitrogen (Apparent Efficiency Animals Feed)',"Carbon Dioxide Emissions","Aboveground Carbon Biomass"))
@@ -2723,7 +2695,7 @@ if(F){
   
   TS.Seq<-results$data
   
-  # 6.1) TO DO!!! - build rotation data #####
+  # 6.1) Dev Note: (To Do) build time sequence data #####
   
 # 7) Enter Data (Data.Out) ####
   table_name<-"Data.Out"
@@ -2783,7 +2755,7 @@ if(F){
   Data.Out<-results$data
   Data.Out[,row_index:=NULL]
   
-    # TO DO!!! Update Site.ID ####
+    # Dev Note: (To Do) Update Site.ID ####
   if(F){
   Data.Out[,Site.ID_new:=Site.Out$Site.ID[match(gsub("[.][.] | [.][.]|  [.][.]|   [.][.]","..",trimws(tolower(Data.Out$Site.ID))),tolower(Site.Out$Site.ID_raw))]] 
   Data.Out[is.na(Site.ID_new),Site.ID_new:=Site.ID][,Site.ID:=Site.ID_new][,Site.ID_new:=NULL]
@@ -2813,7 +2785,7 @@ if(F){
   
   # 7.3) Merge data from linked tables ####
   n_rows<-Data.Out[,.N]
-    # 7.3.1) !!! TO DO!!! Merge MT.Out ######
+    # 7.3.1) Dev Note: (To Do) Merge MT.Out & Management Tables ######
     # !!!!Needs to accommodate aggregated treatments #### 
     if(F){
     Data.Out<-merge(Data.Out,unique(MT.Out),by=c("B.Code","T.Name"),all.x=T,sort=F)
@@ -2835,8 +2807,8 @@ if(F){
     Data.Out<-merge(Data.Out,merge_dat,by=c("Out.Subind"),all.x=T,sort=F)
     stopifnot("Merge has increased length of Data.Out table"=nrow(Data.Out)==n_rows)
     
-    # 7.3.4) !!TO DO!!! Add Product Codes ######
-    # Needs herd tab to be merged with MT.Out tab #####
+    # 7.3.4) Dev Note: (To Do) Add Product Codes ######
+      # Dev Note: Needs herd tab to be merged with MT.Out tab #####
     if(F){
     # Add component level 1 to Data.Out (used to match component + product to EU list)
     comp_codes<-master_codes$prod_comp
@@ -2870,9 +2842,9 @@ if(F){
     errors<-c(errors,list(error_dat))
     }
     
-     # 7.3.4.1) Merge using product x component code  #######
+     # 7.3.4.1) Dev Note: (To Do) Merge using product x component code  #######
     if(F){
-      # NOTE DOES NOT DEAL WITH AGGREGATE PRODUCTS #####
+      # Dev Note: DOES NOT DEAL WITH AGGREGATE PRODUCTS #####
     merge_prods<-function(P.Product,Component,master_prods,master_prod_codes,prod_tab,tree_tab){
       prods<-unlist(strsplit(P.Product,"-"))
       if(!is.na(Component)){
@@ -3034,7 +3006,8 @@ names(data)<-tabs
 data$Animal.Diet.Comp[,`0`:=NULL]
 data$Animal.Diet.Digest[,`0`:=NULL]
 
-Animal.Diet<-data$Animal.Diet
+Animal.Diet<-copy(data$Animal.Diet)
+Animal.Diet[,D.ItemxProcess_original:= D.ItemxProcess]
 Animals.Out<-data$Animals.Out
 Animal.Diet.Comp<-data$Animal.Diet.Comp
 Animal.Diet.Digest<-data$Animal.Diet.Digest
@@ -3043,17 +3016,15 @@ MT.Out<-data$MT.Out
 Chems.Out<-data$Chems.Out
 Pasture.Out<-data$Pasture.Out
 GM.Out<-data$GM.Out
-# ************************* ####
-# ENABLE THIS LINE AFTER NEXT IMPORT OF DATASET ######
-# Plant.Method<-data$Plant.Method
-# ************************* ####
+Plant.Method<-data$Plant.Method
 Till.Method<-data$Till.Method
 Fert.Out<-data$Fert.Out
 AF.Out<-data$AF.Out
 Other.Out<-data$Other.Out
+Out.Out<-data$Out.Out
 
-  # 11.1) Update Base Practice Handling ####
-    # 1.11.1) Base in sub-tables ####
+  ## 11.1) Update Base Practice Handling ####
+    ### 1.11.1) Base in sub-tables ####
 
     # If more than one practice is present and the base practice is applied to both, then we want to duplicate
     # the base practice for each practice and set the name to that practice, then we remove any mention of base
@@ -3063,10 +3034,10 @@ Other.Out<-data$Other.Out
     # to be other tables that require the base practice reprosessing. However this will not be the case for 
     # agronomy papers, the processing will need to be expanded to more tabs.
 
-    # 1.11.1.1) Animal.Diet ####
+      #### 1.11.1.1) Animal.Diet ####
     Animal.Diet<-handle_base(Animal.Diet,target_col = "A.Level.Name",base_col="D.Item.Group")
 
-    # 1.11.2) Base in practice table names ####
+    #### 1.11.2) Base in practice table names ####
   input_dat<-list(C.Level.Name=Chems.Out,
                   A.Level.Name=Animals.Out,
                   Pasture.Level.Name=Pasture.Out,
@@ -3085,17 +3056,17 @@ Other.Out<-data$Other.Out
       MT.Out[B.Code %in% b_codes,(target_col):="Base"]
     }
 
-  # 12) Check & harmonize feed item names ####
+# 12) Check & harmonize feed item names ####
 
   # Correct any ";" delimiters to "||"
   Animal.Diet[grep(";",D.ItemxProcess),D.ItemxProcess]
   
-  # 12.0) Check integrity of key fields ####
+  ## 12.0) Check integrity of key fields ####
   Animal.Diet_key<-unique(Animal.Diet[,.(B.Code,D.ItemxProcess)])[,check:=T]
   A.Level.Name_key<-Animals.Out[,paste(B.Code,A.Level.Name),by=.I][,unique(V1)]
   Animal.Diet_groupkey<-unique(Animal.Diet[!is.na(D.Item.Group),.(B.Code,D.Item.Group)])[,check2:=T]
   
-    # 12.0.1) Animal.Diet.Comp ####
+    ### 12.0.1) Animal.Diet.Comp ####
     
     # Add group flag for ; separated values
     Animal.Diet.Comp[grep(";",D.Item),is_group:=T]
@@ -3120,7 +3091,7 @@ Other.Out<-data$Other.Out
     
     errors<-list(error_dat)
     
-    # 12.0.2) Animal.Diet.Digest ####
+    ### 12.0.2) Animal.Diet.Digest ####
     
     # Add group flag
     Animal.Diet.Digest[grep(";",D.Item),is_group:=T]
@@ -3145,7 +3116,7 @@ Other.Out<-data$Other.Out
     
     errors<-c(errors,list(error_dat))
     
-    # 12.0.3) Data.Out: Feed Intake Item ####
+    ### 12.0.3) Data.Out: Feed Intake Item ####
     
     # Add group flag
     Data.Out[,ED.Intake.Item.is_group:=F][grep(";",ED.Intake.Item),ED.Intake.Item.is_group:=T]
@@ -3187,16 +3158,22 @@ Other.Out<-data$Other.Out
                           ][,D.Is.Group:=NULL
                             ][,check2:=NULL]
     
-  # 12.1) Animal Diet Harmonization ####
+    ### 12.0.4) Out.Out: FI.Unit completeness ####
+    x<-Out.Out[is.na(Out.Unit) & Out.Subind=="Feed Intake",.(B.Code,Out.Unit,Out.Code.Joined)]
+    if(nrow(x)>0){
+      warning("Feed intake outcomes without associated units present. Probably indicates a merge issue in section 5.2")
+      print(x)
+    }
+  ## 12.1) Animal Diet Harmonization ####
 table_name<-"Ingredients.Out"
 
-    # 12.1.1) Harmonize Units/Methods ####
-      # 12.1.1.1) Animal.Diet ####
+    ### 12.1.1) Harmonize Units/Methods ####
+      #### 12.1.1.1) Animal.Diet ####
     
       # Check and remove manually entered D.Type, assign D.Type that is a feed item group to D.Item first
       Animal.Diet[(is.na(D.Item)|D.Item=="") & !is.na(D.Type),.(B.Code,D.Item,D.Type)]
       Animal.Diet[(is.na(D.Item)|D.Item=="") & !is.na(D.Type),D.Item:=D.Type]
-      Animal.Diet[,D.Type:=NULL]
+      #Animal.Diet[,D.Type:=NULL]
     
     
       # Harmonize units
@@ -3212,7 +3189,7 @@ table_name<-"Ingredients.Out"
       Animal.Diet<-results$data
       h_tasks<-list(results$h_tasks)
       
-      # 12.1.1.2) Animal.Diet.Digest ####
+      #### 12.1.1.2) Animal.Diet.Digest ####
       table_name<-"Animal.Diet.Digest"
       # Units
       h_params<-data.table(h_table=table_name,
@@ -3229,7 +3206,7 @@ table_name<-"Ingredients.Out"
   
       Animal.Diet.Digest<-results$data
       
-      # 12.1.1.3) Animal.Diet.Comp ####
+      ### 12.1.1.3) Animal.Diet.Comp ####
       table_name<-"Animal.Diet.Comp"
       # Units
       h_params<-data.table(h_table=table_name,
@@ -3248,8 +3225,8 @@ table_name<-"Ingredients.Out"
       
       error_tracker(rbindlist(h_tasks)[order(B.Code)],filename = "Diet Method and Unit Harmonization",error_dir = error_dir)
       
-    # 12.1.2) Animal.Diet/Diet Items ####
-      # 12.1.2.1) Harmonize Processes ####
+    ### 12.1.2) Animal.Diet/Diet Items ####
+      #### 12.1.2.1) Harmonize Processes ####
       
       # Update process names to match AOM/Ani_Diet
       aom<-master_codes$AOM
@@ -3334,110 +3311,139 @@ table_name<-"Ingredients.Out"
       # Harmonize all ItemxProcess to same delim
       Animal.Diet[,D.ItemxProcess:=gsub("--","||",D.ItemxProcess)]
       
-      # 12.1.2.2) Harmonize D.Item Names ####
+      #### 12.1.2.2) Harmonize D.Item Names ####
       
-      # Update root and component of diet items
-      
-      # A) Merge using D.Item.Root.Comp
-      merge_dat <-unique(master_codes$ani_diet[, .(D.Item = unlist(strsplit(D.Item, ";", fixed = TRUE))), by = D.Item.Root.Comp])
-      setnames(merge_dat,"D.Item.Root.Comp","D.Item.Root.Comp_ani_diet")
-      Animal.Diet<-merge(Animal.Diet,merge_dat,by="D.Item",all.x=T,sort=F)
-      
-      # Update D.Item.Root.Comp.Proc_Major
-      Animal.Diet[,D.Item.Root.Comp.Proc_Major:=trimws(paste(D.Item,D.Item.Proc_Major))
-                  ][,D.Item.Root.Comp.Proc_Major:=gsub("  |   "," ",D.Item.Root.Comp.Proc_Major) # Remove any residual double or triple spaces
-                    ][D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Comp.Proc_Major:=trimws(paste(D.Item.Root.Comp_ani_diet,D.Item.Proc_Major))]
-      
- 
-      # B) Merge using D.Item.Root.Comp.Proc_Major
-      merge_dat <-unique(master_codes$ani_diet[, .(D.Item = unlist(strsplit(D.Item, ";", fixed = TRUE))), by = .(D.Item.Root.Comp,D.Item.Root.Comp.Proc_Major)
-                                               ][,D.Item:=trimws(tolower(D.Item))])
-      setnames(merge_dat,c("D.Item.Root.Comp","D.Item.Root.Comp.Proc_Major"),c("D.Item.Root.Comp_ani_diet2","D.Item.Root.Comp.Proc_Major_ani_diet2"))
-      
-      Animal.Diet[,D.ItemxProcess_low:=tolower(D.ItemxProcess)]
-      Animal.Diet<-merge(Animal.Diet,merge_dat,by.x="D.ItemxProcess_low",by.y="D.Item",all.x=T,sort=F)
-      
-      # Update D.Item.Root.Comp & D.Item.Root.Comp.Proc_Major
-      Animal.Diet[D.Item.Root.Comp.Proc_Major!= D.Item.Root.Comp.Proc_Major_ani_diet2,D.Item.Root.Comp.Proc_Major:=D.Item.Root.Comp.Proc_Major_ani_diet2]
-      
-      # C) Create D.Item.Root.Other.Comp.Proc_All field
-      Animal.Diet[,D.Item.Root.Other.Comp.Proc_All:=trimws(paste(na.omit(c(D.Item,D.Process.Other,D.Item.Proc_Major)),collapse = " ")),by=.I]
-      Animal.Diet[D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Other.Comp.Proc_All:=trimws(paste(c(D.Item.Root.Comp_ani_diet,na.omit(D.Process.Other),D.Item.Proc_Major),collapse=" ")),by=.I]
-      Animal.Diet[D.Item!=D.Item.Root.Comp_ani_diet2 & !is.na(D.Item.Root.Comp_ani_diet2),D.Item.Root.Other.Comp.Proc_All:=trimws(paste(c(D.Item.Root.Comp_ani_diet2,na.omit(D.Process.Other),D.Item.Proc_Major),collapse=" ")),by=.I]
-      
-      # D) Tidy up
-      Animal.Diet[,c("D.Item.Root.Comp_ani_diet","D.Item.Root.Comp_ani_diet2","D.Item.Root.Comp.Proc_Major_ani_diet2","D.ItemxProcess_low"):=NULL]
-      
-      # 12.1.2.3) Match to AOM/ani_diet ####
-
-      # Get harmonization table from master_codes
-      
-      ani_diet<-master_codes$ani_diet[!is.na(D.Item),.(D.Item=unlist(strsplit(D.Item,";"))),by=.(D.Item.Root.Comp,
-                                                                                       D.Item.Root.Comp.Proc_Major,
-                                                                                       D.Item.Root.Other.Comp.Proc_All,
-                                                                                       D.Item.Other,
-                                                                                       D.Item.Proc_All,
-                                                                                       D.Item.Proc_Major,
-                                                                                       D.Item.Proc_Minor,
-                                                                                       D.Item.Comp,
-                                                                                       D.Item.AOM)
-                                      ][,D.Item.Root.Comp.Proc_Major:=trimws(tolower(D.Item.Root.Comp.Proc_Major))]
-
+        ##### 12.1.2.2.1) Animal.Diet ####
+        # Update root and component of diet items
         
-      # Set to unique values (i.e. remove Diet.Items for now, as there are duplicate rows for D.Item.Root.Comp.Proc_Major)
-        mergedat<-unique(ani_diet[,.(D.Item.Root.Comp,D.Item.Root.Comp.Proc_Major,D.Item.Proc_Major,D.Item.Comp,D.Item.AOM)])
+        # A) Merge using D.Item.Root.Comp
+        merge_dat <-unique(master_codes$ani_diet[, .(D.Item = unlist(strsplit(D.Item, ";", fixed = TRUE))), by = D.Item.Root.Comp])
+        setnames(merge_dat,"D.Item.Root.Comp","D.Item.Root.Comp_ani_diet")
+        Animal.Diet<-merge(Animal.Diet,merge_dat,by="D.Item",all.x=T,sort=F)
         
-        # Find non-unique diet items that will cause matching issues
-        error_dat<-mergedat[,.(N=.N),by=D.Item.Root.Comp.Proc_Major][N>1]
-        excluded_items<-error_dat[,unique(D.Item.Root.Comp.Proc_Major)]
+        # Update D.Item.Root.Comp.Proc_Major
+        Animal.Diet[,D.Item.Root.Comp.Proc_Major:=trimws(paste(D.Item,D.Item.Proc_Major))
+                    ][,D.Item.Root.Comp.Proc_Major:=gsub("  |   "," ",D.Item.Root.Comp.Proc_Major) # Remove any residual double or triple spaces
+                      ][D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Comp.Proc_Major:=trimws(paste(D.Item.Root.Comp_ani_diet,D.Item.Proc_Major))]
         
-        error_dat<-error_dat[,D.Item.Root.Comp.Proc_Major2:=D.Item.Root.Comp.Proc_Major
-        ][,B.Code:=Animal.Diet[D.Item.Root.Comp.Proc_Major==D.Item.Root.Comp.Proc_Major2[1],paste(unique(B.Code),collapse = "/")],by=D.Item.Root.Comp.Proc_Major2
-        ][,value:=D.Item.Root.Comp.Proc_Major
-        ][,.(B.Code,value)
-        ][,table:="era_master_sheet/ani_diets"
-        ][,field:="D.Item.Root.Comp.Proc_Major"
-        ][,issue:="Multiple rows for unique value of D.Item.Root.Comp.Proc_Major exist."]
+   
+        # B) Merge using D.Item.Root.Comp.Proc_Major
+        merge_dat <-unique(master_codes$ani_diet[, .(D.Item = unlist(strsplit(D.Item, ";", fixed = TRUE))), by = .(D.Item.Root.Comp,D.Item.Root.Comp.Proc_Major)
+                                                 ][,D.Item:=trimws(tolower(D.Item))])
+        setnames(merge_dat,c("D.Item.Root.Comp","D.Item.Root.Comp.Proc_Major"),c("D.Item.Root.Comp_ani_diet2","D.Item.Root.Comp.Proc_Major_ani_diet2"))
         
-        if(nrow(error_dat)>0){
-        error_tracker(error_dat,filename = "Duplicate entries in ani_diets",error_dir = error_dir)
+        Animal.Diet[,D.ItemxProcess_low:=tolower(D.ItemxProcess)]
+        Animal.Diet<-merge(Animal.Diet,merge_dat,by.x="D.ItemxProcess_low",by.y="D.Item",all.x=T,sort=F)
+        
+        # Update D.Item.Root.Comp & D.Item.Root.Comp.Proc_Major
+        Animal.Diet[D.Item.Root.Comp.Proc_Major!= D.Item.Root.Comp.Proc_Major_ani_diet2,D.Item.Root.Comp.Proc_Major:=D.Item.Root.Comp.Proc_Major_ani_diet2]
+        
+        # C) Create D.Item.Root.Other.Comp.Proc_All field
+        Animal.Diet[,D.Item.Root.Other.Comp.Proc_All:=trimws(paste(na.omit(c(D.Item,D.Process.Other,D.Item.Proc_Major)),collapse = " ")),by=.I]
+        Animal.Diet[D.Item!=D.Item.Root.Comp_ani_diet & !is.na(D.Item.Root.Comp_ani_diet),D.Item.Root.Other.Comp.Proc_All:=trimws(paste(c(D.Item.Root.Comp_ani_diet,na.omit(D.Process.Other),D.Item.Proc_Major),collapse=" ")),by=.I]
+        Animal.Diet[D.Item!=D.Item.Root.Comp_ani_diet2 & !is.na(D.Item.Root.Comp_ani_diet2),D.Item.Root.Other.Comp.Proc_All:=trimws(paste(c(D.Item.Root.Comp_ani_diet2,na.omit(D.Process.Other),D.Item.Proc_Major),collapse=" ")),by=.I]
+        
+        # D) Tidy up
+        Animal.Diet[,c("D.Item.Root.Comp_ani_diet","D.Item.Root.Comp_ani_diet2","D.Item.Root.Comp.Proc_Major_ani_diet2","D.ItemxProcess_low"):=NULL]
+        
+        ##### 12.1.2.2.2) Animal.Diet.Comp ####
+        Animal.Diet.Comp[!is_group & !is_entire_diet,D.ItemxProcess_original:=D.Item]
+        setnames(Animal.Diet.Comp,"D.Item","D.Item_original")
+        
+        merge_cols<-c("B.Code","D.ItemxProcess_original","D.ItemxProcess","D.Item","D.Process.Mech","D.Process.Chem","D.Process.Bio","D.Process.Therm","D.Process.Dehy","D.Item.Proc_Major","D.Item.Root.Comp.Proc_Major")
+        mergedat<-unique(Animal.Diet[,merge_cols,with=F])
+        mergedat[,N:=.N,by=.(B.Code,D.ItemxProcess_original)]
+        if(mergedat[,any(N>1)]){
+            print(mergedat[N>1])
+            stop("Issue with ani_diet items and Animal.Diet merge, likely a mistake in the ani_diet tab harmonization assignments.There are duplicate values for D.ItemxProcess_original present in the data.")
+          }
+        
+        n_check<-nrow(Animal.Diet.Comp)
+        Animal.Diet.Comp<-merge(Animal.Diet.Comp,unique(Animal.Diet[,merge_cols,with=F]),by=c("B.Code","D.ItemxProcess_original"),all.x=T,sort=F)
+        
+        if(n_check!=nrow(Animal.Diet.Comp)){
+          stop("Merge of information from Animal.Diet with Animal.Diet.Comp has duplicated rows in Animal.Diet.Comp.")
         }
         
-        # Remove non-unique items
-        mergedat<-unique(mergedat)[,N:=.N,by=D.Item.Root.Comp.Proc_Major][N==1][,N:=NULL]
+        Animal.Diet.Comp[is_group | is_entire_diet,D.Item:=D.Item_original]
         
-        # Add a field to y which when merged shows the merge has worked for a particular row in x
-        mergedat[,check:=T]
         
-        # Make fields in x lower case to improve odds of matching
-        Animal.Diet[,D.Item.Root.Comp.Proc_Major_low:=tolower(D.Item.Root.Comp.Proc_Major)]
+        unique(Animal.Diet.Comp[is.na(D.Item),.(B.Code,D.ItemxProcess_original,D.Item,D.ItemxProcess)])
         
-        # Merge new names - using D.Item.Proc_Major 
-        ani_diet_cols<-c(colnames(Animal.Diet),"index")
-        Animal.Diet<-merge(Animal.Diet,mergedat[,!c("D.Item.Proc_Major")],by.x="D.Item.Root.Comp.Proc_Major_low",
-                           by.y="D.Item.Root.Comp.Proc_Major",all.x=T,sort=F)
-        Animal.Diet[is.na(check),check:=F]
+        Animal.Diet[B.Code=="BO1025",.(D.Item,D.ItemxProcess,D.ItemxProcess_original)]
         
-        # Record non-matches
-        error_dat<-Animal.Diet[!is.na(D.ItemxProcess) & 
-                                 !is_entire_diet &
-                                 !is_group &
-                                 check==F & 
-                                 !D.Item.Root.Comp.Proc_Major %in% excluded_items,
-                               .(B.Code=paste0(unique(B.Code),collapse = "/")),
-                               by=.(D.ItemxProcess,D.Item.Root.Comp.Proc_Major)
-        ][,table:=table_name
-        ][,issue:="No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major"
-          ][order(D.ItemxProcess)]
+        ##### 12.1.2.2.2) Animal.Diet.Digest ####
         
-        if(nrow(error_dat)>0){
-          error_tracker(error_dat,filename = "Non-matches to ani_diet and AOM",error_dir = error_dir)
-        }    
+        ##### 12.1.2.3) Match to AOM/ani_diet ####
+  
+        # Get harmonization table from master_codes
         
-        Animal.Diet[,check:=NULL]
-        
-    # 12.1.3) Other checks ####
-      # 12.1.3.1) Animal.Diet - check same group is not split across multiple diets ####
+        ani_diet<-master_codes$ani_diet[!is.na(D.Item),.(D.Item=unlist(strsplit(D.Item,";"))),by=.(D.Item.Root.Comp,
+                                                                                         D.Item.Root.Comp.Proc_Major,
+                                                                                         D.Item.Root.Other.Comp.Proc_All,
+                                                                                         D.Item.Other,
+                                                                                         D.Item.Proc_All,
+                                                                                         D.Item.Proc_Major,
+                                                                                         D.Item.Proc_Minor,
+                                                                                         D.Item.Comp,
+                                                                                         D.Item.AOM)
+                                        ][,D.Item.Root.Comp.Proc_Major:=trimws(tolower(D.Item.Root.Comp.Proc_Major))]
+  
+          
+        # Set to unique values (i.e. remove Diet.Items for now, as there are duplicate rows for D.Item.Root.Comp.Proc_Major)
+          mergedat<-unique(ani_diet[,.(D.Item.Root.Comp,D.Item.Root.Comp.Proc_Major,D.Item.Proc_Major,D.Item.Comp,D.Item.AOM)])
+          
+          # Find non-unique diet items that will cause matching issues
+          error_dat<-mergedat[,.(N=.N),by=D.Item.Root.Comp.Proc_Major][N>1]
+          excluded_items<-error_dat[,unique(D.Item.Root.Comp.Proc_Major)]
+          
+          error_dat<-error_dat[,D.Item.Root.Comp.Proc_Major2:=D.Item.Root.Comp.Proc_Major
+          ][,B.Code:=Animal.Diet[D.Item.Root.Comp.Proc_Major==D.Item.Root.Comp.Proc_Major2[1],paste(unique(B.Code),collapse = "/")],by=D.Item.Root.Comp.Proc_Major2
+          ][,value:=D.Item.Root.Comp.Proc_Major
+          ][,.(B.Code,value)
+          ][,table:="era_master_sheet/ani_diets"
+          ][,field:="D.Item.Root.Comp.Proc_Major"
+          ][,issue:="Multiple rows for unique value of D.Item.Root.Comp.Proc_Major exist."]
+          
+          if(nrow(error_dat)>0){
+          error_tracker(error_dat,filename = "Duplicate entries in ani_diets",error_dir = error_dir)
+          }
+          
+          # Remove non-unique items
+          mergedat<-unique(mergedat)[,N:=.N,by=D.Item.Root.Comp.Proc_Major][N==1][,N:=NULL]
+          
+          # Add a field to y which when merged shows the merge has worked for a particular row in x
+          mergedat[,check:=T]
+          
+          # Make fields in x lower case to improve odds of matching
+          Animal.Diet[,D.Item.Root.Comp.Proc_Major_low:=tolower(D.Item.Root.Comp.Proc_Major)]
+          
+          # Merge new names - using D.Item.Proc_Major 
+          ani_diet_cols<-c(colnames(Animal.Diet),"index")
+          Animal.Diet<-merge(Animal.Diet,mergedat[,!c("D.Item.Proc_Major")],by.x="D.Item.Root.Comp.Proc_Major_low",
+                             by.y="D.Item.Root.Comp.Proc_Major",all.x=T,sort=F)
+          Animal.Diet[is.na(check),check:=F]
+          
+          # Record non-matches
+          error_dat<-Animal.Diet[!is.na(D.ItemxProcess) & 
+                                   !is_entire_diet &
+                                   !is_group &
+                                   check==F & 
+                                   !D.Item.Root.Comp.Proc_Major %in% excluded_items,
+                                 .(B.Code=paste0(unique(B.Code),collapse = "/")),
+                                 by=.(D.ItemxProcess,D.Item.Root.Comp.Proc_Major)
+          ][,table:=table_name
+          ][,issue:="No-match between D.Item.Root.Comp.Proc_Major and era_master_sheet/ani_diet/D.Item.Proc_Major"
+            ][order(D.ItemxProcess)]
+          
+          if(nrow(error_dat)>0){
+            error_tracker(error_dat,filename = "Non-matches to ani_diet and AOM",error_dir = error_dir)
+          }    
+          
+          Animal.Diet[,check:=NULL]
+          
+    ### 12.1.3) Other checks ####
+      #### 12.1.3.1) Animal.Diet - check same group is not split across multiple diets ####
       error_dat<-Animal.Diet[!is.na(D.Item.Group),.(No.Diets=length(unique(A.Level.Name[A.Level.Name!="Base"]))),by=.(B.Code,D.Item.Group)][No.Diets>1]  
       
       for(i in 1:nrow(error_dat)){
@@ -3475,7 +3481,7 @@ table_name<-"Ingredients.Out"
       ][,issue:="Group differs between diets levels (sometimes this can be due to a process being missed)."
       ][order(B.Code)]
       
-      # 12.1.3.2) Check compound items do not have multiple match in the Animal.Diet tab ####
+      #### 12.1.3.2) Check compound items do not have multiple match in the Animal.Diet tab ####
       
       # Animal.Diet.Comp
       error_dat<-unique(Animal.Diet.Comp[is_group==T & grepl(";",D.Item),.(B.Code,D.Item)])
@@ -3567,7 +3573,7 @@ table_name<-"Ingredients.Out"
       
       error_tracker(errors,filename = "Potential Issues with Diet Groups",error_dir = error_dir)
       
-  # 12.2) Animals.Out: Merge AOM Diet Summary with Animals.Out (.inc Trees)  ####
+  ## 12.2) Animals.Out: Merge AOM Diet Summary with Animals.Out (.inc Trees)  ####
   
     # Merge relevant AOM columns
     cols<-c("AOM","Scientific Name",paste0("L",1:10))
@@ -3592,7 +3598,7 @@ table_name<-"Ingredients.Out"
     Animals.Out<-merge(Animals.Out,Animal.Diet.Summary,by=c("B.Code","A.Level.Name"),all.x=T,sort=F)
     Animals.Out[A.Diet.Trees=="",A.Diet.Trees:=NA][A.Diet.Other=="",A.Diet.Other:=NA]
     
-  # 12.3) To DO: Data.Out: Update Feed Item Names  ####
+  ## 12.3) To DO: Data.Out: Update Feed Item Names  ####
   if(F){
   # Is intake item a group? (contains more than 1 diet item) 
   Data.Out[grepl(";",ED.Intake.Item),ED.Intake.Item.is_group:=F]
@@ -3657,7 +3663,7 @@ table_name<-"Ingredients.Out"
   Data.Out[,c("A.Level.Name","D.Item"):=NULL]
   
   }
-    # 12.3.1) List papers with no-entire diet and many feed items in a group ####
+    ### 12.3.1) List papers with no-entire diet and many feed items in a group ####
     error_dat<-Data.Out[!is.na(ED.Intake.Item),.(B.Code,ED.Intake.Item,ED.Intake.Item.is_entire_diet,ED.Intake.Item.is_group)]
     error_dat<-error_dat[,any_entire_diet:=F
                          ][,any_entire_diet:=any(ED.Intake.Item.is_entire_diet),by=B.Code
@@ -3672,7 +3678,7 @@ table_name<-"Ingredients.Out"
       error_tracker(error_dat[order(B.Code)],filename = "Check if Entire Diet can used in Data.Out",error_dir = error_dir)
     }
     
-  # 12.4) Update Tables ####
+  ## 12.4) Update Tables ####
     
     data$Animal.Diet<-Animal.Diet
     data$Animals.Out<-Animals.Out
