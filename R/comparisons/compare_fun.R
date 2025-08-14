@@ -123,9 +123,9 @@ compare_fun<-function(Data,
   }
   
   # Incorporation codes in control (to be removed)
-  Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3")
+  Mulch.C.Codes<-c("a15.2","a16.2","a17.2","b41","b41.1","b41.2","b41.3","b41","b41.1","b41.2")
   # Corresponding mulch code required in treatment (order matches Mulch.C.Codes)
-  Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3")
+  Mulch.T.Codes<-c("a15.1","a16.1","a17.1","b27","b27.1","b27.2","b27.3","b40","b40.1","b40.2")
   
   BC<-Data$B.Code[1]
   N<-Data[,N]
@@ -137,7 +137,7 @@ compare_fun<-function(Data,
   Dpracs<-c("Crop Rotation","Intercropping","Improved Fallow","Green Manure","Agroforestry Fallow","Intercropping or Rotation")
   if(any(unlist(Y[,Final.Codes]) %in%  PracticeCodes[Practice %in% Dpracs,Code])){
     
-    if(Verbose){print(paste0(BC," - Simplifying Residue Codes"))}
+    if(Verbose){print(paste0(BC," - Simplifying Residue Codes                     \r"))}
     
     PC1<-PracticeCodes[Practice %in% c("Agroforestry Pruning"),Code]
     PC2<-PracticeCodes[Practice %in% c("Mulch","Crop Residue","Crop Residue Incorporation"),Code] 
@@ -166,9 +166,10 @@ compare_fun<-function(Data,
     Data[,Final.Codes:=Y$Final.Codes]
     
   }
+  
   rbindlist(lapply(1:length(N),FUN=function(j){
     if(Verbose){
-      cat(BC," - Group ",Data$Group[1]," - Row =",j,paste0(c("(",N[j],")"),collapse = ""),"       ","\r")
+      cat(BC," - Group ",Data$Group[1]," - Row =",j,"/",length(N),paste0(c("(",N[j],")"),collapse = ""),"       \r")
     }
     X<-unlist(Data$Final.Codes[j])
     i<-N[j]
@@ -281,13 +282,16 @@ compare_fun<-function(Data,
     
     if(nrow(Z)>0){
       Z$Level.Check<-lapply(1:nrow(Z),FUN=function(ii){
+        if(Verbose){cat(BC,"Z: ii = ",ii,"/",Z[,.N],"                   \r")}
+        
         if(length(unlist(Z[ii,Linked.Tab]))==0){
           !is.na(unlist(Z$Prac.Code)[ii])
         }else{
           unlist(lapply(1:length(unlist(Z[ii,Linked.Tab])),FUN=function(jj){
+            
             # ***FERTILIZER*** Do both treatments have fertilizer? If so the sequences must match 
             if(unlist(Z[ii,Linked.Tab])[jj]=="Fert.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Fert.Out")){
-              if(Verbose){cat("Fert: ii = ",ii," | jj = ",jj,"\n")}
+              if(Verbose){cat(BC,"Fert: ii = ",ii," | jj = ",jj,"                   \r")}
               
               Trt<-Data[Z[ii,Y.N],F.Level.Name]
               Control<-Data[j,F.Level.Name]
@@ -398,7 +402,7 @@ compare_fun<-function(Data,
             }else{
               # ***ROTATION*** Do both treatments have rotation? If so the sequences must match
               if(unlist(Z[ii,Linked.Tab])[jj]=="Rot.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Rot.Out")){
-                if(Verbose){print(paste0("Rotation: ii = ",ii," | jj = ",jj))}
+                if(Verbose){cat(BC,"Rotation: ii = ",ii," | jj = ",jj,"                          \r")}
                 # Rotation will need to be compared by matching crop sequences
                 
                 Trt<-Data[Z[ii,Y.N],R.Level.Name]
@@ -422,7 +426,7 @@ compare_fun<-function(Data,
               }else{
                 # ***INTERCROPPING*** Do both treatments have intercropping? If so the intercropping planting must match for them to be compared
                 if(unlist(Z[ii,Linked.Tab])[jj]=="Int.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Int.Out")){ 
-                  if(Verbose){print(paste0("Intercropping: ii = ",ii," | jj = ",jj))}
+                  if(Verbose){cat(BC,"Intercropping: ii = ",ii," | jj = ",jj,"                          \r")}
                   
                   # If both the treatment and control share intercropping then the planting density of each component needs to be 95% similar
                   # If comparing practices at the treatment level (not the intercropping or rotation system level) 
@@ -466,7 +470,7 @@ compare_fun<-function(Data,
                 }else{
                   # ***IRRIGATION*** Do both treatments have deficit or supplemental irrigation? 
                   if(unlist(Z[ii,Linked.Tab])[jj]=="Irrig.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Irrig.Out")){
-                    if(Verbose){print(paste0("Irrigation: ii = ",ii," | jj = ",jj))}
+                    if(Verbose){cat(BC,"Irrigation: ii = ",ii," | jj = ",jj,"                          \r")}
                     
                     # If deficit, supplemental, APRI or Other irrigation present in both Control and Trt then If so the water applied must match for them to be compared
                     if(any(c("b37","b36","b54","b53") %in% unlist(Z[ii,Control.Code]))){
@@ -499,7 +503,7 @@ compare_fun<-function(Data,
                   }else{
                     # ***WATER HARVESTING*** Do both treatment & control have Water Harvesting?
                     if(unlist(Z[ii,Linked.Tab])[jj]=="WH.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="WH.Out")){
-                      if(Verbose){print(paste0("Water Harvesting: ii = ",ii," | jj = ",jj))}
+                      if(Verbose){cat(BC,"Water Harvesting: ii = ",ii," | jj = ",jj,"                          \r")}
                       
                       # This should be OK by default. We can have multiple WH practices, but these do not have levels.
                       # This could be an issue if we have mutilple levels of a base practice shared btw control and treatment
@@ -508,7 +512,7 @@ compare_fun<-function(Data,
                     }else{
                       # ***POST HARVEST*** Do both treatment & control have Post Harvest?
                       if(unlist(Z[ii,Linked.Tab])[jj]=="PO.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="PO.Out")){
-                        if(Verbose){print(paste0("Post Harvest: ii = ",ii," | jj = ",jj))}
+                        if(Verbose){cat(BC,"Post Harvest: ii = ",ii," | jj = ",jj,"                          \r")}
                         
                         # This should be OK by default. We can have multiple postharvest practices, but these do not have levels.
                         # This could be an issue if we have mutilple levels of a base practice shared btw control and treatment
@@ -517,7 +521,7 @@ compare_fun<-function(Data,
                       }else{
                         # ***ENERGY*** Do both treatment & control have Energy?
                         if(unlist(Z[ii,Linked.Tab])[jj]=="E.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="E.Out")){
-                          if(Verbose){print(paste0("Energy: ii = ",ii," | jj = ",jj))}
+                          if(Verbose){cat(BC,"Energy: ii = ",ii," | jj = ",jj,"                          \r")}
                           
                           # This should be OK by default. We can have multiple energy practices, but these do not have levels.
                           # This could be an issue if we have mutilple levels of a base practice shared btw control and treatment
@@ -526,7 +530,7 @@ compare_fun<-function(Data,
                         }else{
                           # ***RESIDUES*** Do both treatments have Residues? If so the material, amount, date and method of application must match for them to be compared
                           if(unlist(Z[ii,Linked.Tab])[jj]=="Res.Out" & !is.na(unlist(Z[ii,Linked.Tab])[jj]=="Res.Out")){
-                            if(Verbose){print(paste0("Residues: ii = ",ii," | jj = ",jj))}
+                            if(Verbose){cat(BC,"Residues: ii = ",ii," | jj = ",jj,"                          \r")}
                             
                             Trt<-Data[Z[ii,Y.N],M.Level.Name]
                             Control<-Data[j,M.Level.Name]
@@ -577,7 +581,7 @@ compare_fun<-function(Data,
                             
                           }else{
                             
-                            if(Verbose){print(paste0("Simple: ii = ",ii," | jj = ",jj))}
+                            if(Verbose){cat(BC,"Simple: ii = ",ii," | jj = ",jj,"                          \r")}
                             
                             # Simple cases where the treatment level names need be identical for practices shared between control and treatment
                             # Control Field
