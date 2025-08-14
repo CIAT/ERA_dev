@@ -173,7 +173,7 @@ if(update){
   ## 2.5) Read in data from excel files #####
   
   # If files have already been imported and converted to list form should the import process be run again?
-  overwrite<-F
+  overwrite<-T
   
   # Delete existing files if overwrite =T
   if(overwrite){
@@ -1538,7 +1538,14 @@ if(update){
     Plant.Method<-results$data
     
     
-    ### 3.10.3) Save errors ######
+    ### 3.10.3) Remove unused Base practices ####
+    Plant.Out<-Plant.Out[!(P.Level.Name=="Base" & !B.Code %in% Plant.Method[P.Level.Name=="Base",B.Code])]
+    
+    # Check for base practice used with practice name
+    error_dat<-Plant.Out[,.(base=sum(P.Level.Name=="Base"),prac=sum(P.Level.Name!="Base")),by=B.Code]
+    error_dat[base>0 & prac>0]
+    
+    ### 3.10.4) Save errors ######
     error_list<-error_tracker(errors=rbind(errors1,errors2,errors3,errors4,errors5,errors6)[order(B.Code)],filename = "plant_method_value_errors",error_dir=error_dir,error_list = error_list)
     
     # errors x
@@ -2929,6 +2936,7 @@ if(update){
   
   harmonization_list<-error_tracker(errors=results$h_tasks,filename = "dates_harmonization",error_dir=harmonization_dir,error_list = harmonization_list)
   
+  
     ### 3.18.2) PD.Out ######
   col_names2<-col_names[7:14]
   
@@ -2955,12 +2963,6 @@ if(update){
 
   PD.Out<-rbindlist(lapply(PD.Out,"[[","data"))  
   setnames(PD.Out,"Times","Time")
-  
-  # Update Site.IDs
-  PD.Out[Site.ID!="All Sites",Site.ID_new:=Site.Out$Site.ID[match(PD.Out[Site.ID!="All Sites",Site.ID],Site.Out$Site.ID_raw)]  
-  ][is.na(Site.ID_new),Site.ID_new:=Site.ID
-  ][,Site.ID:=Site.ID_new
-  ][,Site.ID_new:=NULL]
 
   results<-validator(data=PD.Out,
                      numeric_cols=c("PD.Date.DAS","PD.Date.DAP"),
@@ -2992,13 +2994,23 @@ if(update){
   ][,field:="PD.Level.Name"
   ][,issue:="Only one of start and end date specified in the Dates tab."])
   
-    ### 3.18.3) Save errors ######
-  errors<-rbindlist(list(errors_a,errors_b))
-  error_list<-error_tracker(errors=errors,filename = "dates_structure_errors",error_dir=error_dir,error_list = error_list)
+  # Update Site.IDs
+  PD.Out[Site.ID!="All Sites",Site.ID_new:=Site.Out$Site.ID[match(PD.Out[Site.ID!="All Sites",Site.ID],Site.Out$Site.ID_raw)]  
+  ][is.na(Site.ID_new),Site.ID_new:=Site.ID
+  ][,Site.ID:=Site.ID_new
+  ][,Site.ID_new:=NULL]
   
-  errors<-rbindlist(list(errors1,errors2,errors3,errors4),fill=T)[order(B.Code)]
-  error_list<-error_tracker(errors=errors,filename = "dates_other_errors",error_dir=error_dir,error_list = error_list)
-  
+    ### 3.18.3) PD.Codes - Remove base practice from PD.Codes when it is not used for anything ####
+    PD.Codes<-PD.Codes[!(PD.Level.Name == "Base" & is.na(PD.Prac) & is.na(PD.Prac.Info) & is.na(PD.Structure) & is.na(PD.Notes) & !B.Code %in% PD.Out$B.Code)]
+    PD.Codes<-PD.Codes[!(PD.Level.Name == "Base" & is.na(PD.Prac) & is.na(PD.Prac.Info) & is.na(PD.Structure) & is.na(PD.Notes) & !B.Code %in% PD.Out[PD.Level.Name=="Base",B.Code])]
+    
+    ### 3.18.4) Save errors ######
+    errors<-rbindlist(list(errors_a,errors_b))
+    error_list<-error_tracker(errors=errors,filename = "dates_structure_errors",error_dir=error_dir,error_list = error_list)
+    
+    errors<-rbindlist(list(errors1,errors2,errors3,errors4),fill=T)[order(B.Code)]
+    error_list<-error_tracker(errors=errors,filename = "dates_other_errors",error_dir=error_dir,error_list = error_list)
+    
   ## 3.19) Harvest (Har.Out) ######
   data<-lapply(XL,"[[","Harvest.Out")
   col_names<-colnames(data[[1]])
@@ -3411,6 +3423,18 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
   data<-MT.Out
   for(i in 1:length(mergedat)){
     keyfield<-names(mergedat)[i]
+    
+    # Add name "Base" to Level Names in the MT.Out table so that base practice information can be merged
+    # Note that this is only implemented for planting and planting dates. Other practices can have a Base management and experimental management, which complicates things.
+    # Where base and experimental practices exist, for example fertilizer, we would need to make a base practice and merged base+experimental practices, the base practice 
+    # name would then need to replace any NA values in the MT.Out F.Level.Name field.
+    if(keyfield %in% c("PD.Level.Name","P.Level.Name")){
+      mdat<-mergedat[[keyfield]]
+      is_base<-which(mdat[,keyfield,with=F]=="Base" & is.na(mdat[,keyfield,with=F]))
+      is_base<-mdat[is_base,unique(B.Code)]
+      data[B.Code %in% is_base ,(keyfield):="Base"]
+    }
+    
     # Display progress
     cat('\r', strrep(' ', 150), '\r')
     cat("Merging table", i, "/", length(mergedat),keyfield)
@@ -3424,7 +3448,6 @@ errors3<-merge(dat,mergedat,all.x=T)[is.na(check),list(value=paste0(T.Name,colla
     }else{
       data<-merge(data,mergedat[[i]],by=c("B.Code",keyfield),all.x=T)
     }
-    
   
     if(nrow(data)!=nrow(MT.Out)){
       cat(" ! Warning: nrow(output) = ",nrow(data),"vs nrow(input)",nrow(MT.Out),"\n")
@@ -5870,7 +5893,9 @@ col_names<-colnames(data[[800]])
         
         # Specific sites and specific times
         mergedat_a<-data[Site.ID!="All Sites" & Time!="All Times"]
-        N<-match(Data.Out[,paste(B.Code,Time,Site.ID)],mergedat_a[,paste(B.Code,Time,Site.ID)])
+        a<-Data.Out[,paste(B.Code,Time,Site.ID)]
+        b<-mergedat_a[,paste(B.Code,Time,Site.ID)]
+        N<-match(a,b)
         mergedat[!is.na(N)]<-mergedat_a[N[!is.na(N)]]
         
         if(!is.null(rename_vars)){
@@ -5882,7 +5907,7 @@ col_names<-colnames(data[[800]])
       
       #### 8.4.13.1) Add planting dates #######
       variable<-c("Planting","Transplanting")
-      data<-PD.Out[PD.Variable %in% variable,.(B.Code,Site.ID,PD.Variable,Time,PD.Date.Start,PD.Date.End)]
+      data<-PD.Out[PD.Variable %in% variable,.(B.Code,Site.ID,PD.Level.Name,PD.Variable,Time,PD.Date.Start,PD.Date.End)]
       
       mergedat<-merge_time_site(data=data,
                                 Data.Out = Data.Out,
