@@ -1919,22 +1919,3 @@ duplicate_focal_rows <- function(
   
   return(result)
 }
-
-
-# Example
-dt <- data.table(
-  X     = c("Base","Base","a","b","c","Base","a","x"),
-  value = c(1,2,3,3,3,100,0,9),
-  Group = c(1,1,1,1,1,2,2,2),
-  Group2 = c("a","a","a","a","b","c","c","d")
-)
-
-dt2 <- duplicate_focal_rows(
-  dt,
-  grouping_cols = c("Group","Group2"),
-  focal_col     = "X",
-  duplicate_val = "Base",
-  collapse=T
-)
-print(dt2)
-print(dt)
