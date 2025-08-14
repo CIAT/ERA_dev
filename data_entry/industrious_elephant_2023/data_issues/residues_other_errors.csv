@@ -6,5 +6,3 @@ JO0084,"Experimental Station of the Embrapa Coastal Tablelands, Umbau ́ba",Res.
 JO0094,Erythrina brucei,Res.Method,M.Tree,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 JO0110,Gliricida sepium,Res.Method,M.Tree,Mismatch in field value between parent and child tables.,,,,FALSE,"",""
 JS0248,barley mulch/wheat  + barley mulch,Res.Method,M.Level.Name,Mismatch in field value between parent and child tables.,,,,TRUE,Jabesh,Accept new term request
-SP0042,Acacia angustissima/Acacia caerulescens,Res.Method,M.Tree,Junk data in composition tab,,,,FALSE,"",""
-SP0042,Black Plastic/Cane Crop Residue/t1/t10/t11/t12/t2/t3/t4/t5/t6/t7/t8/t9,Res.Method,M.Material,Mismatch in field value between parent and child tables.,,,,FALSE,"",""

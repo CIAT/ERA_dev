@@ -1,6 +1,5 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
 "",cassava peel dried ground,era_master_sheet/ani_diets,D.Item.Root.Comp.Proc_Major,Multiple rows for unique value of D.Item.Root.Comp.Proc_Major exist.,FALSE,"",""
-"",cassava peel ground,era_master_sheet/ani_diets,D.Item.Root.Comp.Proc_Major,Multiple rows for unique value of D.Item.Root.Comp.Proc_Major exist.,FALSE,"",""
 "",cassava starch,era_master_sheet/ani_diets,D.Item.Root.Comp.Proc_Major,Multiple rows for unique value of D.Item.Root.Comp.Proc_Major exist.,FALSE,"",""
 "",chloris gayana dried,era_master_sheet/ani_diets,D.Item.Root.Comp.Proc_Major,Multiple rows for unique value of D.Item.Root.Comp.Proc_Major exist.,FALSE,"",""
 "",panicum maximum straw,era_master_sheet/ani_diets,D.Item.Root.Comp.Proc_Major,Multiple rows for unique value of D.Item.Root.Comp.Proc_Major exist.,FALSE,"",""

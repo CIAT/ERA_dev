@@ -1,10 +1,11 @@
 B.Code,value,table,field,issue,issue_addressed,addressed_by_whom,notes
 AC0003,Fallow/E3,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 AC0019,3/5/7,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
+AC0039,PD3300/PD2200/PD2600/PD1700,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 AC0041,Bottom slope/Mid slope/Upper slope,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",TRUE,Alvaro,This is fine
 AC0044,Women/All Farmers,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 AC0057,Trad,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
-AC0076,Diversified farm/Coffee,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",TRUE,Charity,Diversified field had a different pruning pprcatice
+AC0076,Diversified farm/Coffee,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""
 AC0088,Urochloa,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 AC0089,Trees,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 AC0105,Organic,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
@@ -52,7 +53,6 @@ LM0171,Prunnings,Other.Out,O.Level.Name,"One other practice exists, please check
 LM0264,GS prunings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 LM0321,PRUNNING,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,"",""
 NM0087,Tap water/Grey water,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
-NM0110,R1/R2/R3,Other.Out,O.Level.Name,">1 other practice exists and comparison IS NOT allowed, check comparisons field is correct.",FALSE,"",""
 NN0184.2,Grapes,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",FALSE,Charity,Must have been  addressed during QC
 NN0248,Prunings,Other.Out,O.Level.Name,"One other practice exists, please check that the comparisons field is correctly assigned.",TRUE,Alvaro,This is fine
 NN0437,E-DC1/E-DC2/P-DC1/P-DC2,Other.Out,O.Level.Name,">1 other practice exists and comparison IS allowed, check comparisons field is correct.",FALSE,"",""

@@ -26,8 +26,6 @@ AC0122,,Data.Out,T.Reps/Int.Reps/R.Reps,No replicates recorded.,,,,,,,,FALSE,"",
 AC0125,,Data.Out,T.Reps/Int.Reps/R.Reps,No replicates recorded.,,,,,,,,FALSE,"",""
 AC0133,,Data.Out,T.Reps/Int.Reps/R.Reps,No replicates recorded.,,,,,,,,FALSE,"",""
 AC0133,2003.2/2004.1/2004.2,Data.Out,Time,"Cannot estimate season length, probably due to incomplete sequence or error in sequence in Time.Out tab.",,,,,,,,FALSE,"",""
-AC0141,AFP4***Calliandra/AFP5***Calliandra/AFP6***Calliandra,Data.Out,IN.Level.Name/T.Name,Compulsory Product field is blank.,,,,,,,,FALSE,"",""
-AC0141,AFP4/AFP5/AFP6,Data.Out,T.Name,Mismatch in field value between parent and child tables.,MT.Out,,,,,,,FALSE,"",""
 AC0153,0PS,Data.Out,ED.Comparison1,Mismatch in field value between parent and child tables.,MT.Out,,,,,,,FALSE,"",""
 AC0154,,Data.Out,T.Reps/Int.Reps/R.Reps,No replicates recorded.,,,,,,,,FALSE,"",""
 AC0154,Nitrogen Agronomic Efficiency..kg/kg N,Data.Out,Out.Code.Joined,Outcome derived from T vs C (e.g. LER) does not have comparison specified.,,,,,,,,FALSE,"",""

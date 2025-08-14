@@ -1,4 +1,4 @@
-B.Code,era_code2,filename,N,code_issue,issue_addressed,addressed_by_whom,notes
-HK0161.LTE1,HK0161.1,/Users/pstewarda/Documents/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - HK0161.1.xlsm,1,TRUE,FALSE,"",""
-LM0119,LM0119,/Users/pstewarda/Documents/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0119.xlsm,2,FALSE,FALSE,"",""
-LM0119,NN0168,/Users/pstewarda/Documents/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - NN0168.xlsm,2,TRUE,FALSE,"",""
+filename,B.Code.x,era_code2.x,N.x,code_issue.x,B.Code.y,era_code2.y,N.y,code_issue.y,B.Code.x,era_code2.x,N.x,code_issue.x,B.Code.y,era_code2.y,N.y,code_issue.y,issue_addressed,addressed_by_whom,notes
+/Users/pstewarda/Documents/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - HK0161.1.xlsm,HK0161.LTE1,HK0161.1,1,TRUE,HK0161.LTE1,HK0161.1,1,TRUE,HK0161.LTE1,HK0161.1,1,TRUE,HK0161.LTE1,HK0161.1,1,TRUE,FALSE,"",""
+/Users/pstewarda/Documents/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - LM0119.xlsm,LM0119,LM0119,2,FALSE,LM0119,LM0119,2,FALSE,LM0119,LM0119,2,FALSE,LM0119,LM0119,2,FALSE,FALSE,"",""
+/Users/pstewarda/Documents/rprojects/common_data/era/data_entry/industrious_elephant_2023/excel_files/V2.0.24 - NN0168.xlsm,LM0119,NN0168,2,TRUE,LM0119,NN0168,2,TRUE,LM0119,NN0168,2,TRUE,LM0119,NN0168,2,TRUE,FALSE,"",""
