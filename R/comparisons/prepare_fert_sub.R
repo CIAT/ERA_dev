@@ -150,6 +150,12 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
             mt_cont<-mt_out[F.Level.Name==pair[1]]
             mt_trt<-mt_out[F.Level.Name==pair[2]]
             
+            base_codes_present<-T
+            
+            if(!"Base.Codes" %in% colnames(mt_trt)){
+              base_codes_present<-F  
+            }
+            
             # Recode practices
             # b23|b17
             if(compare_set[j,n_red]){
@@ -185,9 +191,11 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
               mt_cont[,T.Codes:=split_gsub(T.Codes,"b21",""),by=.I]
               mt_cont[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b21",""),by=.I]
               
+              if(base_codes_present){
               # Remove codes from Base.Codes
               mt_trt[,Base.Codes:=split_gsub(Base.Codes,"b21",""),by=.I]
               mt_cont[,Base.Codes:=split_gsub(Base.Codes,"b21",""),by=.I]
+              }
             }
             
             # b16
@@ -204,9 +212,11 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
               mt_cont[,T.Codes:=split_gsub(T.Codes,"b16",""),by=.I]
               mt_cont[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b16",""),by=.I]
               
+              if(base_codes_present){
               # Remove codes from Base.Codes
               mt_trt[,Base.Codes:=split_gsub(Base.Codes,"b16",""),by=.I]
               mt_cont[,Base.Codes:=split_gsub(Base.Codes,"16",""),by=.I]
+              }
             }
             
             # b29|b30|b73|b75|b67
@@ -231,8 +241,10 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b75","b75.1"),by=.I]
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b67","b67.1"),by=.I]
               
+              if(base_codes_present){
               mt_trt[,Base.Codes:=split_gsub(Base.Codes,"b29|b30|b73|b75|b67",""),by=.I]
               mt_cont[,Base.Codes:=split_gsub(Base.Codes,"b29|b30|b73|b75|b67",""),by=.I]
+              }
             }
             
             # Update F.Level.Names
@@ -264,7 +276,9 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
             dat_out[,T.Codes:=mt_out[match(dat_out$T.Name,mt_out$T.Name),T.Codes]]
             dat_out[,T.Codes.No.Agg:=mt_out[match(dat_out$T.Name,mt_out$T.Name),T.Codes.No.Agg]]
             dat_out[,F.Codes:=mt_out[match(dat_out$T.Name,mt_out$T.Name),F.Codes]]
-            dat_out[,Base.Codes:=mt_out[match(dat_out$T.Name,mt_out$T.Name),Base.Codes]]
+            if(base_codes_present){
+              dat_out[,Base.Codes:=mt_out[match(dat_out$T.Name,mt_out$T.Name),Base.Codes]]
+            }
             dat_out[,Structure.Comb:=mt_out[match(dat_out$T.Name,mt_out$T.Name),Structure.Comb]]
             dat_out$O.Level.Name<-names(pair)[1]
             dat_out$O.Structure<-"No"
