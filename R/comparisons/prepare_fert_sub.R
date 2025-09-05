@@ -138,15 +138,15 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
             
             names(trts)<-paste0(trts,"<>",i,"<>",j)
             
-            # Copy Fert.Out Rows
+            # Subset Fert.Out Rows
             fo_cont<-Fert.Out[B.Code==b_code & F.Level.Name==pair[1]]
             fo_trt<-Fert.Out[B.Code==b_code & F.Level.Name==pair[2]]
             
-            # Copy Fert.Method Rows
+            # Subset Fert.Method Rows
             fm_cont<-Fert.Method[B.Code==b_code & F.Level.Name==pair[1]]
             fm_trt<-Fert.Method[B.Code==b_code & F.Level.Name==pair[2]]
             
-
+            # Subset mt_out Rows
             mt_cont<-mt_out[F.Level.Name==pair[1]]
             mt_trt<-mt_out[F.Level.Name==pair[2]]
             
@@ -157,11 +157,18 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
               fm_trt[grepl("b23|b17",F.Codes),F.Amount:=NA]
               mt_trt[,F.Codes:=split_gsub(F.Codes,"b23|b17","b17.1"),by=.I]
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b23|b17","b17.1"),by=.I]
+              mt_trt[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b23|b17","b17.1"),by=.I]
               
               fo_cont[,F.Codes:=split_gsub(F.Codes,"b23|b17","")]
               fm_cont[grepl("b23|b17",F.Codes),F.Amount:=NA]
               mt_cont[,F.Codes:=split_gsub(F.Codes,"b23|b17",""),by=.I]
               mt_cont[,T.Codes:=split_gsub(T.Codes,"b23|b17",""),by=.I]
+              mt_cont[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b23|b17",""),by=.I]
+              
+              # Remove codes from Base.Codes
+              mt_trt[,Base.Codes:=split_gsub(Base.Codes,"b23|b17",""),by=.I]
+              mt_cont[,Base.Codes:=split_gsub(Base.Codes,"b23|b17",""),by=.I]
+              
               }
             
             # b21
@@ -170,11 +177,17 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
               fm_trt[grepl("b21",F.Codes),F.Amount:=NA]
               mt_trt[,F.Codes:=split_gsub(F.Codes,"b21","b21.1"),by=.I]
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b21","b21.1"),by=.I]
+              mt_trt[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b21","b21.1"),by=.I]
               
               fo_cont[,F.Codes:=split_gsub(F.Codes,"b21","")]
               fm_cont[grepl("b21",F.Codes),F.Amount:=NA]
               mt_cont[,F.Codes:=split_gsub(F.Codes,"b21",""),by=.I]
               mt_cont[,T.Codes:=split_gsub(T.Codes,"b21",""),by=.I]
+              mt_cont[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b21",""),by=.I]
+              
+              # Remove codes from Base.Codes
+              mt_trt[,Base.Codes:=split_gsub(Base.Codes,"b21",""),by=.I]
+              mt_cont[,Base.Codes:=split_gsub(Base.Codes,"b21",""),by=.I]
             }
             
             # b16
@@ -183,11 +196,17 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
               fm_trt[grepl("b16",F.Codes),F.Amount:=NA]
               mt_trt[,F.Codes:=split_gsub(F.Codes,"b16","b16.1"),by=.I]
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b16","b16.1"),by=.I]
+              mt_trt[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b16","b16.1"),by=.I]
               
               fo_cont[,F.Codes:=split_gsub(F.Codes,"b16","",F.Codes)]
               fm_cont[grepl("b16",F.Codes),F.Amount:=NA]
               mt_cont[,F.Codes:=split_gsub(F.Codes,"b16",""),by=.I]
               mt_cont[,T.Codes:=split_gsub(T.Codes,"b16",""),by=.I]
+              mt_cont[,T.Codes.No.Agg:=split_gsub(T.Codes.No.Agg,"b16",""),by=.I]
+              
+              # Remove codes from Base.Codes
+              mt_trt[,Base.Codes:=split_gsub(Base.Codes,"b16",""),by=.I]
+              mt_cont[,Base.Codes:=split_gsub(Base.Codes,"16",""),by=.I]
             }
             
             # b29|b30|b73|b75|b67
@@ -211,6 +230,9 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b73","b73.1"),by=.I]
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b75","b75.1"),by=.I]
               mt_trt[,T.Codes:=split_gsub(T.Codes,"b67","b67.1"),by=.I]
+              
+              mt_trt[,Base.Codes:=split_gsub(Base.Codes,"b29|b30|b73|b75|b67",""),by=.I]
+              mt_cont[,Base.Codes:=split_gsub(Base.Codes,"b29|b30|b73|b75|b67",""),by=.I]
             }
             
             # Update F.Level.Names
@@ -240,7 +262,9 @@ prepare_fert_sub<-function(Fert.Out,Fert.Method,Other.Out,MT.Out,Data.Out,min_re
             dat_out[,F.Level.Name:=names(pair)[match(F.Level.Name,pair)]]
             dat_out[,T.Name:=names(trts)[match(dat_out$T.Name,trts)]]
             dat_out[,T.Codes:=mt_out[match(dat_out$T.Name,mt_out$T.Name),T.Codes]]
+            dat_out[,T.Codes.No.Agg:=mt_out[match(dat_out$T.Name,mt_out$T.Name),T.Codes.No.Agg]]
             dat_out[,F.Codes:=mt_out[match(dat_out$T.Name,mt_out$T.Name),F.Codes]]
+            dat_out[,Base.Codes:=mt_out[match(dat_out$T.Name,mt_out$T.Name),Base.Codes]]
             dat_out[,Structure.Comb:=mt_out[match(dat_out$T.Name,mt_out$T.Name),Structure.Comb]]
             dat_out$O.Level.Name<-names(pair)[1]
             dat_out$O.Structure<-"No"
