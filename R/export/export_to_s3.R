@@ -31,7 +31,7 @@ if (!require("pacman")) {
 }
 
 # Use p_load to install if not present and load the packages
-p_load(s3fs,zip,arrow,miceadds,paws,jsonlite,future,future.apply,progressr)
+p_load(s3fs,zip,arrow,miceadds,paws,jsonlite,future,future.apply,progressr,digest)
 
 source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
 source(file.path(project_dir, "R/utils/era_release_validation.R"), local = TRUE)

@@ -17,7 +17,7 @@
 #   - R/import/import_industrious_elephant_2023.R
 
 ## 0.0) Install and load packages ####
-pacman::p_load(data.table, jsonlite, miceadds)
+pacman::p_load(data.table, jsonlite, miceadds, digest)
 source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
 source(file.path(project_dir, "R/utils/era_release_validation.R"), local = TRUE)
 
