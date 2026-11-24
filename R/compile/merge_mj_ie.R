@@ -17,12 +17,14 @@
 #   - R/import/import_industrious_elephant_2023.R
 
 ## 0.0) Install and load packages ####
-pacman::p_load(data.table, jsonlite, miceadds)
+pacman::p_load(data.table, jsonlite, miceadds, digest)
+source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
+source(file.path(project_dir, "R/utils/era_release_validation.R"), local = TRUE)
 
 
 # 1) Load data ####
   ## 1.1) Majestic hippo ####
-  files<-list.files("Data",era_projects$majestic_hippo_2020,full.names = T)
+  files<-list.files(era_dirs$era_masterdata_dir,era_projects$majestic_hippo_2020,full.names = T)
   (files<-grep(".RData",files,value=T))
   (file_mh<-tail(files,1))
   
@@ -451,7 +453,7 @@ pacman::p_load(data.table, jsonlite, miceadds)
     # Dev Note: Consider adding Time.Agg.Duration see 8.4.12.1 in R/import/import_industrious_elephant_2023.R ####
     
     ## 1.2) Industrious elephant ####
-    files<-list.files("Data",era_projects$industrious_elephant_2023,full.names = T)
+    files<-list.files(era_dirs$era_masterdata_dir,era_projects$industrious_elephant_2023,full.names = T)
     (files<-grep(".RData",files,value=T))
     (file_ie<-tail(files,1))
     
@@ -483,6 +485,36 @@ pacman::p_load(data.table, jsonlite, miceadds)
       ):=NULL]
     
 
+# Decode the explicitly identified Hippo calendar fields before rbindlist.
+# Mixed character/Date columns otherwise retain a Date class over character
+# values: Excel serials shift by 25,569 days and valid IE ISO dates become NA
+# during JSON serialization. Keep row-linked raw evidence for every nonblank
+# token, including invalid/partial dates; no century or missing day is guessed.
+  date_fields_mh <- list(
+    Data.Out = c("PD.Plant.Start", "PD.Plant.End", "PD.Harvest.Start",
+                 "PD.Harvest.End", "ED.Sample.Start", "ED.Sample.End"),
+    Fert.Method = "F.Date",
+    Res.Method = "M.Date"
+  )
+  date_audit <- list()
+  for (table in names(date_fields_mh)) {
+    for (field in date_fields_mh[[table]]) {
+      decoded <- era_decode_legacy_dates(era_mh[[table]][[field]])
+      rows <- which(decoded$status != "missing")
+      date_audit[[paste(table, field, sep = ".")]] <- data.table(
+        table = table, field = field, source_row = rows,
+        merged_row = nrow(era_ie[[table]]) + rows,
+        B.Code = era_mh[[table]]$B.Code[rows],
+        raw = decoded$raw[rows], date = decoded$date[rows], status = decoded$status[rows]
+      )
+      set(era_mh[[table]], j = field, value = decoded$date)
+    }
+  }
+  date_audit <- rbindlist(date_audit)
+  date_exceptions <- date_audit[!status %in% c("date", "excel_serial", "dmy", "iso")]
+  if (nrow(date_exceptions)) warning(sprintf(
+    "%d unresolved source date tokens; see date-audit.csv before publishing", nrow(date_exceptions)))
+
 # 2) Compare data ####
   ## 2.1) Compare tables names ####
   names_mh<-names(era_mh)
@@ -502,8 +534,8 @@ pacman::p_load(data.table, jsonlite, miceadds)
     fields_shared<-fields_ie[fields_ie %in% fields_mh]
     
     tab_choice<-data.table(era_mh[[tab]])
-    class_mh<-sapply(tab_choice[,fields_shared,with=F],class)
-    class_ie<-sapply(tab_choice[,fields_shared,with=F],class)
+    class_mh<-vapply(tab_choice[,fields_shared,with=F], function(x) paste(class(x), collapse = "/"), character(1))
+    class_ie<-vapply(era_ie[[tab]][,fields_shared,with=F], function(x) paste(class(x), collapse = "/"), character(1))
     class_mismatch<-class_mh[class_mh != class_ie]
     
     list(fields_mh=fields_mh,fields_ie=fields_ie,mh_not_ie=mh_not_ie,cc_not_mh=cc_not_mh,fields_shared=fields_shared,class_mh=class_mh,class_ie=class_ie,class_mismatch=class_mismatch)
@@ -557,7 +589,7 @@ pacman::p_load(data.table, jsonlite, miceadds)
       mh[,(ie_logical):=as.logical(NA)]
     }
     
-    result<-rbindlist(list(ie,mh),use.names = T)
+    result<-era_bind_date_safe(ie, mh, tab)
     
   })
   
@@ -575,12 +607,24 @@ pacman::p_load(data.table, jsonlite, miceadds)
   save_path_rdata<-file.path(era_dirs$era_masterdata_dir,save_file)
   save_path_json<-gsub(".RData",".json",save_path_rdata)
   
-  save(era_merge,file=save_path)    
-  json_era<-jsonlite::toJSON(era_merge,dataframe="rows",auto_unbox=T,pretty = T)
+  # A failed run must not leave a prior receipt authorizing its replacement.
+  unlink(era_receipt_path(save_path_json))
+  save(era_merge,file=save_path_rdata)
+  fwrite(date_audit, sub("[.]RData$", "-date-audit.csv", save_path_rdata))
+  json_era<-jsonlite::toJSON(era_merge,dataframe="rows",auto_unbox=T,pretty = T, Date = "ISO8601")
   
   write(json_era, file = save_path_json)
   
-  era_dat<-jsonlite::read_json(save_path_json,simpli)
-
   # Check integrity of restored json data
   restored_list <- jsonlite::fromJSON(save_path_json, simplifyDataFrame = TRUE)
+  for (table in names(era_merge)) {
+    fields <- names(era_merge[[table]])[vapply(era_merge[[table]], inherits, logical(1), "Date")]
+    for (field in fields) {
+      if (!identical(era_date_iso(era_merge[[table]][[field]]),
+                     as.character(restored_list[[table]][[field]]))) {
+        stop(sprintf("JSON calendar-date round-trip failed in %s.%s", table, field))
+      }
+    }
+  }
+
+  era_write_date_receipt(save_path_json, era_merge, date_audit, c(file_mh, file_ie))
