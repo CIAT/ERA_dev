@@ -19,11 +19,12 @@
 ## 0.0) Install and load packages ####
 pacman::p_load(data.table, jsonlite, miceadds)
 source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
+source(file.path(project_dir, "R/utils/era_release_validation.R"), local = TRUE)
 
 
 # 1) Load data ####
   ## 1.1) Majestic hippo ####
-  files<-list.files("Data",era_projects$majestic_hippo_2020,full.names = T)
+  files<-list.files(era_dirs$era_masterdata_dir,era_projects$majestic_hippo_2020,full.names = T)
   (files<-grep(".RData",files,value=T))
   (file_mh<-tail(files,1))
   
@@ -452,7 +453,7 @@ source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
     # Dev Note: Consider adding Time.Agg.Duration see 8.4.12.1 in R/import/import_industrious_elephant_2023.R ####
     
     ## 1.2) Industrious elephant ####
-    files<-list.files("Data",era_projects$industrious_elephant_2023,full.names = T)
+    files<-list.files(era_dirs$era_masterdata_dir,era_projects$industrious_elephant_2023,full.names = T)
     (files<-grep(".RData",files,value=T))
     (file_ie<-tail(files,1))
     
@@ -606,6 +607,8 @@ source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
   save_path_rdata<-file.path(era_dirs$era_masterdata_dir,save_file)
   save_path_json<-gsub(".RData",".json",save_path_rdata)
   
+  # A failed run must not leave a prior receipt authorizing its replacement.
+  unlink(era_receipt_path(save_path_json))
   save(era_merge,file=save_path_rdata)
   fwrite(date_audit, sub("[.]RData$", "-date-audit.csv", save_path_rdata))
   json_era<-jsonlite::toJSON(era_merge,dataframe="rows",auto_unbox=T,pretty = T, Date = "ISO8601")
@@ -623,3 +626,5 @@ source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
       }
     }
   }
+
+  era_write_date_receipt(save_path_json, era_merge, date_audit, c(file_mh, file_ie))

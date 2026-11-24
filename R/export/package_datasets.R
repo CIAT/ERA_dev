@@ -21,62 +21,43 @@
 # 
 
 # Use p_load to install if not present and load the packages
-pacman::p_load(s3fs,zip,arrow,miceadds,paws,jsonlite)
+pacman::p_load(data.table,arrow,miceadds,jsonlite,digest)
 
-# 1) Agronomy ####
-  ## Combine most recent data for ERA agronomy 
-file_list<-list()
+source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
+source(file.path(project_dir, "R/utils/era_release_validation.R"), local = TRUE)
 
-(file_list$era_comparisons<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled.*parquet",full.names = T),1))
-(file_list$era_agronomy_dm<-tail(list.files(era_dirs$era_masterdata_dir,"agronomic.*json",full.names = T),1))
-(file_list$era_master_codes<-tail(list.files(era_dirs$era_masterdata_dir,"era_master_codes.*json",full.names = T),1))
-
-
-file_list$version<-file.path(era_dirs$era_masterdata_dir,"era_agronomy_version.csv")
-fwrite(versions,file_list$version)
-
-# Create .tar.gz
-file_archive<-file.path(era_dirs$era_packaged_dir,paste0("era_agronomy_bundle_",Sys.Date(),".tar.gz"))
-file_archive2<-file.path(era_dirs$era_packaged_dir,paste0("era_agronomy_bundle.tar.gz"))
-
-versions<-data.frame(versions=unlist(lapply(file_list,basename)),archived_name=file_archive2)
-
-# Set working directory temporarily to the files' location
-old_wd <- setwd(dirname(file_list[[1]]))
-
-# Create archive with files (basename only, no paths)
-tar(
-  tarfile = file_archive,
-  files = basename(unlist(file_list)),
-  compression = "gzip",
-  tar = "internal"
-)
-
-tar(
-  tarfile = file_archive2,
-  files = basename(unlist(file_list)),
-  compression = "gzip",
-  tar = "internal"
-)
-# Reset working directory
-setwd(old_wd)
-
-# Remove version file
-unlink(file_list$version)
+# 1) Agronomy: explicit inputs may be supplied for a pinned release. Otherwise
+# select only dataset files, never livestock subsets or validation sidecars.
+latest_input <- function(pattern, exclude = NULL) {
+  files <- list.files(era_dirs$era_masterdata_dir, pattern, full.names = TRUE)
+  if (!is.null(exclude)) files <- files[!grepl(exclude, files)]
+  if (!length(files)) stop("Missing package input: ", pattern)
+  tail(files, 1)
+}
+if (!exists("era_agronomy_inputs", inherits = FALSE)) {
+  era_agronomy_inputs <- list(
+    comparisons = latest_input("^era_compiled-.*[.]parquet$"),
+    json = latest_input("^agronomic_.*[.]json$", "-validation[.]json$"),
+    codes = latest_input("^era_master_codes-.*[.]json$", "[.]provenance[.]json$")
+  )
+}
+created_archives <- era_package_agronomy(era_agronomy_inputs, era_dirs$era_packaged_dir)
 
 # 2) Livestock ####
+# Keep its member list separate from the agronomy package.
+file_list <- list()
 (file_list$era_livestock_dm<-tail(list.files(era_dirs$era_masterdata_dir,"skinny_cow.*RData",full.names = T),1))
 livestock_dm<-load.Rdata2(basename(file_list$era_livestock_dm),dirname(file_list$era_livestock_dm))
 file_list$era_livestock_dm<-gsub(".RData",".json",file_list$era_livestock_dm)
 jsonlite::write_json(livestock_dm,file_list$era_livestock_dm)
 
   ## Combine most recent data for livestock
-(file_list$era_comparisons<-tail(list.files(era_dirs$era_masterdata_dir,"era_compiled.*parquet",full.names = T),1))
-(file_list$era_master_codes<-tail(list.files(era_dirs$era_masterdata_dir,"era_master_codes.*json",full.names = T),1))
+file_list$era_comparisons <- latest_input("^era_compiled-.*[.]parquet$")
+file_list$era_master_codes <- latest_input("^era_master_codes-.*[.]json$", "[.]provenance[.]json$")
 
 
 # To do: Subset compiled data to livestock
-compiled_livestock<-arrow::read_parquet(file_list$era_comparisons)
+compiled_livestock<-data.table::as.data.table(arrow::read_parquet(file_list$era_comparisons))
 compiled_livestock<-compiled_livestock[Product.Type=="Animal"]
 
 x<-(file_list$era_comparisons)
@@ -86,14 +67,14 @@ arrow::write_parquet(compiled_livestock,x)
 
 file_list$era_comparisons<-x
 
-file_list$version<-file.path(era_dirs$era_masterdata_dir,"era_agronomy_version.csv")
-fwrite(versions,file_list$version)
+file_list$version<-file.path(era_dirs$era_masterdata_dir,"era_livestock_version.csv")
 
 # Create .tar.gz
 file_archive<-file.path(era_dirs$era_packaged_dir,paste0("era_livestock_bundle_",Sys.Date(),".tar.gz"))
 file_archive2<-file.path(era_dirs$era_packaged_dir,paste0("era_livestock_bundle.tar.gz"))
 
-versions<-data.frame(versions=unlist(lapply(file_list,basename)),archived_name=file_archive2)
+versions<-data.frame(versions=unlist(lapply(file_list,basename)),archived_name=basename(file_archive2))
+fwrite(versions,file_list$version)
 
 # Set working directory temporarily to the files' location
 old_wd <- setwd(dirname(file_list[[1]]))
@@ -118,13 +99,14 @@ tar(
 setwd(old_wd)
 
 # 3) Upload ####
+created_archives <- c(created_archives, file_archive, file_archive2)
 
 s3_bucket<-era_dirs$era_packaged_s3
 folder_local<-era_dirs$era_packaged_dir
 
-(files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F))
+files <- created_archives
 
-upload_files_to_s3(files = files,
+era_upload_files_checked(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,

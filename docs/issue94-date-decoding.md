@@ -115,7 +115,7 @@ SF-003 should document date origin, ISO/day precision, source holds, exact
 snapshot and the restrictive season filter. Preserve the agreed one-repository,
 one-planned-CGSpace-record approach.
 
-## Deployment boundary
+## Deployment boundary (23 November review state)
 
 No production object, release pointer, workbook, viewer or adopted SR463 package
 was changed. Both existing ERA sessions were consulted; dirty ERA_dev main and
@@ -125,3 +125,62 @@ and affected consumer outputs pass post-deployment checks.
 
 Private evidence and proposed publishing manifest:
 `/Users/pstewarda/Documents/rprojects/_era-review/issue94-dates-2026-11-23/`.
+
+## Upload prevention added 24 November 2026
+
+`R/utils/era_release_validation.R` adds a separate release check. The compiler
+writes a SHA256-bound validation receipt only after verifying dates against the
+in-memory result, calendar validity and exact row-linked unresolved-year holds.
+It also binds its RData, raw-date audit, holds and source files. A failed compile
+cannot reuse its old receipt. Source discovery uses the configured master-data
+directory instead of the process working directory.
+
+`package_datasets.R` requires the receipt and matching sidecar hashes, builds an
+exact member manifest, validates the finished archive and uploads only archives
+created by that invocation. Its agronomy and livestock member lists are separate;
+metadata is constructed before writing, with livestock's own version filename.
+Comparison selection excludes livestock subsets and validation/provenance files
+are excluded from automatic JSON selection. `era_agronomy_inputs` can explicitly
+pin `comparisons`, `json` and `codes` paths.
+
+Every upload call in `export_to_s3.R` now passes through the same validation
+wrapper. The entire batch is checked before any upload starts. Unvalidated
+historical agronomic JSON/RData/bundles are rejected, not silently repaired or
+uploaded. Use `era_export_files` to select a bounded batch; archiving unrelated
+remote history is no longer automatic and requires `era_archive_missing = TRUE`.
+
+Run `Rscript tests/test_issue94_release.R` for release-guard regression tests.
+These include invalid ISO dates, future dates consistent with the epoch error,
+lost source dates, mismatched JSON/RData/sidecar hashes, missing/mislinked holds,
+stale package manifests, immutable versioned archives and a mocked uploader
+that must receive zero calls for an invalid batch.
+
+These checks validate date representation and release integrity. They do not
+resolve source ambiguities, approve climate inference or certify model readiness.
+
+## Approved deployment, 24 November 2026
+
+Pete approved the exact publishing plan. Five new immutable objects were written
+and the current agronomy bundle alias was replaced with an ETag/version guard.
+All six exact object versions were downloaded anonymously and matched their
+approved SHA256 values; both archive member sets and hashes passed. The old
+bundle and original JSON remain available. Published JSON matches the previously
+verified full ERA–Carob replay input exactly.
+
+Versioned bundle:
+https://digital-atlas.s3.amazonaws.com/era/data/packaged/era_agronomy_bundle_2026-11-23-issue94.tar.gz
+
+Bundle SHA256:
+`c8cd1eac0f2fa3686519b5cc4f26b7ab72d4bdcc7945caad4944eb9eb376d717`.
+
+The new guard suite passed 22 assertions across seven tests, in addition to the
+27 decoder/binding assertions and four Python staging tests. Full historical
+and current-source merge/save/receipt replays passed. An integration run of
+the actual packaging script built agronomy and livestock archives with a mocked
+uploader: only the four new archives were submitted, and a deliberately invalid
+stale archive was excluded. No test uploaded a generated rebuild.
+
+Production receipts and guard-test evidence:
+`/Users/pstewarda/Documents/rprojects/_era-review/issue94-deployment-2026-11-24/`.
+Consumer pin adoption and climate/source-hold checks remain distinct from this
+verified upstream date repair. Issue closure must not imply climate certification.

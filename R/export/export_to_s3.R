@@ -33,6 +33,9 @@ if (!require("pacman")) {
 # Use p_load to install if not present and load the packages
 p_load(s3fs,zip,arrow,miceadds,paws,jsonlite,future,future.apply,progressr)
 
+source(file.path(project_dir, "R/utils/era_dates.R"), local = TRUE)
+source(file.path(project_dir, "R/utils/era_release_validation.R"), local = TRUE)
+
 # 2) upload data to s3 #####
   ## 2.0) all files in common_data/era/data ####
 
@@ -41,13 +44,17 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite,future,future.apply,progressr)
   
   files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
   files<-files[!grepl("data/packaged",files)]
+  # Select a bounded release when historical files remain in the data folder.
+  if (exists("era_export_files", inherits = FALSE)) files <- era_export_files
   
-  upload_files_to_s3(files = files,
+  era_upload_files_checked(files = files,
                      selected_bucket=s3_bucket,
                      max_attempts = 3,
                      overwrite=F,
                      mode="public-read")
   
+  # A bounded upload must never archive unrelated historical objects.
+  if (isTRUE(get0("era_archive_missing", ifnotfound = FALSE))) {
   # Files no-longer present locally
   files_s3<-s3$dir_ls(s3_bucket)
   files_s3<-files_s3[!files_s3 %in% c("s3://digital-atlas/era/data/archive","s3://digital-atlas/era/data/packaged")]
@@ -65,6 +72,8 @@ p_load(s3fs,zip,arrow,miceadds,paws,jsonlite,future,future.apply,progressr)
   
   s3$dir_ls(file.path(s3_bucket,"archive"))
 
+  }
+
     ### 2.0.1) all files in common_data/era/data/packaged ####
 if(F){
   s3_bucket<-era_dirs$era_packaged_s3
@@ -72,7 +81,7 @@ if(F){
   
   files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
   
-  upload_files_to_s3(files = files,
+  era_upload_files_checked(files = files,
                      selected_bucket=s3_bucket,
                      max_attempts = 3,
                      overwrite=F,
@@ -124,7 +133,7 @@ if(F){
     
     zip::zipr(zipfile = output_zip_file, files =files)
     
-    upload_files_to_s3(files = output_zip_file,
+    era_upload_files_checked(files = output_zip_file,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=T,
@@ -136,7 +145,7 @@ if(F){
     
     files<-list.files(folder_local,era_projects$industrious_elephant_2023,full.names = T,recursive=T)
     files<-grep(".RData",files,value=T)
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -148,7 +157,7 @@ if(F){
     
     files<-list.files(folder_local,era_projects$industrious_elephant_2023,full.names = T,recursive=T)
     files<-grep("comparisons",files,value=T)
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -159,7 +168,7 @@ if(F){
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$industrious_elephant_2023,"training_materials")
     
     files<-list.files(folder_local,full.names = T,recursive=T)
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -194,7 +203,7 @@ if(F){
     output_zip_file <- file.path(folder,paste0(project,".zip"))
     zip::zipr(zipfile = output_zip_file, files =files)
     
-    upload_files_to_s3(files = output_zip_file,
+    era_upload_files_checked(files = output_zip_file,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=T,
@@ -207,7 +216,7 @@ if(F){
     files<-list.files(folder_local,era_projects$skinny_cow_2022,full.names = T,recursive=T)
     files<-grep(".RData",files,value=T)
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -219,7 +228,7 @@ if(F){
     
     files<-list.files(folder_local,era_projects$skinny_cow_2022,full.names = T,recursive=T)
     files<-grep("comparisons",files,value=T)
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -234,7 +243,7 @@ if(F){
     # pdf folders
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,era_projects$majestic_hippo_2020,"pdfs")
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -265,7 +274,7 @@ if(F){
     
     zip::zipr(zipfile = output_zip_file, files =files)
     
-    upload_files_to_s3(files = output_zip_file,
+    era_upload_files_checked(files = output_zip_file,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=T,
@@ -276,7 +285,7 @@ if(F){
     
     files<-list.files(local_folder,recursive = T,full.names = T)
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -288,7 +297,7 @@ if(F){
     
     files<-list.files(folder_local,era_projects$majestic_hippo_2020,full.names = T,recursive=T)
     files<-grep(".RData",files,value=T)
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -300,7 +309,7 @@ if(F){
     
     files<-list.files(folder_local,era_projects$majestic_hippo_2020,full.names = T,recursive=T)
     files<-grep("comparisons",files,value=T)
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -312,7 +321,7 @@ s3_bucket<-file.path(era_dirs$era_search_s3,era_projects$courageous_camel_2024)
 
 files<-list.files(folder,full.names = T,recursive=T)
 
-upload_files_to_s3(files = files,
+era_upload_files_checked(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=F,
@@ -349,7 +358,7 @@ upload_files_to_s3(files = files,
     
     zip::zipr(zipfile = output_zip_file, files =files)
     
-    upload_files_to_s3(files = output_zip_file,
+    era_upload_files_checked(files = output_zip_file,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=T,
@@ -360,7 +369,7 @@ upload_files_to_s3(files = files,
     
     files<-list.files(folder_local,era_projects$courageous_camel_2024,full.names = T,recursive=T)
     files<-grep(".RData",files,value=T)
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -375,7 +384,7 @@ upload_files_to_s3(files = files,
     # pdf folders
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,"pdfs/open_access")
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -389,7 +398,7 @@ upload_files_to_s3(files = files,
     # pdf folders
     s3_bucket<-file.path(era_dirs$era_dataentry_s3,"pdfs/closed_access")
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -404,7 +413,7 @@ upload_files_to_s3(files = files,
       files<-list.files(folder_local,full.names = T,recursive=F,include.dirs = F)
       files<-files[!grepl("geodata/legacy",files)]
       
-      upload_files_to_s3(files = files,
+      era_upload_files_checked(files = files,
                          selected_bucket=s3_bucket,
                          max_attempts = 3,
                          overwrite=F,
@@ -436,7 +445,7 @@ upload_files_to_s3(files = files,
   # Inital set-up from old file system:  
   data_dir<-"C:/Users/PSteward/OneDrive - CGIAR/ERA/ERA/Data/Physical"
 
-  upload_files_to_s3(files = files,
+  era_upload_files_checked(files = files,
                      selected_bucket=s3_bucket,
                      max_attempts = 3,
                      overwrite=T,
@@ -459,7 +468,7 @@ upload_files_to_s3(files = files,
     zip_file<-file.path(data_dir,"power_download.zip")
     zip(zipfile = zip_file,files = files)
   
-    upload_files_to_s3(files = zip_file,
+    era_upload_files_checked(files = zip_file,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=T,
@@ -469,7 +478,7 @@ upload_files_to_s3(files = files,
     s3_bucket<-era_dirs$ancillary_s3
     files<-list.files(era_dirs$ancillary_dir,"feedipedia.parquet",full.names = T,recursive=T)
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -480,7 +489,7 @@ upload_files_to_s3(files = files,
     files<-list.files(era_dirs$ilri_fdb_dir,full.names = T,recursive=T)
     files<-files[!grepl("/~",files)]
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=T,
@@ -535,7 +544,7 @@ upload_files_to_s3(files = files,
     # x.1.1) Compiled datasets
     files<-list.files(local_dir,"compiled",full.names = T)
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=F,
@@ -567,7 +576,7 @@ upload_files_to_s3(files = files,
       files<-file.path(era_dirs$era_geodata_dir,"era_site_topography.parquet")
     }
     
-    upload_files_to_s3(files = files,
+    era_upload_files_checked(files = files,
                        selected_bucket=s3_bucket,
                        max_attempts = 3,
                        overwrite=T,
@@ -628,7 +637,7 @@ upload_files_to_s3(files = files,
       
       files<- c(files1,list.files(data_dir,"parquet",full.names = T))
       
-      upload_files_to_s3(files = files,
+      era_upload_files_checked(files = files,
                          selected_bucket=s3_bucket,
                          max_attempts = 3,
                          overwrite=T,
@@ -653,7 +662,7 @@ upload_files_to_s3(files = files,
       
       files<- c(files,list.files(data_dir,".parquet",full.names = T))
       
-      upload_files_to_s3(files = files,
+      era_upload_files_checked(files = files,
                          selected_bucket=s3_bucket,
                          max_attempts = 3,
                          overwrite=T,
@@ -667,7 +676,7 @@ data_dir<-era_dirs$era_geodata_dir
 files<- list.files(data_dir,"POWER",full.names = T)
 files<-files[!grepl("POWER.CHIRPS",files)]
 
-upload_files_to_s3(files = files,
+era_upload_files_checked(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,
@@ -682,7 +691,7 @@ data<-data.table::fread(files)
 file<-gsub(basename(files),"era_site_landcover.parquet",files)
 arrow::write_parquet(data,file)
 
-upload_files_to_s3(files = file,
+era_upload_files_checked(files = file,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,
@@ -691,7 +700,7 @@ upload_files_to_s3(files = file,
 s3_bucket<-era_dirs$era_geodata_s3
 (files<- list.files(era_dirs$era_geodata_dir,"aez_",full.names = T))
 
-upload_files_to_s3(files = files,
+era_upload_files_checked(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=T,
@@ -704,7 +713,7 @@ s3_bucket<-era_dirs$era_geodata_s3
 
 files<-list.files(era_dirs$era_geodata_dir,"CHIRPS_",full.names = T)
 
-upload_files_to_s3(files = files,
+era_upload_files_checked(files = files,
                    selected_bucket=s3_bucket,
                    max_attempts = 3,
                    overwrite=F,
